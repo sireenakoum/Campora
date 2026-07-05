@@ -1,1 +1,1 @@
-# CampusPulse
+# Campora
