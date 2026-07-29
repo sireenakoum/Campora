@@ -1,36 +1,26 @@
-/* --- THE LIGHT MODE RESET --- */
+/* --- THE LIGHT MODE & BOLD NAVY RESET --- */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800;900&display=swap');
 
 :root {
-  --campora-navy: #0B1A3F;   /* Dark Blue for Text/Cards */
-  --campora-blue: #4318FF;   /* Bright Blue for Accents */
-  --campora-bg: #F4F7FE;     /* Light Grey-Blue for Background */
-  --campora-text: #0B1A3F;   /* Dark Navy for Text */
+  --campora-navy: #0B1A3F;   
+  --campora-blue: #0B1A3F;   /* Changed to Navy */
+  --campora-bg: #F4F7FE;     
+  --campora-text: #0B1A3F;   
   --campora-muted: #A3AED0;
   --radius: 30px;
 }
 
-* { 
-  box-sizing: border-box; 
-  margin: 0; 
-  padding: 0; 
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* FORCING LIGHT BACKGROUND */
 body, html, #root {
   width: 100%;
   height: 100%;
-  background-color: #F4F7FE !important; /* Force light background */
+  background-color: #F4F7FE !important;
   font-family: 'Plus Jakarta Sans', sans-serif;
   overflow: hidden;
 }
 
-.layout { 
-  display: flex; 
-  width: 100vw; 
-  height: 100vh; 
-  background-color: #F4F7FE;
-}
+.layout { display: flex; width: 100vw; height: 100vh; background-color: #F4F7FE; }
 
 .sidebar {
   width: 280px;
@@ -48,34 +38,28 @@ body, html, #root {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  background-color: #F4F7FE; /* Ensure the middle is light */
+  background-color: #F4F7FE;
 }
 
-/* FORCING DARK NAVY TEXT */
-h1, h2, h3, h4, p, span {
-  color: #0B1A3F; 
-}
-
-/* Ensure headings are extra bold */
-h1, h2, h3 {
+/* Force all headings to be Bold Navy Blue */
+h1, h2, h3, h4 {
+  color: #0B1A3F !important;
   font-weight: 900 !important;
 }
 
 .nav-item {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  align-items: center; gap: 15px;
   padding: 16px 30px;
   text-decoration: none;
   color: var(--campora-muted);
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 700; font-size: 15px;
 }
 
 .nav-item.active {
-  color: var(--campora-blue);
+  color: #0B1A3F !important;
   background: #F8FAFF;
-  border-right: 4px solid var(--campora-blue);
+  border-right: 4px solid #0B1A3F;
 }
 
 .card {
@@ -88,6 +72,5 @@ h1, h2, h3 {
 .grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 25px;
-  width: 100%;
+  gap: 25px; width: 100%;
 }
