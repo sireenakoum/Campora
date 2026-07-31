@@ -7,6 +7,7 @@
   --campora-bg: #F4F7FE;     
   --campora-text: #0B1A3F;   
   --campora-muted: #A3AED0;
+  --campora-urgent: #DC2626;
   --radius: 30px;
 }
 
@@ -41,9 +42,9 @@ body, html, #root {
   background-color: #F4F7FE;
 }
 
-/* Force all headings to be Bold Navy Blue */
+/* Default headings to Bold Navy Blue; inline color (e.g. white text on navy cards) still wins */
 h1, h2, h3, h4 {
-  color: #0B1A3F !important;
+  color: #0B1A3F;
   font-weight: 900 !important;
 }
 

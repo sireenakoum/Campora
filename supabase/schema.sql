@@ -1,6 +1,7 @@
 -- Campora dashboard schema
 -- Run this in the Supabase SQL editor for project rupvcrpwokzvjutiootp.
--- Safe to re-run: uses "create table if not exists".
+-- Safe to re-run: table/column creation uses "if not exists" and every
+-- seed insert is guarded so re-running this file never creates duplicates.
 
 create extension if not exists "pgcrypto";
 
@@ -14,6 +15,11 @@ create table if not exists profiles (
   friends_online int not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- Academic-standing fields used by the Course Management page.
+alter table profiles add column if not exists gpa numeric(3, 2) not null default 0;
+alter table profiles add column if not exists credit_hours int not null default 0;
+alter table profiles add column if not exists standing_percent int not null default 0;
 
 create table if not exists classes (
   id uuid primary key default gen_random_uuid(),
@@ -65,9 +71,8 @@ create table if not exists marketplace_listings (
   created_at timestamptz not null default now()
 );
 
--- Row Level Security: the backend reads with the service role key (bypasses RLS),
--- but enable RLS + a public read policy so the tables are safe if ever queried
--- with the anon key directly.
+-- Row Level Security: the frontend reads directly with the anon key, so
+-- RLS is on with a public read policy on every table it queries.
 alter table profiles enable row level security;
 alter table classes enable row level security;
 alter table deadlines enable row level security;
@@ -88,42 +93,60 @@ create policy "Public read" on campus_events for select using (true);
 drop policy if exists "Public read" on marketplace_listings;
 create policy "Public read" on marketplace_listings for select using (true);
 
--- Seed data mirroring the dashboard's current mock content, so the UI looks
--- the same once wired up to real queries.
-with seeded_profile as (
-  insert into profiles (name, role, credits_percent, attendance_percent, friends_online)
-  values ('Lara', 'Senior Year', 75, 92, 12)
-  returning id
-)
+-- Seed data mirroring the dashboard's original mock content, so the UI
+-- looks the same once wired up to real queries. Each insert is guarded
+-- so re-running this file never duplicates rows.
+insert into profiles (name, role, credits_percent, attendance_percent, friends_online, gpa, credit_hours, standing_percent)
+select 'Lara', 'Senior Year', 75, 92, 12, 3.92, 22, 85
+where not exists (select 1 from profiles where name = 'Lara');
+
+-- Backfill for rows created before gpa/credit_hours/standing_percent existed.
+update profiles set gpa = 3.92, credit_hours = 22, standing_percent = 85
+where name = 'Lara' and gpa = 0 and credit_hours = 0 and standing_percent = 0;
+
 insert into classes (profile_id, title, professor, location, icon, join_type, join_url, starts_at, ends_at)
-select id, 'Advanced Architecture', 'Prof. Julian Vane', 'Building 4, Room 202', 'architecture', 'video', '#',
-       date_trunc('day', now()) + interval '9 hours', date_trunc('day', now()) + interval '10 hours 30 minutes'
-from seeded_profile
-union all
-select id, 'Algorithm Design', 'Dr. Sarah Chen', 'Engineering Wing', 'code', 'map', '#',
-       date_trunc('day', now()) + interval '13 hours', date_trunc('day', now()) + interval '14 hours 30 minutes'
-from seeded_profile;
+select p.id, v.title, v.professor, v.location, v.icon, v.join_type, v.join_url,
+       date_trunc('day', now()) + v.start_offset, date_trunc('day', now()) + v.end_offset
+from profiles p
+cross join (values
+  ('Advanced Architecture', 'Prof. Julian Vane', 'Building 4, Room 202', 'architecture', 'video', '#', interval '9 hours', interval '10 hours 30 minutes'),
+  ('Algorithm Design', 'Dr. Sarah Chen', 'Engineering Wing', 'code', 'map', '#', interval '13 hours', interval '14 hours 30 minutes')
+) as v(title, professor, location, icon, join_type, join_url, start_offset, end_offset)
+where p.name = 'Lara'
+  and not exists (select 1 from classes c where c.profile_id = p.id);
 
 insert into deadlines (profile_id, title, tag, tag_style, percent_complete, due_at)
-select id, 'Physics Lab Report', 'High', 'error', 80, date_trunc('day', now()) + interval '18 hours'
-from profiles where name = 'Lara'
-union all
-select id, 'Art History Essay', 'Medium', 'secondary', 35, date_trunc('day', now()) + interval '1 day 9 hours'
-from profiles where name = 'Lara';
+select p.id, v.title, v.tag, v.tag_style, v.percent_complete, date_trunc('day', now()) + v.due_offset
+from profiles p
+cross join (values
+  ('Physics Lab Report', 'High', 'error', 80, interval '18 hours'),
+  ('Art History Essay', 'Medium', 'secondary', 35, interval '1 day 9 hours')
+) as v(title, tag, tag_style, percent_complete, due_offset)
+where p.name = 'Lara'
+  and not exists (select 1 from deadlines d where d.profile_id = p.id);
 
 insert into briefing_items (profile_id, type, label, body)
-select id, 'unread', 'Unread', '4 emails from Prof. Aris regarding the final thesis structure.'
-from profiles where name = 'Lara'
-union all
-select id, 'urgent', 'Urgent', 'Physics lab report is due in 6 hours. You''ve completed 80%.'
-from profiles where name = 'Lara';
+select p.id, v.type, v.label, v.body
+from profiles p
+cross join (values
+  ('unread', 'Unread', '4 emails from Prof. Aris regarding the final thesis structure.'),
+  ('urgent', 'Urgent', 'Physics lab report is due in 6 hours. You''ve completed 80%.')
+) as v(type, label, body)
+where p.name = 'Lara'
+  and not exists (select 1 from briefing_items b where b.profile_id = p.id);
 
 insert into campus_events (category, title, description, image_url, event_date)
-values
-  ('Career Center', 'Tech Internship Fair 2024', 'Meet recruiters from Google, Meta, and Tesla', null, now()),
-  ('Student Life', 'Outdoor Cinema Night', 'Join us for ''Interstellar'' under the stars', null, now());
+select v.category, v.title, v.description, null::text, now()
+from (values
+  ('Career Center', 'Tech Internship Fair 2024', 'Meet recruiters from Google, Meta, and Tesla'),
+  ('Student Life', 'Outdoor Cinema Night', 'Join us for ''Interstellar'' under the stars')
+) as v(category, title, description)
+where not exists (select 1 from campus_events e where e.title = v.title);
 
 insert into marketplace_listings (title, price, image_url)
-values
-  ('MacBook Air M2', 850.00, null),
-  ('Arch. Textbooks', 120.00, null);
+select v.title, v.price, null::text
+from (values
+  ('MacBook Air M2', 850.00),
+  ('Arch. Textbooks', 120.00)
+) as v(title, price)
+where not exists (select 1 from marketplace_listings m where m.title = v.title);
