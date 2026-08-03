@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'
+import { supabase } from './supabase'
 
 // Fetch user profile by ID
 export async function getProfile(userId) {
@@ -8,8 +8,7 @@ export async function getProfile(userId) {
     .eq('id', userId)
     .single()
 
-  if (error) throw error
-  return data
+  return { data, error }
 }
 
 // Update user profile
@@ -22,6 +21,5 @@ export async function updateProfile(userId, updates) {
     })
     .eq('id', userId)
 
-  if (error) throw error
-  return data
+  return { data, error }
 }

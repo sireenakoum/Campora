@@ -1,5 +1,7 @@
+
 import { useState } from 'react';
-import { signIn } from '../lib/auth';
+import { Link } from 'react-router-dom';
+import { signIn } from './lib/auth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,8 +19,7 @@ export default function Login() {
     if (error) {
       setError(error.message);
     } else {
-      // Successfully logged in! Redirect to profile or dashboard
-      window.location.href = '/profile';
+      window.location.href = '/dashboard';
     }
     setLoading(false);
   };
@@ -53,6 +54,8 @@ export default function Login() {
           {loading ? 'Logging in...' : 'Log In'}
         </button>
       </form>
+
+      <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
     </div>
   );
 }

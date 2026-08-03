@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { resetPassword } from '../lib/auth';
+import { resetPassword } from './lib/auth';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');

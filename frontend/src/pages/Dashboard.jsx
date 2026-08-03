@@ -77,8 +77,26 @@ export default function Dashboard() {
 
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
-      <p style={{ color: 'var(--campora-muted)', fontWeight: '800', letterSpacing: '2px', fontSize: '12px', marginBottom: '10px' }}>{dateLabel}</p>
-      <h1 style={{ fontSize: '42px', fontWeight: '900', marginBottom: '40px', color: '#0B1A3F' }}>{greeting()}, {profile.name}</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <p style={{ color: 'var(--campora-muted)', fontWeight: '800', letterSpacing: '2px', fontSize: '12px', marginBottom: '10px' }}>{dateLabel}</p>
+          <h1 style={{ fontSize: '42px', fontWeight: '900', marginBottom: '40px', color: '#0B1A3F' }}>{greeting()}, {profile.name}</h1>
+        </div>
+        <Link
+          to="/login"
+          style={{
+            padding: '12px 22px',
+            borderRadius: '15px',
+            fontWeight: 'bold',
+            textDecoration: 'none',
+            background: 'var(--campora-navy)',
+            color: 'white',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Log In / Sign Up
+        </Link>
+      </div>
 
       <div className="grid" style={{ marginBottom: '25px' }}>
         <div className="card" style={{ gridColumn: 'span 8', background: 'var(--campora-navy)', color: 'white' }}>

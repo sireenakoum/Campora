@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, Link, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Bell, GraduationCap, Calendar, Search, User } from 'lucide-react';
 import './App.css';
 
@@ -7,10 +7,12 @@ import Dashboard from './pages/Dashboard';
 import Announcements from './pages/Announcements';
 import CourseManagement from './pages/CourseManagement';
 import Planner from './pages/Planner';
+import Login from './Login';
+import SignUp from './pages/SignUp';
+import Profile from './Profile';
 
-export default function App() {
+function DashboardLayout() {
   return (
-    <Router>
       <div className="layout">
         <aside className="sidebar">
           
@@ -76,7 +78,7 @@ export default function App() {
 
           {/* --- NAVIGATION --- */}
           <nav style={{ flex: 1 }}>
-            <NavLink to="/" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+            <NavLink to="/dashboard" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
               <LayoutDashboard size={20}/> Dashboard
             </NavLink>
             <NavLink to="/announcements" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
@@ -91,7 +93,7 @@ export default function App() {
           </nav>
 
           {/* --- FIXED PROFILE SECTION --- */}
-          <div style={{ padding: '25px', borderTop: '1px solid #eee' }}>
+          <Link to="/profile" style={{ padding: '25px', borderTop: '1px solid #eee', textDecoration: 'none', cursor: 'pointer', display: 'block' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ 
                 width: '42px', 
@@ -131,7 +133,7 @@ export default function App() {
                 </p>
               </div>
             </div>
-          </div>
+          </Link>
         </aside>
 
         <main className="main-content">
@@ -142,14 +144,27 @@ export default function App() {
             </div>
           </header>
           
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/announcements" element={<Announcements />} />
-            <Route path="/courses" element={<CourseManagement />} />
-            <Route path="/planner" element={<Planner />} />
-          </Routes>
+          <Outlet />
         </main>
       </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/announcements" element={<Announcements />} />
+          <Route path="/courses" element={<CourseManagement />} />
+          <Route path="/planner" element={<Planner />} />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
+      </Routes>
     </Router>
   );
 }

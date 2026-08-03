@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { signUp } from '../lib/auth';
 
 export default function SignUp() {
@@ -67,6 +68,8 @@ export default function SignUp() {
           {loading ? 'Creating Account...' : 'Sign Up'}
         </button>
       </form>
+
+      <p>Already have an account? <Link to="/login">Log In</Link></p>
     </div>
   );
 }
