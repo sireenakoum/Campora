@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { signUp } from '../lib/auth';
 
 export default function SignUp() {
@@ -9,6 +9,13 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  // Clear any HMR-preserved stale state on fresh mount
+  useEffect(() => {
+    setError(null);
+    setMessage(null);
+  }, []);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -16,11 +23,18 @@ export default function SignUp() {
     setError(null);
     setMessage(null);
 
-    // Pass email, password, and extra profile data (like full_name)
-    const { data, error } = await signUp(email, password, { full_name: fullName });
+    const cleanEmail = email.trim().toLowerCase();
 
-    if (error) {
-      setError(error.message);
+    if (!cleanEmail.endsWith('@mail.aub.edu')) {
+      setError('Access restricted: You must use a valid @mail.aub.edu email address.');
+      setLoading(false);
+      return;
+    }
+
+    const { data, error: signUpError } = await signUp(cleanEmail, password, { full_name: fullName });
+
+    if (signUpError) {
+      setError(signUpError?.message || 'An error occurred. Please try again.');
     } else {
       setMessage('Account created! Please check your email to confirm registration.');
     }
@@ -28,48 +42,195 @@ export default function SignUp() {
   };
 
   return (
-    <div className="auth-container">
-      <h2>Create Your Account</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {message && <p style={{ color: 'green' }}>{message}</p>}
-
-      <form onSubmit={handleSignUp}>
-        <div>
-          <label>Full Name</label>
-          <input 
-            type="text" 
-            value={fullName} 
-            onChange={(e) => setFullName(e.target.value)} 
-            required 
-          />
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <div style={styles.header}>
+          <h1 style={styles.logoTitle}>Campora</h1>
+          <p style={styles.subtitle}>Create Your Account</p>
         </div>
 
-        <div>
-          <label>Email</label>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-          />
+        {error && typeof error === 'string' && (
+          <div style={styles.errorBox}>
+            <span>{error}</span>
+            <button onClick={() => setError(null)} style={styles.errorClose}>✕</button>
+          </div>
+        )}
+
+        {message && (
+          <div style={styles.successBox}>
+            <span>{message}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSignUp} style={styles.form} noValidate>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Full Name</label>
+            <input
+              type="text"
+              placeholder="John Doe"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Email Address</label>
+            <input
+              type="email"
+              placeholder="username@mail.aub.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={loading ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
+          >
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </button>
+        </form>
+
+        <div style={styles.footer}>
+          <p style={{ margin: 0, fontSize: '0.95rem', color: '#6B7280' }}>
+            Already have an account?{' '}
+            <Link to="/login" style={styles.link}>
+              Log In
+            </Link>
+          </p>
         </div>
-
-        <div>
-          <label>Password</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-          />
-        </div>
-
-        <button type="submit" disabled={loading}>
-          {loading ? 'Creating Account...' : 'Sign Up'}
-        </button>
-      </form>
-
-      <p>Already have an account? <Link to="/login">Log In</Link></p>
+      </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    padding: '3rem',
+    borderRadius: '20px',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+    width: '100%',
+    maxWidth: '420px',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '2.5rem',
+  },
+  logoTitle: {
+    color: '#111827',
+    fontSize: '2.25rem',
+    fontWeight: '800',
+    margin: '0 0 0.5rem 0',
+  },
+  subtitle: {
+    color: '#6B7280',
+    fontSize: '1rem',
+    margin: 0,
+  },
+  errorBox: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    border: '1px solid #FECACA',
+    color: '#DC2626',
+    padding: '0.85rem 1.1rem',
+    borderRadius: '10px',
+    marginBottom: '1.5rem',
+    fontSize: '0.9rem',
+  },
+  errorClose: {
+    background: 'none',
+    border: 'none',
+    color: '#DC2626',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+    padding: 0,
+    marginLeft: '8px',
+  },
+  successBox: {
+    backgroundColor: '#F0FDF4',
+    border: '1px solid #BBF7D0',
+    color: '#16A34A',
+    padding: '0.85rem 1.1rem',
+    borderRadius: '10px',
+    marginBottom: '1.5rem',
+    fontSize: '0.9rem',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.5rem',
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  },
+  label: {
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  input: {
+    padding: '0.9rem 1.25rem',
+    borderRadius: '10px',
+    border: '1px solid #D1D5DB',
+    fontSize: '1rem',
+    color: '#111827',
+    outline: 'none',
+    transition: 'border-color 0.2s ease',
+    backgroundColor: '#fff',
+  },
+  button: {
+    backgroundColor: '#1F2937',
+    color: '#FFFFFF',
+    padding: '1rem',
+    borderRadius: '10px',
+    border: 'none',
+    fontSize: '1rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+  },
+  buttonDisabled: {
+    backgroundColor: '#9CA3AF',
+    cursor: 'not-allowed',
+  },
+  footer: {
+    marginTop: '2rem',
+    textAlign: 'center',
+  },
+  link: {
+    color: '#2563EB',
+    textDecoration: 'none',
+    fontSize: '0.95rem',
+    fontWeight: '500',
+  },
+};

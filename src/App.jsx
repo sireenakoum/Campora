@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, Link, Outlet } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Bell, GraduationCap, Calendar, Search, User } from 'lucide-react';
 import './App.css';
 
@@ -10,8 +10,71 @@ import Planner from './pages/Planner';
 import Login from './Login';
 import SignUp from './pages/SignUp';
 import Profile from './Profile';
+import ForgotPassword from './ForgotPassword';
+import { supabase } from './lib/supabase';
+
+// ── Email-verified confirmation page ──────────────────────────────────────
+function EmailVerified() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const timer = setTimeout(() => navigate('/login'), 4000);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center',
+      backgroundColor: '#F3F4F6', fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      <div style={{
+        backgroundColor: '#fff', padding: '3rem', borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.05)', maxWidth: '420px', width: '100%', textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+        <h1 style={{ color: '#111827', fontSize: '1.75rem', fontWeight: '800', margin: '0 0 0.75rem' }}>Email Verified!</h1>
+        <p style={{ color: '#6B7280', fontSize: '1rem', marginBottom: '2rem' }}>
+          Your Campora account is confirmed. Redirecting you to login…
+        </p>
+        <Link
+          to="/login"
+          style={{
+            display: 'inline-block', padding: '0.9rem 2rem', borderRadius: '10px',
+            backgroundColor: '#1F2937', color: '#fff', fontWeight: '700',
+            textDecoration: 'none', fontSize: '1rem'
+          }}
+        >
+          Log In Now
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 function DashboardLayout() {
+  const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('Student');
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      // Try DB profile name first, fall back to metadata, then email prefix
+      supabase
+        .from('profiles')
+        .select('name, role')
+        .eq('id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          setUserName(
+            data?.name ??
+            user.user_metadata?.full_name ??
+            user.email?.split('@')[0] ??
+            'Student'
+          );
+          setUserRole(data?.role ?? 'Student');
+        });
+    });
+  }, []);
+
   return (
       <div className="layout">
         <aside className="sidebar">
@@ -109,7 +172,6 @@ function DashboardLayout() {
                 <User size={22} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {/* FORCED BOLD NAME: Using weight 900 and explicitly setting font family */}
                 <p style={{ 
                   fontWeight: '900', 
                   fontSize: '15px', 
@@ -118,9 +180,8 @@ function DashboardLayout() {
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
                   lineHeight: '1.2'
                 }}>
-                  Lara
+                  {userName || '…'}
                 </p>
-                {/* FORCED BOLD YEAR: Using weight 800 and explicitly setting font family */}
                 <p style={{ 
                   fontWeight: '800', 
                   fontSize: '11px', 
@@ -129,7 +190,7 @@ function DashboardLayout() {
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
                   opacity: 0.9 
                 }}>
-                  Senior Year
+                  {userRole}
                 </p>
               </div>
             </div>
@@ -154,9 +215,11 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/signup" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verified" element={<EmailVerified />} />
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/announcements" element={<Announcements />} />

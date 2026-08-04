@@ -5,11 +5,13 @@ import { supabase } from './supabase';
 // ==========================================
 
 export async function getProfile() {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) throw authError ?? new Error('Not authenticated');
+
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .order('created_at', { ascending: true })
-    .limit(1)
+    .eq('id', user.id)
     .maybeSingle();
   if (error) throw error;
   return data;

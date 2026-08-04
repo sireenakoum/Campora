@@ -114,7 +114,7 @@ export default function Dashboard() {
 
       <div className="grid" style={{ marginBottom: '25px' }}>
         <div className="card" style={{ gridColumn: 'span 8', background: 'var(--campora-navy)', color: 'white' }}>
-          <h2 style={{ color: 'white', fontSize: '32px', marginBottom: '20px', fontWeight: '800' }}>Your day is looking highly productive.</h2>
+          <h2 style={{ color: 'white', fontSize: '32px', marginBottom: '20px', fontWeight: '800' }}>{urgent ? 'You have urgent items to address.' : 'Your day is looking highly productive.'}</h2>
           <p style={{ opacity: 0.8, fontSize: '18px' }}>{urgent ? urgent.body : 'No urgent items on your plate right now.'}</p>
           <button style={{ marginTop: '40px', padding: '14px 28px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer', background: 'white', color: 'var(--campora-navy)' }}>Ask Assistant</button>
         </div>

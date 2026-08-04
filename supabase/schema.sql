@@ -5,6 +5,8 @@
 
 create extension if not exists "pgcrypto";
 
+-- profiles uses its own generated UUID. The handle_new_user trigger
+-- inserts with id = new.id so real auth users are linked by their auth UUID.
 create table if not exists profiles (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -93,11 +95,42 @@ create policy "Public read" on campus_events for select using (true);
 drop policy if exists "Public read" on marketplace_listings;
 create policy "Public read" on marketplace_listings for select using (true);
 
+-- -----------------------------------------------------------------------
+-- TRIGGER: Automatically create a profile row when a user signs up.
+-- Reads `full_name` from raw_user_meta_data (matches what SignUp.jsx sends).
+-- Falls back to the email prefix if full_name is missing.
+-- -----------------------------------------------------------------------
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, name)
+  values (
+    new.id,
+    coalesce(
+      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+      split_part(new.email, '@', 1)   -- fallback: use email prefix
+    )
+  );
+  return new;
+end;
+$$;
+
+-- Drop and recreate so the trigger stays up to date on re-runs.
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- -----------------------------------------------------------------------
 -- Seed data mirroring the dashboard's original mock content, so the UI
 -- looks the same once wired up to real queries. Each insert is guarded
 -- so re-running this file never duplicates rows.
-insert into profiles (name, role, credits_percent, attendance_percent, friends_online, gpa, credit_hours, standing_percent)
-select 'Lara', 'Senior Year', 75, 92, 12, 3.92, 22, 85
+-- -----------------------------------------------------------------------
+insert into profiles (id, name, role, credits_percent, attendance_percent, friends_online, gpa, credit_hours, standing_percent)
+select gen_random_uuid(), 'Lara', 'Senior Year', 75, 92, 12, 3.92, 22, 85
 where not exists (select 1 from profiles where name = 'Lara');
 
 -- Backfill for rows created before gpa/credit_hours/standing_percent existed.

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "./lib/supabase"; 
 import ErrorMessage from "./ErrorMessage";
 
@@ -8,6 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault(); 
@@ -30,8 +31,7 @@ export default function Login() {
     if (authError) {
       setError(authError.message);
     } else {
-      // Successful login logic here (e.g., redirect to dashboard)
-      alert("Successfully logged in!");
+      navigate('/dashboard');
     }
     setLoading(false);
   };
@@ -78,7 +78,10 @@ export default function Login() {
         </form>
 
         <div style={styles.footer}>
-          <Link to="/forgot-password" style={styles.forgotLink}>
+          <p style={{ margin: '0 0 10px 0', fontSize: '0.95rem', color: '#6B7280' }}>
+            Don't have an account? <Link to="/signup" style={styles.forgotLink}>Sign Up</Link>
+          </p>
+          <Link to="/forgot-password" style={{ ...styles.forgotLink, fontSize: '0.85rem', color: '#6B7280' }}>
             Forgot Password?
           </Link>
         </div>
