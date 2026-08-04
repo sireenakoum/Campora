@@ -89,8 +89,54 @@ export default function Planner() {
       entriesToSave.push(cleanEntry(newEntry.date, false));
     }
 
-    await supabase.from('planner_courses').insert(entriesToSave);
-    setIsModalOpen(false);
+const { data: savedEntries, error: plannerError } = await supabase
+  .from('planner_courses')
+  .insert(entriesToSave)
+  .select();
+
+if (plannerError) {
+  console.error('Could not save planner entries:', plannerError);
+  alert('Could not save the planner entry.');
+  return;
+}
+
+const {
+  data: { user },
+  error: userError
+} = await supabase.auth.getUser();
+
+if (userError || !user) {
+  console.error('Could not identify the signed-in user:', userError);
+  alert('You must be signed in to create reminders.');
+  return;
+}
+
+const reminderTypeMap = {
+  Class: 'class',
+  Task: 'personal',
+  Exam: 'exam'
+};
+
+const remindersToSave = savedEntries.map((entry) => ({
+  profile_id: user.id,
+  title: entry.name,
+  description: `${entry.type} scheduled from ${entry.start_time} to ${entry.end_time}`,
+  reminder_type: reminderTypeMap[entry.type] || 'personal',
+  source_id: entry.id,
+  remind_at: new Date(
+    `${entry.date}T${entry.start_time}`
+  ).toISOString(),
+  status: 'pending'
+}));
+
+const { error: reminderError } = await supabase
+  .from('reminders')
+  .insert(remindersToSave);
+
+if (reminderError) {
+  console.error('Could not generate reminders:', reminderError);
+  alert('The planner entry was saved, but its reminder could not be created.');
+}    setIsModalOpen(false);
     fetchCourses();
   };
 
