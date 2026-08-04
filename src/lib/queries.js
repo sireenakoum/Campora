@@ -311,3 +311,39 @@ export async function getUnreadNotificationsForCurrentUser() {
   if (error) throw error;
   return data ?? [];
 }
+
+export async function markNotificationAsRead(notificationId) {
+  const readAt = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .update({
+      status: 'read',
+      read_at: readAt,
+    })
+    .eq('id', notificationId)
+    .select();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateNotificationStatus(notificationId, status) {
+  if (!['unread', 'read'].includes(status)) {
+    throw new Error('Invalid notification status');
+  }
+
+  const updates = {
+    status,
+    read_at: status === 'read' ? new Date().toISOString() : null,
+  };
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .update(updates)
+    .eq('id', notificationId)
+    .select();
+
+  if (error) throw error;
+  return data;
+}
