@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { supabase } from "./lib/supabase"; 
 import ErrorMessage from "./ErrorMessage";
 
 export default function Login() {
@@ -10,7 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // Prevents page refresh/redirect to login
+    e.preventDefault(); 
     setError("");
 
     const cleanEmail = email.trim().toLowerCase();
@@ -30,6 +30,7 @@ export default function Login() {
     if (authError) {
       setError(authError.message);
     } else {
+      // Successful login logic here (e.g., redirect to dashboard)
       alert("Successfully logged in!");
     }
     setLoading(false);
@@ -43,7 +44,7 @@ export default function Login() {
           <p style={styles.subtitle}>Academic Portal Login</p>
         </div>
 
-        {/* Custom styled Error Message component */}
+        {/* Display errors with custom styled component */}
         <ErrorMessage message={error} onClose={() => setError("")} />
 
         <form onSubmit={handleLogin} style={styles.form} noValidate>
@@ -86,79 +87,88 @@ export default function Login() {
   );
 }
 
+// Styles to match the provided design
 const styles = {
   container: {
     minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F0F4F8",
+    backgroundColor: "#F3F4F6", // Light gray background
     fontFamily: "system-ui, -apple-system, sans-serif",
   },
   card: {
     backgroundColor: "#FFFFFF",
-    padding: "2.5rem",
-    borderRadius: "16px",
-    boxShadow: "0 10px 25px rgba(15, 23, 42, 0.08)",
+    padding: "3rem", // More generous padding
+    borderRadius: "20px", // More rounded corners
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.05)", // Soft shadow
     width: "100%",
-    maxWidth: "400px",
+    maxWidth: "420px", // Ideal width from image
   },
   header: {
     textAlign: "center",
-    marginBottom: "2rem",
+    marginBottom: "2.5rem",
   },
   logoTitle: {
-    color: "#0F294A",
-    fontSize: "2rem",
-    fontWeight: "700",
-    margin: "0 0 0.25rem 0",
+    color: "#111827",
+    fontSize: "2.25rem", // Larger, more prominent title
+    fontWeight: "800",
+    margin: "0 0 0.5rem 0",
   },
   subtitle: {
-    color: "#64748B",
-    fontSize: "0.9rem",
+    color: "#6B7280",
+    fontSize: "1rem",
     margin: 0,
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.25rem",
+    gap: "1.5rem",
   },
   inputGroup: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.4rem",
+    gap: "0.5rem",
   },
   label: {
-    fontSize: "0.85rem",
+    fontSize: "0.9rem",
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#1F2937",
   },
   input: {
-    padding: "0.75rem 1rem",
-    borderRadius: "8px",
-    border: "1px solid #CBD5E1",
-    fontSize: "0.95rem",
+    padding: "0.9rem 1.25rem", // Slightly larger inputs
+    borderRadius: "10px",
+    border: "1px solid #D1D5DB",
+    fontSize: "1rem",
+    color: "#111827",
     outline: "none",
+    transition: "border-color 0.2s ease",
+  },
+  inputFocus: {
+    borderColor: "#3B82F6",
   },
   button: {
-    backgroundColor: "#0F294A",
+    backgroundColor: "#1F2937", // Dark button color
     color: "#FFFFFF",
-    padding: "0.85rem",
-    borderRadius: "8px",
+    padding: "1rem",
+    borderRadius: "10px",
     border: "none",
-    fontSize: "0.95rem",
-    fontWeight: "600",
+    fontSize: "1rem",
+    fontWeight: "700",
     cursor: "pointer",
-    marginTop: "0.5rem",
+    transition: "background-color 0.2s ease",
+  },
+  buttonDisabled: {
+    backgroundColor: "#9CA3AF",
   },
   footer: {
-    marginTop: "1.25rem",
+    marginTop: "2rem",
     textAlign: "center",
   },
   forgotLink: {
-    color: "#2563EB",
+    color: "#2563EB", // Blue link color
     textDecoration: "none",
-    fontSize: "0.85rem",
+    fontSize: "0.95rem",
     fontWeight: "500",
   },
 };
