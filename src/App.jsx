@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Announcements from './pages/Announcements';
 import CourseManagement from './pages/CourseManagement';
 import Planner from './pages/Planner';
+import Onboarding from './pages/Onboarding';
 import Login from './Login';
 import SignUp from './pages/SignUp';
 import Profile from './Profile';
@@ -53,27 +54,42 @@ function EmailVerified() {
 function DashboardLayout() {
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('Student');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
+    let cancelled = false;
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (!user) {
+        navigate('/login', { replace: true });
+        return;
+      }
       // Try DB profile name first, fall back to metadata, then email prefix
-      supabase
+      const { data } = await supabase
         .from('profiles')
-        .select('name, role')
+        .select('name, role, onboarding_completed')
         .eq('id', user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          setUserName(
-            data?.name ??
-            user.user_metadata?.full_name ??
-            user.email?.split('@')[0] ??
-            'Student'
-          );
-          setUserRole(data?.role ?? 'Student');
-        });
-    });
-  }, []);
+        .maybeSingle();
+      if (cancelled) return;
+
+      // New users must finish onboarding before seeing the dashboard.
+      if (data?.onboarding_completed !== true) {
+        navigate('/onboarding', { replace: true });
+        return;
+      }
+
+      setUserName(
+        data?.name ??
+        user.user_metadata?.full_name ??
+        user.email?.split('@')[0] ??
+        'Student'
+      );
+      setUserRole(data?.role ?? 'Student');
+    }
+    init();
+    return () => { cancelled = true; };
+  }, [navigate]);
 
   return (
       <div className="layout">
@@ -220,6 +236,7 @@ export default function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verified" element={<EmailVerified />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/announcements" element={<Announcements />} />

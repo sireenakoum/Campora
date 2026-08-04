@@ -46,7 +46,7 @@ export default function Dashboard() {
 
         const activeProfile = profileData ?? {
           id: 'demo',
-          name: 'Lara',
+          name: 'Student',
           year: 'Senior Year',
           credits_percent: 85,
           attendance_percent: 94,

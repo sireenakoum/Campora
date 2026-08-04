@@ -12,6 +12,7 @@ export default function CourseManagement() {
   
   const [newCourse, setNewCourse] = useState({ name: '', color: '#E0F2FE' });
   const [activeNotes, setActiveNotes] = useState("");
+  const [userId, setUserId] = useState(null);
 
   const pastelColors = [
     { bg: '#E0F2FE', text: '#0369A1' }, { bg: '#FCE7F3', text: '#BE185D' },
@@ -21,7 +22,9 @@ export default function CourseManagement() {
 
   const fetchCourses = async () => {
     setLoading(true);
-    const { data } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('courses').select('*');
+    if (userId) query = query.eq('profile_id', userId);
+    const { data } = await query.order('created_at', { ascending: false });
     setCourses(data || []);
     setLoading(false);
   };
@@ -31,11 +34,19 @@ export default function CourseManagement() {
     setCourseFiles(data || []);
   };
 
-  useEffect(() => { fetchCourses(); }, []);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (userId) fetchCourses();
+  }, [userId]);
 
   const handleAddCourse = async (e) => {
     e.preventDefault();
-    await supabase.from('courses').insert([newCourse]);
+    await supabase.from('courses').insert([{ ...newCourse, profile_id: userId }]);
     setIsModalOpen(false);
     fetchCourses();
   };

@@ -15,13 +15,21 @@ create table if not exists profiles (
   credits_percent int not null default 0,
   attendance_percent int not null default 0,
   friends_online int not null default 0,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 -- Academic-standing fields used by the Course Management page.
 alter table profiles add column if not exists gpa numeric(3, 2) not null default 0;
 alter table profiles add column if not exists credit_hours int not null default 0;
 alter table profiles add column if not exists standing_percent int not null default 0;
+
+-- Onboarding fields collected on the post-signup onboarding page.
+alter table profiles add column if not exists account_type text not null default 'Student';
+alter table profiles add column if not exists major text;
+alter table profiles add column if not exists year text;
+alter table profiles add column if not exists courses_taken jsonb not null default '[]'::jsonb;
+alter table profiles add column if not exists onboarding_completed boolean not null default false;
 
 create table if not exists classes (
   id uuid primary key default gen_random_uuid(),
@@ -73,6 +81,28 @@ create table if not exists marketplace_listings (
   created_at timestamptz not null default now()
 );
 
+-- User courses: seeded from the onboarding selection, then managed in the
+-- Course Management page. `profile_id` scopes courses to their owner.
+-- (If the hosted DB already has these tables, the alter below just adds
+-- the ownership column.)
+create table if not exists courses (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references profiles(id) on delete cascade,
+  name text not null,
+  color text not null default '#E0F2FE',
+  notes text,
+  created_at timestamptz not null default now()
+);
+alter table courses add column if not exists profile_id uuid references profiles(id) on delete cascade;
+
+create table if not exists course_resources (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references courses(id) on delete cascade,
+  file_name text not null,
+  file_url text not null,
+  created_at timestamptz not null default now()
+);
+
 -- Row Level Security: the frontend reads directly with the anon key, so
 -- RLS is on with a public read policy on every table it queries.
 alter table profiles enable row level security;
@@ -84,6 +114,8 @@ alter table marketplace_listings enable row level security;
 
 drop policy if exists "Public read" on profiles;
 create policy "Public read" on profiles for select using (true);
+drop policy if exists "Users can update own profile" on profiles;
+create policy "Users can update own profile" on profiles for update using (auth.uid() = id) with check (auth.uid() = id);
 drop policy if exists "Public read" on classes;
 create policy "Public read" on classes for select using (true);
 drop policy if exists "Public read" on deadlines;
@@ -125,49 +157,9 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- -----------------------------------------------------------------------
--- Seed data mirroring the dashboard's original mock content, so the UI
--- looks the same once wired up to real queries. Each insert is guarded
--- so re-running this file never duplicates rows.
+-- Seed data for the global tables (announcements & marketplace).
+-- Each insert is guarded so re-running this file never duplicates rows.
 -- -----------------------------------------------------------------------
-insert into profiles (id, name, role, credits_percent, attendance_percent, friends_online, gpa, credit_hours, standing_percent)
-select gen_random_uuid(), 'Lara', 'Senior Year', 75, 92, 12, 3.92, 22, 85
-where not exists (select 1 from profiles where name = 'Lara');
-
--- Backfill for rows created before gpa/credit_hours/standing_percent existed.
-update profiles set gpa = 3.92, credit_hours = 22, standing_percent = 85
-where name = 'Lara' and gpa = 0 and credit_hours = 0 and standing_percent = 0;
-
-insert into classes (profile_id, title, professor, location, icon, join_type, join_url, starts_at, ends_at)
-select p.id, v.title, v.professor, v.location, v.icon, v.join_type, v.join_url,
-       date_trunc('day', now()) + v.start_offset, date_trunc('day', now()) + v.end_offset
-from profiles p
-cross join (values
-  ('Advanced Architecture', 'Prof. Julian Vane', 'Building 4, Room 202', 'architecture', 'video', '#', interval '9 hours', interval '10 hours 30 minutes'),
-  ('Algorithm Design', 'Dr. Sarah Chen', 'Engineering Wing', 'code', 'map', '#', interval '13 hours', interval '14 hours 30 minutes')
-) as v(title, professor, location, icon, join_type, join_url, start_offset, end_offset)
-where p.name = 'Lara'
-  and not exists (select 1 from classes c where c.profile_id = p.id);
-
-insert into deadlines (profile_id, title, tag, tag_style, percent_complete, due_at)
-select p.id, v.title, v.tag, v.tag_style, v.percent_complete, date_trunc('day', now()) + v.due_offset
-from profiles p
-cross join (values
-  ('Physics Lab Report', 'High', 'error', 80, interval '18 hours'),
-  ('Art History Essay', 'Medium', 'secondary', 35, interval '1 day 9 hours')
-) as v(title, tag, tag_style, percent_complete, due_offset)
-where p.name = 'Lara'
-  and not exists (select 1 from deadlines d where d.profile_id = p.id);
-
-insert into briefing_items (profile_id, type, label, body)
-select p.id, v.type, v.label, v.body
-from profiles p
-cross join (values
-  ('unread', 'Unread', '4 emails from Prof. Aris regarding the final thesis structure.'),
-  ('urgent', 'Urgent', 'Physics lab report is due in 6 hours. You''ve completed 80%.')
-) as v(type, label, body)
-where p.name = 'Lara'
-  and not exists (select 1 from briefing_items b where b.profile_id = p.id);
-
 insert into campus_events (category, title, description, image_url, event_date)
 select v.category, v.title, v.description, null::text, now()
 from (values
