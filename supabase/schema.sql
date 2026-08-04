@@ -102,7 +102,69 @@ create table if not exists course_resources (
   file_url text not null,
   created_at timestamptz not null default now()
 );
+-- -----------------------------------------------------------------------
+-- REMINDERS
+-- Stores reminders created from classes, deadlines, events, or personal tasks.
+-- -----------------------------------------------------------------------
+create table if not exists reminders (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
 
+  title text not null,
+  description text,
+
+  reminder_type text not null
+    check (reminder_type in (
+      'class',
+      'assignment',
+      'exam',
+      'deadline',
+      'event',
+      'personal'
+    )),
+
+  source_id uuid,
+  remind_at timestamptz not null,
+
+  status text not null default 'pending'
+    check (status in ('pending', 'completed', 'cancelled')),
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- -----------------------------------------------------------------------
+-- NOTIFICATIONS
+-- Stores alerts generated from reminders for each student.
+-- -----------------------------------------------------------------------
+create table if not exists notifications (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
+  reminder_id uuid references reminders(id) on delete cascade,
+
+  title text not null,
+  message text not null,
+
+  status text not null default 'unread'
+    check (status in ('unread', 'read')),
+
+  sent_at timestamptz not null default now(),
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- Indexes improve notification and reminder lookups for each student.
+create index if not exists reminders_profile_id_idx
+  on reminders(profile_id);
+
+create index if not exists reminders_remind_at_idx
+  on reminders(remind_at);
+
+create index if not exists notifications_profile_id_idx
+  on notifications(profile_id);
+
+create index if not exists notifications_status_idx
+  on notifications(status);
 -- Row Level Security: the frontend reads directly with the anon key, so
 -- RLS is on with a public read policy on every table it queries.
 alter table profiles enable row level security;
@@ -111,7 +173,8 @@ alter table deadlines enable row level security;
 alter table briefing_items enable row level security;
 alter table campus_events enable row level security;
 alter table marketplace_listings enable row level security;
-
+alter table reminders enable row level security;
+alter table notifications enable row level security;
 drop policy if exists "Public read" on profiles;
 create policy "Public read" on profiles for select using (true);
 drop policy if exists "Users can update own profile" on profiles;
@@ -126,7 +189,65 @@ drop policy if exists "Public read" on campus_events;
 create policy "Public read" on campus_events for select using (true);
 drop policy if exists "Public read" on marketplace_listings;
 create policy "Public read" on marketplace_listings for select using (true);
+-- Students can only access their own reminders.
+drop policy if exists "Users can read own reminders" on reminders;
+create policy "Users can read own reminders"
+on reminders
+for select
+to authenticated
+using (auth.uid() = profile_id);
 
+drop policy if exists "Users can create own reminders" on reminders;
+create policy "Users can create own reminders"
+on reminders
+for insert
+to authenticated
+with check (auth.uid() = profile_id);
+
+drop policy if exists "Users can update own reminders" on reminders;
+create policy "Users can update own reminders"
+on reminders
+for update
+to authenticated
+using (auth.uid() = profile_id)
+with check (auth.uid() = profile_id);
+
+drop policy if exists "Users can delete own reminders" on reminders;
+create policy "Users can delete own reminders"
+on reminders
+for delete
+to authenticated
+using (auth.uid() = profile_id);
+
+-- Students can only access their own notifications.
+drop policy if exists "Users can read own notifications" on notifications;
+create policy "Users can read own notifications"
+on notifications
+for select
+to authenticated
+using (auth.uid() = profile_id);
+
+drop policy if exists "Users can create own notifications" on notifications;
+create policy "Users can create own notifications"
+on notifications
+for insert
+to authenticated
+with check (auth.uid() = profile_id);
+
+drop policy if exists "Users can update own notifications" on notifications;
+create policy "Users can update own notifications"
+on notifications
+for update
+to authenticated
+using (auth.uid() = profile_id)
+with check (auth.uid() = profile_id);
+
+drop policy if exists "Users can delete own notifications" on notifications;
+create policy "Users can delete own notifications"
+on notifications
+for delete
+to authenticated
+using (auth.uid() = profile_id);
 -- -----------------------------------------------------------------------
 -- TRIGGER: Automatically create a profile row when a user signs up.
 -- Reads `full_name` from raw_user_meta_data (matches what SignUp.jsx sends).
