@@ -258,3 +258,56 @@ export async function deletePlannerSeries(groupId) {
   if (error) throw error;
   return data;
 }
+// ==========================================
+// 5. Notifications
+// ==========================================
+
+export async function getNotificationsForCurrentUser() {
+  const {
+    data: { user },
+    error: authError
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw authError ?? new Error('Not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .select(`
+      *,
+      reminders (
+        id,
+        title,
+        reminder_type,
+        remind_at,
+        status
+      )
+    `)
+    .eq('profile_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getUnreadNotificationsForCurrentUser() {
+  const {
+    data: { user },
+    error: authError
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw authError ?? new Error('Not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('profile_id', user.id)
+    .eq('status', 'unread')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
