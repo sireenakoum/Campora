@@ -5,6 +5,7 @@ import './App.css';
 
 import Dashboard from './pages/Dashboard';
 import Announcements from './pages/Announcements';
+import Notifications from './pages/Notifications';
 import CourseManagement from './pages/CourseManagement';
 import Planner from './pages/Planner';
 import StudyGroups from './pages/StudyGroups'; // Added this
@@ -75,6 +76,12 @@ function DashboardLayout() {
           <nav style={{ flex: 1 }}>
             <NavLink to="/dashboard" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><LayoutDashboard size={20}/> Dashboard</NavLink>
             <NavLink to="/announcements" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><Bell size={20}/> Announcements</NavLink>
+            <NavLink
+  to="/notifications"
+  className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
+>
+  <Bell size={20}/> Notifications
+</NavLink>
             <NavLink to="/courses" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><GraduationCap size={20}/> Courses</NavLink>
             <NavLink to="/planner" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><Calendar size={20}/> Planner</NavLink>
             <NavLink to="/study-groups" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><Users size={20}/> Study Groups</NavLink>
@@ -117,6 +124,7 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/announcements" element={<Announcements />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/courses" element={<CourseManagement />} />
           <Route path="/planner" element={<Planner />} />
           <Route path="/study-groups" element={<StudyGroups />} />
