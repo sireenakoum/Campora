@@ -37,16 +37,30 @@ export default function Dashboard() {
     let cancelled = false;
     async function load() {
       try {
-        const profileData = await getProfile();
-        if (!profileData) throw new Error('no profile in Supabase');
+        let profileData = null;
+        try {
+          profileData = await getProfile();
+        } catch {
+          profileData = null;
+        }
+
+        const activeProfile = profileData ?? {
+          id: 'demo',
+          name: 'Lara',
+          year: 'Senior Year',
+          credits_percent: 85,
+          attendance_percent: 94,
+        };
+
         const [briefingData, classesData, deadlinesData, eventsData] = await Promise.all([
-          getBriefingItems(profileData.id),
-          getTodayClasses(profileData.id),
-          getUpcomingDeadlines(profileData.id),
-          getCampusEvents(),
+          getBriefingItems(activeProfile.id).catch(() => []),
+          getTodayClasses(activeProfile.id).catch(() => []),
+          getUpcomingDeadlines(activeProfile.id).catch(() => []),
+          getCampusEvents().catch(() => []),
         ]);
+
         if (!cancelled) {
-          setProfile(profileData);
+          setProfile(activeProfile);
           setBriefing(briefingData);
           setTodayClasses(classesData);
           setDeadlines(deadlinesData);

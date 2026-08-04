@@ -14,8 +14,11 @@ export default function Announcements() {
     let cancelled = false;
     async function load() {
       try {
-        const [eventData, profileData] = await Promise.all([getCampusEvents(), getProfile()]);
-        const briefingData = profileData ? await getBriefingItems(profileData.id) : [];
+        const [eventData, profileData] = await Promise.all([
+          getCampusEvents().catch(() => []),
+          getProfile().catch(() => null),
+        ]);
+        const briefingData = profileData ? await getBriefingItems(profileData.id).catch(() => []) : [];
         if (!cancelled) {
           setEvents(eventData);
           setUrgent(briefingData.find((item) => item.type === 'urgent') ?? null);
