@@ -1,6 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "./lib/supabase";
+import { supabase } from "../lib/supabase";
 import ErrorMessage from "./ErrorMessage";
 
 export default function Login() {
