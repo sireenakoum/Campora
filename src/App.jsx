@@ -59,10 +59,9 @@ function DashboardLayout() {
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             style={{
-              position: collapsed ? 'fixed' : 'absolute',
+              position: 'absolute',
               top: '22px',
-              left: collapsed ? '20px' : undefined,
-              right: collapsed ? undefined : '-14px',
+              right: '-14px',
               width: '32px',
               height: '32px',
               borderRadius: '50%',
@@ -87,7 +86,7 @@ function DashboardLayout() {
                 <path d="M120 4 L123 18 L137 21 L123 24 L120 38 L117 24 L103 21 L117 18 Z" fill="#0B1A3F"/><path d="M62 34 L102 18" stroke="#0B1A3F" strokeWidth="3.5" strokeLinecap="round"/><path d="M138 18 L178 34 L178 55" stroke="#0B1A3F" strokeWidth="3.5" strokeLinecap="round"/><path d="M62 34 L62 55" stroke="#0B1A3F" strokeWidth="3.5" strokeLinecap="round"/><path d="M69 38 L104 23" stroke="#0B1A3F" strokeWidth="1.8" strokeLinecap="round"/><path d="M136 23 L171 38 L171 55" stroke="#0B1A3F" strokeWidth="1.8" strokeLinecap="round"/><path d="M69 38 L69 55" stroke="#0B1A3F" strokeWidth="1.8" strokeLinecap="round"/><text x="120" y="82" fontFamily="'Times New Roman', serif" fontWeight="bold" fontSize="29" fill="#0B1A3F" textAnchor="middle" letterSpacing="2">CAMPORA</text><path d="M62 95 L62 108 C62 135 120 152 120 152 C120 152 178 135 178 108 L178 95" stroke="#0B1A3F" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M120 126 C92 121 58 104 44 88" stroke="#0B1A3F" strokeWidth="2.5" strokeLinecap="round"/><circle cx="120" cy="131" r="2.5" fill="#0B1A3F"/>
               </svg>
             </div>
-            <div className="logo-caption" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="logo-caption">
               <h1 style={{ fontSize: '18px', fontWeight: '900', color: '#0B1A3F', margin: 0 }}>Campora</h1>
               <p style={{ fontSize: '8px', fontWeight: '900', color: '#0B1A3F', margin: 0, opacity: 0.6 }}>ACADEMIC PORTAL</p>
             </div>

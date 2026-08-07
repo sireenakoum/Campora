@@ -34,11 +34,25 @@ body, html, #root {
   transition: width 0.3s ease;
 }
 
-/* --- COLLAPSED SIDEBAR (slides fully off to the left) --- */
-.sidebar.collapsed {
-  width: 0;
-  overflow: hidden;
+/* --- COLLAPSED SIDEBAR (icon rail) --- */
+.sidebar.collapsed { width: 88px; }
+
+.logo-caption {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.collapsed .logo-caption { display: none; }
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 16px 0;
+}
+
+.sidebar.collapsed .nav-item.active {
   border-right: none;
+  border-left: 4px solid #0B1A3F;
 }
 
 .sidebar.collapsed .nav-item span { display: none; }
