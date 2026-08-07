@@ -30,7 +30,24 @@ body, html, #root {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: relative;
+  transition: width 0.3s ease;
 }
+
+/* --- COLLAPSED SIDEBAR (slides fully off to the left) --- */
+.sidebar.collapsed {
+  width: 0;
+  overflow: hidden;
+  border-right: none;
+}
+
+.sidebar.collapsed .nav-item span { display: none; }
+
+.sidebar.collapsed .profile-inner { justify-content: center; }
+
+.sidebar.collapsed .profile-text { display: none; }
+
+.sidebar.collapsed .logo-caption { display: none; }
 
 .main-content {
   flex: 1;
