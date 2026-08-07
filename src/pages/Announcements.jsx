@@ -1,74 +1,594 @@
-import React, { useEffect, useState } from 'react';
-import { Bell, ChevronRight } from 'lucide-react';
-import { getCampusEvents, getProfile, getBriefingItems } from '../lib/queries';
+import React, { useEffect, useState } from "react";
+import {
+  Bell,
+  Search,
+  Calendar,
+  BookOpen,
+  Megaphone,
+  ExternalLink,
+} from "lucide-react";
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800';
+import {
+  getAnnouncements,
+  getCampusNews,
+  getEvents,
+  getResources,
+} from "../lib/campusHub";
+
+import AnnouncementCard from "../components/AnnouncementsCard";
+import NewsCard from "../components//NewsCard";
+import EventCard from "../components/EventCard";
+import ResourceCard from "../components/ResourceCard";
+
 
 export default function Announcements() {
+
+  const [announcements, setAnnouncements] = useState([]);
+  const [news, setNews] = useState([]);
   const [events, setEvents] = useState([]);
-  const [urgent, setUrgent] = useState(null);
+  const [resources, setResources] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("announcements");
+  const [category, setCategory] = useState("");
+
+
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
+
+    async function loadData() {
+
       try {
-        const [eventData, profileData] = await Promise.all([
-          getCampusEvents().catch(() => []),
-          getProfile().catch(() => null),
+
+        const [
+          announcementsData,
+          newsData,
+          eventsData,
+          resourcesData
+        ] = await Promise.all([
+
+          getAnnouncements(),
+          getCampusNews(),
+          getEvents({ upcoming:true }),
+          getResources()
+
         ]);
-        const briefingData = profileData ? await getBriefingItems(profileData.id).catch(() => []) : [];
-        if (!cancelled) {
-          setEvents(eventData);
-          setUrgent(briefingData.find((item) => item.type === 'urgent') ?? null);
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message);
+
+
+        setAnnouncements(announcementsData || []);
+        setNews(newsData || []);
+        setEvents(eventsData || []);
+        setResources(resourcesData || []);
+
+
+      } catch(err){
+
+        setError(err.message);
+
       } finally {
-        if (!cancelled) setLoading(false);
+
+        setLoading(false);
+
       }
+
     }
-    load();
-    return () => { cancelled = true; };
+
+
+    loadData();
+
   }, []);
 
-  if (loading) {
-    return <p style={{ color: 'var(--campora-muted)', fontWeight: '700' }}>Loading announcements...</p>;
+
+
+  async function handleSearch(value){
+
+    setSearch(value);
+
+    try{
+
+      if(activeTab === "announcements"){
+
+        const data = await getAnnouncements({
+          search:value,
+          category
+        });
+
+        setAnnouncements(data || []);
+
+      }
+
+
+      if(activeTab === "news"){
+
+        const data = await getCampusNews({
+          search:value
+        });
+
+        setNews(data || []);
+
+      }
+
+
+      if(activeTab === "events"){
+
+        const data = await getEvents({
+          search:value,
+          category
+        });
+
+        setEvents(data || []);
+
+      }
+
+
+      if(activeTab === "resources"){
+
+        const data = await getResources({
+          search:value,
+          category
+        });
+
+        setResources(data || []);
+
+      }
+
+
+    }catch(err){
+
+      setError(err.message);
+
+    }
+
   }
 
-  if (error) {
-    return <p style={{ color: 'var(--campora-muted)', fontWeight: '700' }}>Couldn't load announcements ({error}).</p>;
+
+
+  async function handleCategory(value){
+
+    setCategory(value);
+
+
+    try{
+
+
+      if(activeTab === "announcements"){
+
+        const data = await getAnnouncements({
+          search,
+          category:value
+        });
+
+        setAnnouncements(data || []);
+
+      }
+
+
+
+      if(activeTab === "events"){
+
+        const data = await getEvents({
+          search,
+          category:value
+        });
+
+        setEvents(data || []);
+
+      }
+
+
+
+      if(activeTab === "resources"){
+
+        const data = await getResources({
+          search,
+          category:value
+        });
+
+        setResources(data || []);
+
+      }
+
+
+    }catch(err){
+
+      setError(err.message);
+
+    }
+
   }
 
-  const featured = events[0];
+
+
+
+  const tabs = [
+
+    {
+      key:"announcements",
+      label:"Announcements",
+      icon:<Megaphone size={16}/>
+    },
+
+    {
+      key:"news",
+      label:"Campus News",
+      icon:<BookOpen size={16}/>
+    },
+
+    {
+      key:"events",
+      label:"Events",
+      icon:<Calendar size={16}/>
+    },
+
+    {
+      key:"resources",
+      label:"Resources",
+      icon:<ExternalLink size={16}/>
+    }
+
+  ];
+
+
+
+  const pinned = announcements.filter(
+    item => item.is_pinned
+  );
+
+
+
+  if(loading){
+
+    return (
+      <div>
+        Loading Campus Hub...
+      </div>
+    );
+
+  }
+
+
+
+  if(error){
+
+    return (
+      <div>
+        Error: {error}
+      </div>
+    );
+
+  }
+
+
 
   return (
-    <div style={{ width: '100%' }}>
-      <h1 style={{ marginBottom: '30px', fontSize: '42px', fontWeight: '900', color: '#0B1A3F' }}>Campora</h1>
-      <div className="grid">
-        <div className="card" style={{ gridColumn: 'span 8', padding: '0', overflow: 'hidden' }}>
-          <div style={{ height: '240px', background: '#222' }}>
-            <img
-              src={featured?.image_url || FALLBACK_IMAGE}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              alt={featured?.title || 'campus event'}
-            />
+
+    <div
+      style={{
+        width:"100%",
+        padding:"30px 0"
+      }}
+    >
+
+
+      <h1
+        style={{
+          fontSize:"36px",
+          fontWeight:"900",
+          color:"#0B1A3F"
+        }}
+      >
+        Campus Hub
+      </h1>
+
+
+      <p
+        style={{
+          color:"#6B7280",
+          marginBottom:"30px"
+        }}
+      >
+        Stay updated with announcements, news, events, and resources.
+      </p>
+
+
+
+      {pinned.length > 0 && (
+
+        <div
+          style={{
+            background:"#FEE2E2",
+            padding:"20px",
+            borderRadius:"12px",
+            display:"flex",
+            gap:"12px",
+            marginBottom:"25px"
+          }}
+        >
+
+          <Bell color="#991B1B"/>
+
+
+          <div>
+
+            <strong
+              style={{
+                color:"#991B1B"
+              }}
+            >
+              PINNED ANNOUNCEMENT
+            </strong>
+
+
+            <h3>
+              {pinned[0].title}
+            </h3>
+
+
+            <p>
+              {pinned[0].content}
+            </p>
+
+
           </div>
-          <div style={{ padding: '30px' }}>
-            <h3 style={{fontWeight: '800', color: '#0B1A3F'}}>{featured ? featured.title : 'No campus events yet'}</h3>
-            <button style={{ color: 'var(--campora-blue)', background: 'none', border: 'none', fontWeight: 'bold', marginTop: '15px', cursor: 'pointer' }}>Read More <ChevronRight size={16} style={{ verticalAlign: 'middle' }}/></button>
-          </div>
+
+
         </div>
 
-        <div className="card" style={{ gridColumn: 'span 4', backgroundColor: '#FEE2E2' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--campora-urgent)', marginBottom: '15px' }}>
-            <Bell size={20} /> <span style={{ fontSize: '10px', fontWeight: '900' }}>URGENT NOTICE</span>
-          </div>
-          <h3 style={{ fontSize: '20px', marginBottom: '10px', color: '#0B1A3F' }}>{urgent ? urgent.label : 'No urgent notices'}</h3>
-          <p style={{ color: '#991B1B', opacity: 0.8, fontWeight: '700' }}>{urgent ? urgent.body : "You're all caught up."}</p>
-        </div>
+      )}
+
+
+
+
+      <div
+        style={{
+          display:"flex",
+          gap:"10px",
+          marginBottom:"20px",
+          flexWrap:"wrap"
+        }}
+      >
+
+        {tabs.map(tab=>(
+
+          <button
+
+            key={tab.key}
+
+            onClick={()=>{
+
+              setActiveTab(tab.key);
+              setSearch("");
+              setCategory("");
+
+            }}
+
+            style={{
+
+              display:"flex",
+              alignItems:"center",
+              gap:"6px",
+              padding:"10px 15px",
+              borderRadius:"20px",
+              border:"none",
+              cursor:"pointer",
+
+              background:
+              activeTab===tab.key
+              ? "#0B1A3F"
+              : "#E5E7EB",
+
+              color:
+              activeTab===tab.key
+              ? "white"
+              : "#111827"
+
+            }}
+
+          >
+
+            {tab.icon}
+
+            {tab.label}
+
+          </button>
+
+        ))}
+
       </div>
+
+
+
+
+      <div
+        style={{
+          display:"flex",
+          gap:"10px",
+          marginBottom:"25px"
+        }}
+      >
+
+
+        <div
+          style={{
+            position:"relative",
+            flex:1
+          }}
+        >
+
+          <Search
+
+            size={18}
+
+            style={{
+
+              position:"absolute",
+              left:"12px",
+              top:"12px",
+              color:"#9CA3AF"
+
+            }}
+
+          />
+
+
+          <input
+
+            value={search}
+
+            onChange={(e)=>handleSearch(e.target.value)}
+
+            placeholder="Search..."
+
+            style={{
+
+              width:"100%",
+              padding:"12px 12px 12px 40px",
+              borderRadius:"10px",
+              border:"1px solid #ddd"
+
+            }}
+
+          />
+
+        </div>
+
+
+
+        <select
+
+          value={category}
+
+          onChange={(e)=>handleCategory(e.target.value)}
+
+        >
+
+          <option value="">
+            All
+          </option>
+
+
+          <option value="Academic">
+            Academic
+          </option>
+
+
+          <option value="IT">
+            IT
+          </option>
+
+
+          <option value="Social">
+            Social
+          </option>
+
+
+        </select>
+
+
+      </div>
+
+
+
+
+
+      {activeTab==="announcements" && (
+
+        <>
+
+        {announcements.map(item=>(
+
+          <AnnouncementCard
+
+            key={item.id}
+
+            announcement={item}
+
+          />
+
+        ))}
+
+        </>
+
+      )}
+
+
+
+
+
+      {activeTab==="news" && (
+
+        <>
+
+        {news.map(item=>(
+
+          <NewsCard
+
+            key={item.id}
+
+            news={item}
+
+          />
+
+        ))}
+
+        </>
+
+      )}
+
+
+
+
+
+      {activeTab==="events" && (
+
+        <>
+
+        {events.map(item=>(
+
+          <EventCard
+
+            key={item.id}
+
+            event={item}
+
+          />
+
+        ))}
+
+        </>
+
+      )}
+
+
+
+
+
+      {activeTab==="resources" && (
+
+        <>
+
+        {resources.map(item=>(
+
+          <ResourceCard
+
+            key={item.id}
+
+            resource={item}
+
+          />
+
+        ))}
+
+        </>
+
+      )}
+
+
+
     </div>
+
   );
+
 }
