@@ -35,8 +35,12 @@ function EmailVerified() {
 function DashboardLayout() {
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('Student');
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('campora_sidebar_collapsed') === 'true');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.setItem('campora_sidebar_collapsed', String(collapsed));
+  }, [collapsed]);
 
   useEffect(() => {
     async function init() {
