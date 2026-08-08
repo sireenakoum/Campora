@@ -10,6 +10,7 @@ export default function Profile() {
   const [accountType, setAccountType] = useState('Student');
   const [major, setMajor] = useState('');
   const [year, setYear] = useState('');
+  const [guestTitle, setGuestTitle] = useState('');
   const [coursesTaken, setCoursesTaken] = useState([]);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
@@ -29,6 +30,7 @@ export default function Profile() {
             setAccountType(data.account_type || 'Student');
             setMajor(data.major || '');
             setYear(data.year || '');
+            setGuestTitle(data.guest_title || '');
             setCoursesTaken(data.courses_taken || []);
           }
         }
@@ -85,10 +87,17 @@ export default function Profile() {
               <span style={styles.infoKey}>Major</span>
               <span style={styles.infoValue}>{major || '—'}</span>
             </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoKey}>Year</span>
-              <span style={styles.infoValue}>{year || '—'}</span>
-            </div>
+            {accountType === 'Guest' ? (
+              <div style={styles.infoItem}>
+                <span style={styles.infoKey}>Title</span>
+                <span style={styles.infoValue}>{guestTitle || '—'}</span>
+              </div>
+            ) : (
+              <div style={styles.infoItem}>
+                <span style={styles.infoKey}>Year</span>
+                <span style={styles.infoValue}>{year || '—'}</span>
+              </div>
+            )}
           </div>
           <div style={styles.infoItem}>
             <span style={styles.infoKey}>Courses Taken</span>

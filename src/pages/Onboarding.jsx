@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GraduationCap, User, ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -63,6 +63,7 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const isFinishing = useRef(false);
 
   const navigate = useNavigate();
 
@@ -70,30 +71,36 @@ export default function Onboarding() {
   useEffect(() => {
     let cancelled = false;
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (cancelled) return;
-      if (!user) {
-        navigate('/login', { replace: true });
-        return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (cancelled) return;
+        if (!user) {
+          navigate('/login', { replace: true });
+          return;
+        }
+        const { data } = await supabase
+          .from('profiles')
+          .select('onboarding_completed, account_type, major, year, guest_title, courses_taken')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (data?.onboarding_completed) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+        // Pre-fill with anything already saved so a mid-flow refresh isn't lost.
+        if (data) {
+          setAccountType(data.account_type || '');
+          setMajor(data.major || '');
+          setYear(data.year || '');
+          setGuestTitle(data.guest_title || '');
+          setCoursesTaken(data.courses_taken || []);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err?.message || 'Could not load your setup. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      const { data } = await supabase
-        .from('profiles')
-        .select('onboarding_completed, account_type, major, year, courses_taken')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (cancelled) return;
-      if (data?.onboarding_completed) {
-        navigate('/dashboard', { replace: true });
-        return;
-      }
-      // Pre-fill with anything already saved so a mid-flow refresh isn't lost.
-      if (data) {
-        setAccountType(data.account_type || '');
-        setMajor(data.major || '');
-        setYear(data.year || '');
-        setCoursesTaken(data.courses_taken || []);
-      }
-      setLoading(false);
     }
     init();
     return () => { cancelled = true; };
@@ -142,50 +149,44 @@ export default function Onboarding() {
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
+  const handleSkip = async () => {
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      setError(signOutError.message || 'Could not log out. Please try again.');
+      return;
+    }
+    navigate('/login', { replace: true });
+  };
+
   const handleFinish = async () => {
+    if (isFinishing.current) return;
+    isFinishing.current = true;
     setSaving(true);
     setError(null);
 
+    const fail = (message) => {
+      setError(message);
+      setSaving(false);
+      isFinishing.current = false;
+    };
+
     const finalMajor = major === 'Other' ? customMajor.trim() : major;
-    const finalYear = accountType === 'Student' ? year : guestTitle;
+    const finalYear = accountType === 'Student' ? year : null;
+    const finalGuestTitle = accountType === 'Guest' ? guestTitle : null;
     const finalCourses = collectCourses();
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setError('You must be logged in to finish setup.');
-      setSaving(false);
-      return;
-    }
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        account_type: accountType,
-        major: finalMajor || null,
-        year: finalYear || null,
-        courses_taken: finalCourses,
-        onboarding_completed: true,
-        updated_at: new Date(),
-      })
-      .eq('id', user.id);
-
-    if (updateError) {
-      setError(updateError.message || 'Could not save your information. Please try again.');
-      setSaving(false);
-      return;
-    }
+    if (!user) return fail('You must be logged in to finish setup.');
 
     // Connect the selected courses to the Courses page by creating a course
-    // workspace for each code the user added during onboarding.
+    // workspace for each code the user added during onboarding. This runs
+    // BEFORE marking onboarding complete so a failure here stays retryable
+    // instead of leaving the profile "completed" with no course workspaces.
     const { data: existingCourses, error: existingError } = await supabase
       .from('courses')
       .select('name')
       .eq('profile_id', user.id);
-    if (existingError) {
-      setError(existingError.message || 'Could not set up your courses. Please try again.');
-      setSaving(false);
-      return;
-    }
+    if (existingError) return fail(existingError.message || 'Could not set up your courses. Please try again.');
 
     const ownedNames = new Set((existingCourses || []).map((c) => c.name));
     const toCreate = finalCourses
@@ -194,12 +195,23 @@ export default function Onboarding() {
 
     if (toCreate.length > 0) {
       const { error: courseError } = await supabase.from('courses').insert(toCreate);
-      if (courseError) {
-        setError(courseError.message || 'Could not set up your courses. Please try again.');
-        setSaving(false);
-        return;
-      }
+      if (courseError) return fail(courseError.message || 'Could not set up your courses. Please try again.');
     }
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        account_type: accountType,
+        major: finalMajor || null,
+        year: finalYear || null,
+        guest_title: finalGuestTitle || null,
+        courses_taken: finalCourses,
+        onboarding_completed: true,
+        updated_at: new Date(),
+      })
+      .eq('id', user.id);
+
+    if (updateError) return fail(updateError.message || 'Could not save your information. Please try again.');
 
     navigate('/dashboard', { replace: true });
   };
@@ -410,9 +422,9 @@ export default function Onboarding() {
         <div style={styles.footer}>
           <p style={{ margin: 0, fontSize: '0.95rem', color: '#6B7280' }}>
             Done for now?{' '}
-            <Link to="/login" style={styles.link}>
+            <button type="button" onClick={handleSkip} style={styles.link}>
               Skip and log out
-            </Link>
+            </button>
           </p>
         </div>
       </div>
@@ -653,5 +665,9 @@ const styles = {
     textDecoration: 'none',
     fontSize: '0.9rem',
     fontWeight: '500',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 0,
   },
 };
