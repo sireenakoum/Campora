@@ -31,6 +31,14 @@ alter table profiles add column if not exists year text;
 alter table profiles add column if not exists courses_taken jsonb not null default '[]'::jsonb;
 alter table profiles add column if not exists onboarding_completed boolean not null default false;
 
+-- Guest accounts store their title (e.g. "Alumni") separately from a student's
+-- academic year, which lives in `year`.
+alter table profiles add column if not exists guest_title text;
+-- One-time backfill: older versions stored the guest title in `year`.
+update profiles
+set guest_title = year, year = null
+where account_type = 'Guest' and guest_title is null and year is not null;
+
 create table if not exists classes (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references profiles(id) on delete cascade,
@@ -185,6 +193,28 @@ drop policy if exists "Public read" on deadlines;
 create policy "Public read" on deadlines for select using (true);
 drop policy if exists "Public read" on briefing_items;
 create policy "Public read" on briefing_items for select using (true);
+-- Dashboard editing: each user manages their own classes, deadlines and
+-- briefing items from the dashboard cards.
+drop policy if exists "Users can create own classes" on classes;
+create policy "Users can create own classes" on classes for insert to authenticated with check (auth.uid() = profile_id);
+drop policy if exists "Users can update own classes" on classes;
+create policy "Users can update own classes" on classes for update to authenticated using (auth.uid() = profile_id) with check (auth.uid() = profile_id);
+drop policy if exists "Users can delete own classes" on classes;
+create policy "Users can delete own classes" on classes for delete to authenticated using (auth.uid() = profile_id);
+
+drop policy if exists "Users can create own deadlines" on deadlines;
+create policy "Users can create own deadlines" on deadlines for insert to authenticated with check (auth.uid() = profile_id);
+drop policy if exists "Users can update own deadlines" on deadlines;
+create policy "Users can update own deadlines" on deadlines for update to authenticated using (auth.uid() = profile_id) with check (auth.uid() = profile_id);
+drop policy if exists "Users can delete own deadlines" on deadlines;
+create policy "Users can delete own deadlines" on deadlines for delete to authenticated using (auth.uid() = profile_id);
+
+drop policy if exists "Users can create own briefing items" on briefing_items;
+create policy "Users can create own briefing items" on briefing_items for insert to authenticated with check (auth.uid() = profile_id);
+drop policy if exists "Users can update own briefing items" on briefing_items;
+create policy "Users can update own briefing items" on briefing_items for update to authenticated using (auth.uid() = profile_id) with check (auth.uid() = profile_id);
+drop policy if exists "Users can delete own briefing items" on briefing_items;
+create policy "Users can delete own briefing items" on briefing_items for delete to authenticated using (auth.uid() = profile_id);
 drop policy if exists "Public read" on campus_events;
 create policy "Public read" on campus_events for select using (true);
 drop policy if exists "Public read" on marketplace_listings;

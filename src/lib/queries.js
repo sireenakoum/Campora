@@ -206,6 +206,75 @@ export async function getDeadlinesInRange(profileId, start, end) {
 }
 
 // ==========================================
+// 6. Dashboard Editing (semester progress,
+//    deadlines, today's schedule, urgent note)
+// ==========================================
+
+export async function updateProfileProgress(profileId, updates) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', profileId)
+    .select();
+  if (error) throw error;
+  return data;
+}
+
+export async function addDeadline(deadline) {
+  const { data, error } = await supabase.from('deadlines').insert([deadline]).select();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateDeadline(deadlineId, updates) {
+  const { data, error } = await supabase.from('deadlines').update(updates).eq('id', deadlineId).select();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteDeadline(deadlineId) {
+  const { data, error } = await supabase.from('deadlines').delete().eq('id', deadlineId);
+  if (error) throw error;
+  return data;
+}
+
+export async function addClass(cls) {
+  const { data, error } = await supabase.from('classes').insert([cls]).select();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateClass(classId, updates) {
+  const { data, error } = await supabase.from('classes').update(updates).eq('id', classId).select();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteClass(classId) {
+  const { data, error } = await supabase.from('classes').delete().eq('id', classId);
+  if (error) throw error;
+  return data;
+}
+
+export async function addBriefingItem(item) {
+  const { data, error } = await supabase.from('briefing_items').insert([item]).select();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateBriefingItem(itemId, updates) {
+  const { data, error } = await supabase.from('briefing_items').update(updates).eq('id', itemId).select();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteBriefingItem(itemId) {
+  const { data, error } = await supabase.from('briefing_items').delete().eq('id', itemId);
+  if (error) throw error;
+  return data;
+}
+
+// ==========================================
 // 4. Planner Events & Tasks
 // ==========================================
 
