@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Bell, GraduationCap, Calendar, Search, User, Users, ChevronsLeft, ChevronsRight, MessageSquare } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Bell,
+  GraduationCap,
+  Calendar,
+  Search,
+  User,
+  Users,
+  ChevronsLeft,
+  ChevronsRight,
+  MessageSquare,
+  CheckSquare,
+} from 'lucide-react';
 import './App.css';
 
 import Dashboard from './pages/Dashboard';
@@ -8,8 +20,10 @@ import Announcements from './pages/Announcements';
 import Notifications from './pages/Notifications'; // Restored friend's import
 import CourseManagement from './pages/CourseManagement';
 import Planner from './pages/Planner';
+import Todo from './pages/Todo';
 import StudyGroups from './pages/StudyGroups';
 import CampusPulse from './pages/CampusPulse';
+
 import Onboarding from './pages/Onboarding';
 import Login from './Login';
 import SignUp from './pages/SignUp';
@@ -98,13 +112,37 @@ function DashboardLayout() {
           </div>
 
           <nav style={{ flex: 1 }}>
-            <NavLink to="/dashboard" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><LayoutDashboard size={20}/> <span>Dashboard</span></NavLink>
-            <NavLink to="/announcements" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><Bell size={20}/> <span>Announcements</span></NavLink>
-            <NavLink to="/notifications" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><Bell size={20}/> <span>Notifications</span></NavLink>
-            <NavLink to="/campus-pulse" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><MessageSquare size={20}/> <span>Campus Pulse</span></NavLink>
-            <NavLink to="/courses" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><GraduationCap size={20}/> <span>Courses</span></NavLink>
-            <NavLink to="/planner" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><Calendar size={20}/> <span>Planner</span></NavLink>
-            <NavLink to="/study-groups" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}><Users size={20}/> <span>Study Groups</span></NavLink>
+<NavLink to="/dashboard" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <LayoutDashboard size={20}/> <span>Dashboard</span>
+</NavLink>
+
+<NavLink to="/announcements" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <Bell size={20}/> <span>Announcements</span>
+</NavLink>
+
+<NavLink to="/notifications" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <Bell size={20}/> <span>Notifications</span>
+</NavLink>
+
+<NavLink to="/campus-pulse" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <MessageSquare size={20}/> <span>Campus Pulse</span>
+</NavLink>
+
+<NavLink to="/courses" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <GraduationCap size={20}/> <span>Courses</span>
+</NavLink>
+
+<NavLink to="/planner" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <Calendar size={20}/> <span>Planner</span>
+</NavLink>
+
+<NavLink to="/todo" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <CheckSquare size={20}/> <span>To-Do</span>
+</NavLink>
+
+<NavLink to="/study-groups" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <Users size={20}/> <span>Study Groups</span>
+</NavLink>
           </nav>
 
           <Link to="/profile" className="sidebar-profile" style={{ padding: '25px', borderTop: '1px solid #eee', textDecoration: 'none', display: 'block' }}>
@@ -151,6 +189,7 @@ export default function App() {
           <Route path="/campus-pulse" element={<CampusPulse />} />
           <Route path="/courses" element={<CourseManagement />} />
           <Route path="/planner" element={<Planner />} />
+          <Route path="/todo" element={<Todo />} />
           <Route path="/study-groups" element={<StudyGroups />} />
           <Route path="/profile" element={<Profile />} />
         </Route>

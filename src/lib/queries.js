@@ -416,3 +416,73 @@ export async function updateNotificationStatus(notificationId, status) {
   if (error) throw error;
   return data;
 }
+// ==========================================
+// 6. To-Do List
+// ==========================================
+
+export async function getTodosForCurrentUser() {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw authError ?? new Error('Not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('todos')
+    .select('*')
+    .eq('profile_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function addTodo(title) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw authError ?? new Error('Not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('todos')
+    .insert([
+      {
+        profile_id: user.id,
+        title,
+        completed: false,
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function toggleTodo(todoId, completed) {
+  const { data, error } = await supabase
+    .from('todos')
+    .update({ completed })
+    .eq('id', todoId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTodo(todoId) {
+  const { error } = await supabase
+    .from('todos')
+    .delete()
+    .eq('id', todoId);
+
+  if (error) throw error;
+}
