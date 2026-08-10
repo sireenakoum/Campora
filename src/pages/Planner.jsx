@@ -20,8 +20,38 @@ export default function Planner() {
   const [viewType, setViewType] = useState('Month'); 
   const [deleteConfirmation, setDeleteConfirmation] = useState(null); 
 
-  const [stickyText, setStickyText] = useState(() => localStorage.getItem('campora_sticky_text') || "");
-  const [stickyColor, setStickyColor] = useState(() => localStorage.getItem('campora_sticky_color') || "#FFEDD5");
+  // --- DATE HELPERS ---
+  const formatDate = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const selectedDateStr = formatDate(selectedDate);
+
+  // Per-day Stickies State
+  const [stickyText, setStickyText] = useState("");
+  const [stickyColor, setStickyColor] = useState("#FFEDD5");
+
+  // Load sticky when selectedDate changes
+  useEffect(() => {
+    const savedText = localStorage.getItem(`campora_sticky_text_${selectedDateStr}`);
+    const savedColor = localStorage.getItem(`campora_sticky_color_${selectedDateStr}`);
+    setStickyText(savedText || "");
+    setStickyColor(savedColor || "#FFEDD5");
+  }, [selectedDateStr]);
+
+  // Save sticky whenever text or color updates for current selectedDate
+  const handleStickyTextChange = (text) => {
+    setStickyText(text);
+    localStorage.setItem(`campora_sticky_text_${selectedDateStr}`, text);
+  };
+
+  const handleStickyColorChange = (color) => {
+    setStickyColor(color);
+    localStorage.setItem(`campora_sticky_color_${selectedDateStr}`, color);
+  };
 
   const getDefaultEndDate = () => {
     const d = new Date();
@@ -50,12 +80,6 @@ export default function Planner() {
     { bg: '#FEE2E2', text: '#B91C1C' }, { bg: '#FFEDD5', text: '#C2410C' }
   ];
 
-  // --- PERSISTENCE ---
-  useEffect(() => {
-    localStorage.setItem('campora_sticky_text', stickyText);
-    localStorage.setItem('campora_sticky_color', stickyColor);
-  }, [stickyText, stickyColor]);
-
   // --- DATA FETCHING ---
   const fetchCourses = async (userId) => {
     if (!userId) return;
@@ -80,14 +104,6 @@ export default function Planner() {
     init();
   }, []);
 
-  // --- DATE HELPERS ---
-  const formatDate = (d) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   // --- VIEW LOGIC ---
   const getDatesToDisplay = () => {
     if (viewType === 'Month') {
@@ -107,6 +123,39 @@ export default function Planner() {
 
   const { startPadding, dateArray } = getDatesToDisplay();
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  // --- NAV ARROW LOGIC ---
+  const handlePrev = () => {
+    if (viewType === 'Month') {
+      setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+    } else if (viewType === 'Week') {
+      const nextDate = new Date(selectedDate);
+      nextDate.setDate(nextDate.getDate() - 7);
+      setSelectedDate(nextDate);
+      setViewDate(nextDate);
+    } else {
+      const nextDate = new Date(selectedDate);
+      nextDate.setDate(nextDate.getDate() - 1);
+      setSelectedDate(nextDate);
+      setViewDate(nextDate);
+    }
+  };
+
+  const handleNext = () => {
+    if (viewType === 'Month') {
+      setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+    } else if (viewType === 'Week') {
+      const nextDate = new Date(selectedDate);
+      nextDate.setDate(nextDate.getDate() + 7);
+      setSelectedDate(nextDate);
+      setViewDate(nextDate);
+    } else {
+      const nextDate = new Date(selectedDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+      setSelectedDate(nextDate);
+      setViewDate(nextDate);
+    }
+  };
 
   // --- ACTIONS ---
   const handleOpenModal = (dateStr) => {
@@ -224,7 +273,7 @@ export default function Planner() {
     fetchCourses(user.id);
   };
 
-  const selectedDayEvents = courses.filter(c => c.date === formatDate(selectedDate));
+  const selectedDayEvents = courses.filter(c => c.date === selectedDateStr);
 
   return (
     <div style={{ display: 'flex', gap: '25px', width: '100%', height: 'calc(100vh - 120px)', overflow: 'hidden' }}>
@@ -243,26 +292,30 @@ export default function Planner() {
               ))}
             </div>
             <button onClick={() => { const n = new Date(); setViewDate(n); setSelectedDate(n); }} style={navBtn}>Today</button>
-            <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - (viewType === 'Month' ? 1 : 0), viewType === 'Week' ? viewDate.getDate() - 7 : viewDate.getDate() - 1))} style={navBtn}><ChevronLeft size={18}/></button>
-            <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + (viewType === 'Month' ? 1 : 0), viewType === 'Week' ? viewDate.getDate() + 7 : viewDate.getDate() + 1))} style={navBtn}><ChevronRight size={18}/></button>
+            <button onClick={handlePrev} style={navBtn}><ChevronLeft size={18}/></button>
+            <button onClick={handleNext} style={navBtn}><ChevronRight size={18}/></button>
           </div>
         </div>
 
+        {/* Scrollable Container Card */}
         <div className="card" style={{ flex: 1, padding: '20px', position: 'relative', border: '1.5px solid #E9EDF7', overflowY: 'auto' }}>
           {loading && <RefreshCw className="animate-spin" style={{ position: 'absolute', top: '50%', left: '50%', color: '#0B1A3F', zIndex: 20 }} />}
           
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: viewType === 'Day' ? '1fr' : 'repeat(7, minmax(0, 1fr))', 
-            gridAutoRows: viewType === 'Month' ? 'minmax(130px, auto)' : 'minmax(480px, auto)', 
-            gap: '10px' 
+            gridTemplateRows: viewType !== 'Day' ? 'auto 1fr' : '1fr',
+            gap: '10px',
+            alignItems: 'start'
           }}>
+            {/* Header Row */}
             {viewType !== 'Day' && days.map(d => <div key={d} style={dayHeader}>{d.toUpperCase()}</div>)}
             {viewType === 'Month' && [...Array(startPadding)].map((_, i) => <div key={`pad-${i}`} />)}
             
+            {/* Date Columns / Cards */}
             {dateArray.map((dateObj, idx) => {
               const dateStr = formatDate(dateObj);
-              const isSelected = dateStr === formatDate(selectedDate);
+              const isSelected = dateStr === selectedDateStr;
               const dayEvents = courses.filter(c => c.date === dateStr);
               return (
                 <div key={idx} onClick={() => setSelectedDate(dateObj)} style={{
@@ -280,7 +333,7 @@ export default function Planner() {
                     <span style={{ fontWeight: '900', color: '#0B1A3F', fontSize: viewType === 'Day' ? '28px' : '14px' }}>{dateObj.getDate()}</span>
                   </div>
 
-                  {/* Internal Scroll Box so contents stay neatly inside card */}
+                  {/* Internal Scroll Box for Cards */}
                   <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '2px' }}>
                     {dayEvents.map(ev => (
                       <div key={ev.id} onClick={(e) => { e.stopPropagation(); handleOpenEditModal(ev); }} style={{ 
@@ -356,12 +409,12 @@ export default function Planner() {
             <h4 style={{ fontSize: '12px', fontWeight: '900', color: '#0B1A3F', margin: 0, letterSpacing: '0.5px' }}>STICKIES</h4>
             <div style={{ display: 'flex', gap: '5px' }}>
               {pastelColors.map(c => (
-                <div key={c.bg} onClick={() => setStickyColor(c.bg)} style={{ width: '13px', height: '13px', borderRadius: '50%', background: c.bg, cursor: 'pointer', border: stickyColor === c.bg ? '2px solid #0B1A3F' : '1px solid #ddd' }} />
+                <div key={c.bg} onClick={() => handleStickyColorChange(c.bg)} style={{ width: '13px', height: '13px', borderRadius: '50%', background: c.bg, cursor: 'pointer', border: stickyColor === c.bg ? '2px solid #0B1A3F' : '1px solid #ddd' }} />
               ))}
             </div>
           </div>
           <div style={{ background: stickyColor, flex: 1, padding: '14px', borderRadius: '2px 2px 25px 2px', boxShadow: '0 8px 16px -8px rgba(0,0,0,0.15)', display: 'flex' }}>
-            <textarea placeholder="Sticky memo..." value={stickyText} onChange={(e) => setStickyText(e.target.value)} style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', resize: 'none', fontWeight: '800', color: '#0B1A3F', fontSize: '12px', lineHeight: '1.4', fontFamily: 'inherit' }} />
+            <textarea placeholder="Sticky memo..." value={stickyText} onChange={(e) => handleStickyTextChange(e.target.value)} style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', resize: 'none', fontWeight: '800', color: '#0B1A3F', fontSize: '12px', lineHeight: '1.4', fontFamily: 'inherit' }} />
           </div>
         </div>
       </div>
