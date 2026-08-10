@@ -4,7 +4,7 @@ import {
   Search, X, ArrowLeft, BookmarkCheck, LayoutGrid, 
   Sliders, UserPlus, Trash2, Edit3, Send, Crown, Check,
   Bell, BellOff, Target, MoreVertical, BarChart2, User, MessageCircle,
-  Circle, Mail
+  Circle, Mail, Pin
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -63,6 +63,42 @@ export default function StudyGroups() {
   const [selectedDmUser, setSelectedDmUser] = useState(null);
   const [dmMessages, setDmMessages] = useState([]);
   const [newDmMessageText, setNewDmMessageText] = useState('');
+
+  // --- DM USER SEARCH STATE (search any student, not just group members) ---
+  const [dmSearchQuery, setDmSearchQuery] = useState('');
+  const [dmSearchResults, setDmSearchResults] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+
+  // --- PINNED CHATS STATE (groups + DMs) ---
+  const [pinnedChats, setPinnedChats] = useState(() => {
+    const saved = localStorage.getItem('campora_pinned_chats');
+    return saved ? JSON.parse(saved) : { dms: [], groups: [] };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('campora_pinned_chats', JSON.stringify(pinnedChats));
+  }, [pinnedChats]);
+
+  const togglePinDm = (partnerId) => {
+    setPinnedChats(prev => {
+      const isPinned = prev.dms.includes(partnerId);
+      return {
+        ...prev,
+        dms: isPinned ? prev.dms.filter(id => id !== partnerId) : [...prev.dms, partnerId]
+      };
+    });
+  };
+
+  const togglePinGroup = (groupId, e) => {
+    if (e) e.stopPropagation();
+    setPinnedChats(prev => {
+      const isPinned = prev.groups.includes(groupId);
+      return {
+        ...prev,
+        groups: isPinned ? prev.groups.filter(id => id !== groupId) : [...prev.groups, groupId]
+      };
+    });
+  };
 
   // --- PREFERENCES ---
   const [myPrefs, setMyPrefs] = useState(() => {
@@ -330,6 +366,54 @@ export default function StudyGroups() {
     };
   }, [selectedDmUser, currentUser]);
 
+  // --- SEARCH FOR ANY STUDENT BY NAME/EMAIL TO START A NEW DM (not just group members) ---
+  useEffect(() => {
+    if (view !== 'dms') return;
+    const query = dmSearchQuery.trim();
+    if (!query) {
+      setDmSearchResults([]);
+      setSearchingUsers(false);
+      return;
+    }
+
+    setSearchingUsers(true);
+    const timeout = setTimeout(async () => {
+      let request = supabase
+        .from('profiles')
+        .select('id, full_name, email, major')
+        .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+        .limit(15);
+
+      if (currentUser?.id) {
+        request = request.neq('id', currentUser.id);
+      }
+
+      const { data, error } = await request;
+      if (!error) setDmSearchResults(data || []);
+      setSearchingUsers(false);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [dmSearchQuery, view, currentUser]);
+
+  const startNewDmWithUser = (profile) => {
+    const existingConv = dmConversations.find(c => c.partnerId === profile.id);
+    if (existingConv) {
+      setSelectedDmUser(existingConv);
+    } else {
+      setSelectedDmUser({
+        partnerId: profile.id,
+        name: profile.full_name || profile.email?.split('@')[0] || 'Student',
+        email: profile.email || '',
+        major: profile.major || 'Not specified',
+        lastMessage: '',
+        lastMessageTime: null
+      });
+    }
+    setDmSearchQuery('');
+    setDmSearchResults([]);
+  };
+
   const toggleNotifications = (groupId) => {
     setNotificationsMuted((prev) => ({
       ...prev,
@@ -414,7 +498,7 @@ export default function StudyGroups() {
     setActionLoading(false); 
   };
 
-  // --- SEND GROUP CHAT MESSAGE (FIXED: optimistic update so it never "disappears") ---
+  // --- SEND GROUP CHAT MESSAGE (optimistic update so it never "disappears") ---
   const handleSendMessage = async (e) => {
     e.preventDefault();
     const trimmed = newMessage.trim();
@@ -460,7 +544,7 @@ export default function StudyGroups() {
     // the temporary optimistic one since the whole array is overwritten.
   };
 
-  // --- SEND DIRECT MESSAGE HANDLER ---
+  // --- SEND DIRECT MESSAGE HANDLER (from a member's profile card) ---
   const handleSendDirectMessage = async () => {
     if (!directChatMessage.trim() || !selectedMember || !currentUser) return;
 
@@ -473,20 +557,27 @@ export default function StudyGroups() {
     setDirectChatMessage('');
     setShowDMChat(false);
     setSelectedMember(null);
+    fetchDirectMessageConversations();
     alert('Direct Message sent!');
   };
 
   const handleSendDmInInbox = async (e) => {
     e.preventDefault();
-    if (!newDmMessageText.trim() || !selectedDmUser || !currentUser) return;
+    const trimmed = newDmMessageText.trim();
+    if (!trimmed || !selectedDmUser || !currentUser) return;
 
-    await supabase.from('direct_messages').insert([{
+    const { error } = await supabase.from('direct_messages').insert([{
       sender_id: currentUser.id,
       receiver_id: selectedDmUser.partnerId,
-      content: newDmMessageText.trim()
+      content: trimmed
     }]);
 
     setNewDmMessageText('');
+
+    if (!error) {
+      // Refresh the conversation list so brand-new (searched-for) chats show up in the sidebar
+      fetchDirectMessageConversations();
+    }
   };
 
   // --- CHAT MODERATION & REACTION HANDLERS ---
@@ -521,12 +612,14 @@ export default function StudyGroups() {
   };
 
   // --- POLL HANDLERS ---
+  // FIX: poll now appears instantly (optimistic insert) instead of waiting on the realtime refetch.
   const handleCreatePoll = async (e) => {
     e.preventDefault();
     const validOptions = pollOptions.filter(o => o.trim().length > 0);
     if (!pollQuestion.trim() || validOptions.length < 2 || !selectedGroup || !currentUser) return;
 
     const senderName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || "Student";
+    const tempId = `temp-poll-${Date.now()}`;
 
     const pollData = {
       group_id: selectedGroup.id,
@@ -540,24 +633,52 @@ export default function StudyGroups() {
       }
     };
 
-    await supabase.from('group_messages').insert([pollData]);
+    // Show the poll immediately
+    setMessages(prev => [...prev, { ...pollData, id: tempId, created_at: new Date().toISOString() }]);
     setPollQuestion('');
     setPollOptions(['', '']);
     setShowPollModal(false);
+
+    const { error } = await supabase.from('group_messages').insert([pollData]);
+
+    if (error) {
+      console.error(error);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      alert('Poll failed to post. Please try again.');
+    }
+    // On success the realtime subscription replaces the temp poll with the real row.
   };
 
+  // FIX: votes now update instantly (optimistic) and clicking your own already-voted
+  // option again un-votes it, instead of silently re-voting for the same option.
   const handleVotePoll = async (msgId, optionIndex) => {
     const target = messages.find(m => m.id === msgId);
     if (!target || !target.poll_data || !currentUser) return;
 
+    const clickedOption = target.poll_data.options[optionIndex];
+    const alreadyVotedForThisOption = (clickedOption?.votes || []).includes(currentUser.id);
+
     const updatedOptions = target.poll_data.options.map((opt, idx) => {
       const filteredVotes = (opt.votes || []).filter(id => id !== currentUser.id);
-      if (idx === optionIndex) filteredVotes.push(currentUser.id);
+      // Re-add the vote to the clicked option, unless it's a toggle-off of the same option
+      if (idx === optionIndex && !alreadyVotedForThisOption) {
+        filteredVotes.push(currentUser.id);
+      }
       return { ...opt, votes: filteredVotes };
     });
 
     const updatedPollData = { ...target.poll_data, options: updatedOptions };
-    await supabase.from('group_messages').update({ poll_data: updatedPollData }).eq('id', msgId);
+
+    // Optimistic update so the bars move immediately on click
+    setMessages(prev => prev.map(m => (m.id === msgId ? { ...m, poll_data: updatedPollData } : m)));
+
+    const { error } = await supabase.from('group_messages').update({ poll_data: updatedPollData }).eq('id', msgId);
+
+    if (error) {
+      console.error(error);
+      // Roll back to the pre-click state on failure
+      setMessages(prev => prev.map(m => (m.id === msgId ? target : m)));
+    }
   };
 
   // --- MATCHMAKING ENGINE ---
@@ -579,6 +700,23 @@ export default function StudyGroups() {
 
   const createdGroups = groups.filter(g => g.creator_id === currentUser?.id);
   const joinedOnlyGroups = groups.filter(g => joinedGroupIds.includes(g.id) && g.creator_id !== currentUser?.id);
+
+  // Pinned-first ordering, used for the "chats" a user actually has (created/joined groups)
+  const sortGroupsWithPins = (list) => {
+    return [...list].sort((a, b) => {
+      const aPinned = pinnedChats.groups.includes(a.id);
+      const bPinned = pinnedChats.groups.includes(b.id);
+      if (aPinned === bPinned) return 0;
+      return aPinned ? -1 : 1;
+    });
+  };
+
+  const sortedDmConversations = [...dmConversations].sort((a, b) => {
+    const aPinned = pinnedChats.dms.includes(a.partnerId);
+    const bPinned = pinnedChats.dms.includes(b.partnerId);
+    if (aPinned === bPinned) return 0;
+    return aPinned ? -1 : 1;
+  });
 
   const getGroupMemberCount = (group) => {
     if (selectedGroup?.id === group.id && groupMembers.length > 0) {
@@ -804,6 +942,8 @@ export default function StudyGroups() {
     const match = calculateMatch(group);
     const count = getGroupMemberCount(group);
     const isCreator = group.creator_id === currentUser?.id;
+    const isMember = isCreator || joinedGroupIds.includes(group.id);
+    const isPinned = pinnedChats.groups.includes(group.id);
 
     return (
       <div className="card" onClick={() => { setSelectedGroup(group); setView('details'); }} 
@@ -816,30 +956,46 @@ export default function StudyGroups() {
                   <Crown size={10} /> Creator
                 </span>
               )}
+              {isPinned && (
+                <span style={{ ...tagStyle, background: '#FEF3C7', color: '#B45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Pin size={10} fill="#B45309" /> Pinned
+                </span>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ textAlign: 'right' }}>
                   <p style={{ margin: 0, fontSize: '9px', fontWeight: '900', color: '#0B1A3F', opacity: 0.5 }}>COMPATIBILITY</p>
                   <p style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#0B1A3F' }}>{match}%</p>
               </div>
-              {isCreator && (
-                <div style={{ display: 'flex', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {isMember && (
                   <button 
-                    onClick={(e) => { e.stopPropagation(); setEditingGroup(group); }} 
-                    style={iconBtnStyle} 
-                    title="Edit Circle"
+                    onClick={(e) => togglePinGroup(group.id, e)} 
+                    style={{ ...iconBtnStyle, background: isPinned ? '#FEF3C7' : 'rgba(255,255,255,0.7)' }} 
+                    title={isPinned ? 'Unpin Circle' : 'Pin Circle'}
                   >
-                    <Edit3 size={14} color="#0B1A3F" />
+                    <Pin size={14} color={isPinned ? '#B45309' : '#0B1A3F'} fill={isPinned ? '#B45309' : 'none'} />
                   </button>
-                  <button 
-                    onClick={(e) => handleDeleteGroup(group.id, e)} 
-                    style={{ ...iconBtnStyle, background: '#FEE2E2' }} 
-                    title="Delete Circle"
-                  >
-                    <Trash2 size={14} color="#B91C1C" />
-                  </button>
-                </div>
-              )}
+                )}
+                {isCreator && (
+                  <>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setEditingGroup(group); }} 
+                      style={iconBtnStyle} 
+                      title="Edit Circle"
+                    >
+                      <Edit3 size={14} color="#0B1A3F" />
+                    </button>
+                    <button 
+                      onClick={(e) => handleDeleteGroup(group.id, e)} 
+                      style={{ ...iconBtnStyle, background: '#FEE2E2' }} 
+                      title="Delete Circle"
+                    >
+                      <Trash2 size={14} color="#B91C1C" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
         </div>
         <h2 style={{ fontSize: '26px', margin: '15px 0', color: '#0B1A3F', fontWeight: '900' }}>{group.name}</h2>
@@ -934,7 +1090,7 @@ export default function StudyGroups() {
           </h2>
           {createdGroups.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '30px' }}>
-              {createdGroups.map(g => (
+              {sortGroupsWithPins(createdGroups).map(g => (
                 <GroupCard key={g.id} group={g} buttonLabel="Open Circle Details" />
               ))}
             </div>
@@ -957,7 +1113,7 @@ export default function StudyGroups() {
           </h2>
           {joinedOnlyGroups.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '30px' }}>
-              {joinedOnlyGroups.map(g => (
+              {sortGroupsWithPins(joinedOnlyGroups).map(g => (
                 <GroupCard key={g.id} group={g} buttonLabel="Open Circle Details" />
               ))}
             </div>
@@ -974,42 +1130,117 @@ export default function StudyGroups() {
 
       {/* VIEW: DIRECT MESSAGES INBOX */}
       {view === 'dms' && (
-        <div style={{ display: 'grid', gridTemplateColumns: selectedDmUser ? '320px 1fr' : '1fr', gap: '24px', background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '24px', minHeight: '600px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: selectedDmUser ? '340px 1fr' : '1fr', gap: '24px', background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '24px', minHeight: '600px' }}>
           
           {/* CONVERSATION LIST */}
           <div style={{ borderRight: selectedDmUser ? '1px solid #E2E8F0' : 'none', paddingRight: selectedDmUser ? '20px' : '0' }}>
-            <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0B1A3F', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0B1A3F', marginBottom: '16px' }}>
               Direct Messages
             </h2>
+
+            {/* SEARCH FOR ANY STUDENT (not just people sharing a group with you) */}
+            <div style={{ position: 'relative', marginBottom: '20px' }}>
+              <div style={{ ...searchBarContainer, marginBottom: 0, padding: '10px 16px' }}>
+                <Search size={18} color="#A3AED0" />
+                <input
+                  type="text"
+                  placeholder="Search students by name or email..."
+                  style={searchField}
+                  value={dmSearchQuery}
+                  onChange={(e) => setDmSearchQuery(e.target.value)}
+                />
+                {dmSearchQuery && (
+                  <button onClick={() => setDmSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <X size={16} color="#A3AED0" />
+                  </button>
+                )}
+              </div>
+
+              {dmSearchQuery && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.08)', zIndex: 20, maxHeight: '300px', overflowY: 'auto' }}>
+                  {searchingUsers ? (
+                    <p style={{ padding: '16px', margin: 0, color: '#A3AED0', fontWeight: '700', fontSize: '13px' }}>Searching...</p>
+                  ) : dmSearchResults.length > 0 ? (
+                    dmSearchResults.map((profile) => (
+                      <div
+                        key={profile.id}
+                        onClick={() => startNewDmWithUser(profile)}
+                        style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #F1F5F9' }}
+                      >
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#0B1A3F', fontSize: '14px', flexShrink: 0 }}>
+                          {(profile.full_name || profile.email || 'S')[0].toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontWeight: '800', fontSize: '13px', color: '#0B1A3F' }}>
+                            {profile.full_name || profile.email?.split('@')[0] || 'Student'}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#A3AED0', fontWeight: '700' }}>
+                            {profile.major || 'Major not specified'}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p style={{ padding: '16px', margin: 0, color: '#A3AED0', fontWeight: '700', fontSize: '13px' }}>No students found.</p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {dmConversations.length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: '#A3AED0' }}>
                 <Mail size={40} strokeWidth={1.5} style={{ marginBottom: '10px' }} />
                 <p style={{ fontWeight: '800', margin: 0, fontSize: '14px' }}>No direct messages yet.</p>
-                <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Click on a member in any group to send a DM!</p>
+                <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Search above or click a member in any group to start chatting!</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {dmConversations.map((conv) => (
-                  <div
-                    key={conv.partnerId}
-                    onClick={() => setSelectedDmUser(conv)}
-                    style={{
-                      padding: '14px',
-                      borderRadius: '16px',
-                      background: selectedDmUser?.partnerId === conv.partnerId ? '#0B1A3F' : '#F8FAFC',
-                      color: selectedDmUser?.partnerId === conv.partnerId ? 'white' : '#0B1A3F',
-                      cursor: 'pointer',
-                      border: '1px solid #E2E8F0',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <p style={{ margin: 0, fontWeight: '800', fontSize: '15px' }}>{conv.name}</p>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {conv.lastMessage || 'Click to view conversation'}
-                    </p>
-                  </div>
-                ))}
+                {sortedDmConversations.map((conv) => {
+                  const isPinned = pinnedChats.dms.includes(conv.partnerId);
+                  const isSelected = selectedDmUser?.partnerId === conv.partnerId;
+                  return (
+                    <div
+                      key={conv.partnerId}
+                      onClick={() => setSelectedDmUser(conv)}
+                      style={{
+                        padding: '14px',
+                        borderRadius: '16px',
+                        background: isSelected ? '#0B1A3F' : '#F8FAFC',
+                        color: isSelected ? 'white' : '#0B1A3F',
+                        cursor: 'pointer',
+                        border: '1px solid #E2E8F0',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '10px'
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {isPinned && (
+                            <Pin size={11} fill={isSelected ? 'white' : '#B45309'} color={isSelected ? 'white' : '#B45309'} />
+                          )}
+                          <p style={{ margin: 0, fontWeight: '800', fontSize: '15px' }}>{conv.name}</p>
+                        </div>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {conv.lastMessage || 'Click to view conversation'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); togglePinDm(conv.partnerId); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, display: 'flex' }}
+                        title={isPinned ? 'Unpin chat' : 'Pin chat'}
+                      >
+                        <Pin 
+                          size={16} 
+                          fill={isPinned ? (isSelected ? 'white' : '#B45309') : 'none'} 
+                          color={isSelected ? 'white' : (isPinned ? '#B45309' : '#A3AED0')} 
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1022,9 +1253,22 @@ export default function StudyGroups() {
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0B1A3F' }}>{selectedDmUser.name}</h3>
                   <p style={{ margin: 0, fontSize: '12px', color: '#A3AED0', fontWeight: '700' }}>🎓 {selectedDmUser.major}</p>
                 </div>
-                <button onClick={() => setSelectedDmUser(null)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
-                  <X size={20} color="#A3AED0" />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => togglePinDm(selectedDmUser.partnerId)}
+                    style={iconBtnStyle}
+                    title={pinnedChats.dms.includes(selectedDmUser.partnerId) ? 'Unpin chat' : 'Pin chat'}
+                  >
+                    <Pin 
+                      size={16} 
+                      color={pinnedChats.dms.includes(selectedDmUser.partnerId) ? '#B45309' : '#0B1A3F'} 
+                      fill={pinnedChats.dms.includes(selectedDmUser.partnerId) ? '#B45309' : 'none'} 
+                    />
+                  </button>
+                  <button onClick={() => setSelectedDmUser(null)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
+                    <X size={20} color="#A3AED0" />
+                  </button>
+                </div>
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '8px' }}>
@@ -1366,6 +1610,13 @@ export default function StudyGroups() {
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={() => togglePinGroup(selectedGroup.id)} 
+                style={{ ...iconBtnStyle, background: pinnedChats.groups.includes(selectedGroup.id) ? '#FEF3C7' : 'rgba(255,255,255,0.7)' }} 
+                title={pinnedChats.groups.includes(selectedGroup.id) ? 'Unpin Circle' : 'Pin Circle'}
+              >
+                <Pin size={18} color={pinnedChats.groups.includes(selectedGroup.id) ? '#B45309' : '#0B1A3F'} fill={pinnedChats.groups.includes(selectedGroup.id) ? '#B45309' : 'none'} />
+              </button>
               <button onClick={() => setShowPollModal(true)} style={iconBtnStyle} title="Create Poll">
                 <BarChart2 size={18} color="#0B1A3F" />
               </button>
@@ -1424,16 +1675,18 @@ export default function StudyGroups() {
                                   cursor: 'pointer',
                                   overflow: 'hidden'
                                 }}
+                                title={hasVoted ? 'Click again to remove your vote' : 'Vote for this option'}
                               >
-                                <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${percentage}%`, background: selectedGroup.color || 'rgba(224, 242, 254, 0.6)', transition: 'width 0.3s ease' }} />
+                                <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${percentage}%`, background: 'rgba(11, 26, 63, 0.12)', transition: 'width 0.3s ease' }} />
                                 <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontWeight: '800', fontSize: '13px', color: '#0B1A3F' }}>
-                                  <span>{opt.text}</span>
+                                  <span>{hasVoted ? '✓ ' : ''}{opt.text}</span>
                                   <span>{percentage}% ({optVotes})</span>
                                 </div>
                               </button>
                             );
                           })}
                         </div>
+                        <p style={{ margin: '10px 0 0 0', fontSize: '11px', fontWeight: '700', color: '#A3AED0' }}>Tap your choice again to remove your vote.</p>
                       </div>
                     ) : (
                       <div style={{
