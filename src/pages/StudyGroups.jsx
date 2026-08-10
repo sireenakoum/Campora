@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Plus, Users, Volume2, MessageSquare, ArrowRight, 
-  Search, X, ArrowLeft, BookmarkCheck, LayoutGrid, 
+import {
+  Plus, Users, Volume2, MessageSquare, ArrowRight,
+  Search, X, ArrowLeft, BookmarkCheck, LayoutGrid,
   Sliders, UserPlus, Trash2, Edit3, Send, Crown, Check,
   Bell, BellOff, Target, MoreVertical, BarChart2, User, MessageCircle,
   Circle, Mail, Pin
@@ -9,17 +9,19 @@ import {
 import { supabase } from '../lib/supabase';
 
 const MAJORS_CREATION = [
-  "All Majors Welcome", "Architecture", "Biology", "Business / Finance", "Computer Science", 
-  "Civil Engineering", "Mechanical Engineering", "Electrical Engineering", 
-  "Chemical Engineering", "Economics", "Graphic Design", "History", 
-  "Mathematics", "Media & Communication", "Nursing", "Nutrition", 
-  "Philosophy", "Physics", "Political Science", "Psychology", "Sociology"
+  "All Majors Welcome", "Architecture", "Biology", "Business / Finance",
+  "Civil Engineering", "Chemical Engineering", "Computer Science",
+  "Economics", "Electrical Engineering", "Graphic Design", "History",
+  "Mathematics", "Mechanical Engineering", "Media & Communication",
+  "Nursing", "Nutrition", "Philosophy", "Physics", "Political Science",
+  "Psychology", "Sociology"
 ];
 
 const MAJORS_PREFERENCES = MAJORS_CREATION.filter(m => m !== "All Majors Welcome");
 
 const STUDY_GOALS = [
-  "Exam Prep", "Homework / Assignments", "Final Project", "General Review", "Reading / Discussion"
+  "Exam Prep", "Homework / Assignments", "Final Project", "General Review",
+  "Reading / Discussion"
 ];
 
 const NOISE_LEVELS = [
@@ -27,14 +29,14 @@ const NOISE_LEVELS = [
 ];
 
 const STUDY_MODES = ["In-person", "Online"];
-const EMOJI_REACTIONS = ["👍", "❤️", "😂", "🔥", "🎉"];
+const EMOJI_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
 export default function StudyGroups() {
-  // --- STATE ---
+  // --- STATE
   const [currentUser, setCurrentUser] = useState(null);
   const [groups, setGroups] = useState([]);
   const [joinedGroupIds, setJoinedGroupIds] = useState([]);
-  const [view, setView] = useState('browse'); 
+  const [view, setView] = useState('browse');
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -42,11 +44,36 @@ export default function StudyGroups() {
   const [actionLoading, setActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // --- CHAT & NOTIFICATIONS STATE ---
+  // --- CHAT & NOTIFICATIONS STATE
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [notificationsMuted, setNotificationsMuted] = useState({});
   const chatBottomRef = useRef(null);
+
+  // --- IN-CHAT PINNED MESSAGES STATE
+  const [pinnedGroupMessages, setPinnedGroupMessages] = useState(() => {
+    const saved = localStorage.getItem('campora_pinned_group_messages');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem('campora_pinned_group_messages', JSON.stringify(pinnedGroupMessages));
+  }, [pinnedGroupMessages]);
+
+  const togglePinGroupMessage = (msgId) => {
+    if (!selectedGroup) return;
+    setPinnedGroupMessages((prev) => {
+      const currentPinned = prev[selectedGroup.id] || [];
+      const isPinned = currentPinned.includes(msgId);
+      return {
+        ...prev,
+        [selectedGroup.id]: isPinned
+          ? currentPinned.filter((id) => id !== msgId)
+          : [...currentPinned, msgId]
+      };
+    });
+    setActiveMessageMenu(null);
+  };
 
   // --- SOCIAL & POLL FEATURES STATE ---
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
@@ -55,7 +82,7 @@ export default function StudyGroups() {
   const [showPollModal, setShowPollModal] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
-  
+
   // --- DIRECT MESSAGING STATE ---
   const [directChatMessage, setDirectChatMessage] = useState('');
   const [showDMChat, setShowDMChat] = useState(false);
@@ -64,7 +91,7 @@ export default function StudyGroups() {
   const [dmMessages, setDmMessages] = useState([]);
   const [newDmMessageText, setNewDmMessageText] = useState('');
 
-  // --- DM USER SEARCH STATE (search any student, not just group members) ---
+  // --- DM USER SEARCH STATE ---
   const [dmSearchQuery, setDmSearchQuery] = useState('');
   const [dmSearchResults, setDmSearchResults] = useState([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
@@ -100,13 +127,13 @@ export default function StudyGroups() {
     });
   };
 
-  // --- PREFERENCES ---
+  // --- PREFERENCES
   const [myPrefs, setMyPrefs] = useState(() => {
     const saved = localStorage.getItem('campora_user_prefs');
-    return saved ? JSON.parse(saved) : { 
-      major: 'Computer Science', 
-      env: 'Library Soft', 
-      style: 'Silent', 
+    return saved ? JSON.parse(saved) : {
+      major: 'Computer Science',
+      env: 'Library Soft',
+      style: 'Silent',
       mode: 'In-person',
       goal: 'Exam Prep'
     };
@@ -114,15 +141,18 @@ export default function StudyGroups() {
 
   // --- NEW GROUP SETUP ---
   const [newGroup, setNewGroup] = useState({
-    name: '', subject: '', environment: 'Library Soft', study_style: 'Silent', 
-    location: '', mode: 'In-person', color: '#E0F2FE', max_size: 4, 
+    name: '', subject: '', environment: 'Library Soft', study_style: 'Silent',
+    location: '', mode: 'In-person', color: '#E0F2FE', max_size: 4,
     description: '', major: 'All Majors Welcome', goal: 'Exam Prep'
   });
 
   const pastelColors = [
-    { bg: '#E0F2FE', name: 'Blue' }, { bg: '#FCE7F3', name: 'Pink' },
-    { bg: '#F3E8FF', name: 'Purple' }, { bg: '#DCFCE7', name: 'Green' },
-    { bg: '#FEE2E2', name: 'Red' }, { bg: '#FFEDD5', name: 'Yellow' }
+    { bg: '#E0F2FE', name: 'Blue' },
+    { bg: '#FCE7F3', name: 'Pink' },
+    { bg: '#F3E8FF', name: 'Purple' },
+    { bg: '#DCFCE7', name: 'Green' },
+    { bg: '#FEE2E2', name: 'Red' },
+    { bg: '#FFEDD5', name: 'Yellow' }
   ];
 
   const fetchData = async () => {
@@ -133,7 +163,7 @@ export default function StudyGroups() {
 
       const { data: groupsData } = await supabase
         .from('study_groups')
-        .select('*, group_members(user_id)')
+        .select('*, group_members (user_id)')
         .order('created_at', { ascending: false });
 
       if (user) {
@@ -144,42 +174,38 @@ export default function StudyGroups() {
         setJoinedGroupIds(memberData?.map(m => m.group_id) || []);
       }
       setGroups(groupsData || []);
-    } catch (err) { 
-      console.error(err); 
-    } finally { 
-      setLoading(false); 
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => { 
-    fetchData(); 
-    localStorage.setItem('campora_user_prefs', JSON.stringify(myPrefs)); 
+  useEffect(() => {
+    fetchData();
+    localStorage.setItem('campora_user_prefs', JSON.stringify(myPrefs));
   }, [myPrefs]);
 
-  // --- FETCH MEMBERS & EXTRACT NAMES FROM CHAT MESSAGES IF PROFILE IS MISSING ---
+  // --- FETCH MEMBERS & EXTRACT NAMES & MAJORS FROM PROFILES ---
   useEffect(() => {
     if (!selectedGroup?.id) return;
-
     const fetchMembers = async () => {
-      // 1. Fetch user IDs for members in the group
       const { data: dbMembers } = await supabase
         .from('group_members')
         .select('user_id')
         .eq('group_id', selectedGroup.id);
-      
+
       const memberUserIds = new Set((dbMembers || []).map(m => m.user_id));
       if (selectedGroup.creator_id) {
         memberUserIds.add(selectedGroup.creator_id);
       }
 
       const userIdsArray = Array.from(memberUserIds).filter(Boolean);
-
       if (userIdsArray.length === 0) {
         setGroupMembers([]);
         return;
       }
 
-      // 2. Fetch profiles from database
       const { data: fetchedProfiles } = await supabase
         .from('profiles')
         .select('id, full_name, major, academic_year, email')
@@ -188,7 +214,6 @@ export default function StudyGroups() {
       const profileMap = new Map();
       (fetchedProfiles || []).forEach(p => profileMap.set(p.id, p));
 
-      // 3. Fallback: Pull sender names directly from messages in this group
       const { data: recentMessages } = await supabase
         .from('group_messages')
         .select('user_id, sender_name')
@@ -201,18 +226,18 @@ export default function StudyGroups() {
         }
       });
 
-      // 4. Assemble members list with fallback to chat names
       const resolvedMembers = userIdsArray.map(uid => {
         const isSelf = currentUser && uid === currentUser.id;
         const profile = profileMap.get(uid);
         const nameFromChat = messageNameMap.get(uid);
-
         let resolvedName = profile?.full_name;
+
         if (!resolvedName) {
           if (isSelf) {
-            resolvedName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'You';
+            resolvedName = currentUser.user_metadata?.full_name ||
+              currentUser.email?.split('@')[0] || 'You';
           } else if (nameFromChat) {
-            resolvedName = nameFromChat; // Connects directly to chat name!
+            resolvedName = nameFromChat;
           } else if (profile?.email) {
             resolvedName = profile.email.split('@')[0];
           } else {
@@ -220,17 +245,13 @@ export default function StudyGroups() {
           }
         }
 
-        let resolvedMajor = profile?.major;
-        if (!resolvedMajor && isSelf) {
-          resolvedMajor = myPrefs.major;
-        }
-
         return {
           user_id: uid,
           profiles: {
             full_name: resolvedName,
             email: profile?.email || (isSelf ? currentUser.email : ''),
-            major: resolvedMajor || 'Not specified'
+            major: profile?.major || (isSelf ? myPrefs.major : 'Not specified'),
+            academic_year: profile?.academic_year || (isSelf ? 'Senior' : 'Not specified')
           },
           isOnline: isSelf || Math.random() > 0.3
         };
@@ -242,7 +263,6 @@ export default function StudyGroups() {
     fetchMembers();
 
     const isMember = joinedGroupIds.includes(selectedGroup.id) || selectedGroup.creator_id === currentUser?.id;
-
     if (isMember && (view === 'details' || view === 'chat')) {
       const fetchMessages = async () => {
         const { data } = await supabase
@@ -257,9 +277,9 @@ export default function StudyGroups() {
 
       const channel = supabase
         .channel(`group_messages_${selectedGroup.id}`)
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
           table: 'group_messages',
           filter: `group_id=eq.${selectedGroup.id}`
         }, () => {
@@ -284,7 +304,6 @@ export default function StudyGroups() {
   // --- FETCH DIRECT MESSAGES CONVERSATIONS ---
   const fetchDirectMessageConversations = async () => {
     if (!currentUser) return;
-
     const { data: dms } = await supabase
       .from('direct_messages')
       .select('*')
@@ -307,7 +326,7 @@ export default function StudyGroups() {
 
     const { data: partnerProfiles } = await supabase
       .from('profiles')
-      .select('id, full_name, email, major')
+      .select('id, full_name, email, major, academic_year')
       .in('id', partnerIdsArray);
 
     const profileMap = new Map();
@@ -321,6 +340,7 @@ export default function StudyGroups() {
         name: prof?.full_name || prof?.email?.split('@')[0] || 'Student',
         email: prof?.email || '',
         major: prof?.major || 'Not specified',
+        academic_year: prof?.academic_year || 'Not specified',
         lastMessage: lastMsg?.content || '',
         lastMessageTime: lastMsg?.created_at
       };
@@ -335,10 +355,9 @@ export default function StudyGroups() {
     }
   }, [view, currentUser]);
 
-  // --- FETCH INDIVIDUAL DM MESSAGES WITH SELECTED PARTNER ---
+  // --- FETCH INDIVIDUAL DM MESSAGES ---
   useEffect(() => {
     if (!selectedDmUser || !currentUser) return;
-
     const fetchDmMessages = async () => {
       const { data } = await supabase
         .from('direct_messages')
@@ -366,7 +385,7 @@ export default function StudyGroups() {
     };
   }, [selectedDmUser, currentUser]);
 
-  // --- SEARCH FOR ANY STUDENT BY NAME/EMAIL TO START A NEW DM (not just group members) ---
+  // --- SEARCH FOR ANY STUDENT BY NAME/EMAIL ---
   useEffect(() => {
     if (view !== 'dms') return;
     const query = dmSearchQuery.trim();
@@ -380,7 +399,7 @@ export default function StudyGroups() {
     const timeout = setTimeout(async () => {
       let request = supabase
         .from('profiles')
-        .select('id, full_name, email, major')
+        .select('id, full_name, email, major, academic_year')
         .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
         .limit(15);
 
@@ -406,6 +425,7 @@ export default function StudyGroups() {
         name: profile.full_name || profile.email?.split('@')[0] || 'Student',
         email: profile.email || '',
         major: profile.major || 'Not specified',
+        academic_year: profile.academic_year || 'Not specified',
         lastMessage: '',
         lastMessageTime: null
       });
@@ -435,7 +455,7 @@ export default function StudyGroups() {
 
     if (!error && data && data.length > 0) {
       await supabase.from('group_members').insert([{ group_id: data[0].id, user_id: user.id }]);
-      setView('created'); 
+      setView('created');
       fetchData();
     }
     setActionLoading(false);
@@ -445,7 +465,6 @@ export default function StudyGroups() {
     e.preventDefault();
     if (!editingGroup) return;
     setActionLoading(true);
-
     const { error } = await supabase
       .from('study_groups')
       .update({
@@ -471,12 +490,10 @@ export default function StudyGroups() {
   const handleDeleteGroup = async (groupId, e) => {
     if (e) e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this study group? This action cannot be undone.")) return;
-
     setActionLoading(true);
     await supabase.from('group_messages').delete().eq('group_id', groupId);
     await supabase.from('group_members').delete().eq('group_id', groupId);
     const { error } = await supabase.from('study_groups').delete().eq('id', groupId);
-
     if (!error) {
       if (selectedGroup?.id === groupId) {
         setView('browse');
@@ -492,13 +509,12 @@ export default function StudyGroups() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from('group_members').insert([{ group_id: groupId, user_id: user.id }]);
-      await fetchData(); 
+      await fetchData();
       setView('joined');
     }
-    setActionLoading(false); 
+    setActionLoading(false);
   };
 
-  // --- SEND GROUP CHAT MESSAGE (optimistic update so it never "disappears") ---
   const handleSendMessage = async (e) => {
     e.preventDefault();
     const trimmed = newMessage.trim();
@@ -506,8 +522,6 @@ export default function StudyGroups() {
 
     const senderName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || "Student";
     const tempId = `temp-${Date.now()}`;
-
-    // 1. Show the message immediately in the UI
     const optimisticMessage = {
       id: tempId,
       group_id: selectedGroup.id,
@@ -522,7 +536,6 @@ export default function StudyGroups() {
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
 
-    // 2. Persist it to the database
     const { error } = await supabase.from('group_messages').insert([{
       group_id: selectedGroup.id,
       user_id: currentUser.id,
@@ -532,28 +545,21 @@ export default function StudyGroups() {
       reactions: {}
     }]);
 
-    // 3. If the insert failed, roll back the optimistic bubble and restore the draft
     if (error) {
       console.error(error);
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setNewMessage(trimmed);
       alert('Message failed to send. Please try again.');
     }
-    // On success, the realtime subscription's fetchMessages() call will
-    // refresh the list with the real row from the database, replacing
-    // the temporary optimistic one since the whole array is overwritten.
   };
 
-  // --- SEND DIRECT MESSAGE HANDLER (from a member's profile card) ---
   const handleSendDirectMessage = async () => {
     if (!directChatMessage.trim() || !selectedMember || !currentUser) return;
-
     await supabase.from('direct_messages').insert([{
       sender_id: currentUser.id,
       receiver_id: selectedMember.user_id,
       content: directChatMessage.trim()
     }]);
-
     setDirectChatMessage('');
     setShowDMChat(false);
     setSelectedMember(null);
@@ -573,14 +579,11 @@ export default function StudyGroups() {
     }]);
 
     setNewDmMessageText('');
-
     if (!error) {
-      // Refresh the conversation list so brand-new (searched-for) chats show up in the sidebar
       fetchDirectMessageConversations();
     }
   };
 
-  // --- CHAT MODERATION & REACTION HANDLERS ---
   const handleDeleteMessage = async (msgId) => {
     await supabase.from('group_messages').delete().eq('id', msgId);
     setMessages(prev => prev.filter(m => m.id !== msgId));
@@ -600,19 +603,19 @@ export default function StudyGroups() {
 
     const existingReactions = target.reactions || {};
     const usersWhoReacted = existingReactions[emoji] || [];
-
     const updatedUsers = usersWhoReacted.includes(currentUser.id)
       ? usersWhoReacted.filter(id => id !== currentUser.id)
       : [...usersWhoReacted, currentUser.id];
 
     const updatedReactions = { ...existingReactions, [emoji]: updatedUsers };
 
-    await supabase.from('group_messages').update({ reactions: updatedReactions }).eq('id', msgId);
+    await supabase.from('group_messages').update({
+      reactions: updatedReactions
+    }).eq('id', msgId);
+
     setActiveMessageMenu(null);
   };
 
-  // --- POLL HANDLERS ---
-  // FIX: poll now appears instantly (optimistic insert) instead of waiting on the realtime refetch.
   const handleCreatePoll = async (e) => {
     e.preventDefault();
     const validOptions = pollOptions.filter(o => o.trim().length > 0);
@@ -620,7 +623,6 @@ export default function StudyGroups() {
 
     const senderName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || "Student";
     const tempId = `temp-poll-${Date.now()}`;
-
     const pollData = {
       group_id: selectedGroup.id,
       user_id: currentUser.id,
@@ -633,24 +635,19 @@ export default function StudyGroups() {
       }
     };
 
-    // Show the poll immediately
     setMessages(prev => [...prev, { ...pollData, id: tempId, created_at: new Date().toISOString() }]);
     setPollQuestion('');
     setPollOptions(['', '']);
     setShowPollModal(false);
 
     const { error } = await supabase.from('group_messages').insert([pollData]);
-
     if (error) {
       console.error(error);
       setMessages(prev => prev.filter(m => m.id !== tempId));
       alert('Poll failed to post. Please try again.');
     }
-    // On success the realtime subscription replaces the temp poll with the real row.
   };
 
-  // FIX: votes now update instantly (optimistic) and clicking your own already-voted
-  // option again un-votes it, instead of silently re-voting for the same option.
   const handleVotePoll = async (msgId, optionIndex) => {
     const target = messages.find(m => m.id === msgId);
     if (!target || !target.poll_data || !currentUser) return;
@@ -660,7 +657,6 @@ export default function StudyGroups() {
 
     const updatedOptions = target.poll_data.options.map((opt, idx) => {
       const filteredVotes = (opt.votes || []).filter(id => id !== currentUser.id);
-      // Re-add the vote to the clicked option, unless it's a toggle-off of the same option
       if (idx === optionIndex && !alreadyVotedForThisOption) {
         filteredVotes.push(currentUser.id);
       }
@@ -668,20 +664,18 @@ export default function StudyGroups() {
     });
 
     const updatedPollData = { ...target.poll_data, options: updatedOptions };
-
-    // Optimistic update so the bars move immediately on click
     setMessages(prev => prev.map(m => (m.id === msgId ? { ...m, poll_data: updatedPollData } : m)));
 
-    const { error } = await supabase.from('group_messages').update({ poll_data: updatedPollData }).eq('id', msgId);
+    const { error } = await supabase.from('group_messages').update({
+      poll_data: updatedPollData
+    }).eq('id', msgId);
 
     if (error) {
       console.error(error);
-      // Roll back to the pre-click state on failure
       setMessages(prev => prev.map(m => (m.id === msgId ? target : m)));
     }
   };
 
-  // --- MATCHMAKING ENGINE ---
   const calculateMatch = (group) => {
     let score = 0;
     if (group.major === "All Majors Welcome" || group.major === myPrefs.major) score += 30;
@@ -692,8 +686,8 @@ export default function StudyGroups() {
     return Math.min(score, 100);
   };
 
-  const discoverGroups = groups.filter(g => 
-    (g.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const discoverGroups = groups.filter(g =>
+    (g.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (g.subject || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (g.major || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -701,7 +695,6 @@ export default function StudyGroups() {
   const createdGroups = groups.filter(g => g.creator_id === currentUser?.id);
   const joinedOnlyGroups = groups.filter(g => joinedGroupIds.includes(g.id) && g.creator_id !== currentUser?.id);
 
-  // Pinned-first ordering, used for the "chats" a user actually has (created/joined groups)
   const sortGroupsWithPins = (list) => {
     return [...list].sort((a, b) => {
       const aPinned = pinnedChats.groups.includes(a.id);
@@ -946,66 +939,72 @@ export default function StudyGroups() {
     const isPinned = pinnedChats.groups.includes(group.id);
 
     return (
-      <div className="card" onClick={() => { setSelectedGroup(group); setView('details'); }} 
-           style={{ ...cardStyle, background: group.color }}>
+      <div
+        className="card"
+        onClick={() => {
+          setSelectedGroup(group);
+          setView('details');
+        }}
+        style={{ ...cardStyle, background: group.color }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span style={tagStyle}>{group.major}</span>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={tagStyle}>{group.major}</span>
+            {isCreator && (
+              <span style={{ ...tagStyle, background: '#0B1A3F', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Crown size={10} /> Creator
+              </span>
+            )}
+            {isPinned && (
+              <span style={{ ...tagStyle, background: '#FEF3C7', color: '#B45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Pin size={10} fill="#B45309" /> Pinned
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ margin: 0, fontSize: '9px', fontWeight: '900', color: '#0B1A3F', opacity: 0.5 }}>COMPATIBILITY</p>
+              <p style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#0B1A3F' }}>{match}%</p>
+            </div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {isMember && (
+                <button
+                  onClick={(e) => togglePinGroup(group.id, e)}
+                  style={{ ...iconBtnStyle, background: isPinned ? '#FEF3C7' : 'rgba(255,255,255,0.7)' }}
+                  title={isPinned ? 'Unpin Circle' : 'Pin Circle'}
+                >
+                  <Pin size={14} color={isPinned ? '#B45309' : '#0B1A3F'} fill={isPinned ? '#B45309' : 'none'} />
+                </button>
+              )}
               {isCreator && (
-                <span style={{ ...tagStyle, background: '#0B1A3F', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Crown size={10} /> Creator
-                </span>
-              )}
-              {isPinned && (
-                <span style={{ ...tagStyle, background: '#FEF3C7', color: '#B45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Pin size={10} fill="#B45309" /> Pinned
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: 0, fontSize: '9px', fontWeight: '900', color: '#0B1A3F', opacity: 0.5 }}>COMPATIBILITY</p>
-                  <p style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#0B1A3F' }}>{match}%</p>
-              </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {isMember && (
-                  <button 
-                    onClick={(e) => togglePinGroup(group.id, e)} 
-                    style={{ ...iconBtnStyle, background: isPinned ? '#FEF3C7' : 'rgba(255,255,255,0.7)' }} 
-                    title={isPinned ? 'Unpin Circle' : 'Pin Circle'}
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingGroup(group); }}
+                    style={iconBtnStyle}
+                    title="Edit Circle"
                   >
-                    <Pin size={14} color={isPinned ? '#B45309' : '#0B1A3F'} fill={isPinned ? '#B45309' : 'none'} />
+                    <Edit3 size={14} color="#0B1A3F" />
                   </button>
-                )}
-                {isCreator && (
-                  <>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setEditingGroup(group); }} 
-                      style={iconBtnStyle} 
-                      title="Edit Circle"
-                    >
-                      <Edit3 size={14} color="#0B1A3F" />
-                    </button>
-                    <button 
-                      onClick={(e) => handleDeleteGroup(group.id, e)} 
-                      style={{ ...iconBtnStyle, background: '#FEE2E2' }} 
-                      title="Delete Circle"
-                    >
-                      <Trash2 size={14} color="#B91C1C" />
-                    </button>
-                  </>
-                )}
-              </div>
+                  <button
+                    onClick={(e) => handleDeleteGroup(group.id, e)}
+                    style={{ ...iconBtnStyle, background: '#FEE2E2' }}
+                    title="Delete Circle"
+                  >
+                    <Trash2 size={14} color="#B91C1C" />
+                  </button>
+                </>
+              )}
             </div>
+          </div>
         </div>
         <h2 style={{ fontSize: '26px', margin: '15px 0', color: '#0B1A3F', fontWeight: '900' }}>{group.name}</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', opacity: 0.8 }}>
-            <div style={infoLine}><Target size={14}/> {group.goal}</div>
-            <div style={infoLine}><Volume2 size={14}/> {group.environment}</div>
-            <div style={infoLine}><Users size={14}/> {count} / {group.max_size} Members</div>
+          <div style={infoLine}><Target size={14} /> {group.goal}</div>
+          <div style={infoLine}><Volume2 size={14} /> {group.environment}</div>
+          <div style={infoLine}><Users size={14} /> {count}/{group.max_size} Members</div>
         </div>
         <button style={cardBtn}>
-          {buttonLabel} <ArrowRight size={16}/>
+          {buttonLabel} <ArrowRight size={16} />
         </button>
       </div>
     );
@@ -1013,28 +1012,27 @@ export default function StudyGroups() {
 
   return (
     <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto' }}>
-      
       {/* HEADER & TOP NAV TABS */}
       {view !== 'chat' && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
           <div>
             <h1 style={{ fontSize: '42px', fontWeight: '900', color: '#0B1A3F', margin: 0 }}>Study Groups</h1>
             <div style={{ display: 'flex', gap: '20px', marginTop: '15px', flexWrap: 'wrap' }}>
-                <button onClick={() => setView('browse')} style={view === 'browse' ? activeTab : inactiveTab}>
-                  <LayoutGrid size={16} /> Discover
-                </button>
-                <button onClick={() => setView('created')} style={view === 'created' ? activeTab : inactiveTab}>
-                  <Crown size={16} /> Circles I Created ({createdGroups.length})
-                </button>
-                <button onClick={() => setView('joined')} style={view === 'joined' ? activeTab : inactiveTab}>
-                  <BookmarkCheck size={16} /> Joined Circles ({joinedOnlyGroups.length})
-                </button>
-                <button onClick={() => setView('dms')} style={view === 'dms' ? activeTab : inactiveTab}>
-                  <Mail size={16} /> Direct Messages
-                </button>
-                <button onClick={() => setView('preferences')} style={view === 'preferences' ? activeTab : inactiveTab}>
-                  <Sliders size={16} /> My Vibe Settings
-                </button>
+              <button onClick={() => setView('browse')} style={view === 'browse' ? activeTab : inactiveTab}>
+                <LayoutGrid size={16} /> Discover
+              </button>
+              <button onClick={() => setView('created')} style={view === 'created' ? activeTab : inactiveTab}>
+                <Crown size={16} /> Circles Created ({createdGroups.length})
+              </button>
+              <button onClick={() => setView('joined')} style={view === 'joined' ? activeTab : inactiveTab}>
+                <BookmarkCheck size={16} /> Joined Circles ({joinedOnlyGroups.length})
+              </button>
+              <button onClick={() => setView('dms')} style={view === 'dms' ? activeTab : inactiveTab}>
+                <Mail size={16} /> Direct Messages
+              </button>
+              <button onClick={() => setView('preferences')} style={view === 'preferences' ? activeTab : inactiveTab}>
+                <Sliders size={16} /> My Vibe Settings
+              </button>
             </div>
           </div>
           <button onClick={() => setView('create')} style={addBtnStyle}>
@@ -1048,9 +1046,9 @@ export default function StudyGroups() {
         <div>
           <div style={searchBarContainer}>
             <Search size={20} color="#A3AED0" />
-            <input 
-              type="text" 
-              placeholder="Search by topic, class name, or major..." 
+            <input
+              type="text"
+              placeholder="Search by topic, class name, or major..."
               style={searchField}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -1061,16 +1059,15 @@ export default function StudyGroups() {
               </button>
             )}
           </div>
-
           {loading ? (
             <p style={{ color: '#A3AED0', fontWeight: '700' }}>Loading available circles...</p>
           ) : discoverGroups.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '30px' }}>
               {discoverGroups.map(g => (
-                <GroupCard 
-                  key={g.id} 
-                  group={g} 
-                  buttonLabel={joinedGroupIds.includes(g.id) || g.creator_id === currentUser?.id ? "Open Group Details" : "View & Join Circle"} 
+                <GroupCard
+                  key={g.id}
+                  group={g}
+                  buttonLabel={joinedGroupIds.includes(g.id) || g.creator_id === currentUser?.id ? "Open Group Details" : "View & Join Circle"}
                 />
               ))}
             </div>
@@ -1131,14 +1128,11 @@ export default function StudyGroups() {
       {/* VIEW: DIRECT MESSAGES INBOX */}
       {view === 'dms' && (
         <div style={{ display: 'grid', gridTemplateColumns: selectedDmUser ? '340px 1fr' : '1fr', gap: '24px', background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '24px', minHeight: '600px' }}>
-          
           {/* CONVERSATION LIST */}
           <div style={{ borderRight: selectedDmUser ? '1px solid #E2E8F0' : 'none', paddingRight: selectedDmUser ? '20px' : '0' }}>
             <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0B1A3F', marginBottom: '16px' }}>
               Direct Messages
             </h2>
-
-            {/* SEARCH FOR ANY STUDENT (not just people sharing a group with you) */}
             <div style={{ position: 'relative', marginBottom: '20px' }}>
               <div style={{ ...searchBarContainer, marginBottom: 0, padding: '10px 16px' }}>
                 <Search size={18} color="#A3AED0" />
@@ -1155,7 +1149,6 @@ export default function StudyGroups() {
                   </button>
                 )}
               </div>
-
               {dmSearchQuery && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.08)', zIndex: 20, maxHeight: '300px', overflowY: 'auto' }}>
                   {searchingUsers ? (
@@ -1186,7 +1179,6 @@ export default function StudyGroups() {
                 </div>
               )}
             </div>
-
             {dmConversations.length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: '#A3AED0' }}>
                 <Mail size={40} strokeWidth={1.5} style={{ marginBottom: '10px' }} />
@@ -1228,14 +1220,17 @@ export default function StudyGroups() {
                         </p>
                       </div>
                       <button
-                        onClick={(e) => { e.stopPropagation(); togglePinDm(conv.partnerId); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePinDm(conv.partnerId);
+                        }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, display: 'flex' }}
                         title={isPinned ? 'Unpin chat' : 'Pin chat'}
                       >
-                        <Pin 
-                          size={16} 
-                          fill={isPinned ? (isSelected ? 'white' : '#B45309') : 'none'} 
-                          color={isSelected ? 'white' : (isPinned ? '#B45309' : '#A3AED0')} 
+                        <Pin
+                          size={16}
+                          fill={isPinned ? (isSelected ? 'white' : '#B45309') : 'none'}
+                          color={isSelected ? 'white' : (isPinned ? '#B45309' : '#A3AED0')}
                         />
                       </button>
                     </div>
@@ -1251,7 +1246,7 @@ export default function StudyGroups() {
               <div style={{ paddingBottom: '16px', borderBottom: '1px solid #E2E8F0', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0B1A3F' }}>{selectedDmUser.name}</h3>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#A3AED0', fontWeight: '700' }}>🎓 {selectedDmUser.major}</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#A3AED0', fontWeight: '700' }}>{selectedDmUser.major}</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button
@@ -1259,10 +1254,10 @@ export default function StudyGroups() {
                     style={iconBtnStyle}
                     title={pinnedChats.dms.includes(selectedDmUser.partnerId) ? 'Unpin chat' : 'Pin chat'}
                   >
-                    <Pin 
-                      size={16} 
-                      color={pinnedChats.dms.includes(selectedDmUser.partnerId) ? '#B45309' : '#0B1A3F'} 
-                      fill={pinnedChats.dms.includes(selectedDmUser.partnerId) ? '#B45309' : 'none'} 
+                    <Pin
+                      size={16}
+                      color={pinnedChats.dms.includes(selectedDmUser.partnerId) ? '#B45309' : '#0B1A3F'}
+                      fill={pinnedChats.dms.includes(selectedDmUser.partnerId) ? '#B45309' : 'none'}
                     />
                   </button>
                   <button onClick={() => setSelectedDmUser(null)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
@@ -1270,7 +1265,6 @@ export default function StudyGroups() {
                   </button>
                 </div>
               </div>
-
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '8px' }}>
                 {dmMessages.length === 0 ? (
                   <p style={{ margin: 'auto', color: '#A3AED0', fontWeight: '800', fontSize: '13px' }}>Start your private conversation...</p>
@@ -1294,7 +1288,6 @@ export default function StudyGroups() {
                   })
                 )}
               </div>
-
               <form onSubmit={handleSendDmInInbox} style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
                 <input
                   type="text"
@@ -1313,26 +1306,23 @@ export default function StudyGroups() {
               Select a conversation to start messaging
             </div>
           )}
-
         </div>
       )}
 
       {/* VIEW: PREFERENCES */}
       {view === 'preferences' && (
-        <div style={{ maxWidth: '750px', margin: '0 auto', background: '#FFFFFF', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '40px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)' }}>
+        <div style={{ maxWidth: '750px', margin: '0 auto', background: '#FFFFFF', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '40px', boxShadow: '0 10px 25px 5px rgba(0, 0, 0, 0.05)' }}>
           <div style={{ marginBottom: '32px' }}>
             <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#0B1A3F' }}>Your Ideal Study Vibe</h2>
             <p style={{ color: '#64748B', fontWeight: '600', marginTop: '6px', fontSize: '15px' }}>Customize your parameters so we can match you with compatible study circles.</p>
           </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
             <div style={formSectionStyle}>
               <label style={labelStyle}>YOUR MAJOR</label>
-              <select style={inputStyle} value={myPrefs.major} onChange={e => setMyPrefs({...myPrefs, major: e.target.value})}>
+              <select style={inputStyle} value={myPrefs.major} onChange={e => setMyPrefs({ ...myPrefs, major: e.target.value })}>
                 {MAJORS_PREFERENCES.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
-
             <div style={formSectionStyle}>
               <label style={labelStyle}>PRIMARY STUDY GOAL</label>
               <div style={chipGridStyle}>
@@ -1348,7 +1338,6 @@ export default function StudyGroups() {
                 ))}
               </div>
             </div>
-
             <div style={formSectionStyle}>
               <label style={labelStyle}>PREFERRED NOISE LEVEL</label>
               <div style={chipGridStyle}>
@@ -1364,7 +1353,6 @@ export default function StudyGroups() {
                 ))}
               </div>
             </div>
-
             <div style={formSectionStyle}>
               <label style={labelStyle}>STUDY LOCATION PREFERENCE</label>
               <div style={chipGridStyle}>
@@ -1380,7 +1368,6 @@ export default function StudyGroups() {
                 ))}
               </div>
             </div>
-
             <button onClick={() => setView('browse')} style={{ ...saveBtn, marginTop: '10px' }}>
               Save Vibe & View Matches
             </button>
@@ -1390,33 +1377,30 @@ export default function StudyGroups() {
 
       {/* VIEW: CREATE */}
       {view === 'create' && (
-        <div style={{ maxWidth: '800px', margin: '0 auto', background: '#FFFFFF', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '40px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)' }}>
-          <button onClick={() => setView('browse')} style={backBtn}><ArrowLeft size={16}/> Back to Discover</button>
-          
+        <div style={{ maxWidth: '800px', margin: '0 auto', background: '#FFFFFF', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '40px', boxShadow: '0 10px 25px 5px rgba(0, 0, 0, 0.05)' }}>
+          <button onClick={() => setView('browse')} style={backBtn}><ArrowLeft size={16} /> Back to Discover</button>
           <div style={{ margin: '20px 0 30px 0' }}>
             <h2 style={{ margin: 0, fontWeight: '900', fontSize: '30px', color: '#0B1A3F' }}>Launch a Study Circle</h2>
             <p style={{ color: '#64748B', fontWeight: '600', marginTop: '6px', fontSize: '15px' }}>Setup a new group and start collaborating with peers.</p>
           </div>
-
           <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div style={formSectionStyle}>
                 <label style={labelStyle}>CIRCLE NAME</label>
-                <input type="text" placeholder="e.g. Psychology Finals Prep" required style={inputStyle} value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} />
+                <input type="text" placeholder="e.g. Psychology Finals Prep" required style={inputStyle} value={newGroup.name} onChange={e => setNewGroup({ ...newGroup, name: e.target.value })} />
               </div>
               <div style={formSectionStyle}>
                 <label style={labelStyle}>MAJOR / FIELD</label>
-                <select style={inputStyle} value={newGroup.major} onChange={e => setNewGroup({...newGroup, major: e.target.value})}>
+                <select style={inputStyle} value={newGroup.major} onChange={e => setNewGroup({ ...newGroup, major: e.target.value })}>
                   {MAJORS_CREATION.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
             </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div style={formSectionStyle}>
                 <label style={labelStyle}>MAX CAPACITY</label>
-                <select style={inputStyle} value={newGroup.max_size} onChange={e => setNewGroup({...newGroup, max_size: parseInt(e.target.value)})}>
-                  {[2,3,4,5,6,8,10,12,15,20].map(n => <option key={n} value={n}>{n} People</option>)}
+                <select style={inputStyle} value={newGroup.max_size} onChange={e => setNewGroup({ ...newGroup, max_size: parseInt(e.target.value) })}>
+                  {[2, 3, 4, 5, 6, 8, 10, 12, 15, 20].map(n => <option key={n} value={n}>{n} People</option>)}
                 </select>
               </div>
               <div style={formSectionStyle}>
@@ -1435,7 +1419,6 @@ export default function StudyGroups() {
                 </div>
               </div>
             </div>
-
             <div style={formSectionStyle}>
               <label style={labelStyle}>STUDY GOAL</label>
               <div style={chipGridStyle}>
@@ -1451,7 +1434,6 @@ export default function StudyGroups() {
                 ))}
               </div>
             </div>
-
             <div style={formSectionStyle}>
               <label style={labelStyle}>NOISE VIBE</label>
               <div style={chipGridStyle}>
@@ -1467,45 +1449,42 @@ export default function StudyGroups() {
                 ))}
               </div>
             </div>
-
             <div style={formSectionStyle}>
               <label style={labelStyle}>DESCRIPTION & RULES</label>
-              <textarea 
-                placeholder="Tell everyone how you'll study, where to meet, and what to bring..." 
-                style={{ ...inputStyle, height: '110px', resize: 'vertical' }} 
+              <textarea
+                placeholder="Tell everyone how you'll study, where to meet, and what to bring..."
+                style={{ ...inputStyle, height: '110px', resize: 'vertical' }}
                 value={newGroup.description}
-                onChange={e => setNewGroup({...newGroup, description: e.target.value})} 
+                onChange={e => setNewGroup({ ...newGroup, description: e.target.value })}
               />
             </div>
-
             <div style={formSectionStyle}>
               <label style={labelStyle}>CIRCLE THEME COLOR</label>
               <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
-                 {pastelColors.map(c => (
-                   <button
-                     type="button"
-                     key={c.bg} 
-                     onClick={() => setNewGroup({...newGroup, color: c.bg})} 
-                     style={{ 
-                       width: '44px', 
-                       height: '44px', 
-                       borderRadius: '50%', 
-                       background: c.bg, 
-                       cursor: 'pointer', 
-                       border: newGroup.color === c.bg ? '3px solid #0B1A3F' : '1px solid #CBD5E1',
-                       display: 'flex',
-                       alignItems: 'center',
-                       justifyContent: 'center',
-                       boxShadow: newGroup.color === c.bg ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
-                       transition: 'all 0.2s ease'
-                     }}
-                   >
-                     {newGroup.color === c.bg && <Check size={18} color="#0B1A3F" strokeWidth={3} />}
-                   </button>
-                 ))}
+                {pastelColors.map(c => (
+                  <button
+                    type="button"
+                    key={c.bg}
+                    onClick={() => setNewGroup({ ...newGroup, color: c.bg })}
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '50%',
+                      background: c.bg,
+                      cursor: 'pointer',
+                      border: newGroup.color === c.bg ? '3px solid #0B1A3F' : '1px solid #CBD5E1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: newGroup.color === c.bg ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {newGroup.color === c.bg && <Check size={18} color="#0B1A3F" strokeWidth={3} />}
+                  </button>
+                ))}
               </div>
             </div>
-
             <button type="submit" disabled={actionLoading} style={{ ...saveBtn, marginTop: '10px' }}>
               Confirm & Launch Circle
             </button>
@@ -1516,8 +1495,7 @@ export default function StudyGroups() {
       {/* VIEW: GROUP DETAILS */}
       {view === 'details' && selectedGroup && (
         <div style={{ maxWidth: '850px', margin: '0 auto', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '40px', boxShadow: '0 20px 30px -10px rgba(0, 0, 0, 0.05)' }}>
-          <button onClick={() => setView('browse')} style={backBtn}><ArrowLeft size={16}/> Back to Discover</button>
-
+          <button onClick={() => setView('browse')} style={backBtn}><ArrowLeft size={16} /> Back to Discover</button>
           <div style={{ margin: '24px 0', padding: '28px', borderRadius: '24px', background: selectedGroup.color }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={tagStyle}>{selectedGroup.major}</span>
@@ -1528,7 +1506,6 @@ export default function StudyGroups() {
             <h1 style={{ fontSize: '36px', fontWeight: '900', color: '#0B1A3F', margin: '16px 0 8px 0' }}>{selectedGroup.name}</h1>
             <p style={{ margin: 0, fontWeight: '700', color: '#0B1A3F', opacity: 0.8 }}>{selectedGroup.description || 'No description provided.'}</p>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
             <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '18px', border: '1px solid #E2E8F0' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '900', color: '#A3AED0' }}>GOAL</p>
@@ -1551,8 +1528,8 @@ export default function StudyGroups() {
             </h3>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {groupMembers.map((m, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   onClick={() => setSelectedMember(m)}
                   style={{ padding: '10px 16px', borderRadius: '12px', background: '#F1F5F9', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                 >
@@ -1561,7 +1538,7 @@ export default function StudyGroups() {
                     {m.profiles?.full_name || m.profiles?.email || 'Student'}
                   </span>
                   {m.user_id === selectedGroup.creator_id && (
-                    <span style={{ fontSize: '10px', background: '#0B1A3F', color: 'white', padding: '2px 6px', borderRadius: '6px', fontWeight: '800' }}>
+                    <span style={{ fontSize: '10px', background: selectedGroup.color || '#0B1A3F', color: '#0B1A3F', padding: '2px 6px', borderRadius: '6px', fontWeight: '800' }}>
                       Creator
                     </span>
                   )}
@@ -1577,8 +1554,8 @@ export default function StudyGroups() {
                 <MessageSquare size={18} /> Open Group Chat
               </button>
             ) : (
-              <button 
-                onClick={() => handleJoin(selectedGroup.id)} 
+              <button
+                onClick={() => handleJoin(selectedGroup.id)}
                 disabled={actionLoading || getGroupMemberCount(selectedGroup) >= selectedGroup.max_size}
                 style={{ ...saveBtn, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
@@ -1608,14 +1585,20 @@ export default function StudyGroups() {
                 </div>
               </div>
             </div>
-
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={() => togglePinGroup(selectedGroup.id)} 
-                style={{ ...iconBtnStyle, background: pinnedChats.groups.includes(selectedGroup.id) ? '#FEF3C7' : 'rgba(255,255,255,0.7)' }} 
+              <button
+                onClick={() => togglePinGroup(selectedGroup.id)}
+                style={{
+                  ...iconBtnStyle,
+                  background: pinnedChats.groups.includes(selectedGroup.id) ? '#FEF3C7' : 'rgba(255,255,255,0.7)'
+                }}
                 title={pinnedChats.groups.includes(selectedGroup.id) ? 'Unpin Circle' : 'Pin Circle'}
               >
-                <Pin size={18} color={pinnedChats.groups.includes(selectedGroup.id) ? '#B45309' : '#0B1A3F'} fill={pinnedChats.groups.includes(selectedGroup.id) ? '#B45309' : 'none'} />
+                <Pin
+                  size={18}
+                  color={pinnedChats.groups.includes(selectedGroup.id) ? '#B45309' : '#0B1A3F'}
+                  fill={pinnedChats.groups.includes(selectedGroup.id) ? '#B45309' : 'none'}
+                />
               </button>
               <button onClick={() => setShowPollModal(true)} style={iconBtnStyle} title="Create Poll">
                 <BarChart2 size={18} color="#0B1A3F" />
@@ -1634,6 +1617,41 @@ export default function StudyGroups() {
             </div>
           </div>
 
+          {/* PINNED MESSAGES BANNER WITH THEME COLOR */}
+          {pinnedGroupMessages[selectedGroup.id]?.length > 0 && (
+            <div style={{
+              background: selectedGroup.color || '#E0F2FE',
+              padding: '10px 20px',
+              borderBottom: '1px solid rgba(0,0,0,0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '900', color: '#0B1A3F' }}>
+                <Pin size={14} fill="#0B1A3F" color="#0B1A3F" /> Pinned Messages ({pinnedGroupMessages[selectedGroup.id].length})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '80px', overflowY: 'auto' }}>
+                {pinnedGroupMessages[selectedGroup.id].map((pId) => {
+                  const pMsg = messages.find((m) => m.id === pId);
+                  if (!pMsg) return null;
+                  return (
+                    <div key={pId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255, 255, 255, 0.8)', padding: '4px 10px', borderRadius: '8px', fontSize: '12px' }}>
+                      <span style={{ fontWeight: '700', color: '#0B1A3F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <strong>{pMsg.sender_name}:</strong> {pMsg.type === 'poll' ? pMsg.poll_data?.question : pMsg.content}
+                      </span>
+                      <button
+                        onClick={() => togglePinGroupMessage(pId)}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#0B1A3F', fontWeight: '800', fontSize: '11px' }}
+                      >
+                        Unpin
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* MESSAGES CONTAINER */}
           <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', background: '#F8FAFC' }}>
             {messages.length === 0 ? (
@@ -1644,23 +1662,20 @@ export default function StudyGroups() {
             ) : (
               messages.map((msg) => {
                 const isMe = msg.user_id === currentUser?.id;
-
                 return (
                   <div key={msg.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '75%', position: 'relative' }}>
                     <div style={{ fontSize: '11px', fontWeight: '800', color: '#A3AED0', marginBottom: '4px', textAlign: isMe ? 'right' : 'left' }}>
                       {msg.sender_name}
                     </div>
-
                     {msg.type === 'poll' ? (
                       <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '20px', border: '1.5px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                        <p style={{ margin: '0 0 14px 0', fontWeight: '900', fontSize: '15px', color: '#0B1A3F' }}>📊 {msg.poll_data?.question}</p>
+                        <p style={{ margin: '0 0 14px 0', fontWeight: '900', fontSize: '15px', color: '#0B1A3F' }}>{msg.poll_data?.question}</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {msg.poll_data?.options?.map((opt, oIdx) => {
                             const totalVotes = msg.poll_data.options.reduce((acc, curr) => acc + (curr.votes?.length || 0), 0);
                             const optVotes = opt.votes?.length || 0;
                             const percentage = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
                             const hasVoted = opt.votes?.includes(currentUser?.id);
-
                             return (
                               <button
                                 key={oIdx}
@@ -1702,7 +1717,6 @@ export default function StudyGroups() {
                         {msg.content}
                       </div>
                     )}
-
                     {msg.reactions && Object.keys(msg.reactions).some(k => msg.reactions[k]?.length > 0) && (
                       <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
                         {Object.entries(msg.reactions).map(([emoji, uids]) => uids.length > 0 && (
@@ -1712,14 +1726,12 @@ export default function StudyGroups() {
                         ))}
                       </div>
                     )}
-
-                    <button 
+                    <button
                       onClick={() => setActiveMessageMenu(activeMessageMenu === msg.id ? null : msg.id)}
                       style={{ position: 'absolute', top: '0', right: isMe ? '100%' : 'auto', left: isMe ? 'auto' : '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
                     >
                       <MoreVertical size={14} color="#A3AED0" />
                     </button>
-
                     {activeMessageMenu === msg.id && (
                       <div style={{ position: 'absolute', top: '24px', [isMe ? 'right' : 'left']: '100%', background: 'white', borderRadius: '12px', padding: '8px', border: '1px solid #E2E8F0', boxShadow: '0 10px 20px rgba(0,0,0,0.1)', zIndex: 10, display: 'flex', gap: '6px' }}>
                         {EMOJI_REACTIONS.map(emoji => (
@@ -1727,6 +1739,13 @@ export default function StudyGroups() {
                             {emoji}
                           </button>
                         ))}
+                        <button
+                          onClick={() => togglePinGroupMessage(msg.id)}
+                          style={{ border: 'none', background: selectedGroup.color || '#FEF3C7', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '800', color: '#0B1A3F' }}
+                        >
+                          <Pin size={12} fill="#0B1A3F" color="#0B1A3F" />
+                          {(pinnedGroupMessages[selectedGroup?.id] || []).includes(msg.id) ? 'Unpin' : 'Pin'}
+                        </button>
                         {(isMe || selectedGroup.creator_id === currentUser?.id) && (
                           <button onClick={() => handleDeleteMessage(msg.id)} style={{ border: 'none', background: '#FEE2E2', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}>
                             <Trash2 size={12} color="#B91C1C" />
@@ -1740,11 +1759,10 @@ export default function StudyGroups() {
             )}
             <div ref={chatBottomRef} />
           </div>
-
           <form onSubmit={handleSendMessage} style={{ padding: '20px', background: 'white', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '12px' }}>
-            <input 
-              type="text" 
-              placeholder="Type your message..." 
+            <input
+              type="text"
+              placeholder="Type your message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               style={{ ...inputStyle, flex: 1, background: '#F8FAFC' }}
@@ -1766,25 +1784,21 @@ export default function StudyGroups() {
                 <X size={20} color="#A3AED0" />
               </button>
             </div>
-
             <form onSubmit={handleUpdateGroup} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={formSectionStyle}>
                 <label style={labelStyle}>NAME</label>
-                <input type="text" style={inputStyle} value={editingGroup.name} onChange={e => setEditingGroup({...editingGroup, name: e.target.value})} required />
+                <input type="text" style={inputStyle} value={editingGroup.name} onChange={e => setEditingGroup({ ...editingGroup, name: e.target.value })} required />
               </div>
-
               <div style={formSectionStyle}>
                 <label style={labelStyle}>MAJOR</label>
-                <select style={inputStyle} value={editingGroup.major} onChange={e => setEditingGroup({...editingGroup, major: e.target.value})}>
+                <select style={inputStyle} value={editingGroup.major} onChange={e => setEditingGroup({ ...editingGroup, major: e.target.value })}>
                   {MAJORS_CREATION.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
-
               <div style={formSectionStyle}>
                 <label style={labelStyle}>DESCRIPTION</label>
-                <textarea style={{ ...inputStyle, height: '90px' }} value={editingGroup.description || ''} onChange={e => setEditingGroup({...editingGroup, description: e.target.value})} />
+                <textarea style={{ ...inputStyle, height: '90px' }} value={editingGroup.description || ''} onChange={e => setEditingGroup({ ...editingGroup, description: e.target.value })} />
               </div>
-
               <button type="submit" disabled={actionLoading} style={saveBtn}>
                 Save Changes
               </button>
@@ -1803,13 +1817,11 @@ export default function StudyGroups() {
                 <X size={20} color="#A3AED0" />
               </button>
             </div>
-
             <form onSubmit={handleCreatePoll} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={formSectionStyle}>
                 <label style={labelStyle}>QUESTION</label>
                 <input type="text" placeholder="e.g. When should we meet for review?" required style={inputStyle} value={pollQuestion} onChange={e => setPollQuestion(e.target.value)} />
               </div>
-
               <div style={formSectionStyle}>
                 <label style={labelStyle}>OPTIONS</label>
                 {pollOptions.map((opt, idx) => (
@@ -1827,15 +1839,14 @@ export default function StudyGroups() {
                     }}
                   />
                 ))}
-                <button 
-                  type="button" 
-                  onClick={() => setPollOptions([...pollOptions, ''])} 
+                <button
+                  type="button"
+                  onClick={() => setPollOptions([...pollOptions, ''])}
                   style={{ border: 'none', background: 'none', color: '#0B1A3F', fontWeight: '800', fontSize: '12px', cursor: 'pointer', textAlign: 'left', padding: '4px 0' }}
                 >
                   + Add Option
                 </button>
               </div>
-
               <button type="submit" style={{ ...saveBtn, marginTop: '10px' }}>
                 Post Poll to Chat
               </button>
@@ -1852,19 +1863,21 @@ export default function StudyGroups() {
               <div>
                 <h3 style={{ margin: 0, fontWeight: '900', fontSize: '22px', color: '#0B1A3F' }}>All Members</h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#A3AED0', fontWeight: '700' }}>
-                  {groupMembers.length} Total Members • Click any member to inspect
+                  {groupMembers.length} Total Members. Click any member to inspect
                 </p>
               </div>
               <button onClick={() => setShowMembersDrawer(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
                 <X size={20} color="#A3AED0" />
               </button>
             </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '60vh', overflowY: 'auto' }}>
               {groupMembers.map((m, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => { setSelectedMember(m); setShowMembersDrawer(false); }} 
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setSelectedMember(m);
+                    setShowMembersDrawer(false);
+                  }}
                   style={{ padding: '14px', borderRadius: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1905,7 +1918,6 @@ export default function StudyGroups() {
                 <X size={20} color="#A3AED0" />
               </button>
             </div>
-
             <div style={{ textAlign: 'center', padding: '10px 0 20px 0' }}>
               <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: selectedGroup?.color || '#0B1A3F', color: '#0B1A3F', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto', fontWeight: '900', fontSize: '28px' }}>
                 {(selectedMember.profiles?.full_name || 'S')[0]}
@@ -1916,27 +1928,34 @@ export default function StudyGroups() {
               <p style={{ margin: '4px 0 0 0', fontWeight: '700', color: '#A3AED0', fontSize: '13px' }}>
                 {selectedMember.profiles?.email || 'No public email provided'}
               </p>
-              <p style={{ margin: '8px 0 0 0', fontWeight: '800', color: '#0B1A3F', fontSize: '12px', background: '#F8FAFC', padding: '6px 12px', borderRadius: '8px', display: 'inline-block' }}>
-                🎓 Major: {selectedMember.profiles?.major || 'Not specified'}
-              </p>
+              {/* DETAILS GRID */}
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ background: '#F8FAFC', padding: '10px 14px', borderRadius: '12px', textAlign: 'left', border: '1px solid #E2E8F0' }}>
+                  <span style={{ fontSize: '10px', fontWeight: '900', color: '#A3AED0', display: 'block', letterSpacing: '0.5px' }}>MAJOR</span>
+                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#0B1A3F' }}>
+                    {selectedMember.profiles?.major || 'Not specified'}
+                  </span>
+                </div>
+                <div style={{ background: '#F8FAFC', padding: '10px 14px', borderRadius: '12px', textAlign: 'left', border: '1px solid #E2E8F0' }}>
+                  <span style={{ fontSize: '10px', fontWeight: '900', color: '#A3AED0', display: 'block', letterSpacing: '0.5px' }}>ACADEMIC LEVEL</span>
+                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#0B1A3F' }}>
+                    {selectedMember.profiles?.academic_year || 'Not specified'}
+                  </span>
+                </div>
+              </div>
             </div>
-
             <button onClick={() => setShowDMChat(!showDMChat)} style={{ ...saveBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <MessageSquare size={16} /> Send Direct Message
             </button>
-
             {showDMChat && (
               <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <textarea 
-                  placeholder="Type a private message..." 
-                  style={{ ...inputStyle, height: '80px' }} 
+                <textarea
+                  placeholder="Type a private message..."
+                  style={{ ...inputStyle, height: '80px' }}
                   value={directChatMessage}
                   onChange={e => setDirectChatMessage(e.target.value)}
                 />
-                <button 
-                  onClick={handleSendDirectMessage} 
-                  style={saveBtn}
-                >
+                <button onClick={handleSendDirectMessage} style={saveBtn}>
                   Send DM
                 </button>
               </div>
@@ -1944,7 +1963,6 @@ export default function StudyGroups() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
