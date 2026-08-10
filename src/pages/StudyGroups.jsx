@@ -414,23 +414,50 @@ export default function StudyGroups() {
     setActionLoading(false); 
   };
 
+  // --- SEND GROUP CHAT MESSAGE (FIXED: optimistic update so it never "disappears") ---
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedGroup || !currentUser) return;
+    const trimmed = newMessage.trim();
+    if (!trimmed || !selectedGroup || !currentUser) return;
 
     const senderName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || "Student";
+    const tempId = `temp-${Date.now()}`;
 
-    const messageData = {
+    // 1. Show the message immediately in the UI
+    const optimisticMessage = {
+      id: tempId,
       group_id: selectedGroup.id,
       user_id: currentUser.id,
       sender_name: senderName,
-      content: newMessage.trim(),
+      content: trimmed,
       type: 'text',
-      reactions: {}
+      reactions: {},
+      created_at: new Date().toISOString()
     };
 
+    setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
-    await supabase.from('group_messages').insert([messageData]);
+
+    // 2. Persist it to the database
+    const { error } = await supabase.from('group_messages').insert([{
+      group_id: selectedGroup.id,
+      user_id: currentUser.id,
+      sender_name: senderName,
+      content: trimmed,
+      type: 'text',
+      reactions: {}
+    }]);
+
+    // 3. If the insert failed, roll back the optimistic bubble and restore the draft
+    if (error) {
+      console.error(error);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setNewMessage(trimmed);
+      alert('Message failed to send. Please try again.');
+    }
+    // On success, the realtime subscription's fetchMessages() call will
+    // refresh the list with the real row from the database, replacing
+    // the temporary optimistic one since the whole array is overwritten.
   };
 
   // --- SEND DIRECT MESSAGE HANDLER ---
