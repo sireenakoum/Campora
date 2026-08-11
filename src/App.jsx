@@ -16,6 +16,9 @@ import {
 import './App.css';
 
 import Dashboard from './pages/Dashboard';
+import LandingPage from './pages/LandingPage';
+import About from './pages/About';
+import Features from './pages/Features';
 import Announcements from './pages/Announcements';
 import Notifications from './pages/Notifications'; // Restored friend's import
 import CourseManagement from './pages/CourseManagement';
@@ -173,7 +176,9 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/signup" replace />} />
+       <Route path="/" element={<LandingPage />} />
+       <Route path="/about" element={<About />} />
+       <Route path="/features" element={<Features />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
