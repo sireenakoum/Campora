@@ -12,6 +12,7 @@ import {
   ChevronsRight,
   MessageSquare,
   CheckSquare,
+  ShieldCheck,
 } from 'lucide-react';
 import './App.css';
 
@@ -26,6 +27,7 @@ import Planner from './pages/Planner';
 import Todo from './pages/Todo';
 import StudyGroups from './pages/StudyGroups';
 import CampusPulse from './pages/CampusPulse';
+import AdminStudyGroups from './pages/AdminStudyGroups';
 
 import Onboarding from './pages/Onboarding';
 import Login from './Login';
@@ -53,6 +55,7 @@ function EmailVerified() {
 function DashboardLayout() {
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('Student');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('campora_sidebar_collapsed') === 'true');
   const navigate = useNavigate();
 
@@ -66,6 +69,17 @@ function DashboardLayout() {
       if (!user) { navigate('/login', { replace: true }); return; }
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
       if (!profile || profile.onboarding_completed !== true) { navigate('/onboarding', { replace: true }); return; }
+      const { data: adminRow, error: adminError } = await supabase
+  .from('campora_admins')
+  .select('user_id')
+  .eq('user_id', user.id)
+  .maybeSingle();
+
+if (adminError) {
+  console.error('Admin check error:', adminError);
+}
+
+setIsAdmin(!!adminRow);
       setUserName(profile.name || user.email.split('@')[0]);
       setUserRole(profile.role || 'Student');
     }
@@ -146,6 +160,17 @@ function DashboardLayout() {
 <NavLink to="/study-groups" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
   <Users size={20}/> <span>Study Groups</span>
 </NavLink>
+{isAdmin && (
+  <NavLink
+    to="/admin/study-groups"
+    className={({ isActive }) =>
+      isActive ? "nav-item active" : "nav-item"
+    }
+  >
+    <ShieldCheck size={20} />
+    <span>Admin Reviews</span>
+  </NavLink>
+)}
           </nav>
 
           <Link to="/profile" className="sidebar-profile" style={{ padding: '25px', borderTop: '1px solid #eee', textDecoration: 'none', display: 'block' }}>
@@ -196,6 +221,10 @@ export default function App() {
           <Route path="/planner" element={<Planner />} />
           <Route path="/todo" element={<Todo />} />
           <Route path="/study-groups" element={<StudyGroups />} />
+          <Route
+  path="/admin/study-groups"
+  element={<AdminStudyGroups />}
+/>
           <Route path="/profile" element={<Profile />} />
         </Route>
       </Routes>

@@ -36,7 +36,9 @@ export default function StudyGroups() {
   const [currentUser, setCurrentUser] = useState(null);
   const [groups, setGroups] = useState([]);
   const [joinedGroupIds, setJoinedGroupIds] = useState([]);
-  const [view, setView] = useState('browse');
+  const [view, setView] = useState(() => {
+  return localStorage.getItem('campora_study_groups_view') || 'browse';
+});
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -156,35 +158,79 @@ export default function StudyGroups() {
   ];
 
   const fetchData = async () => {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
+  try {
+    setLoading(true);
 
-      const { data: groupsData } = await supabase
-        .from('study_groups')
-        .select('*, group_members (user_id)')
-        .order('created_at', { ascending: false });
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-      if (user) {
-        const { data: memberData } = await supabase
-          .from('group_members')
-          .select('group_id')
-          .eq('user_id', user.id);
-        setJoinedGroupIds(memberData?.map(m => m.group_id) || []);
-      }
-      setGroups(groupsData || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+    if (sessionError) {
+      console.error('Session error:', sessionError);
     }
-  };
+
+    const user = session?.user || null;
+    setCurrentUser(user);
+
+    const { data: groupsData, error: groupsError } = await supabase
+      .from('study_groups')
+      .select('*, group_members (user_id)')
+      .order('created_at', { ascending: false });
+
+    if (groupsError) {
+      console.error('Study groups error:', groupsError);
+      setGroups([]);
+      return;
+    }
+
+    setGroups(groupsData || []);
+
+    if (user) {
+      const { data: memberData, error: memberError } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user.id);
+
+      if (memberError) {
+        console.error('Group membership error:', memberError);
+      }
+
+      setJoinedGroupIds(
+        memberData?.map((member) => member.group_id) || []
+      );
+    } else {
+      setJoinedGroupIds([]);
+    }
+  } catch (error) {
+    console.error('Error loading Study Groups:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchData();
     localStorage.setItem('campora_user_prefs', JSON.stringify(myPrefs));
   }, [myPrefs]);
+  useEffect(() => {
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setCurrentUser(session?.user || null);
+
+    if (session?.user) {
+      fetchData();
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
+useEffect(() => {
+  localStorage.setItem('campora_study_groups_view', view);
+}, [view]);
 
   // --- FETCH MEMBERS & EXTRACT NAMES & MAJORS FROM PROFILES ---
   useEffect(() => {
@@ -445,20 +491,58 @@ export default function StudyGroups() {
   const handleCreate = async (e) => {
     e.preventDefault();
     setActionLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
 
-    const { data, error } = await supabase
-      .from('study_groups')
-      .insert([{ ...newGroup, creator_id: user.id }])
-      .select();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
 
-    if (!error && data && data.length > 0) {
-      await supabase.from('group_members').insert([{ group_id: data[0].id, user_id: user.id }]);
-      setView('created');
-      fetchData();
+      if (!user) {
+        alert('You must be logged in to create a study circle.');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('study_groups')
+        .insert([{
+          ...newGroup,
+          creator_id: user.id,
+          approval_status: 'pending'
+        }])
+        .select();
+
+      if (error) {
+        console.error(error);
+        alert('Could not submit your study circle. Please try again.');
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setNewGroup({
+          name: '',
+          subject: '',
+          environment: 'Library Soft',
+          study_style: 'Silent',
+          location: '',
+          mode: 'In-person',
+          color: '#E0F2FE',
+          max_size: 4,
+          description: '',
+          major: 'All Majors Welcome',
+          goal: 'Exam Prep'
+        });
+
+        await fetchData();
+        setView('created');
+
+        alert(
+          'Your study circle has been submitted for review! ✨\n\nThe Campora team will review it before it appears publicly.'
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setActionLoading(false);
     }
-    setActionLoading(false);
   };
 
   const handleUpdateGroup = async (e) => {
@@ -475,7 +559,8 @@ export default function StudyGroups() {
         mode: editingGroup.mode,
         max_size: editingGroup.max_size,
         description: editingGroup.description,
-        color: editingGroup.color
+        color: editingGroup.color,
+        approval_status: 'pending'
       })
       .eq('id', editingGroup.id);
 
@@ -505,6 +590,13 @@ export default function StudyGroups() {
   };
 
   const handleJoin = async (groupId) => {
+    const group = groups.find(g => g.id === groupId);
+
+    if (!group || group.approval_status !== 'approved') {
+      alert('This study circle is not available to join yet.');
+      return;
+    }
+
     setActionLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -686,14 +778,23 @@ export default function StudyGroups() {
     return Math.min(score, 100);
   };
 
-  const discoverGroups = groups.filter(g =>
-    (g.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (g.subject || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (g.major || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const discoverGroups = groups.filter(g => {
+    const isApproved = g.approval_status === 'approved';
+    const matchesSearch =
+      (g.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.major || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+    return isApproved && matchesSearch;
+  });
 
   const createdGroups = groups.filter(g => g.creator_id === currentUser?.id);
-  const joinedOnlyGroups = groups.filter(g => joinedGroupIds.includes(g.id) && g.creator_id !== currentUser?.id);
+
+  const joinedOnlyGroups = groups.filter(g =>
+    g.approval_status === 'approved' &&
+    joinedGroupIds.includes(g.id) &&
+    g.creator_id !== currentUser?.id
+  );
 
   const sortGroupsWithPins = (list) => {
     return [...list].sort((a, b) => {
@@ -931,84 +1032,451 @@ export default function StudyGroups() {
     padding: '20px'
   };
 
-  const GroupCard = ({ group, buttonLabel }) => {
-    const match = calculateMatch(group);
-    const count = getGroupMemberCount(group);
-    const isCreator = group.creator_id === currentUser?.id;
-    const isMember = isCreator || joinedGroupIds.includes(group.id);
-    const isPinned = pinnedChats.groups.includes(group.id);
+const GroupCard = ({ group, buttonLabel }) => {
+  const match = calculateMatch(group);
+  const count = getGroupMemberCount(group);
+  const isCreator = group.creator_id === currentUser?.id;
+  const isMember = isCreator || joinedGroupIds.includes(group.id);
+  const isPinned = pinnedChats.groups.includes(group.id);
+  const approvalStatus = group.approval_status || 'pending';
 
-    return (
-      <div
-        className="card"
-        onClick={() => {
-          setSelectedGroup(group);
-          setView('details');
-        }}
-        style={{ ...cardStyle, background: group.color }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span style={tagStyle}>{group.major}</span>
-            {isCreator && (
-              <span style={{ ...tagStyle, background: '#0B1A3F', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Crown size={10} /> Creator
-              </span>
-            )}
-            {isPinned && (
-              <span style={{ ...tagStyle, background: '#FEF3C7', color: '#B45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Pin size={10} fill="#B45309" /> Pinned
-              </span>
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ margin: 0, fontSize: '9px', fontWeight: '900', color: '#0B1A3F', opacity: 0.5 }}>COMPATIBILITY</p>
-              <p style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#0B1A3F' }}>{match}%</p>
-            </div>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {isMember && (
-                <button
-                  onClick={(e) => togglePinGroup(group.id, e)}
-                  style={{ ...iconBtnStyle, background: isPinned ? '#FEF3C7' : 'rgba(255,255,255,0.7)' }}
-                  title={isPinned ? 'Unpin Circle' : 'Pin Circle'}
-                >
-                  <Pin size={14} color={isPinned ? '#B45309' : '#0B1A3F'} fill={isPinned ? '#B45309' : 'none'} />
-                </button>
-              )}
-              {isCreator && (
-                <>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingGroup(group); }}
-                    style={iconBtnStyle}
-                    title="Edit Circle"
-                  >
-                    <Edit3 size={14} color="#0B1A3F" />
-                  </button>
-                  <button
-                    onClick={(e) => handleDeleteGroup(group.id, e)}
-                    style={{ ...iconBtnStyle, background: '#FEE2E2' }}
-                    title="Delete Circle"
-                  >
-                    <Trash2 size={14} color="#B91C1C" />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <h2 style={{ fontSize: '26px', margin: '15px 0', color: '#0B1A3F', fontWeight: '900' }}>{group.name}</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', opacity: 0.8 }}>
-          <div style={infoLine}><Target size={14} /> {group.goal}</div>
-          <div style={infoLine}><Volume2 size={14} /> {group.environment}</div>
-          <div style={infoLine}><Users size={14} /> {count}/{group.max_size} Members</div>
-        </div>
-        <button style={cardBtn}>
-          {buttonLabel} <ArrowRight size={16} />
-        </button>
-      </div>
-    );
+  const statusStyles = {
+    pending: {
+      background: '#FFF7E6',
+      border: '#F6D48B',
+      color: '#B7791F',
+      label: 'Pending Review',
+    },
+    approved: {
+      background: '#ECFBF6',
+      border: '#BDEDDD',
+      color: '#008D68',
+      label: 'Approved',
+    },
+    rejected: {
+      background: '#FFF0F0',
+      border: '#F6CACA',
+      color: '#D84C4C',
+      label: 'Declined',
+    },
   };
+
+  const status = statusStyles[approvalStatus] || statusStyles.pending;
+
+  return (
+    <div
+      onClick={() => {
+        setSelectedGroup(group);
+        setView('details');
+      }}
+      style={{
+        background: '#FFFFFF',
+        border: '1.5px solid #E5EAF4',
+        borderRadius: '26px',
+        padding: '26px',
+        cursor: 'pointer',
+        boxShadow: '0 14px 36px rgba(11, 26, 63, 0.06)',
+        transition: 'all 0.2s ease',
+        minHeight: '330px',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* TOP ROW */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '16px',
+          flexWrap: 'wrap',
+        }}
+      >
+        {/* BADGES */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '7px 11px',
+              borderRadius: '10px',
+              background: '#FFFFFF',
+              border: '1.5px solid #DCE3F0',
+              color: '#0B1A3F',
+              fontSize: '11px',
+              fontWeight: '900',
+              textTransform: 'uppercase',
+            }}
+          >
+            <Users size={13} />
+            {group.major || 'All Majors Welcome'}
+          </span>
+
+          {isCreator && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 11px',
+                borderRadius: '10px',
+                background: '#0B1A3F',
+                color: '#FFFFFF',
+                fontSize: '11px',
+                fontWeight: '900',
+                textTransform: 'uppercase',
+              }}
+            >
+              <Crown size={13} />
+              Creator
+            </span>
+          )}
+
+          {isCreator && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 11px',
+                borderRadius: '10px',
+                background: status.background,
+                border: `1px solid ${status.border}`,
+                color: status.color,
+                fontSize: '11px',
+                fontWeight: '900',
+                textTransform: 'uppercase',
+              }}
+            >
+              <Circle size={10} />
+              {status.label}
+            </span>
+          )}
+        </div>
+
+        {/* RIGHT SIDE */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <div
+            style={{
+              textAlign: 'right',
+              marginRight: '4px',
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                color: '#8F9BB3',
+                fontSize: '9px',
+                fontWeight: '900',
+                letterSpacing: '0.4px',
+              }}
+            >
+              COMPATIBILITY
+            </p>
+
+            <p
+              style={{
+                margin: '2px 0 0',
+                color: '#0B1A3F',
+                fontSize: '20px',
+                fontWeight: '900',
+              }}
+            >
+              {match}%
+            </p>
+          </div>
+
+          {isMember && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePinGroup(group.id, e);
+              }}
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '11px',
+                border: '1.5px solid #E3E8F2',
+                background: isPinned ? '#FFF5D6' : '#FFFFFF',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Pin
+                size={16}
+                color={isPinned ? '#B7791F' : '#0B1A3F'}
+                fill={isPinned ? '#B7791F' : 'none'}
+              />
+            </button>
+          )}
+
+          {isCreator && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingGroup(group);
+                }}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '11px',
+                  border: '1.5px solid #E3E8F2',
+                  background: '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Edit3 size={16} color="#0B1A3F" />
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => handleDeleteGroup(group.id, e)}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '11px',
+                  border: '1px solid #FFD1D1',
+                  background: '#FFF0F0',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Trash2 size={16} color="#E5484D" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* GROUP NAME */}
+      <h2
+        style={{
+          fontSize: '27px',
+          margin: '28px 0 16px',
+          color: '#0B1A3F',
+          fontWeight: '900',
+        }}
+      >
+        {group.name}
+      </h2>
+
+      <div
+        style={{
+          width: '100%',
+          height: '1px',
+          background: '#EDF1F7',
+          marginBottom: '18px',
+        }}
+      />
+
+      {/* INFORMATION */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: '#42506D',
+            fontSize: '14px',
+          }}
+        >
+          <Target size={17} color="#0B1A3F" />
+
+          <span style={{ fontWeight: '900', color: '#0B1A3F' }}>
+            Goal:
+          </span>
+
+          <span style={{ fontWeight: '700' }}>
+            {group.goal || 'General Study'}
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: '#42506D',
+            fontSize: '14px',
+          }}
+        >
+          <Volume2 size={17} color="#0B1A3F" />
+
+          <span style={{ fontWeight: '900', color: '#0B1A3F' }}>
+            Environment:
+          </span>
+
+          <span style={{ fontWeight: '700' }}>
+            {group.environment || 'Not specified'}
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: '#42506D',
+            fontSize: '14px',
+          }}
+        >
+          <Users size={17} color="#0B1A3F" />
+
+          <span style={{ fontWeight: '900', color: '#0B1A3F' }}>
+            Members:
+          </span>
+
+          <span style={{ fontWeight: '700' }}>
+            {count} / {group.max_size}
+          </span>
+        </div>
+      </div>
+
+      {/* BOTTOM STATUS / ACTION */}
+      <div style={{ marginTop: 'auto', paddingTop: '26px' }}>
+        {isCreator && approvalStatus === 'pending' ? (
+          <div
+            style={{
+              width: '100%',
+              padding: '14px 16px',
+              borderRadius: '16px',
+              background: '#FFF9EE',
+              border: '1.5px solid #F4D89A',
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '14px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+            >
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: '#FFF0C7',
+                  color: '#B7791F',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Circle size={16} />
+              </div>
+
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    color: '#9A6200',
+                    fontSize: '13px',
+                    fontWeight: '900',
+                  }}
+                >
+                  Awaiting Campora Review
+                </p>
+
+                <p
+                  style={{
+                    margin: '2px 0 0',
+                    color: '#B28A45',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                  }}
+                >
+                  Only visible to you until approved.
+                </p>
+              </div>
+            </div>
+
+            <ArrowRight size={17} color="#B7791F" />
+          </div>
+        ) : approvalStatus === 'rejected' && isCreator ? (
+          <div
+            style={{
+              width: '100%',
+              padding: '14px 18px',
+              borderRadius: '14px',
+              background: '#FFF0F0',
+              border: '1.5px solid #F6CACA',
+              color: '#D84C4C',
+              fontWeight: '900',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <X size={16} />
+            Circle Was Not Approved
+          </div>
+        ) : (
+          <button
+            type="button"
+            style={{
+              width: '100%',
+              padding: '14px 18px',
+              borderRadius: '14px',
+              border: 'none',
+              background: '#0B1A3F',
+              color: '#FFFFFF',
+              fontWeight: '900',
+              fontSize: '14px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '9px',
+            }}
+          >
+            {buttonLabel}
+            <ArrowRight size={17} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
   return (
     <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto' }}>
@@ -1038,6 +1506,47 @@ export default function StudyGroups() {
           <button onClick={() => setView('create')} style={addBtnStyle}>
             <Plus size={22} strokeWidth={3} /> Create Circle
           </button>
+        </div>
+      )}
+
+      {view !== 'chat' && view !== 'dms' && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            padding: '16px 18px',
+            marginBottom: '28px',
+            borderRadius: '18px',
+            background: 'linear-gradient(135deg, #F3F1FF 0%, #F7FBFF 100%)',
+            border: '1.5px solid #E2E5FF'
+          }}
+        >
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              flexShrink: 0,
+              borderRadius: '14px',
+              background: '#E7E3FF',
+              color: '#6366F1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: '900',
+              fontSize: '18px'
+            }}
+          >
+            ✓
+          </div>
+          <div>
+            <p style={{ margin: '0 0 3px', fontWeight: '900', color: '#0B1A3F', fontSize: '14px' }}>
+              Safe communities, reviewed by Campora
+            </p>
+            <p style={{ margin: 0, color: '#7C879F', fontSize: '13px', lineHeight: '1.5', fontWeight: '700' }}>
+              Every new or edited study circle is reviewed before it appears in Discover.
+            </p>
+          </div>
         </div>
       )}
 
@@ -1072,8 +1581,23 @@ export default function StudyGroups() {
               ))}
             </div>
           ) : (
-            <div style={{ padding: '60px', textAlign: 'center', background: 'white', borderRadius: '30px', border: '2px dashed #E9EDF7' }}>
-              <p style={{ color: '#A3AED0', fontWeight: '800', fontSize: '16px', margin: 0 }}>No study circles found matching your search.</p>
+            <div style={{ padding: '58px 30px', textAlign: 'center', background: 'linear-gradient(135deg, #FFFFFF 0%, #F9F7FF 100%)', borderRadius: '30px', border: '1.5px solid #E7EAF6', boxShadow: '0 16px 40px rgba(81, 95, 160, 0.05)' }}>
+              <div style={{ width: '74px', height: '74px', margin: '0 auto 18px', borderRadius: '24px', background: 'linear-gradient(135deg, #EDE9FF, #F1F7FF)', color: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={34} />
+              </div>
+              <h2 style={{ margin: '0 0 8px', color: '#0B1A3F', fontSize: '24px', fontWeight: '900' }}>
+                Find your study circle.
+              </h2>
+              <p style={{ maxWidth: '560px', margin: '0 auto 22px', color: '#A3AED0', lineHeight: '1.65', fontWeight: '700', fontSize: '14px' }}>
+                {searchQuery
+                  ? 'No approved study circles match your search yet.'
+                  : 'There are no approved circles available yet. Create one and submit it for Campora review.'}
+              </p>
+              {!searchQuery && (
+                <button onClick={() => setView('create')} style={{ ...addBtnStyle, margin: '0 auto' }}>
+                  <Plus size={18} /> Create a Circle
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -1085,7 +1609,27 @@ export default function StudyGroups() {
           <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0B1A3F', marginBottom: '20px' }}>
             Circles Created By Me
           </h2>
-          {createdGroups.length > 0 ? (
+          {loading ? (
+  <div
+    style={{
+      padding: '60px',
+      textAlign: 'center',
+      background: 'white',
+      borderRadius: '30px',
+      border: '1.5px solid #E9EDF7',
+    }}
+  >
+    <p
+      style={{
+        color: '#A3AED0',
+        fontWeight: '800',
+        margin: 0,
+      }}
+    >
+      Loading your circles...
+    </p>
+  </div>
+) : createdGroups.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '30px' }}>
               {sortGroupsWithPins(createdGroups).map(g => (
                 <GroupCard key={g.id} group={g} buttonLabel="Open Circle Details" />
@@ -1381,7 +1925,7 @@ export default function StudyGroups() {
           <button onClick={() => setView('browse')} style={backBtn}><ArrowLeft size={16} /> Back to Discover</button>
           <div style={{ margin: '20px 0 30px 0' }}>
             <h2 style={{ margin: 0, fontWeight: '900', fontSize: '30px', color: '#0B1A3F' }}>Launch a Study Circle</h2>
-            <p style={{ color: '#64748B', fontWeight: '600', marginTop: '6px', fontSize: '15px' }}>Setup a new group and start collaborating with peers.</p>
+            <p style={{ color: '#64748B', fontWeight: '600', marginTop: '6px', fontSize: '15px' }}>Build your circle and submit it for Campora review before it appears publicly.</p>
           </div>
           <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -1486,7 +2030,7 @@ export default function StudyGroups() {
               </div>
             </div>
             <button type="submit" disabled={actionLoading} style={{ ...saveBtn, marginTop: '10px' }}>
-              Confirm & Launch Circle
+              Submit Circle for Review
             </button>
           </form>
         </div>
@@ -1549,7 +2093,23 @@ export default function StudyGroups() {
 
           {/* ACTION BUTTONS */}
           <div style={{ display: 'flex', gap: '16px' }}>
-            {joinedGroupIds.includes(selectedGroup.id) || selectedGroup.creator_id === currentUser?.id ? (
+            {selectedGroup.approval_status !== 'approved' ? (
+              <div
+                style={{
+                  flex: 1,
+                  padding: '14px 18px',
+                  borderRadius: '14px',
+                  background: selectedGroup.approval_status === 'rejected' ? '#FEE2E2' : '#FFF4D8',
+                  color: selectedGroup.approval_status === 'rejected' ? '#B91C1C' : '#B7791F',
+                  fontWeight: '900',
+                  textAlign: 'center'
+                }}
+              >
+                {selectedGroup.approval_status === 'rejected'
+                  ? 'This circle was declined and is not visible publicly.'
+                  : 'This circle is waiting for Campora review.'}
+              </div>
+            ) : joinedGroupIds.includes(selectedGroup.id) || selectedGroup.creator_id === currentUser?.id ? (
               <button onClick={() => setView('chat')} style={{ ...saveBtn, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <MessageSquare size={18} /> Open Group Chat
               </button>

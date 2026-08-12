@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, BookOpen, FolderPlus, ArrowLeft, Save, Trash2, 
-  RefreshCw, ExternalLink, FolderCheck, Folder, FolderOpen, FileText, ChevronRight, Edit2, Check, X
+
+import {
+  Plus,
+  BookOpen,
+  FolderPlus,
+  ArrowLeft,
+  Save,
+  Trash2,
+  RefreshCw,
+  ExternalLink,
+  FolderCheck,
+  Folder,
+  FolderOpen,
+  FileText,
+  ChevronRight,
+  Edit2,
+  Check,
+  X,
+  Search,
+  GraduationCap
 } from 'lucide-react';
+
 import { supabase } from '../lib/supabase';
 
 function NotepadIcon({ size = 32, color = "#0B1A3F" }) {
@@ -646,42 +664,350 @@ export default function CourseManagement() {
   }
 
   return (
-    <div style={{ width: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '50px' }}>
-        <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#0B1A3F', margin: 0 }}>Courses</h1>
-        <button onClick={() => setIsModalOpen(true)} style={addBtnStyle}>
-          <Plus size={22} strokeWidth={3} /> <span>Add Course</span>
-        </button>
+   
+  <div
+    style={{
+      width: '100%',
+      maxWidth: '1250px',
+      margin: '0 auto',
+    }}
+  >
+    {/* HEADER */}
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: '34px',
+        gap: '20px',
+        flexWrap: 'wrap',
+      }}
+    >
+      <div>
+        <h1
+          style={{
+            fontSize: '48px',
+            fontWeight: '900',
+            color: '#0B1A3F',
+            margin: 0,
+          }}
+        >
+          Courses
+        </h1>
+
+        <p
+          style={{
+            margin: '8px 0 0',
+            color: '#7C8AB8',
+            fontWeight: '700',
+            fontSize: '15px',
+          }}
+        >
+          View and manage your courses, assignments, and resources.
+        </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '30px' }}>
-        {loading && <RefreshCw className="animate-spin" style={{ color: '#0B1A3F', margin: '20px auto' }} />}
-        
-        {courses.map(course => (
-          <div 
-            key={course.id} 
-            onClick={() => { setSelectedCourse(course); fetchNotes(course.id); fetchFiles(course.id); }} 
-            style={{ ...courseCardStyle, background: course.color }}
+      <button
+        onClick={() => setIsModalOpen(true)}
+        style={{
+          ...addBtnStyle,
+          padding: '14px 24px',
+          borderRadius: '16px',
+        }}
+      >
+        <Plus size={20} strokeWidth={3} />
+        <span>Add Course</span>
+      </button>
+    </div>
+
+    {/* STATS */}
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gap: '20px',
+        marginBottom: '28px',
+      }}
+    >
+      <StatCard
+        icon={<BookOpen size={24} />}
+        label="Total Courses"
+        value={courses.length}
+        bg="#F0ECFF"
+        iconColor="#6C63FF"
+      />
+
+      <StatCard
+        icon={<Check size={24} />}
+        label="Assignments"
+        value={0}
+        bg="#E7F8F0"
+        iconColor="#25C98A"
+      />
+
+      <StatCard
+        icon={<RefreshCw size={24} />}
+        label="Upcoming"
+        value={0}
+        bg="#FFF4DA"
+        iconColor="#F4A300"
+      />
+
+      <StatCard
+        icon={<FolderOpen size={24} />}
+        label="Resources"
+        value={0}
+        bg="#E8F2FF"
+        iconColor="#3B82F6"
+      />
+    </div>
+
+    {/* SEARCH / FILTER ROW */}
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 260px',
+        gap: '22px',
+        marginBottom: '28px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          background: '#FFFFFF',
+          border: '1.5px solid #E2E8F0',
+          borderRadius: '18px',
+          padding: '0 18px',
+          minHeight: '58px',
+        }}
+      >
+        <Search size={21} color="#95A4C7" />
+
+        <input
+          type="text"
+          placeholder="Search courses..."
+          style={{
+            border: 'none',
+            outline: 'none',
+            width: '100%',
+            fontSize: '15px',
+            fontWeight: '700',
+            color: '#0B1A3F',
+            background: 'transparent',
+          }}
+        />
+      </div>
+
+      <select
+        style={{
+          width: '100%',
+          minHeight: '58px',
+          padding: '0 18px',
+          borderRadius: '18px',
+          border: '1.5px solid #E2E8F0',
+          background: '#FFFFFF',
+          color: '#0B1A3F',
+          fontWeight: '800',
+          fontSize: '14px',
+          outline: 'none',
+        }}
+      >
+        <option>All Semesters</option>
+        <option>Fall</option>
+        <option>Spring</option>
+        <option>Summer</option>
+      </select>
+    </div>
+
+    {/* CONTENT */}
+    {loading ? (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '360px',
+        }}
+      >
+        <RefreshCw
+          className="animate-spin"
+          size={28}
+          color="#0B1A3F"
+        />
+      </div>
+    ) : courses.length === 0 ? (
+      <div
+        style={{
+          background: '#FFFFFF',
+          border: '1.5px solid #E7EBF4',
+          borderRadius: '26px',
+          minHeight: '420px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '40px',
+          boxShadow: '0 16px 40px rgba(11, 26, 63, 0.05)',
+        }}
+      >
+        <div
+          style={{
+            textAlign: 'center',
+            maxWidth: '420px',
+          }}
+        >
+          <div
+            style={{
+              width: '96px',
+              height: '96px',
+              borderRadius: '50%',
+              background: '#F1EEFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+            }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
-              <div style={{ background: 'white', width: '45px', height: '45px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+            <GraduationCap size={46} color="#5D5FEF" />
+          </div>
+
+          <h2
+            style={{
+              margin: '0 0 10px',
+              color: '#0B1A3F',
+              fontSize: '27px',
+              fontWeight: '900',
+            }}
+          >
+            No courses yet
+          </h2>
+
+          <p
+            style={{
+              margin: '0 0 26px',
+              color: '#8C9BC0',
+              fontSize: '15px',
+              fontWeight: '700',
+              lineHeight: '1.6',
+            }}
+          >
+            You haven't added any courses yet.
+            <br />
+            Add your courses to get started.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            style={{
+              border: 'none',
+              background:
+                'linear-gradient(135deg, #5D5FEF 0%, #4B3DF5 100%)',
+              color: '#FFFFFF',
+              borderRadius: '16px',
+              padding: '14px 26px',
+              fontWeight: '900',
+              fontSize: '15px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '9px',
+              boxShadow: '0 10px 24px rgba(93, 95, 239, 0.25)',
+            }}
+          >
+            <Plus size={19} strokeWidth={3} />
+            Add Course
+          </button>
+        </div>
+      </div>
+    ) : (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+          gap: '26px',
+        }}
+      >
+        {courses.map((course) => (
+          <div
+            key={course.id}
+            onClick={() => {
+              setSelectedCourse(course);
+              fetchNotes(course.id);
+              fetchFiles(course.id);
+            }}
+            style={{
+              ...courseCardStyle,
+              background: course.color,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: '18px',
+              }}
+            >
+              <div
+                style={{
+                  background: '#FFFFFF',
+                  width: '45px',
+                  height: '45px',
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                }}
+              >
                 <BookOpen size={22} color="#0B1A3F" />
               </div>
 
               {(course.professor || course.days) && (
                 <div style={sideInfoBoxStyle}>
-                  {course.days && <span style={sideInfoTag}>{course.days}</span>}
-                  {course.professor && <span style={sideInfoText}>Prof. {course.professor}</span>}
+                  {course.days && (
+                    <span style={sideInfoTag}>{course.days}</span>
+                  )}
+
+                  {course.professor && (
+                    <span style={sideInfoText}>
+                      Prof. {course.professor}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
 
-            <h2 style={{ fontSize: '28px', fontWeight: '900', color: '#0B1A3F', margin: '0 0 10px 0' }}>{course.name}</h2>
-            
-            <p style={{ margin: 'auto 0 0 0', fontWeight: '800', color: '#0B1A3F', opacity: 0.5, fontSize: '15px' }}>Open Workspace →</p>
+            <h2
+              style={{
+                fontSize: '28px',
+                fontWeight: '900',
+                color: '#0B1A3F',
+                margin: '0 0 10px 0',
+              }}
+            >
+              {course.name}
+            </h2>
+
+            <p
+              style={{
+                margin: 'auto 0 0 0',
+                fontWeight: '800',
+                color: '#0B1A3F',
+                opacity: 0.5,
+                fontSize: '15px',
+              }}
+            >
+              Open Workspace →
+            </p>
           </div>
         ))}
       </div>
+    )}
+
 
       {/* New Course Modal */}
       {isModalOpen && (
@@ -755,7 +1081,63 @@ export default function CourseManagement() {
     </div>
   );
 }
+function StatCard({ icon, label, value, bg, iconColor }) {
+  return (
+    <div
+      style={{
+        background: '#FFFFFF',
+        border: '1.5px solid #EDF1F7',
+        borderRadius: '20px',
+        padding: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        minHeight: '92px',
+        boxShadow: '0 10px 25px rgba(11, 26, 63, 0.04)',
+      }}
+    >
+      <div
+        style={{
+          width: '52px',
+          height: '52px',
+          borderRadius: '16px',
+          background: bg,
+          color: iconColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
 
+      <div>
+        <div
+          style={{
+            color: '#0B1A3F',
+            fontSize: '24px',
+            fontWeight: '900',
+            lineHeight: 1,
+            marginBottom: '7px',
+          }}
+        >
+          {value}
+        </div>
+
+        <div
+          style={{
+            color: '#7180AA',
+            fontSize: '13px',
+            fontWeight: '800',
+          }}
+        >
+          {label}
+        </div>
+      </div>
+    </div>
+  );
+}
 // --- STYLES ---
 const sideInfoBoxStyle = {
   display: 'flex',

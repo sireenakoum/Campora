@@ -1,101 +1,92 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+
 import {
   Bell,
   CheckCircle2,
-  Clock,
-  AlertCircle,
+  CalendarDays,
+  Sparkles,
+  Megaphone,
+  GraduationCap,
+  Users,
+  CheckSquare,
 } from 'lucide-react';
 
-import {
-  getNotificationsForCurrentUser,
-  markNotificationAsRead,
-} from '../lib/queries';
-
-function formatNotificationDate(dateValue) {
-  if (!dateValue) return '';
-
-  return new Date(dateValue).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
 export default function Notifications() {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [updatingId, setUpdatingId] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('All');
 
-  useEffect(() => {
-    let cancelled = false;
+  // Empty for now so no test notification appears
+  const notifications = [];
 
-    async function loadNotifications() {
-      try {
-        const data = await getNotificationsForCurrentUser();
+  const unreadCount = useMemo(
+    () => notifications.filter((item) => !item.read).length,
+    [notifications]
+  );
 
-        if (!cancelled) {
-          setNotifications(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message || 'Could not load notifications.');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
+  const readCount = useMemo(
+    () => notifications.filter((item) => item.read).length,
+    [notifications]
+  );
 
-    loadNotifications();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function handleMarkAsRead(notificationId) {
-    try {
-      setUpdatingId(notificationId);
-
-      await markNotificationAsRead(notificationId);
-
-      setNotifications((currentNotifications) =>
-        currentNotifications.map((notification) =>
-          notification.id === notificationId
-            ? {
-                ...notification,
-                status: 'read',
-                read_at: new Date().toISOString(),
-              }
-            : notification
-        )
-      );
-    } catch (err) {
-      setError(err.message || 'Could not update the notification.');
-    } finally {
-      setUpdatingId(null);
-    }
-  }
-
-  const unreadCount = notifications.filter(
-    (notification) => notification.status === 'unread'
-  ).length;
+  const filters = [
+    {
+      label: 'All',
+      icon: <Sparkles size={15} />,
+    },
+    {
+      label: 'Announcements',
+      icon: <Megaphone size={15} />,
+    },
+    {
+      label: 'Courses',
+      icon: <GraduationCap size={15} />,
+    },
+    {
+      label: 'Planner',
+      icon: <CalendarDays size={15} />,
+    },
+    {
+      label: 'Study Groups',
+      icon: <Users size={15} />,
+    },
+    {
+      label: 'To-Do',
+      icon: <CheckSquare size={15} />,
+    },
+  ];
 
   return (
     <div style={{ width: '100%' }}>
+
+      {/* HEADER */}
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'flex-start',
-          marginBottom: '30px',
+          justifyContent: 'space-between',
           gap: '20px',
+          marginBottom: '28px',
+          flexWrap: 'wrap',
         }}
       >
         <div>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              borderRadius: '999px',
+              background: '#F1F2FF',
+              color: '#6366F1',
+              fontWeight: '900',
+              fontSize: '12px',
+              marginBottom: '12px',
+            }}
+          >
+            <Bell size={14} />
+            Stay Updated ✨
+          </div>
+
           <h1
             style={{
               fontSize: '40px',
@@ -111,6 +102,8 @@ export default function Notifications() {
             style={{
               color: '#A3AED0',
               fontWeight: '700',
+              margin: 0,
+              fontSize: '16px',
             }}
           >
             View your reminders, alerts, and important updates.
@@ -119,268 +112,291 @@ export default function Notifications() {
 
         <div
           style={{
-            background: unreadCount > 0 ? '#0B1A3F' : '#F4F7FE',
-            color: unreadCount > 0 ? 'white' : '#A3AED0',
-            padding: '10px 16px',
-            borderRadius: '14px',
+            minWidth: '100px',
+            textAlign: 'right',
+            color: '#6366F1',
             fontWeight: '900',
-            fontSize: '13px',
-            whiteSpace: 'nowrap',
+            fontSize: '16px',
           }}
         >
           {unreadCount} unread
         </div>
       </div>
 
-      {loading && (
-        <div
-          className="card"
-          style={{
-            minHeight: '300px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#A3AED0',
-            fontWeight: '800',
-          }}
-        >
-          Loading notifications...
-        </div>
-      )}
+      {/* FILTERS */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          flexWrap: 'wrap',
+          marginBottom: '24px',
+        }}
+      >
+        {filters.map((filter) => {
+          const active = activeFilter === filter.label;
 
-      {!loading && error && (
-        <div
-          className="card"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            color: '#991B1B',
-            background: '#FEE2E2',
-            fontWeight: '800',
-          }}
-        >
-          <AlertCircle size={22} />
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && notifications.length === 0 && (
-        <div
-          className="card"
-          style={{
-            minHeight: '420px',
-            border: '1.5px solid #E9EDF7',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-          }}
-        >
-          <div>
-            <Bell
-              size={48}
-              color="#A3AED0"
-              style={{ marginBottom: '15px' }}
-            />
-
-            <h3
+          return (
+            <button
+              key={filter.label}
+              type="button"
+              onClick={() => setActiveFilter(filter.label)}
               style={{
-                color: '#0B1A3F',
+                border: active
+                  ? '1.5px solid #6366F1'
+                  : '1.5px solid #E5E9F4',
+                background: active
+                  ? 'linear-gradient(135deg, #6366F1, #7C6BF2)'
+                  : '#FFFFFF',
+                color: active ? '#FFFFFF' : '#667085',
+                borderRadius: '999px',
+                padding: '10px 15px',
                 fontWeight: '900',
-                marginBottom: '8px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                boxShadow: active
+                  ? '0 8px 20px rgba(99, 102, 241, 0.18)'
+                  : 'none',
               }}
             >
-              No notifications yet
-            </h3>
+              {filter.icon}
+              {filter.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* SUMMARY CARDS */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '16px',
+          marginBottom: '24px',
+        }}
+      >
+        <SummaryCard
+          label="Unread"
+          value={unreadCount}
+          icon={<Bell size={23} />}
+          background="#F3F1FF"
+          iconBackground="#E4E0FF"
+          iconColor="#6366F1"
+        />
+
+        <SummaryCard
+          label="Read"
+          value={readCount}
+          icon={<CheckCircle2 size={23} />}
+          background="#ECFBF6"
+          iconBackground="#D8F7EC"
+          iconColor="#05CD99"
+        />
+
+        <SummaryCard
+          label="This Week"
+          value={notifications.length}
+          icon={<CalendarDays size={23} />}
+          background="#EEF8FF"
+          iconBackground="#DCEFFF"
+          iconColor="#4A90E2"
+        />
+
+        <SummaryCard
+          label="Total"
+          value={notifications.length}
+          icon={<Sparkles size={23} />}
+          background="#FFF7EF"
+          iconBackground="#FFE8CF"
+          iconColor="#FF9F43"
+        />
+      </div>
+
+      {/* NOTIFICATION AREA */}
+      <div
+        style={{
+          background: '#FFFFFF',
+          borderRadius: '28px',
+          border: '1.5px solid #E9EDF7',
+          minHeight: '350px',
+          padding: '28px',
+          boxShadow: '0 16px 40px rgba(81, 95, 160, 0.06)',
+        }}
+      >
+        {notifications.length === 0 ? (
+          <div
+            style={{
+              minHeight: '290px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '82px',
+                height: '82px',
+                borderRadius: '26px',
+                background:
+                  'linear-gradient(135deg, #F1F2FF 0%, #E9E7FF 100%)',
+                color: '#6366F1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '18px',
+                boxShadow: '0 14px 30px rgba(99,102,241,0.12)',
+              }}
+            >
+              <Bell size={38} />
+            </div>
+
+            <h2
+              style={{
+                margin: '0 0 8px',
+                color: '#0B1A3F',
+                fontSize: '24px',
+                fontWeight: '900',
+              }}
+            >
+              You’re all caught up! ✨
+            </h2>
 
             <p
               style={{
+                margin: '0 0 4px',
                 color: '#A3AED0',
                 fontWeight: '700',
+                fontSize: '14px',
               }}
             >
-              Your reminders and alerts will appear here.
+              No notifications to show right now.
             </p>
+
+            <p
+              style={{
+                margin: 0,
+                color: '#A3AED0',
+                fontWeight: '700',
+                fontSize: '14px',
+              }}
+            >
+              When there are new updates, you’ll find them here.
+            </p>
+
+            <div
+              style={{
+                marginTop: '26px',
+                width: '100%',
+                borderRadius: '20px',
+                background: '#F7F5FF',
+                padding: '16px 20px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '14px',
+              }}
+            >
+              <InfoPill
+                icon={<Megaphone size={18} />}
+                text="Stay informed"
+              />
+
+              <InfoPill
+                icon={<CalendarDays size={18} />}
+                text="Never miss deadlines"
+              />
+
+              <InfoPill
+                icon={<Users size={18} />}
+                text="Be part of your campus"
+              />
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div>
+            {/* Real notifications will go here later */}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-      {!loading && !error && notifications.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-          }}
-        >
-          {notifications.map((notification) => {
-            const isUnread = notification.status === 'unread';
-            const relatedReminder = notification.reminders;
+function SummaryCard({
+  label,
+  value,
+  icon,
+  background,
+  iconBackground,
+  iconColor,
+}) {
+  return (
+    <div
+      style={{
+        background,
+        borderRadius: '22px',
+        padding: '18px',
+        border: '1px solid #E8ECF6',
+      }}
+    >
+      <div
+        style={{
+          width: '44px',
+          height: '44px',
+          borderRadius: '14px',
+          background: iconBackground,
+          color: iconColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '13px',
+        }}
+      >
+        {icon}
+      </div>
 
-            return (
-              <div
-                key={notification.id}
-                className="card"
-                style={{
-                  border: isUnread
-                    ? '2px solid #0B1A3F'
-                    : '1.5px solid #E9EDF7',
-                  background: isUnread ? '#F8FAFF' : 'white',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '20px',
-                  padding: '22px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '16px',
-                    minWidth: 0,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '46px',
-                      height: '46px',
-                      borderRadius: '14px',
-                      background: isUnread ? '#0B1A3F' : '#F4F7FE',
-                      color: isUnread ? 'white' : '#A3AED0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Bell size={21} />
-                  </div>
+      <p
+        style={{
+          margin: '0 0 4px',
+          color: '#8F9BB3',
+          fontSize: '13px',
+          fontWeight: '800',
+        }}
+      >
+        {label}
+      </p>
 
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '6px',
-                      }}
-                    >
-                      <h3
-                        style={{
-                          color: '#0B1A3F',
-                          fontSize: '17px',
-                          fontWeight: '900',
-                          margin: 0,
-                        }}
-                      >
-                        {notification.title}
-                      </h3>
+      <h3
+        style={{
+          margin: 0,
+          fontSize: '25px',
+          fontWeight: '900',
+          color: '#0B1A3F',
+        }}
+      >
+        {value}
+      </h3>
+    </div>
+  );
+}
 
-                      {isUnread && (
-                        <span
-                          style={{
-                            background: '#0B1A3F',
-                            color: 'white',
-                            fontSize: '9px',
-                            fontWeight: '900',
-                            padding: '4px 8px',
-                            borderRadius: '20px',
-                          }}
-                        >
-                          NEW
-                        </span>
-                      )}
-                    </div>
-
-                    <p
-                      style={{
-                        color: '#667085',
-                        fontWeight: '700',
-                        marginBottom: '9px',
-                      }}
-                    >
-                      {notification.message}
-                    </p>
-
-                    {relatedReminder && (
-                      <p
-                        style={{
-                          color: '#0B1A3F',
-                          fontSize: '12px',
-                          fontWeight: '800',
-                          marginBottom: '8px',
-                        }}
-                      >
-                        Reminder: {relatedReminder.title}
-                      </p>
-                    )}
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        color: '#A3AED0',
-                        fontSize: '11px',
-                        fontWeight: '800',
-                      }}
-                    >
-                      <Clock size={13} />
-                      {formatNotificationDate(
-                        notification.sent_at || notification.created_at
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {isUnread ? (
-                  <button
-                    type="button"
-                    disabled={updatingId === notification.id}
-                    onClick={() => handleMarkAsRead(notification.id)}
-                    style={{
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '11px 15px',
-                      background: '#0B1A3F',
-                      color: 'white',
-                      fontWeight: '900',
-                      cursor:
-                        updatingId === notification.id
-                          ? 'not-allowed'
-                          : 'pointer',
-                      opacity:
-                        updatingId === notification.id ? 0.6 : 1,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {updatingId === notification.id
-                      ? 'Updating...'
-                      : 'Mark as read'}
-                  </button>
-                ) : (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '7px',
-                      color: '#05CD99',
-                      fontWeight: '900',
-                      fontSize: '13px',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <CheckCircle2 size={18} />
-                    Read
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+function InfoPill({ icon, text }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        color: '#6366F1',
+        fontWeight: '900',
+        fontSize: '13px',
+      }}
+    >
+      {icon}
+      {text}
     </div>
   );
 }
