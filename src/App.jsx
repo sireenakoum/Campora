@@ -13,6 +13,7 @@ import {
   MessageSquare,
   CheckSquare,
   ShieldCheck,
+  Compass,
 } from 'lucide-react';
 import './App.css';
 
@@ -28,6 +29,7 @@ import Todo from './pages/Todo';
 import StudyGroups from './pages/StudyGroups';
 import CampusPulse from './pages/CampusPulse';
 import AdminStudyGroups from './pages/AdminStudyGroups';
+import Registration from './pages/Registration';
 
 import Onboarding from './pages/Onboarding';
 import Login from './Login';
@@ -149,6 +151,10 @@ setIsAdmin(!!adminRow);
   <GraduationCap size={20}/> <span>Courses</span>
 </NavLink>
 
+<NavLink to="/registration" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+  <Compass size={20}/> <span>Registration</span>
+</NavLink>
+
 <NavLink to="/planner" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
   <Calendar size={20}/> <span>Planner</span>
 </NavLink>
@@ -218,6 +224,7 @@ export default function App() {
           
           <Route path="/campus-pulse" element={<CampusPulse />} />
           <Route path="/courses" element={<CourseManagement />} />
+          <Route path="/registration" element={<Registration />} />
           <Route path="/planner" element={<Planner />} />
           <Route path="/todo" element={<Todo />} />
           <Route path="/study-groups" element={<StudyGroups />} />
