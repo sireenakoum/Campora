@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+
 import {
   Plus,
   Users,
@@ -33,6 +34,11 @@ import {
 
 import { supabase } from '../lib/supabase';
 
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+
 const MAJORS_CREATION = [
   'All Majors Welcome',
   'Architecture',
@@ -58,7 +64,7 @@ const MAJORS_CREATION = [
 ];
 
 const MAJORS_PREFERENCES = MAJORS_CREATION.filter(
-  (m) => m !== 'All Majors Welcome'
+  (major) => major !== 'All Majors Welcome'
 );
 
 const STUDY_GOALS = [
@@ -78,7 +84,14 @@ const NOISE_LEVELS = [
 
 const STUDY_MODES = ['In-person', 'Online'];
 
-const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+const EMOJI_REACTIONS = [
+  '👍',
+  '❤',
+  '😂',
+  '😮',
+  '😢',
+  '🔥'
+];
 
 const PIN_COLORS = {
   bg: '#FEF3C7',
@@ -97,29 +110,129 @@ const AVATAR_PALETTE = [
   '#D1FAE5'
 ];
 
+
+// =====================================================
+// GROUP COLORS
+// =====================================================
+
+const GROUP_COLORS = [
+  { bg: '#E0F2FE', name: 'Blue' },
+  { bg: '#FCE7F3', name: 'Pink' },
+  { bg: '#F3E8FF', name: 'Purple' },
+  { bg: '#DCFCE7', name: 'Green' },
+  { bg: '#FEE2E2', name: 'Red' },
+  { bg: '#FFEDD5', name: 'Yellow' },
+  { bg: '#E2E8F0', name: 'Slate' },
+  { bg: '#D1FAE5', name: 'Mint' },
+  { bg: '#FEF3C7', name: 'Sand' },
+  { bg: '#E0E7FF', name: 'Periwinkle' },
+  { bg: '#CFFAFE', name: 'Cyan' },
+  { bg: '#0B1A3F', name: 'Navy' }
+];
+
+
+// =====================================================
+// COLOR / CONTRAST HELPERS
+// =====================================================
+
+const normalizeHex = (hex) => {
+  if (!hex) return '#E0F2FE';
+
+  let clean = hex.replace('#', '').trim();
+
+  if (clean.length === 3) {
+    clean = clean
+      .split('')
+      .map((character) => character + character)
+      .join('');
+  }
+
+  if (clean.length !== 6) {
+    return '#E0F2FE';
+  }
+
+  return `#${clean}`;
+};
+
+
+const getContrastColor = (backgroundColor) => {
+  const hex = normalizeHex(backgroundColor).replace('#', '');
+
+  const red = parseInt(hex.substring(0, 2), 16);
+  const green = parseInt(hex.substring(2, 4), 16);
+  const blue = parseInt(hex.substring(4, 6), 16);
+
+  const luminance =
+    (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+
+  return luminance < 0.58 ? '#FFFFFF' : '#0B1A3F';
+};
+
+
+const isDarkColor = (backgroundColor) => {
+  return getContrastColor(backgroundColor) === '#FFFFFF';
+};
+
+
+const getMutedContrastColor = (backgroundColor) => {
+  return isDarkColor(backgroundColor)
+    ? 'rgba(255,255,255,0.78)'
+    : '#64748B';
+};
+
+
+const getSoftContrastColor = (backgroundColor) => {
+  return isDarkColor(backgroundColor)
+    ? 'rgba(255,255,255,0.14)'
+    : 'rgba(11,26,63,0.07)';
+};
+
+
+const getContrastBorder = (backgroundColor) => {
+  return isDarkColor(backgroundColor)
+    ? 'rgba(255,255,255,0.24)'
+    : 'rgba(11,26,63,0.10)';
+};
+
+
+// =====================================================
+// USER HELPERS
+// =====================================================
+
 const getInitials = (name) =>
   (name || 'S')
     .trim()
     .split(' ')
     .filter(Boolean)
-    .map((p) => p[0])
+    .map((part) => part[0])
     .slice(0, 2)
     .join('')
     .toUpperCase();
 
+
 const getAvatarColor = (name) => {
-  const str = name || 'S';
+  const string = name || 'S';
 
   let hash = 0;
 
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < string.length; i++) {
+    hash =
+      string.charCodeAt(i) +
+      ((hash << 5) - hash);
   }
 
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+  return AVATAR_PALETTE[
+    Math.abs(hash) % AVATAR_PALETTE.length
+  ];
 };
 
+
+// =====================================================
+// MAIN COMPONENT
+// =====================================================
+
 export default function StudyGroups() {
+
   // =====================================================
   // GENERAL STATE
   // =====================================================
@@ -128,86 +241,124 @@ export default function StudyGroups() {
 
   const [groups, setGroups] = useState([]);
 
-  const [joinedGroupIds, setJoinedGroupIds] = useState([]);
+  const [joinedGroupIds, setJoinedGroupIds] =
+    useState([]);
 
-  const [view, setView] = useState(() => {
-    return (
-      localStorage.getItem('campora_study_groups_view') ||
-      'browse'
-    );
-  });
+  /*
+   * IMPORTANT:
+   * Discover now opens automatically whenever the page
+   * initially loads.
+   */
+  const [view, setView] = useState('browse');
 
-  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedGroup, setSelectedGroup] =
+    useState(null);
 
-  const [groupMembers, setGroupMembers] = useState([]);
+  const [groupMembers, setGroupMembers] =
+    useState([]);
 
-  const [editingGroup, setEditingGroup] = useState(null);
+  const [editingGroup, setEditingGroup] =
+    useState(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoading, setActionLoading] =
+    useState(false);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] =
+    useState('');
+
 
   // =====================================================
   // CHAT STATE
   // =====================================================
 
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] =
+    useState([]);
 
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] =
+    useState('');
 
-  const [notificationsMuted, setNotificationsMuted] =
-    useState({});
+  const [
+    notificationsMuted,
+    setNotificationsMuted
+  ] = useState({});
 
-  const chatBottomRef = useRef(null);
+  const chatBottomRef =
+    useRef(null);
 
-  const [replyingTo, setReplyingTo] = useState(null);
-
-  const [activeMessageMenu, setActiveMessageMenu] =
+  const [replyingTo, setReplyingTo] =
     useState(null);
+
+  const [
+    activeMessageMenu,
+    setActiveMessageMenu
+  ] = useState(null);
+
 
   // =====================================================
   // PINNED GROUP MESSAGES
   // =====================================================
 
-  const [pinnedGroupMessages, setPinnedGroupMessages] =
-    useState(() => {
-      const saved = localStorage.getItem(
+  const [
+    pinnedGroupMessages,
+    setPinnedGroupMessages
+  ] = useState(() => {
+
+    const saved =
+      localStorage.getItem(
         'campora_pinned_group_messages'
       );
 
-      return saved ? JSON.parse(saved) : {};
-    });
+    return saved
+      ? JSON.parse(saved)
+      : {};
+  });
+
 
   useEffect(() => {
+
     localStorage.setItem(
       'campora_pinned_group_messages',
-      JSON.stringify(pinnedGroupMessages)
+      JSON.stringify(
+        pinnedGroupMessages
+      )
     );
+
   }, [pinnedGroupMessages]);
 
+
   const togglePinGroupMessage = (msgId) => {
+
     if (!selectedGroup) return;
 
-    setPinnedGroupMessages((prev) => {
+    setPinnedGroupMessages((previous) => {
+
       const currentPinned =
-        prev[selectedGroup.id] || [];
+        previous[selectedGroup.id] || [];
 
       const isPinned =
         currentPinned.includes(msgId);
 
       return {
-        ...prev,
+        ...previous,
 
-        [selectedGroup.id]: isPinned
-          ? currentPinned.filter((id) => id !== msgId)
-          : [...currentPinned, msgId]
+        [selectedGroup.id]:
+          isPinned
+            ? currentPinned.filter(
+                (id) => id !== msgId
+              )
+            : [
+                ...currentPinned,
+                msgId
+              ]
       };
     });
 
     setActiveMessageMenu(null);
   };
+
 
   // =====================================================
   // SOCIAL / MEMBER / POLL STATE
@@ -216,112 +367,171 @@ export default function StudyGroups() {
   const [selectedMember, setSelectedMember] =
     useState(null);
 
-  const [showMembersDrawer, setShowMembersDrawer] =
-    useState(false);
+  const [
+    showMembersDrawer,
+    setShowMembersDrawer
+  ] = useState(false);
 
-  const [showPollModal, setShowPollModal] =
-    useState(false);
+  const [
+    showPollModal,
+    setShowPollModal
+  ] = useState(false);
 
-  const [pollQuestion, setPollQuestion] =
-    useState('');
+  const [
+    pollQuestion,
+    setPollQuestion
+  ] = useState('');
 
-  const [pollOptions, setPollOptions] =
-    useState(['', '']);
+  const [
+    pollOptions,
+    setPollOptions
+  ] = useState(['', '']);
+
 
   // =====================================================
   // DIRECT MESSAGES
   // =====================================================
 
-  const [directChatMessage, setDirectChatMessage] =
-    useState('');
+  const [
+    directChatMessage,
+    setDirectChatMessage
+  ] = useState('');
 
-  const [showDMChat, setShowDMChat] =
-    useState(false);
+  const [
+    showDMChat,
+    setShowDMChat
+  ] = useState(false);
 
-  const [dmConversations, setDmConversations] =
-    useState([]);
+  const [
+    dmConversations,
+    setDmConversations
+  ] = useState([]);
 
-  const [selectedDmUser, setSelectedDmUser] =
-    useState(null);
+  const [
+    selectedDmUser,
+    setSelectedDmUser
+  ] = useState(null);
 
-  const [dmMessages, setDmMessages] =
-    useState([]);
+  const [
+    dmMessages,
+    setDmMessages
+  ] = useState([]);
 
-  const [newDmMessageText, setNewDmMessageText] =
-    useState('');
+  const [
+    newDmMessageText,
+    setNewDmMessageText
+  ] = useState('');
+
 
   // =====================================================
   // DM SEARCH
   // =====================================================
 
-  const [dmSearchQuery, setDmSearchQuery] =
-    useState('');
+  const [
+    dmSearchQuery,
+    setDmSearchQuery
+  ] = useState('');
 
-  const [dmSearchResults, setDmSearchResults] =
-    useState([]);
+  const [
+    dmSearchResults,
+    setDmSearchResults
+  ] = useState([]);
 
-  const [searchingUsers, setSearchingUsers] =
-    useState(false);
+  const [
+    searchingUsers,
+    setSearchingUsers
+  ] = useState(false);
+
 
   // =====================================================
   // PINNED GROUPS + DMS
   // =====================================================
 
-  const [pinnedChats, setPinnedChats] =
-    useState(() => {
-      const saved =
-        localStorage.getItem('campora_pinned_chats');
+  const [
+    pinnedChats,
+    setPinnedChats
+  ] = useState(() => {
 
-      return saved
-        ? JSON.parse(saved)
-        : {
-            dms: [],
-            groups: []
-          };
-    });
+    const saved =
+      localStorage.getItem(
+        'campora_pinned_chats'
+      );
+
+    return saved
+      ? JSON.parse(saved)
+      : {
+          dms: [],
+          groups: []
+        };
+  });
+
 
   useEffect(() => {
+
     localStorage.setItem(
       'campora_pinned_chats',
       JSON.stringify(pinnedChats)
     );
+
   }, [pinnedChats]);
 
+
   const togglePinDm = (partnerId) => {
-    setPinnedChats((prev) => {
+
+    setPinnedChats((previous) => {
+
       const isPinned =
-        prev.dms.includes(partnerId);
+        previous.dms.includes(partnerId);
 
       return {
-        ...prev,
+        ...previous,
 
         dms: isPinned
-          ? prev.dms.filter(
-              (id) => id !== partnerId
+          ? previous.dms.filter(
+              (id) =>
+                id !== partnerId
             )
-          : [...prev.dms, partnerId]
+          : [
+              ...previous.dms,
+              partnerId
+            ]
       };
     });
   };
 
-  const togglePinGroup = (groupId, e) => {
-    if (e) e.stopPropagation();
 
-    setPinnedChats((prev) => {
+  const togglePinGroup = (
+    groupId,
+    event
+  ) => {
+
+    if (event) {
+      event.stopPropagation();
+    }
+
+    setPinnedChats((previous) => {
+
       const isPinned =
-        prev.groups.includes(groupId);
+        previous.groups.includes(
+          groupId
+        );
 
       return {
-        ...prev,
+        ...previous,
 
         groups: isPinned
-          ? prev.groups.filter(
-              (id) => id !== groupId
+          ? previous.groups.filter(
+              (id) =>
+                id !== groupId
             )
-          : [...prev.groups, groupId]
+          : [
+              ...previous.groups,
+              groupId
+            ]
       };
     });
   };
+
 
   // =====================================================
   // USER STUDY PREFERENCES
@@ -329,6 +539,7 @@ export default function StudyGroups() {
 
   const [myPrefs, setMyPrefs] =
     useState(() => {
+
       const saved =
         localStorage.getItem(
           'campora_user_prefs'
@@ -345,54 +556,54 @@ export default function StudyGroups() {
           };
     });
 
+
   // =====================================================
   // NEW GROUP
   // =====================================================
 
   const [newGroup, setNewGroup] =
     useState({
+
       name: '',
+
       subject: '',
-      environment: 'Library Soft',
-      study_style: 'Silent',
+
+      environment:
+        'Library Soft',
+
+      study_style:
+        'Silent',
+
       location: '',
-      mode: 'In-person',
-      color: '#E0F2FE',
-      max_size: 4,
-      description: '',
-      major: 'All Majors Welcome',
-      goal: 'Exam Prep'
+
+      mode:
+        'In-person',
+
+      color:
+        '#E0F2FE',
+
+      max_size:
+        4,
+
+      description:
+        '',
+
+      major:
+        'All Majors Welcome',
+
+      goal:
+        'Exam Prep'
     });
 
-  const pastelColors = [
-    { bg: '#E0F2FE', name: 'Blue' },
-    { bg: '#FCE7F3', name: 'Pink' },
-    { bg: '#F3E8FF', name: 'Purple' },
-    { bg: '#DCFCE7', name: 'Green' },
-    { bg: '#FEE2E2', name: 'Red' },
-    { bg: '#FFEDD5', name: 'Yellow' },
-    { bg: '#E2E8F0', name: 'Slate' },
-    { bg: '#D1FAE5', name: 'Mint' },
-    { bg: '#FEF3C7', name: 'Sand' },
-    { bg: '#E0E7FF', name: 'Periwinkle' },
-    { bg: '#CFFAFE', name: 'Cyan' },
-    { bg: '#0B1A3F', name: 'Navy' },
-    { bg: '#1E293B', name: 'Charcoal' },
-    { bg: '#374151', name: 'Graphite' },
-    { bg: '#4C1D95', name: 'Deep Purple' },
-    { bg: '#065F46', name: 'Forest Green' },
-    { bg: '#0F766E', name: 'Teal' },
-    { bg: '#78350F', name: 'Brown' },
-    { bg: '#7C2D12', name: 'Rust' },
-    { bg: '#1F2937', name: 'Steel' }
-  ];
 
   // =====================================================
   // FETCH STUDY GROUP DATA
   // =====================================================
 
   const fetchData = async () => {
+
     try {
+
       setLoading(true);
 
       const {
@@ -401,31 +612,42 @@ export default function StudyGroups() {
       } =
         await supabase.auth.getSession();
 
+
       if (sessionError) {
+
         console.error(
           'Session error:',
           sessionError
         );
       }
 
+
       const user =
         session?.user || null;
 
+
       setCurrentUser(user);
+
 
       const {
         data: groupsData,
         error: groupsError
-      } = await supabase
-        .from('study_groups')
-        .select(
-          '*, group_members (user_id)'
-        )
-        .order('created_at', {
-          ascending: false
-        });
+      } =
+        await supabase
+          .from('study_groups')
+          .select(
+            '*, group_members (user_id)'
+          )
+          .order(
+            'created_at',
+            {
+              ascending: false
+            }
+          );
+
 
       if (groupsError) {
+
         console.error(
           'Study groups error:',
           groupsError
@@ -436,57 +658,91 @@ export default function StudyGroups() {
         return;
       }
 
-      setGroups(groupsData || []);
+
+      setGroups(
+        groupsData || []
+      );
+
 
       if (user) {
+
         const {
           data: memberData,
           error: memberError
-        } = await supabase
-          .from('group_members')
-          .select('group_id')
-          .eq('user_id', user.id);
+        } =
+          await supabase
+            .from(
+              'group_members'
+            )
+            .select(
+              'group_id'
+            )
+            .eq(
+              'user_id',
+              user.id
+            );
+
 
         if (memberError) {
+
           console.error(
             'Group membership error:',
             memberError
           );
         }
 
+
         setJoinedGroupIds(
           memberData?.map(
-            (member) => member.group_id
+            (member) =>
+              member.group_id
           ) || []
         );
+
       } else {
+
         setJoinedGroupIds([]);
       }
+
     } catch (error) {
+
       console.error(
         'Error loading Study Groups:',
         error
       );
+
     } finally {
+
       setLoading(false);
     }
   };
 
+
   useEffect(() => {
+
     fetchData();
+
+  }, []);
+
+
+  useEffect(() => {
 
     localStorage.setItem(
       'campora_user_prefs',
       JSON.stringify(myPrefs)
     );
+
   }, [myPrefs]);
 
+
   useEffect(() => {
+
     const {
       data: { subscription }
     } =
       supabase.auth.onAuthStateChange(
         (_event, session) => {
+
           setCurrentUser(
             session?.user || null
           );
@@ -497,202 +753,295 @@ export default function StudyGroups() {
         }
       );
 
+
     return () => {
       subscription.unsubscribe();
     };
+
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(
-      'campora_study_groups_view',
-      view
-    );
-  }, [view]);
 
   // =====================================================
-  // FETCH GROUP MEMBERS + GROUP CHAT
+  // FETCH GROUP MEMBERS
   // =====================================================
 
   useEffect(() => {
-    if (!selectedGroup?.id) return;
+
+    if (!selectedGroup?.id) {
+      return;
+    }
+
 
     const fetchMembers = async () => {
+
       const {
         data: dbMembers,
         error: memberError
-      } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .eq(
-          'group_id',
-          selectedGroup.id
-        );
+      } =
+        await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq(
+            'group_id',
+            selectedGroup.id
+          );
+
 
       if (memberError) {
+
         console.error(
           'Could not load members:',
           memberError
         );
       }
 
+
       const memberUserIds =
         new Set(
           (dbMembers || []).map(
-            (m) => m.user_id
+            (member) =>
+              member.user_id
           )
         );
 
+
+      /*
+       * Make sure the creator is shown even if
+       * they aren't duplicated in group_members.
+       */
       if (selectedGroup.creator_id) {
+
         memberUserIds.add(
           selectedGroup.creator_id
         );
       }
+
 
       const userIdsArray =
         Array.from(
           memberUserIds
         ).filter(Boolean);
 
+
       if (
         userIdsArray.length === 0
       ) {
+
         setGroupMembers([]);
+
         return;
       }
 
+
+      /*
+       * Get REAL profile information from Supabase.
+       */
       const {
-        data: fetchedProfiles
-      } = await supabase
-        .from('profiles')
-        .select(
-          'id, full_name, major, academic_year, email'
-        )
-        .in('id', userIdsArray);
+        data: fetchedProfiles,
+        error: profilesError
+      } =
+        await supabase
+          .from('profiles')
+          .select(
+            `
+              id,
+              full_name,
+              major,
+              academic_year,
+              email
+            `
+          )
+          .in(
+            'id',
+            userIdsArray
+          );
+
+
+      if (profilesError) {
+
+        console.error(
+          'Could not load member profiles:',
+          profilesError
+        );
+      }
+
 
       const profileMap =
         new Map();
 
+
       (fetchedProfiles || []).forEach(
-        (profile) =>
+        (profile) => {
+
           profileMap.set(
             profile.id,
             profile
-          )
+          );
+        }
       );
 
+
+      /*
+       * Chat names are only used as a fallback when
+       * an old account doesn't have a complete profile.
+       */
       const {
         data: recentMessages
-      } = await supabase
-        .from('group_messages')
-        .select(
-          'user_id, sender_name'
-        )
-        .eq(
-          'group_id',
-          selectedGroup.id
-        );
+      } =
+        await supabase
+          .from('group_messages')
+          .select(
+            'user_id, sender_name'
+          )
+          .eq(
+            'group_id',
+            selectedGroup.id
+          );
+
 
       const messageNameMap =
         new Map();
 
+
       (recentMessages || []).forEach(
-        (msg) => {
+        (message) => {
+
           if (
-            msg.user_id &&
-            msg.sender_name
+            message.user_id &&
+            message.sender_name
           ) {
+
             messageNameMap.set(
-              msg.user_id,
-              msg.sender_name
+              message.user_id,
+              message.sender_name
             );
           }
         }
       );
 
+
       const resolvedMembers =
-        userIdsArray.map((uid) => {
-          const isSelf =
-            currentUser &&
-            uid === currentUser.id;
+        userIdsArray.map(
+          (userId) => {
 
-          const profile =
-            profileMap.get(uid);
+            const isSelf =
+              currentUser &&
+              userId ===
+                currentUser.id;
 
-          const nameFromChat =
-            messageNameMap.get(uid);
 
-          let resolvedName =
-            profile?.full_name;
+            const profile =
+              profileMap.get(
+                userId
+              );
 
-          if (!resolvedName) {
-            if (isSelf) {
-              resolvedName =
-                currentUser
-                  ?.user_metadata
-                  ?.full_name ||
-                currentUser
-                  ?.email
-                  ?.split('@')[0] ||
-                'You';
-            } else if (
-              nameFromChat
-            ) {
-              resolvedName =
-                nameFromChat;
-            } else if (
-              profile?.email
-            ) {
-              resolvedName =
-                profile.email.split(
-                  '@'
-                )[0];
-            } else {
-              resolvedName =
-                uid ===
-                selectedGroup.creator_id
-                  ? 'Circle Creator'
-                  : 'Circle Member';
+
+            const nameFromChat =
+              messageNameMap.get(
+                userId
+              );
+
+
+            let resolvedName =
+              profile?.full_name;
+
+
+            if (!resolvedName) {
+
+              if (isSelf) {
+
+                resolvedName =
+                  currentUser
+                    ?.user_metadata
+                    ?.full_name ||
+                  currentUser
+                    ?.email
+                    ?.split('@')[0] ||
+                  'You';
+
+              } else if (
+                nameFromChat
+              ) {
+
+                resolvedName =
+                  nameFromChat;
+
+              } else if (
+                profile?.email
+              ) {
+
+                resolvedName =
+                  profile.email
+                    .split('@')[0];
+
+              } else {
+
+                resolvedName =
+                  userId ===
+                  selectedGroup.creator_id
+                    ? 'Circle Creator'
+                    : 'Circle Member';
+              }
             }
+
+
+            return {
+
+              user_id:
+                userId,
+
+              profiles: {
+
+                full_name:
+                  resolvedName,
+
+                email:
+                  profile?.email ||
+                  (
+                    isSelf
+                      ? currentUser?.email
+                      : ''
+                  ),
+
+                major:
+                  profile?.major ||
+                  (
+                    isSelf
+                      ? myPrefs.major
+                      : 'Not specified'
+                  ),
+
+                academic_year:
+                  profile
+                    ?.academic_year ||
+                  'Not specified'
+              },
+
+              /*
+               * IMPORTANT:
+               * The previous code used Math.random()
+               * to pretend students were online.
+               *
+               * That has been removed.
+               *
+               * We only know for certain that the
+               * current logged-in user is online.
+               */
+              isOnline:
+                Boolean(isSelf)
+            };
           }
+        );
 
-          return {
-            user_id: uid,
-
-            profiles: {
-              full_name:
-                resolvedName,
-
-              email:
-                profile?.email ||
-                (isSelf
-                  ? currentUser?.email
-                  : ''),
-
-              major:
-                profile?.major ||
-                (isSelf
-                  ? myPrefs.major
-                  : 'Not specified'),
-
-              academic_year:
-                profile?.academic_year ||
-                (isSelf
-                  ? 'Senior'
-                  : 'Not specified')
-            },
-
-            isOnline:
-              isSelf ||
-              Math.random() > 0.3
-          };
-        });
 
       setGroupMembers(
         resolvedMembers
       );
     };
 
+
     fetchMembers();
+
 
     const isMember =
       joinedGroupIds.includes(
@@ -701,30 +1050,41 @@ export default function StudyGroups() {
       selectedGroup.creator_id ===
         currentUser?.id;
 
+
     if (
       isMember &&
-      (view === 'details' ||
-        view === 'chat')
+      (
+        view === 'details' ||
+        view === 'chat'
+      )
     ) {
+
       const fetchMessages =
         async () => {
+
           const {
             data,
             error
-          } = await supabase
-            .from(
-              'group_messages'
-            )
-            .select('*')
-            .eq(
-              'group_id',
-              selectedGroup.id
-            )
-            .order('created_at', {
-              ascending: true
-            });
+          } =
+            await supabase
+              .from(
+                'group_messages'
+              )
+              .select('*')
+              .eq(
+                'group_id',
+                selectedGroup.id
+              )
+              .order(
+                'created_at',
+                {
+                  ascending: true
+                }
+              );
+
 
           if (error) {
+
             console.error(
               'Could not load messages:',
               error
@@ -733,12 +1093,15 @@ export default function StudyGroups() {
             return;
           }
 
+
           setMessages(
             data || []
           );
         };
 
+
       fetchMessages();
+
 
       const channel =
         supabase
@@ -752,22 +1115,29 @@ export default function StudyGroups() {
               schema: 'public',
               table:
                 'group_messages',
-              filter: `group_id=eq.${selectedGroup.id}`
+              filter:
+                `group_id=eq.${selectedGroup.id}`
             },
             () => {
+
               fetchMessages();
             }
           )
           .subscribe();
 
+
       return () => {
+
         supabase.removeChannel(
           channel
         );
       };
+
     } else {
+
       setMessages([]);
     }
+
   }, [
     selectedGroup?.id,
     view,
@@ -775,14 +1145,17 @@ export default function StudyGroups() {
     joinedGroupIds
   ]);
 
+
   useEffect(() => {
+
     if (view === 'chat') {
-      chatBottomRef.current?.scrollIntoView(
-        {
+
+      chatBottomRef.current
+        ?.scrollIntoView({
           behavior: 'smooth'
-        }
-      );
+        });
     }
+
   }, [messages, view]);
 
   // =====================================================
@@ -791,22 +1164,32 @@ export default function StudyGroups() {
 
   const fetchDirectMessageConversations =
     async () => {
+
       if (!currentUser) return;
+
 
       const {
         data: dms,
         error
-      } = await supabase
-        .from('direct_messages')
-        .select('*')
-        .or(
-          `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`
-        )
-        .order('created_at', {
-          ascending: false
-        });
+      } =
+        await supabase
+          .from(
+            'direct_messages'
+          )
+          .select('*')
+          .or(
+            `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`
+          )
+          .order(
+            'created_at',
+            {
+              ascending: false
+            }
+          );
+
 
       if (error) {
+
         console.error(
           'Could not load direct messages:',
           error
@@ -815,153 +1198,201 @@ export default function StudyGroups() {
         return;
       }
 
+
       if (!dms) return;
+
 
       const partnerIds =
         new Set();
 
-      dms.forEach((m) => {
+
+      dms.forEach((message) => {
+
         if (
-          m.sender_id !==
+          message.sender_id !==
           currentUser.id
         ) {
+
           partnerIds.add(
-            m.sender_id
+            message.sender_id
           );
         }
 
+
         if (
-          m.receiver_id !==
+          message.receiver_id !==
           currentUser.id
         ) {
+
           partnerIds.add(
-            m.receiver_id
+            message.receiver_id
           );
         }
       });
 
+
       const partnerIdsArray =
-        Array.from(partnerIds);
+        Array.from(
+          partnerIds
+        );
+
 
       if (
         partnerIdsArray.length === 0
       ) {
+
         setDmConversations([]);
 
         return;
       }
 
+
       const {
         data: partnerProfiles
-      } = await supabase
-        .from('profiles')
-        .select(
-          'id, full_name, email, major, academic_year'
-        )
-        .in(
-          'id',
-          partnerIdsArray
-        );
+      } =
+        await supabase
+          .from('profiles')
+          .select(
+            `
+              id,
+              full_name,
+              email,
+              major,
+              academic_year
+            `
+          )
+          .in(
+            'id',
+            partnerIdsArray
+          );
+
 
       const profileMap =
         new Map();
 
+
       (
         partnerProfiles || []
-      ).forEach((profile) =>
+      ).forEach((profile) => {
+
         profileMap.set(
           profile.id,
           profile
-        )
-      );
+        );
+      });
+
 
       const conversationList =
         partnerIdsArray.map(
-          (pid) => {
-            const prof =
-              profileMap.get(pid);
+          (partnerId) => {
 
-            const lastMsg =
-              dms.find(
-                (m) =>
-                  m.sender_id ===
-                    pid ||
-                  m.receiver_id ===
-                    pid
+            const profile =
+              profileMap.get(
+                partnerId
               );
 
+
+            const lastMessage =
+              dms.find(
+                (message) =>
+                  message.sender_id ===
+                    partnerId ||
+                  message.receiver_id ===
+                    partnerId
+              );
+
+
             return {
-              partnerId: pid,
+
+              partnerId,
 
               name:
-                prof?.full_name ||
-                prof?.email?.split(
+                profile?.full_name ||
+                profile?.email?.split(
                   '@'
                 )[0] ||
                 'Student',
 
               email:
-                prof?.email || '',
+                profile?.email || '',
 
               major:
-                prof?.major ||
+                profile?.major ||
                 'Not specified',
 
               academic_year:
-                prof?.academic_year ||
+                profile
+                  ?.academic_year ||
                 'Not specified',
 
               lastMessage:
-                lastMsg?.content ||
+                lastMessage?.content ||
                 '',
 
               lastMessageTime:
-                lastMsg?.created_at
+                lastMessage
+                  ?.created_at
             };
           }
         );
+
 
       setDmConversations(
         conversationList
       );
     };
 
+
   useEffect(() => {
+
     if (view === 'dms') {
+
       fetchDirectMessageConversations();
     }
+
   }, [view, currentUser]);
+
 
   // =====================================================
   // INDIVIDUAL DM CHAT
   // =====================================================
 
   useEffect(() => {
+
     if (
       !selectedDmUser ||
       !currentUser
     ) {
+
       return;
     }
 
+
     const fetchDmMessages =
       async () => {
+
         const {
           data,
           error
-        } = await supabase
-          .from(
-            'direct_messages'
-          )
-          .select('*')
-          .or(
-            `and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedDmUser.partnerId}),and(sender_id.eq.${selectedDmUser.partnerId},receiver_id.eq.${currentUser.id})`
-          )
-          .order('created_at', {
-            ascending: true
-          });
+        } =
+          await supabase
+            .from(
+              'direct_messages'
+            )
+            .select('*')
+            .or(
+              `and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedDmUser.partnerId}),and(sender_id.eq.${selectedDmUser.partnerId},receiver_id.eq.${currentUser.id})`
+            )
+            .order(
+              'created_at',
+              {
+                ascending: true
+              }
+            );
+
 
         if (error) {
+
           console.error(
             'Could not load DM conversation:',
             error
@@ -970,12 +1401,15 @@ export default function StudyGroups() {
           return;
         }
 
+
         setDmMessages(
           data || []
         );
       };
 
+
     fetchDmMessages();
+
 
     const channel =
       supabase
@@ -991,105 +1425,153 @@ export default function StudyGroups() {
               'direct_messages'
           },
           () => {
+
             fetchDmMessages();
           }
         )
         .subscribe();
 
+
     return () => {
+
       supabase.removeChannel(
         channel
       );
     };
+
   }, [
     selectedDmUser,
     currentUser
   ]);
+
 
   // =====================================================
   // SEARCH STUDENTS FOR DM
   // =====================================================
 
   useEffect(() => {
-    if (view !== 'dms') return;
+
+    if (view !== 'dms') {
+      return;
+    }
+
 
     const query =
       dmSearchQuery.trim();
 
+
     if (!query) {
+
       setDmSearchResults([]);
+
       setSearchingUsers(false);
 
       return;
     }
 
+
     setSearchingUsers(true);
 
+
     const timeout =
-      setTimeout(async () => {
-        let request =
-          supabase
-            .from('profiles')
-            .select(
-              'id, full_name, email, major, academic_year'
-            )
-            .or(
-              `full_name.ilike.%${query}%,email.ilike.%${query}%`
-            )
-            .limit(15);
+      setTimeout(
+        async () => {
 
-        if (currentUser?.id) {
-          request =
-            request.neq(
-              'id',
-              currentUser.id
-            );
-        }
+          let request =
+            supabase
+              .from('profiles')
+              .select(
+                `
+                  id,
+                  full_name,
+                  email,
+                  major,
+                  academic_year
+                `
+              )
+              .or(
+                `full_name.ilike.%${query}%,email.ilike.%${query}%`
+              )
+              .limit(15);
 
-        const {
-          data,
-          error
-        } = await request;
 
-        if (error) {
-          console.error(
-            'Student search error:',
+          if (currentUser?.id) {
+
+            request =
+              request.neq(
+                'id',
+                currentUser.id
+              );
+          }
+
+
+          const {
+            data,
             error
-          );
-        } else {
-          setDmSearchResults(
-            data || []
-          );
-        }
+          } =
+            await request;
 
-        setSearchingUsers(false);
-      }, 300);
 
-    return () =>
-      clearTimeout(timeout);
+          if (error) {
+
+            console.error(
+              'Student search error:',
+              error
+            );
+
+          } else {
+
+            setDmSearchResults(
+              data || []
+            );
+          }
+
+
+          setSearchingUsers(false);
+
+        },
+        300
+      );
+
+
+    return () => {
+
+      clearTimeout(
+        timeout
+      );
+    };
+
   }, [
     dmSearchQuery,
     view,
     currentUser
   ]);
 
+
   const startNewDmWithUser = (
     profile
   ) => {
-    const existingConv =
+
+    const existingConversation =
       dmConversations.find(
         (conversation) =>
           conversation.partnerId ===
           profile.id
       );
 
-    if (existingConv) {
+
+    if (existingConversation) {
+
       setSelectedDmUser(
-        existingConv
+        existingConversation
       );
+
     } else {
+
       setSelectedDmUser({
-        partnerId: profile.id,
+
+        partnerId:
+          profile.id,
 
         name:
           profile.full_name ||
@@ -1109,87 +1591,115 @@ export default function StudyGroups() {
           profile.academic_year ||
           'Not specified',
 
-        lastMessage: '',
+        lastMessage:
+          '',
 
-        lastMessageTime: null
+        lastMessageTime:
+          null
       });
     }
 
+
     setDmSearchQuery('');
+
     setDmSearchResults([]);
   };
+
 
   const openMemberChat = (
     member
   ) => {
+
     if (
       !member ||
       member.user_id ===
         currentUser?.id
     ) {
+
       return;
     }
 
+
     startNewDmWithUser({
-      id: member.user_id,
+
+      id:
+        member.user_id,
 
       full_name:
-        member.profiles
+        member
+          .profiles
           ?.full_name,
 
       email:
-        member.profiles?.email,
+        member
+          .profiles
+          ?.email,
 
       major:
-        member.profiles?.major,
+        member
+          .profiles
+          ?.major,
 
       academic_year:
-        member.profiles
+        member
+          .profiles
           ?.academic_year
     });
+
 
     setView('dms');
   };
 
+
   const toggleNotifications = (
     groupId
   ) => {
+
     setNotificationsMuted(
-      (prev) => ({
-        ...prev,
+      (previous) => ({
+
+        ...previous,
 
         [groupId]:
-          !prev[groupId]
+          !previous[groupId]
       })
     );
   };
+
 
   // =====================================================
   // CREATE GROUP
   // =====================================================
 
   const handleCreate = async (
-    e
+    event
   ) => {
-    e.preventDefault();
+
+    event.preventDefault();
 
     setActionLoading(true);
 
+
     try {
+
       const {
         data: { user },
         error: userError
       } =
         await supabase.auth.getUser();
 
+
       if (userError) {
+
         console.error(
           'User error:',
           userError
         );
       }
 
+
       if (!user) {
+
         alert(
           'You must be logged in to create a study circle.'
         );
@@ -1197,70 +1707,106 @@ export default function StudyGroups() {
         return;
       }
 
+
       const {
         data,
         error
-      } = await supabase
-        .from('study_groups')
-        .insert([
-          {
-            ...newGroup,
+      } =
+        await supabase
+          .from(
+            'study_groups'
+          )
+          .insert([
+            {
+              ...newGroup,
 
-            creator_id:
-              user.id,
+              creator_id:
+                user.id,
 
-            approval_status:
-              'pending'
-          }
-        ])
-        .select();
+              approval_status:
+                'pending'
+            }
+          ])
+          .select();
+
 
       if (error) {
+
         console.error(
           'CREATE CIRCLE ERROR:',
           error
         );
 
+
         alert(
           `Could not submit your study circle: ${error.message}`
         );
 
+
         return;
       }
+
 
       if (
         data &&
         data.length > 0
       ) {
+
         setNewGroup({
+
           name: '',
+
           subject: '',
+
           environment:
             'Library Soft',
-          study_style: 'Silent',
-          location: '',
-          mode: 'In-person',
-          color: '#E0F2FE',
-          max_size: 4,
-          description: '',
+
+          study_style:
+            'Silent',
+
+          location:
+            '',
+
+          mode:
+            'In-person',
+
+          color:
+            '#E0F2FE',
+
+          max_size:
+            4,
+
+          description:
+            '',
+
           major:
             'All Majors Welcome',
-          goal: 'Exam Prep'
+
+          goal:
+            'Exam Prep'
         });
+
 
         await fetchData();
 
-        setView('created');
+
+        setView(
+          'created'
+        );
+
 
         alert(
-          'Your study circle has been submitted for review! ✨\n\nThe Campora team will review it before it appears publicly.'
+          'Your study circle has been submitted for review!\n\nThe Campora team will review it before it appears publicly.'
         );
       }
+
     } catch (error) {
+
       console.error(
         'CREATE GROUP ERROR:',
         error
       );
+
 
       alert(
         `Something went wrong: ${
@@ -1268,161 +1814,216 @@ export default function StudyGroups() {
           'Please try again.'
         }`
       );
+
     } finally {
+
       setActionLoading(false);
     }
   };
+
 
   // =====================================================
   // EDIT GROUP
   // =====================================================
 
   const handleUpdateGroup =
-    async (e) => {
-      e.preventDefault();
+    async (event) => {
 
-      if (!editingGroup) return;
+      event.preventDefault();
+
+
+      if (!editingGroup) {
+        return;
+      }
+
 
       setActionLoading(true);
 
+
       const {
         error
-      } = await supabase
-        .from('study_groups')
-        .update({
-          name:
-            editingGroup.name,
+      } =
+        await supabase
+          .from(
+            'study_groups'
+          )
+          .update({
 
-          major:
-            editingGroup.major,
+            name:
+              editingGroup.name,
 
-          goal:
-            editingGroup.goal,
+            major:
+              editingGroup.major,
 
-          environment:
-            editingGroup.environment,
+            goal:
+              editingGroup.goal,
 
-          mode:
-            editingGroup.mode,
+            environment:
+              editingGroup.environment,
 
-          max_size:
-            editingGroup.max_size,
+            mode:
+              editingGroup.mode,
 
-          description:
-            editingGroup.description,
+            max_size:
+              editingGroup.max_size,
 
-          color:
-            editingGroup.color,
+            description:
+              editingGroup.description,
 
-          approval_status:
-            'pending'
-        })
-        .eq(
-          'id',
-          editingGroup.id
-        );
+            color:
+              editingGroup.color,
+
+            approval_status:
+              'pending'
+          })
+          .eq(
+            'id',
+            editingGroup.id
+          );
+
 
       if (error) {
+
         console.error(
           'UPDATE GROUP ERROR:',
           error
         );
 
+
         alert(
           `Could not update circle: ${error.message}`
         );
+
       } else {
+
         setSelectedGroup({
           ...editingGroup,
+
           approval_status:
             'pending'
         });
 
+
         setEditingGroup(null);
+
 
         await fetchData();
       }
 
+
       setActionLoading(false);
     };
+
 
   // =====================================================
   // DELETE GROUP
   // =====================================================
 
   const handleDeleteGroup =
-    async (groupId, e) => {
-      if (e) {
-        e.stopPropagation();
+    async (
+      groupId,
+      event
+    ) => {
+
+      if (event) {
+
+        event.stopPropagation();
       }
+
 
       if (
         !window.confirm(
           'Are you sure you want to delete this study group? This action cannot be undone.'
         )
       ) {
+
         return;
       }
 
+
       setActionLoading(true);
+
 
       const {
         error
-      } = await supabase
-        .from('study_groups')
-        .delete()
-        .eq('id', groupId);
+      } =
+        await supabase
+          .from(
+            'study_groups'
+          )
+          .delete()
+          .eq(
+            'id',
+            groupId
+          );
+
 
       if (error) {
+
         console.error(
           'DELETE GROUP ERROR:',
           error
         );
 
+
         alert(
           `Could not delete circle: ${error.message}`
         );
+
       } else {
+
         setPinnedChats(
-          (prev) => ({
-            ...prev,
+          (previous) => ({
+
+            ...previous,
 
             groups:
-              prev.groups.filter(
+              previous.groups.filter(
                 (id) =>
                   id !== groupId
               )
           })
         );
 
+
         setPinnedGroupMessages(
-          (prev) => {
+          (previous) => {
+
             const updated = {
-              ...prev
+              ...previous
             };
+
 
             delete updated[
               groupId
             ];
 
+
             return updated;
           }
         );
+
 
         if (
           selectedGroup?.id ===
           groupId
         ) {
+
           setSelectedGroup(null);
 
-          setView('browse');
+          setView(
+            'browse'
+          );
         }
+
 
         await fetchData();
       }
 
+
       setActionLoading(false);
     };
+
 
   // =====================================================
   // JOIN GROUP
@@ -1431,17 +2032,21 @@ export default function StudyGroups() {
   const handleJoin = async (
     groupId
   ) => {
+
     const group =
       groups.find(
-        (g) =>
-          g.id === groupId
+        (groupItem) =>
+          groupItem.id ===
+          groupId
       );
+
 
     if (
       !group ||
       group.approval_status !==
         'approved'
     ) {
+
       alert(
         'This study circle is not available to join yet.'
       );
@@ -1449,11 +2054,13 @@ export default function StudyGroups() {
       return;
     }
 
+
     if (
       getGroupMemberCount(
         group
       ) >= group.max_size
     ) {
+
       alert(
         'This study circle is already full.'
       );
@@ -1461,37 +2068,48 @@ export default function StudyGroups() {
       return;
     }
 
+
     setActionLoading(true);
+
 
     const {
       data: { user }
     } =
       await supabase.auth.getUser();
 
+
     if (user) {
+
       const {
         error
-      } = await supabase
-        .from('group_members')
-        .insert([
-          {
-            group_id:
-              groupId,
+      } =
+        await supabase
+          .from(
+            'group_members'
+          )
+          .insert([
+            {
+              group_id:
+                groupId,
 
-            user_id:
-              user.id
-          }
-        ]);
+              user_id:
+                user.id
+            }
+          ]);
+
 
       if (error) {
+
         if (
           error.code !==
           '23505'
         ) {
+
           console.error(
             'JOIN GROUP ERROR:',
             error
           );
+
 
           alert(
             `Could not join circle: ${error.message}`
@@ -1499,13 +2117,19 @@ export default function StudyGroups() {
         }
       }
 
+
       await fetchData();
 
-      setView('joined');
+
+      setView(
+        'joined'
+      );
     }
+
 
     setActionLoading(false);
   };
+
 
   // =====================================================
   // LEAVE GROUP
@@ -1513,109 +2137,143 @@ export default function StudyGroups() {
 
   const handleLeaveGroup =
     async (groupId) => {
-      if (!currentUser) return;
+
+      if (!currentUser) {
+        return;
+      }
+
 
       if (
         !window.confirm(
           "Are you sure you want to leave this study circle? You'll need to rejoin to see its chat again."
         )
       ) {
+
         return;
       }
 
+
       setActionLoading(true);
+
 
       const {
         error
-      } = await supabase
-        .from('group_members')
-        .delete()
-        .eq(
-          'group_id',
-          groupId
-        )
-        .eq(
-          'user_id',
-          currentUser.id
-        );
+      } =
+        await supabase
+          .from(
+            'group_members'
+          )
+          .delete()
+          .eq(
+            'group_id',
+            groupId
+          )
+          .eq(
+            'user_id',
+            currentUser.id
+          );
+
 
       if (error) {
+
         console.error(
           'LEAVE GROUP ERROR:',
           error
         );
 
+
         alert(
           `Could not leave the circle: ${error.message}`
         );
+
       } else {
+
         setPinnedChats(
-          (prev) => ({
-            ...prev,
+          (previous) => ({
+
+            ...previous,
 
             groups:
-              prev.groups.filter(
+              previous.groups.filter(
                 (id) =>
                   id !== groupId
               )
           })
         );
 
-        setView('joined');
 
-        setSelectedGroup(null);
+        setView(
+          'joined'
+        );
+
+
+        setSelectedGroup(
+          null
+        );
+
 
         await fetchData();
       }
 
+
       setActionLoading(false);
     };
 
+
   // =====================================================
   // SEND GROUP MESSAGE
-  // FIXED REPLY SUPPORT
   // =====================================================
 
   const handleSendMessage =
-    async (e) => {
-      e.preventDefault();
+    async (event) => {
+
+      event.preventDefault();
+
 
       const trimmed =
         newMessage.trim();
+
 
       if (
         !trimmed ||
         !selectedGroup ||
         !currentUser
       ) {
+
         return;
       }
+
 
       const senderName =
         currentUser
           .user_metadata
           ?.full_name ||
-        currentUser.email?.split(
-          '@'
-        )[0] ||
+        currentUser
+          .email
+          ?.split('@')[0] ||
         'Student';
+
 
       const tempId =
         `temp-${Date.now()}`;
 
+
       const replySnapshot =
         replyingTo;
+
 
       const replyPayload =
         replySnapshot
           ? {
+
               reply_to_id:
                 String(
                   replySnapshot.id
                 ),
 
               reply_to_sender:
-                replySnapshot.sender_name ||
+                replySnapshot
+                  .sender_name ||
                 'Student',
 
               reply_to_content:
@@ -1625,11 +2283,14 @@ export default function StudyGroups() {
                       .poll_data
                       ?.question ||
                     ''
-                  : replySnapshot.content ||
+                  : replySnapshot
+                      .content ||
                     ''
             }
           : {
-              reply_to_id: null,
+
+              reply_to_id:
+                null,
 
               reply_to_sender:
                 null,
@@ -1638,120 +2299,149 @@ export default function StudyGroups() {
                 null
             };
 
-      const optimisticMessage =
-        {
-          id: tempId,
 
-          group_id:
-            selectedGroup.id,
+      const optimisticMessage = {
 
-          user_id:
-            currentUser.id,
+        id:
+          tempId,
 
-          sender_name:
-            senderName,
+        group_id:
+          selectedGroup.id,
 
-          content: trimmed,
+        user_id:
+          currentUser.id,
 
-          type: 'text',
+        sender_name:
+          senderName,
 
-          reactions: {},
+        content:
+          trimmed,
 
-          created_at:
-            new Date().toISOString(),
+        type:
+          'text',
 
-          ...replyPayload
-        };
+        reactions:
+          {},
 
-      setMessages((prev) => [
-        ...prev,
-        optimisticMessage
-      ]);
+        created_at:
+          new Date()
+            .toISOString(),
+
+        ...replyPayload
+      };
+
+
+      setMessages(
+        (previous) => [
+          ...previous,
+          optimisticMessage
+        ]
+      );
+
 
       setNewMessage('');
 
+
       setReplyingTo(null);
+
 
       const {
         data,
         error
-      } = await supabase
-        .from('group_messages')
-        .insert([
-          {
-            group_id:
-              selectedGroup.id,
+      } =
+        await supabase
+          .from(
+            'group_messages'
+          )
+          .insert([
+            {
+              group_id:
+                selectedGroup.id,
 
-            user_id:
-              currentUser.id,
+              user_id:
+                currentUser.id,
 
-            sender_name:
-              senderName,
+              sender_name:
+                senderName,
 
-            content:
-              trimmed,
+              content:
+                trimmed,
 
-            type: 'text',
+              type:
+                'text',
 
-            reactions: {},
+              reactions:
+                {},
 
-            ...replyPayload
-          }
-        ])
-        .select()
-        .single();
+              ...replyPayload
+            }
+          ])
+          .select()
+          .single();
+
 
       if (error) {
+
         console.error(
           'MESSAGE SEND ERROR:',
           error
         );
 
-        setMessages((prev) =>
-          prev.filter(
-            (message) =>
-              message.id !==
-              tempId
-          )
+
+        setMessages(
+          (previous) =>
+            previous.filter(
+              (message) =>
+                message.id !==
+                tempId
+            )
         );
+
 
         setNewMessage(
           trimmed
         );
 
+
         setReplyingTo(
           replySnapshot
         );
+
 
         alert(
           `Message failed to send: ${error.message}`
         );
 
+
         return;
       }
 
+
       if (data) {
+
         setMessages(
-          (prev) => {
+          (previous) => {
+
             const withoutTemp =
-              prev.filter(
+              previous.filter(
                 (message) =>
                   message.id !==
-                  tempId &&
+                    tempId &&
                   message.id !==
                     data.id
               );
+
 
             return [
               ...withoutTemp,
               data
             ].sort(
-              (a, b) =>
+              (first, second) =>
                 new Date(
-                  a.created_at
+                  first.created_at
                 ) -
                 new Date(
-                  b.created_at
+                  second.created_at
                 )
             );
           }
@@ -1759,214 +2449,279 @@ export default function StudyGroups() {
       }
     };
 
+
   // =====================================================
   // SEND DM FROM MEMBER PROFILE
   // =====================================================
 
   const handleSendDirectMessage =
     async () => {
+
       if (
         !directChatMessage.trim() ||
         !selectedMember ||
         !currentUser
       ) {
+
         return;
       }
 
+
       const {
         error
-      } = await supabase
-        .from('direct_messages')
-        .insert([
-          {
-            sender_id:
-              currentUser.id,
+      } =
+        await supabase
+          .from(
+            'direct_messages'
+          )
+          .insert([
+            {
+              sender_id:
+                currentUser.id,
 
-            receiver_id:
-              selectedMember.user_id,
+              receiver_id:
+                selectedMember.user_id,
 
-            content:
-              directChatMessage.trim()
-          }
-        ]);
+              content:
+                directChatMessage.trim()
+            }
+          ]);
+
 
       if (error) {
+
         console.error(
           'DM ERROR:',
           error
         );
 
+
         alert(
           `Direct message failed: ${error.message}`
         );
 
+
         return;
       }
 
+
       setDirectChatMessage('');
+
 
       setShowDMChat(false);
 
+
       setSelectedMember(null);
 
+
       fetchDirectMessageConversations();
+
 
       alert(
         'Direct message sent!'
       );
     };
 
+
   // =====================================================
   // SEND DM IN INBOX
   // =====================================================
 
   const handleSendDmInInbox =
-    async (e) => {
-      e.preventDefault();
+    async (event) => {
+
+      event.preventDefault();
+
 
       const trimmed =
         newDmMessageText.trim();
+
 
       if (
         !trimmed ||
         !selectedDmUser ||
         !currentUser
       ) {
+
         return;
       }
+
 
       const {
         data,
         error
-      } = await supabase
-        .from('direct_messages')
-        .insert([
-          {
-            sender_id:
-              currentUser.id,
+      } =
+        await supabase
+          .from(
+            'direct_messages'
+          )
+          .insert([
+            {
+              sender_id:
+                currentUser.id,
 
-            receiver_id:
-              selectedDmUser.partnerId,
+              receiver_id:
+                selectedDmUser.partnerId,
 
-            content:
-              trimmed
-          }
-        ])
-        .select()
-        .single();
+              content:
+                trimmed
+            }
+          ])
+          .select()
+          .single();
+
 
       if (error) {
+
         console.error(
           'DM SEND ERROR:',
           error
         );
 
+
         alert(
           `Message failed to send: ${error.message}`
         );
 
+
         return;
       }
 
+
       setNewDmMessageText('');
 
+
       if (data) {
+
         setDmMessages(
-          (prev) => {
+          (previous) => {
+
             if (
-              prev.some(
+              previous.some(
                 (message) =>
                   message.id ===
                   data.id
               )
             ) {
-              return prev;
+
+              return previous;
             }
 
+
             return [
-              ...prev,
+              ...previous,
               data
             ];
           }
         );
       }
 
+
       fetchDirectMessageConversations();
     };
+
 
   // =====================================================
   // DELETE MESSAGE
   // =====================================================
 
   const handleDeleteMessage =
-    async (msgId) => {
+    async (messageId) => {
+
       if (
-        String(msgId).startsWith(
+        String(
+          messageId
+        ).startsWith(
           'temp-'
         )
       ) {
+
         return;
       }
 
+
       const {
         error
-      } = await supabase
-        .from('group_messages')
-        .delete()
-        .eq('id', msgId);
+      } =
+        await supabase
+          .from(
+            'group_messages'
+          )
+          .delete()
+          .eq(
+            'id',
+            messageId
+          );
+
 
       if (error) {
+
         console.error(
           'DELETE MESSAGE ERROR:',
           error
         );
 
+
         alert(
           `Could not delete message: ${error.message}`
         );
 
+
         return;
       }
 
-      setMessages((prev) =>
-        prev.filter(
-          (m) => m.id !== msgId
-        )
+
+      setMessages(
+        (previous) =>
+          previous.filter(
+            (message) =>
+              message.id !==
+              messageId
+          )
       );
 
+
       setPinnedGroupMessages(
-        (prev) => {
+        (previous) => {
+
           if (!selectedGroup) {
-            return prev;
+
+            return previous;
           }
 
+
           return {
-            ...prev,
+
+            ...previous,
 
             [selectedGroup.id]:
               (
-                prev[
+                previous[
                   selectedGroup.id
                 ] || []
               ).filter(
                 (id) =>
-                  id !== msgId
+                  id !== messageId
               )
           };
         }
       );
 
+
       setActiveMessageMenu(
         null
       );
 
+
       if (
         replyingTo?.id ===
-        msgId
+        messageId
       ) {
+
         setReplyingTo(null);
       }
     };
+
 
   // =====================================================
   // CLEAR CHAT
@@ -1974,46 +2729,63 @@ export default function StudyGroups() {
 
   const handleClearChat =
     async () => {
-      if (!selectedGroup) return;
+
+      if (!selectedGroup) {
+        return;
+      }
+
 
       if (
         !window.confirm(
           'Are you sure you want to clear all messages in this group?'
         )
       ) {
+
         return;
       }
 
+
       const {
         error
-      } = await supabase
-        .from('group_messages')
-        .delete()
-        .eq(
-          'group_id',
-          selectedGroup.id
-        );
+      } =
+        await supabase
+          .from(
+            'group_messages'
+          )
+          .delete()
+          .eq(
+            'group_id',
+            selectedGroup.id
+          );
+
 
       if (error) {
+
         console.error(
           'CLEAR CHAT ERROR:',
           error
         );
 
+
         alert(
           `Could not clear chat: ${error.message}`
         );
 
+
         return;
       }
 
+
       setMessages([]);
+
 
       setReplyingTo(null);
 
+
       setPinnedGroupMessages(
-        (prev) => ({
-          ...prev,
+        (previous) => ({
+
+          ...previous,
 
           [selectedGroup.id]:
             []
@@ -2027,34 +2799,41 @@ export default function StudyGroups() {
 
   const handleReactToMessage =
     async (
-      msgId,
+      messageId,
       emoji
     ) => {
-      const target =
+
+      const targetMessage =
         messages.find(
-          (m) =>
-            m.id === msgId
+          (message) =>
+            message.id ===
+            messageId
         );
 
+
       if (
-        !target ||
+        !targetMessage ||
         !currentUser ||
         String(
-          msgId
+          messageId
         ).startsWith(
           'temp-'
         )
       ) {
+
         return;
       }
 
+
       const existingReactions =
-        target.reactions || {};
+        targetMessage.reactions || {};
+
 
       const usersWhoReacted =
         existingReactions[
           emoji
         ] || [];
+
 
       const updatedUsers =
         usersWhoReacted.includes(
@@ -2070,100 +2849,129 @@ export default function StudyGroups() {
               currentUser.id
             ];
 
-      const updatedReactions =
-        {
-          ...existingReactions,
 
-          [emoji]:
-            updatedUsers
-        };
+      const updatedReactions = {
 
-      setMessages((prev) =>
-        prev.map((message) =>
-          message.id === msgId
-            ? {
-                ...message,
-                reactions:
-                  updatedReactions
-              }
-            : message
-        )
+        ...existingReactions,
+
+        [emoji]:
+          updatedUsers
+      };
+
+
+      setMessages(
+        (previous) =>
+          previous.map(
+            (message) =>
+              message.id ===
+              messageId
+                ? {
+                    ...message,
+
+                    reactions:
+                      updatedReactions
+                  }
+                : message
+          )
       );
+
 
       const {
         error
-      } = await supabase
-        .from('group_messages')
-        .update({
-          reactions:
-            updatedReactions
-        })
-        .eq('id', msgId);
+      } =
+        await supabase
+          .from(
+            'group_messages'
+          )
+          .update({
+
+            reactions:
+              updatedReactions
+          })
+          .eq(
+            'id',
+            messageId
+          );
+
 
       if (error) {
+
         console.error(
           'REACTION ERROR:',
           error
         );
 
-        setMessages((prev) =>
-          prev.map(
-            (message) =>
-              message.id ===
-              msgId
-                ? target
-                : message
-          )
+
+        setMessages(
+          (previous) =>
+            previous.map(
+              (message) =>
+                message.id ===
+                messageId
+                  ? targetMessage
+                  : message
+            )
         );
+
 
         alert(
           `Could not save reaction: ${error.message}`
         );
       }
 
+
       setActiveMessageMenu(
         null
       );
     };
+
 
   // =====================================================
   // CREATE POLL
   // =====================================================
 
   const handleCreatePoll =
-    async (e) => {
-      e.preventDefault();
+    async (event) => {
+
+      event.preventDefault();
+
 
       const validOptions =
         pollOptions
-          .map((option) =>
-            option.trim()
+          .map(
+            (option) =>
+              option.trim()
           )
           .filter(Boolean);
 
+
       if (
         !pollQuestion.trim() ||
-        validOptions.length <
-          2 ||
+        validOptions.length < 2 ||
         !selectedGroup ||
         !currentUser
       ) {
+
         return;
       }
+
 
       const senderName =
         currentUser
           .user_metadata
           ?.full_name ||
-        currentUser.email?.split(
-          '@'
-        )[0] ||
+        currentUser
+          .email
+          ?.split('@')[0] ||
         'Student';
+
 
       const tempId =
         `temp-poll-${Date.now()}`;
 
+
       const pollData = {
+
         group_id:
           selectedGroup.id,
 
@@ -2176,108 +2984,151 @@ export default function StudyGroups() {
         content:
           pollQuestion.trim(),
 
-        type: 'poll',
+        type:
+          'poll',
 
-        reactions: {},
+        reactions:
+          {},
 
         poll_data: {
+
           question:
             pollQuestion.trim(),
 
           options:
             validOptions.map(
               (option) => ({
-                text: option,
-                votes: []
+
+                text:
+                  option,
+
+                votes:
+                  []
               })
             )
         }
       };
 
-      setMessages((prev) => [
-        ...prev,
 
-        {
-          ...pollData,
+      setMessages(
+        (previous) => [
+          ...previous,
 
-          id: tempId,
+          {
+            ...pollData,
 
-          created_at:
-            new Date().toISOString()
-        }
-      ]);
+            id:
+              tempId,
+
+            created_at:
+              new Date()
+                .toISOString()
+          }
+        ]
+      );
+
 
       const originalQuestion =
         pollQuestion;
 
+
       const originalOptions =
-        [...pollOptions];
+        [
+          ...pollOptions
+        ];
+
 
       setPollQuestion('');
 
-      setPollOptions(['', '']);
 
-      setShowPollModal(false);
+      setPollOptions([
+        '',
+        ''
+      ]);
+
+
+      setShowPollModal(
+        false
+      );
+
 
       const {
         data,
         error
-      } = await supabase
-        .from('group_messages')
-        .insert([pollData])
-        .select()
-        .single();
+      } =
+        await supabase
+          .from(
+            'group_messages'
+          )
+          .insert([
+            pollData
+          ])
+          .select()
+          .single();
+
 
       if (error) {
+
         console.error(
           'POLL ERROR:',
           error
         );
 
-        setMessages((prev) =>
-          prev.filter(
-            (m) =>
-              m.id !== tempId
-          )
+
+        setMessages(
+          (previous) =>
+            previous.filter(
+              (message) =>
+                message.id !==
+                tempId
+            )
         );
+
 
         setPollQuestion(
           originalQuestion
         );
 
+
         setPollOptions(
           originalOptions
         );
+
 
         alert(
           `Poll failed to post: ${error.message}`
         );
 
+
         return;
       }
 
+
       if (data) {
+
         setMessages(
-          (prev) => {
+          (previous) => {
+
             const withoutTemp =
-              prev.filter(
+              previous.filter(
                 (message) =>
                   message.id !==
-                  tempId &&
+                    tempId &&
                   message.id !==
                     data.id
               );
+
 
             return [
               ...withoutTemp,
               data
             ].sort(
-              (a, b) =>
+              (first, second) =>
                 new Date(
-                  a.created_at
+                  first.created_at
                 ) -
                 new Date(
-                  b.created_at
+                  second.created_at
                 )
             );
           }
@@ -2285,39 +3136,47 @@ export default function StudyGroups() {
       }
     };
 
+
   // =====================================================
   // VOTE POLL
   // =====================================================
 
   const handleVotePoll =
     async (
-      msgId,
+      messageId,
       optionIndex
     ) => {
-      const target =
+
+      const targetMessage =
         messages.find(
-          (m) =>
-            m.id === msgId
+          (message) =>
+            message.id ===
+            messageId
         );
 
+
       if (
-        !target ||
-        !target.poll_data ||
+        !targetMessage ||
+        !targetMessage.poll_data ||
         !currentUser ||
         String(
-          msgId
+          messageId
         ).startsWith(
           'temp-'
         )
       ) {
+
         return;
       }
 
+
       const clickedOption =
-        target.poll_data
+        targetMessage
+          .poll_data
           .options[
-          optionIndex
-        ];
+            optionIndex
+          ];
+
 
       const alreadyVotedForThisOption =
         (
@@ -2327,87 +3186,121 @@ export default function StudyGroups() {
           currentUser.id
         );
 
+
       const updatedOptions =
-        target.poll_data.options.map(
-          (opt, idx) => {
-            const filteredVotes =
-              (
-                opt.votes || []
-              ).filter(
-                (id) =>
-                  id !==
+        targetMessage
+          .poll_data
+          .options
+          .map(
+            (
+              option,
+              index
+            ) => {
+
+              const filteredVotes =
+                (
+                  option.votes ||
+                  []
+                ).filter(
+                  (id) =>
+                    id !==
+                    currentUser.id
+                );
+
+
+              if (
+                index ===
+                  optionIndex &&
+                !alreadyVotedForThisOption
+              ) {
+
+                filteredVotes.push(
                   currentUser.id
-              );
-
-            if (
-              idx ===
-                optionIndex &&
-              !alreadyVotedForThisOption
-            ) {
-              filteredVotes.push(
-                currentUser.id
-              );
-            }
-
-            return {
-              ...opt,
-
-              votes:
-                filteredVotes
-            };
-          }
-        );
-
-      const updatedPollData =
-        {
-          ...target.poll_data,
-
-          options:
-            updatedOptions
-        };
-
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === msgId
-            ? {
-                ...m,
-
-                poll_data:
-                  updatedPollData
+                );
               }
-            : m
-        )
+
+
+              return {
+
+                ...option,
+
+                votes:
+                  filteredVotes
+              };
+            }
+          );
+
+
+      const updatedPollData = {
+
+        ...targetMessage.poll_data,
+
+        options:
+          updatedOptions
+      };
+
+
+      setMessages(
+        (previous) =>
+          previous.map(
+            (message) =>
+              message.id ===
+              messageId
+                ? {
+                    ...message,
+
+                    poll_data:
+                      updatedPollData
+                  }
+                : message
+          )
       );
+
 
       const {
         error
-      } = await supabase
-        .from('group_messages')
-        .update({
-          poll_data:
-            updatedPollData
-        })
-        .eq('id', msgId);
+      } =
+        await supabase
+          .from(
+            'group_messages'
+          )
+          .update({
+
+            poll_data:
+              updatedPollData
+          })
+          .eq(
+            'id',
+            messageId
+          );
+
 
       if (error) {
+
         console.error(
           'VOTE ERROR:',
           error
         );
 
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === msgId
-              ? target
-              : m
-          )
+
+        setMessages(
+          (previous) =>
+            previous.map(
+              (message) =>
+                message.id ===
+                messageId
+                  ? targetMessage
+                  : message
+            )
         );
+
 
         alert(
           `Could not save vote: ${error.message}`
         );
       }
     };
+
 
   // =====================================================
   // MATCHING
@@ -2416,7 +3309,9 @@ export default function StudyGroups() {
   const calculateMatch = (
     group
   ) => {
+
     let score = 0;
+
 
     if (
       group.major ===
@@ -2424,36 +3319,46 @@ export default function StudyGroups() {
       group.major ===
         myPrefs.major
     ) {
+
       score += 30;
     }
+
 
     if (
       group.goal ===
       myPrefs.goal
     ) {
+
       score += 20;
     }
+
 
     if (
       group.environment ===
       myPrefs.env
     ) {
+
       score += 20;
     }
+
 
     if (
       group.study_style ===
       myPrefs.style
     ) {
+
       score += 15;
     }
+
 
     if (
       group.mode ===
       myPrefs.mode
     ) {
+
       score += 15;
     }
+
 
     return Math.min(
       score,
@@ -2461,129 +3366,209 @@ export default function StudyGroups() {
     );
   };
 
+
+  // =====================================================
+  // GROUP FILTERS
+  // =====================================================
+
   const discoverGroups =
-    groups.filter((g) => {
-      const isApproved =
-        g.approval_status ===
-        'approved';
+    groups.filter(
+      (group) => {
 
-      const query =
-        searchQuery.toLowerCase();
+        const isApproved =
+          group.approval_status ===
+          'approved';
 
-      const matchesSearch =
-        (g.name || '')
-          .toLowerCase()
-          .includes(query) ||
-        (g.subject || '')
-          .toLowerCase()
-          .includes(query) ||
-        (g.major || '')
-          .toLowerCase()
-          .includes(query);
 
-      return (
-        isApproved &&
-        matchesSearch
-      );
-    });
+        const query =
+          searchQuery
+            .toLowerCase();
+
+
+        const matchesSearch =
+          (
+            group.name ||
+            ''
+          )
+            .toLowerCase()
+            .includes(
+              query
+            ) ||
+          (
+            group.subject ||
+            ''
+          )
+            .toLowerCase()
+            .includes(
+              query
+            ) ||
+          (
+            group.major ||
+            ''
+          )
+            .toLowerCase()
+            .includes(
+              query
+            );
+
+
+        return (
+          isApproved &&
+          matchesSearch
+        );
+      }
+    );
+
 
   const createdGroups =
     groups.filter(
-      (g) =>
-        g.creator_id ===
+      (group) =>
+        group.creator_id ===
         currentUser?.id
     );
 
+
   const joinedOnlyGroups =
     groups.filter(
-      (g) =>
-        g.approval_status ===
+      (group) =>
+        group.approval_status ===
           'approved' &&
         joinedGroupIds.includes(
-          g.id
+          group.id
         ) &&
-        g.creator_id !==
+        group.creator_id !==
           currentUser?.id
     );
+
+
+  // =====================================================
+  // PIN SORTING
+  // =====================================================
 
   const sortGroupsWithPins = (
     list
   ) => {
-    return [...list].sort(
-      (a, b) => {
-        const aPinned =
-          pinnedChats.groups.includes(
-            a.id
-          );
 
-        const bPinned =
-          pinnedChats.groups.includes(
-            b.id
-          );
+    return [
+      ...list
+    ].sort(
+      (
+        first,
+        second
+      ) => {
+
+        const firstPinned =
+          pinnedChats
+            .groups
+            .includes(
+              first.id
+            );
+
+
+        const secondPinned =
+          pinnedChats
+            .groups
+            .includes(
+              second.id
+            );
+
 
         if (
-          aPinned ===
-          bPinned
+          firstPinned ===
+          secondPinned
         ) {
+
           return 0;
         }
 
-        return aPinned
+
+        return firstPinned
           ? -1
           : 1;
       }
     );
   };
 
-  const sortedDmConversations =
-    [...dmConversations].sort(
-      (a, b) => {
-        const aPinned =
-          pinnedChats.dms.includes(
-            a.partnerId
-          );
 
-        const bPinned =
-          pinnedChats.dms.includes(
-            b.partnerId
-          );
+  const sortedDmConversations =
+    [
+      ...dmConversations
+    ].sort(
+      (
+        first,
+        second
+      ) => {
+
+        const firstPinned =
+          pinnedChats
+            .dms
+            .includes(
+              first.partnerId
+            );
+
+
+        const secondPinned =
+          pinnedChats
+            .dms
+            .includes(
+              second.partnerId
+            );
+
 
         if (
-          aPinned ===
-          bPinned
+          firstPinned ===
+          secondPinned
         ) {
+
           return 0;
         }
 
-        return aPinned
+
+        return firstPinned
           ? -1
           : 1;
       }
     );
 
+
+  // =====================================================
+  // MEMBER COUNTS
+  // =====================================================
+
   const getGroupMemberCount = (
     group
   ) => {
+
     if (
       selectedGroup?.id ===
         group.id &&
       groupMembers.length > 0
     ) {
+
       return groupMembers.length;
     }
 
+
     const memberSet =
       new Set(
-        group.group_members?.map(
-          (m) => m.user_id
-        ) || []
+        group
+          .group_members
+          ?.map(
+            (member) =>
+              member.user_id
+          ) || []
       );
 
-    if (group.creator_id) {
+
+    if (
+      group.creator_id
+    ) {
+
       memberSet.add(
         group.creator_id
       );
     }
+
 
     return Math.max(
       memberSet.size,
@@ -2591,206 +3576,310 @@ export default function StudyGroups() {
     );
   };
 
+
   const getActiveOnlineCount =
     () => {
+
       return groupMembers.filter(
-        (m) => m.isOnline
+        (member) =>
+          member.isOnline
       ).length;
     };
+
+
+  // =====================================================
+  // THEME COLOR HELPERS FOR SELECTED GROUP
+  // =====================================================
+
+  const selectedThemeColor =
+    selectedGroup?.color ||
+    '#E0F2FE';
+
+
+  const selectedThemeTextColor =
+    getContrastColor(
+      selectedThemeColor
+    );
+
+
+  const selectedThemeMutedColor =
+    getMutedContrastColor(
+      selectedThemeColor
+    );
+
 
   // =====================================================
   // STYLES
   // =====================================================
 
   const tagStyle = {
-    padding: '4px 10px',
 
-    borderRadius: '8px',
+    padding:
+      '4px 10px',
+
+    borderRadius:
+      '8px',
 
     background:
       'rgba(255,255,255,0.8)',
 
-    fontSize: '11px',
+    fontSize:
+      '11px',
 
-    fontWeight: '800',
+    fontWeight:
+      '800',
 
-    color: '#0B1A3F',
+    color:
+      '#0B1A3F',
 
     textTransform:
       'uppercase'
   };
 
+
   const iconBtnStyle = {
+
     background:
       'rgba(255,255,255,0.7)',
 
-    border: 'none',
+    border:
+      'none',
 
-    padding: '8px',
+    padding:
+      '8px',
 
-    borderRadius: '10px',
+    borderRadius:
+      '10px',
 
-    cursor: 'pointer',
+    cursor:
+      'pointer',
 
-    display: 'flex',
+    display:
+      'flex',
 
-    alignItems: 'center',
+    alignItems:
+      'center',
 
     justifyContent:
       'center'
   };
 
+
   const activeTab = {
+
     padding:
       '10px 18px',
 
-    borderRadius: '12px',
+    borderRadius:
+      '12px',
 
-    border: 'none',
+    border:
+      'none',
 
     background:
       '#0B1A3F',
 
-    color: 'white',
+    color:
+      'white',
 
-    fontWeight: '800',
+    fontWeight:
+      '800',
 
-    fontSize: '13px',
+    fontSize:
+      '13px',
 
-    cursor: 'pointer',
+    cursor:
+      'pointer',
 
-    display: 'flex',
+    display:
+      'flex',
 
-    alignItems: 'center',
+    alignItems:
+      'center',
 
-    gap: '8px'
+    gap:
+      '8px'
   };
 
+
   const inactiveTab = {
+
     padding:
       '10px 18px',
 
-    borderRadius: '12px',
+    borderRadius:
+      '12px',
 
-    border: 'none',
+    border:
+      'none',
 
     background:
       '#F4F7FE',
 
-    color: '#A3AED0',
+    color:
+      '#A3AED0',
 
-    fontWeight: '800',
+    fontWeight:
+      '800',
 
-    fontSize: '13px',
+    fontSize:
+      '13px',
 
-    cursor: 'pointer',
+    cursor:
+      'pointer',
 
-    display: 'flex',
+    display:
+      'flex',
 
-    alignItems: 'center',
+    alignItems:
+      'center',
 
-    gap: '8px'
+    gap:
+      '8px'
   };
 
+
   const addBtnStyle = {
+
     padding:
       '12px 22px',
 
-    borderRadius: '16px',
+    borderRadius:
+      '16px',
 
-    border: 'none',
+    border:
+      'none',
 
     background:
       '#0B1A3F',
 
-    color: 'white',
+    color:
+      'white',
 
-    fontWeight: '900',
+    fontWeight:
+      '900',
 
-    fontSize: '14px',
+    fontSize:
+      '14px',
 
-    cursor: 'pointer',
+    cursor:
+      'pointer',
 
-    display: 'flex',
+    display:
+      'flex',
 
-    alignItems: 'center',
+    alignItems:
+      'center',
 
-    gap: '8px',
+    gap:
+      '8px',
 
     boxShadow:
       '0 8px 16px rgba(11,26,63,0.2)'
   };
 
+
   const searchBarContainer = {
-    display: 'flex',
 
-    alignItems: 'center',
+    display:
+      'flex',
 
-    gap: '12px',
+    alignItems:
+      'center',
 
-    background: 'white',
+    gap:
+      '12px',
+
+    background:
+      'white',
 
     padding:
       '12px 20px',
 
-    borderRadius: '18px',
+    borderRadius:
+      '18px',
 
     border:
       '1.5px solid #E9EDF7',
 
-    marginBottom: '30px'
+    marginBottom:
+      '30px'
   };
+
 
   const searchField = {
-    border: 'none',
 
-    outline: 'none',
+    border:
+      'none',
 
-    width: '100%',
+    outline:
+      'none',
 
-    fontWeight: '700',
+    width:
+      '100%',
 
-    fontSize: '14px',
+    fontWeight:
+      '700',
 
-    color: '#0B1A3F'
+    fontSize:
+      '14px',
+
+    color:
+      '#0B1A3F'
   };
 
+
   const formSectionStyle = {
-    display: 'flex',
+
+    display:
+      'flex',
 
     flexDirection:
       'column',
 
-    gap: '8px'
+    gap:
+      '8px'
   };
 
+
   const labelStyle = {
-    fontSize: '11px',
 
-    fontWeight: '900',
+    fontSize:
+      '11px',
 
-    color: '#A3AED0',
+    fontWeight:
+      '900',
+
+    color:
+      '#A3AED0',
 
     letterSpacing:
       '0.5px'
   };
 
+
   const inputStyle = {
+
     padding:
       '12px 16px',
 
-    borderRadius: '12px',
+    borderRadius:
+      '12px',
 
     border:
       '1.5px solid #E2E8F0',
 
-    fontSize: '14px',
+    fontSize:
+      '14px',
 
-    fontWeight: '700',
+    fontWeight:
+      '700',
 
-    color: '#0B1A3F',
+    color:
+      '#0B1A3F',
 
-    outline: 'none',
+    outline:
+      'none',
 
     background:
       '#F8FAFC',
@@ -2799,19 +3888,27 @@ export default function StudyGroups() {
       'border-box'
   };
 
+
   const chipGridStyle = {
-    display: 'flex',
 
-    flexWrap: 'wrap',
+    display:
+      'flex',
 
-    gap: '8px'
+    flexWrap:
+      'wrap',
+
+    gap:
+      '8px'
   };
 
+
   const chipStyle = {
+
     padding:
       '8px 16px',
 
-    borderRadius: '10px',
+    borderRadius:
+      '10px',
 
     border:
       '1.5px solid #E2E8F0',
@@ -2819,92 +3916,130 @@ export default function StudyGroups() {
     background:
       '#F8FAFC',
 
-    color: '#64748B',
+    color:
+      '#64748B',
 
-    fontSize: '12px',
+    fontSize:
+      '12px',
 
-    fontWeight: '800',
+    fontWeight:
+      '800',
 
-    cursor: 'pointer'
+    cursor:
+      'pointer'
   };
 
+
   const activeChipStyle = {
+
     ...chipStyle,
 
     background:
       '#0B1A3F',
 
-    color: 'white',
+    color:
+      'white',
 
     borderColor:
       '#0B1A3F'
   };
 
+
   const saveBtn = {
+
     padding:
       '14px 24px',
 
-    borderRadius: '14px',
+    borderRadius:
+      '14px',
 
-    border: 'none',
+    border:
+      'none',
 
     background:
       '#0B1A3F',
 
-    color: 'white',
+    color:
+      'white',
 
-    fontWeight: '900',
+    fontWeight:
+      '900',
 
-    fontSize: '14px',
+    fontSize:
+      '14px',
 
-    cursor: 'pointer'
+    cursor:
+      'pointer'
   };
+
 
   const backBtn = {
-    display: 'flex',
 
-    alignItems: 'center',
+    display:
+      'flex',
 
-    gap: '6px',
+    alignItems:
+      'center',
 
-    border: 'none',
+    gap:
+      '6px',
 
-    background: 'none',
+    border:
+      'none',
 
-    color: '#A3AED0',
+    background:
+      'none',
 
-    fontWeight: '800',
+    color:
+      '#A3AED0',
 
-    cursor: 'pointer',
+    fontWeight:
+      '800',
 
-    fontSize: '13px'
+    cursor:
+      'pointer',
+
+    fontSize:
+      '13px'
   };
 
+
   const overlay = {
-    position: 'fixed',
 
-    top: 0,
+    position:
+      'fixed',
 
-    left: 0,
+    top:
+      0,
 
-    right: 0,
+    left:
+      0,
 
-    bottom: 0,
+    right:
+      0,
+
+    bottom:
+      0,
 
     background:
       'rgba(11,26,63,0.5)',
 
-    display: 'flex',
+    display:
+      'flex',
 
-    alignItems: 'center',
+    alignItems:
+      'center',
 
     justifyContent:
       'center',
 
-    zIndex: 1000,
+    zIndex:
+      1000,
 
-    padding: '20px'
+    padding:
+      '20px'
   };
+
 
   // =====================================================
   // GROUP CARD COMPONENT
@@ -2914,17 +4049,23 @@ export default function StudyGroups() {
     group,
     buttonLabel
   }) => {
+
     const match =
-      calculateMatch(group);
+      calculateMatch(
+        group
+      );
+
 
     const count =
       getGroupMemberCount(
         group
       );
 
+
     const isCreator =
       group.creator_id ===
       currentUser?.id;
+
 
     const isMember =
       isCreator ||
@@ -2932,17 +4073,24 @@ export default function StudyGroups() {
         group.id
       );
 
+
     const isPinned =
-      pinnedChats.groups.includes(
-        group.id
-      );
+      pinnedChats
+        .groups
+        .includes(
+          group.id
+        );
+
 
     const approvalStatus =
       group.approval_status ||
       'pending';
 
+
     const statusStyles = {
+
       pending: {
+
         background:
           '#FFF7E6',
 
@@ -2957,6 +4105,7 @@ export default function StudyGroups() {
       },
 
       approved: {
+
         background:
           '#ECFBF6',
 
@@ -2966,10 +4115,12 @@ export default function StudyGroups() {
         color:
           '#008D68',
 
-        label: 'Approved'
+        label:
+          'Approved'
       },
 
       rejected: {
+
         background:
           '#FFF0F0',
 
@@ -2984,15 +4135,19 @@ export default function StudyGroups() {
       }
     };
 
+
     const status =
       statusStyles[
         approvalStatus
       ] ||
       statusStyles.pending;
 
+
     return (
+
       <div
         onClick={() => {
+
           setSelectedGroup(
             group
           );
@@ -3002,6 +4157,7 @@ export default function StudyGroups() {
           );
         }}
         style={{
+
           background:
             '#FFFFFF',
 
@@ -3011,7 +4167,8 @@ export default function StudyGroups() {
           borderRadius:
             '26px',
 
-          padding: '26px',
+          padding:
+            '26px',
 
           cursor:
             'pointer',
@@ -3025,14 +4182,17 @@ export default function StudyGroups() {
           minHeight:
             '330px',
 
-          display: 'flex',
+          display:
+            'flex',
 
           flexDirection:
             'column'
         }}
       >
+
         <div
           style={{
+
             display:
               'flex',
 
@@ -3042,35 +4202,42 @@ export default function StudyGroups() {
             alignItems:
               'flex-start',
 
-            gap: '16px',
+            gap:
+              '16px',
 
             flexWrap:
               'wrap'
           }}
         >
+
           <div
             style={{
+
               display:
                 'flex',
 
               alignItems:
                 'center',
 
-              gap: '8px',
+              gap:
+                '8px',
 
               flexWrap:
                 'wrap'
             }}
           >
+
             <span
               style={{
+
                 display:
                   'inline-flex',
 
                 alignItems:
                   'center',
 
-                gap: '6px',
+                gap:
+                  '6px',
 
                 padding:
                   '7px 11px',
@@ -3097,24 +4264,30 @@ export default function StudyGroups() {
                   'uppercase'
               }}
             >
+
               <Users
                 size={13}
               />
 
               {group.major ||
                 'All Majors Welcome'}
+
             </span>
 
+
             {isCreator && (
+
               <span
                 style={{
+
                   display:
                     'inline-flex',
 
                   alignItems:
                     'center',
 
-                  gap: '6px',
+                  gap:
+                    '6px',
 
                   padding:
                     '7px 11px',
@@ -3138,24 +4311,30 @@ export default function StudyGroups() {
                     'uppercase'
                 }}
               >
+
                 <Crown
                   size={13}
                 />
 
                 Creator
+
               </span>
             )}
 
+
             {isCreator && (
+
               <span
                 style={{
+
                   display:
                     'inline-flex',
 
                   alignItems:
                     'center',
 
-                  gap: '6px',
+                  gap:
+                    '6px',
 
                   padding:
                     '7px 11px',
@@ -3166,7 +4345,8 @@ export default function StudyGroups() {
                   background:
                     status.background,
 
-                  border: `1px solid ${status.border}`,
+                  border:
+                    `1px solid ${status.border}`,
 
                   color:
                     status.color,
@@ -3181,13 +4361,16 @@ export default function StudyGroups() {
                     'uppercase'
                 }}
               >
+
                 <Circle
                   size={10}
                 />
 
                 {status.label}
+
               </span>
             )}
+
           </div>
 
           <div
@@ -3198,9 +4381,11 @@ export default function StudyGroups() {
               alignItems:
                 'center',
 
-              gap: '8px'
+              gap:
+                '8px'
             }}
           >
+
             <div
               style={{
                 textAlign:
@@ -3210,9 +4395,11 @@ export default function StudyGroups() {
                   '4px'
               }}
             >
+
               <p
                 style={{
-                  margin: 0,
+                  margin:
+                    0,
 
                   color:
                     '#8F9BB3',
@@ -3247,15 +4434,17 @@ export default function StudyGroups() {
               >
                 {match}%
               </p>
+
             </div>
 
+
             {isMember && (
+
               <button
                 type="button"
-                onClick={(
-                  e
-                ) => {
-                  e.stopPropagation();
+                onClick={(event) => {
+
+                  event.stopPropagation();
 
                   togglePinGroup(
                     group.id
@@ -3294,6 +4483,7 @@ export default function StudyGroups() {
                     'center'
                 }}
               >
+
                 <Pin
                   size={16}
                   color={
@@ -3307,17 +4497,19 @@ export default function StudyGroups() {
                       : 'none'
                   }
                 />
+
               </button>
             )}
 
+
             {isCreator && (
+
               <>
                 <button
                   type="button"
-                  onClick={(
-                    e
-                  ) => {
-                    e.stopPropagation();
+                  onClick={(event) => {
+
+                    event.stopPropagation();
 
                     setEditingGroup(
                       group
@@ -3352,20 +4544,21 @@ export default function StudyGroups() {
                       'center'
                   }}
                 >
+
                   <Edit3
                     size={16}
                     color="#0B1A3F"
                   />
+
                 </button>
+
 
                 <button
                   type="button"
-                  onClick={(
-                    e
-                  ) =>
+                  onClick={(event) =>
                     handleDeleteGroup(
                       group.id,
-                      e
+                      event
                     )
                   }
                   style={{
@@ -3397,15 +4590,19 @@ export default function StudyGroups() {
                       'center'
                   }}
                 >
+
                   <Trash2
                     size={16}
                     color="#E5484D"
                   />
+
                 </button>
               </>
             )}
+
           </div>
         </div>
+
 
         <h2
           style={{
@@ -3425,6 +4622,7 @@ export default function StudyGroups() {
           {group.name}
         </h2>
 
+
         <div
           style={{
             width:
@@ -3441,6 +4639,7 @@ export default function StudyGroups() {
           }}
         />
 
+
         <div
           style={{
             display:
@@ -3449,9 +4648,11 @@ export default function StudyGroups() {
             flexDirection:
               'column',
 
-            gap: '12px'
+            gap:
+              '12px'
           }}
         >
+
           <div
             style={{
               display:
@@ -3460,7 +4661,8 @@ export default function StudyGroups() {
               alignItems:
                 'center',
 
-              gap: '10px',
+              gap:
+                '10px',
 
               color:
                 '#42506D',
@@ -3469,6 +4671,7 @@ export default function StudyGroups() {
                 '14px'
             }}
           >
+
             <Target
               size={17}
               color="#0B1A3F"
@@ -3495,7 +4698,9 @@ export default function StudyGroups() {
               {group.goal ||
                 'General Study'}
             </span>
+
           </div>
+
 
           <div
             style={{
@@ -3505,7 +4710,8 @@ export default function StudyGroups() {
               alignItems:
                 'center',
 
-              gap: '10px',
+              gap:
+                '10px',
 
               color:
                 '#42506D',
@@ -3514,6 +4720,7 @@ export default function StudyGroups() {
                 '14px'
             }}
           >
+
             <Volume2
               size={17}
               color="#0B1A3F"
@@ -3540,7 +4747,9 @@ export default function StudyGroups() {
               {group.environment ||
                 'Not specified'}
             </span>
+
           </div>
+
 
           <div
             style={{
@@ -3550,7 +4759,8 @@ export default function StudyGroups() {
               alignItems:
                 'center',
 
-              gap: '10px',
+              gap:
+                '10px',
 
               color:
                 '#42506D',
@@ -3559,6 +4769,7 @@ export default function StudyGroups() {
                 '14px'
             }}
           >
+
             <Users
               size={17}
               color="#0B1A3F"
@@ -3585,8 +4796,10 @@ export default function StudyGroups() {
               {count} /{' '}
               {group.max_size}
             </span>
+
           </div>
         </div>
+
 
         <div
           style={{
@@ -3597,9 +4810,11 @@ export default function StudyGroups() {
               '26px'
           }}
         >
+
           {isCreator &&
           approvalStatus ===
             'pending' ? (
+
             <div
               style={{
                 width:
@@ -3629,9 +4844,11 @@ export default function StudyGroups() {
                 justifyContent:
                   'space-between',
 
-                gap: '14px'
+                gap:
+                  '14px'
               }}
             >
+
               <div
                 style={{
                   display:
@@ -3640,9 +4857,11 @@ export default function StudyGroups() {
                   alignItems:
                     'center',
 
-                  gap: '12px'
+                  gap:
+                    '12px'
                 }}
               >
+
                 <div
                   style={{
                     width:
@@ -3670,12 +4889,16 @@ export default function StudyGroups() {
                       'center'
                   }}
                 >
+
                   <Circle
                     size={16}
                   />
+
                 </div>
 
+
                 <div>
+
                   <p
                     style={{
                       margin:
@@ -3691,9 +4914,7 @@ export default function StudyGroups() {
                         '900'
                     }}
                   >
-                    Awaiting
-                    Campora
-                    Review
+                    Awaiting Campora Review
                   </p>
 
                   <p
@@ -3711,22 +4932,24 @@ export default function StudyGroups() {
                         '700'
                     }}
                   >
-                    Only
-                    visible to
-                    you until
-                    approved.
+                    Only visible to you until approved.
                   </p>
+
                 </div>
               </div>
+
 
               <ArrowRight
                 size={17}
                 color="#B7791F"
               />
+
             </div>
+
           ) : approvalStatus ===
               'rejected' &&
             isCreator ? (
+
             <div
               style={{
                 width:
@@ -3762,20 +4985,24 @@ export default function StudyGroups() {
                 justifyContent:
                   'center',
 
-                gap: '10px',
+                gap:
+                  '10px',
 
                 boxSizing:
                   'border-box'
               }}
             >
+
               <X
                 size={16}
               />
 
-              Circle Was Not
-              Approved
+              Circle Was Not Approved
+
             </div>
+
           ) : (
+
             <button
               type="button"
               style={{
@@ -3815,71 +5042,96 @@ export default function StudyGroups() {
                 justifyContent:
                   'center',
 
-                gap: '9px'
+                gap:
+                  '9px'
               }}
             >
+
               {buttonLabel}
 
               <ArrowRight
                 size={17}
               />
+
             </button>
           )}
+
         </div>
       </div>
     );
   };
+
 
   // =====================================================
   // UI
   // =====================================================
 
   return (
+
     <div
       style={{
-        width: '100%',
-        maxWidth: '1200px',
-        margin: '0 auto'
+        width:
+          '100%',
+
+        maxWidth:
+          '1200px',
+
+        margin:
+          '0 auto'
       }}
     >
+
       {/* =================================================
           HEADER + ALIGNED NAVIGATION
       ================================================= */}
 
       {view !== 'chat' && (
+
         <div
           style={{
             marginBottom:
               '40px'
           }}
         >
+
           <h1
             style={{
               fontSize:
                 '42px',
+
               fontWeight:
                 '900',
+
               color:
                 '#0B1A3F',
-              margin: 0
+
+              margin:
+                0
             }}
           >
             Study Groups
           </h1>
 
+
           <div
             style={{
               display:
                 'flex',
-              gap: '12px',
+
+              gap:
+                '12px',
+
               marginTop:
                 '15px',
+
               flexWrap:
                 'wrap',
+
               alignItems:
                 'center'
             }}
           >
+
             <button
               onClick={() =>
                 setView(
@@ -3888,16 +5140,20 @@ export default function StudyGroups() {
               }
               style={
                 view ===
-                'browse'
+                  'browse'
                   ? activeTab
                   : inactiveTab
               }
             >
+
               <LayoutGrid
                 size={16}
               />
+
               Discover
+
             </button>
+
 
             <button
               onClick={() =>
@@ -3907,20 +5163,22 @@ export default function StudyGroups() {
               }
               style={
                 view ===
-                'created'
+                  'created'
                   ? activeTab
                   : inactiveTab
               }
             >
+
               <Crown
                 size={16}
               />
+
               Circles Created (
-              {
-                createdGroups.length
-              }
+              {createdGroups.length}
               )
+
             </button>
+
 
             <button
               onClick={() =>
@@ -3930,20 +5188,22 @@ export default function StudyGroups() {
               }
               style={
                 view ===
-                'joined'
+                  'joined'
                   ? activeTab
                   : inactiveTab
               }
             >
+
               <BookmarkCheck
                 size={16}
               />
+
               Joined Circles (
-              {
-                joinedOnlyGroups.length
-              }
+              {joinedOnlyGroups.length}
               )
+
             </button>
+
 
             <button
               onClick={() =>
@@ -3953,16 +5213,20 @@ export default function StudyGroups() {
               }
               style={
                 view ===
-                'dms'
+                  'dms'
                   ? activeTab
                   : inactiveTab
               }
             >
+
               <Mail
                 size={16}
               />
+
               Direct Messages
+
             </button>
+
 
             <button
               onClick={() =>
@@ -3972,16 +5236,20 @@ export default function StudyGroups() {
               }
               style={
                 view ===
-                'preferences'
+                  'preferences'
                   ? activeTab
                   : inactiveTab
               }
             >
+
               <Sliders
                 size={16}
               />
+
               My Vibe Settings
+
             </button>
+
 
             <button
               onClick={() =>
@@ -3991,19 +5259,24 @@ export default function StudyGroups() {
               }
               style={
                 view ===
-                'create'
+                  'create'
                   ? activeTab
                   : inactiveTab
               }
             >
+
               <Plus
                 size={16}
               />
+
               Create Circle
+
             </button>
+
           </div>
         </div>
       )}
+
 
       {/* =================================================
           REVIEW BANNER
@@ -4011,6 +5284,7 @@ export default function StudyGroups() {
 
       {view !== 'chat' &&
         view !== 'dms' && (
+
           <div
             style={{
               display:
@@ -4019,7 +5293,8 @@ export default function StudyGroups() {
               alignItems:
                 'center',
 
-              gap: '14px',
+              gap:
+                '14px',
 
               padding:
                 '16px 18px',
@@ -4037,6 +5312,7 @@ export default function StudyGroups() {
                 '1.5px solid #E2E5FF'
             }}
           >
+
             <div
               style={{
                 width:
@@ -4076,7 +5352,9 @@ export default function StudyGroups() {
               ✓
             </div>
 
+
             <div>
+
               <p
                 style={{
                   margin:
@@ -4092,15 +5370,14 @@ export default function StudyGroups() {
                     '14px'
                 }}
               >
-                Safe
-                communities,
-                reviewed by
-                Campora
+                Safe communities, reviewed by Campora
               </p>
+
 
               <p
                 style={{
-                  margin: 0,
+                  margin:
+                    0,
 
                   color:
                     '#7C879F',
@@ -4115,28 +5392,28 @@ export default function StudyGroups() {
                     '700'
                 }}
               >
-                Every new or
-                edited study
-                circle is
-                reviewed before
-                it appears in
-                Discover.
+                Every new or edited study circle is reviewed before it appears in Discover.
               </p>
+
             </div>
           </div>
         )}
+
 
       {/* =================================================
           DISCOVER
       ================================================= */}
 
       {view === 'browse' && (
+
         <div>
+
           <div
             style={
               searchBarContainer
             }
           >
+
             <Search
               size={20}
               color="#A3AED0"
@@ -4151,15 +5428,16 @@ export default function StudyGroups() {
               value={
                 searchQuery
               }
-              onChange={(e) =>
+              onChange={(event) =>
                 setSearchQuery(
-                  e.target
-                    .value
+                  event.target.value
                 )
               }
             />
 
+
             {searchQuery && (
+
               <button
                 onClick={() =>
                   setSearchQuery(
@@ -4177,15 +5455,20 @@ export default function StudyGroups() {
                     'pointer'
                 }}
               >
+
                 <X
                   size={18}
                   color="#A3AED0"
                 />
+
               </button>
             )}
+
           </div>
 
+
           {loading ? (
+
             <p
               style={{
                 color:
@@ -4195,12 +5478,12 @@ export default function StudyGroups() {
                   '700'
               }}
             >
-              Loading
-              available
-              circles...
+              Loading available circles...
             </p>
+
           ) : discoverGroups.length >
             0 ? (
+
             <div
               style={{
                 display:
@@ -4209,19 +5492,22 @@ export default function StudyGroups() {
                 gridTemplateColumns:
                   'repeat(auto-fill,minmax(380px,1fr))',
 
-                gap: '30px'
+                gap:
+                  '30px'
               }}
             >
+
               {discoverGroups.map(
-                (g) => (
+                (group) => (
+
                   <GroupCard
-                    key={g.id}
-                    group={g}
+                    key={group.id}
+                    group={group}
                     buttonLabel={
                       joinedGroupIds.includes(
-                        g.id
+                        group.id
                       ) ||
-                      g.creator_id ===
+                      group.creator_id ===
                         currentUser?.id
                         ? 'Open Group Details'
                         : 'View & Join Circle'
@@ -4229,8 +5515,11 @@ export default function StudyGroups() {
                   />
                 )
               )}
+
             </div>
+
           ) : (
+
             <div
               style={{
                 padding:
@@ -4252,6 +5541,7 @@ export default function StudyGroups() {
                   '0 16px 40px rgba(81,95,160,0.05)'
               }}
             >
+
               <div
                 style={{
                   width:
@@ -4282,10 +5572,13 @@ export default function StudyGroups() {
                     'center'
                 }}
               >
+
                 <Users
                   size={34}
                 />
+
               </div>
+
 
               <h2
                 style={{
@@ -4302,9 +5595,9 @@ export default function StudyGroups() {
                     '900'
                 }}
               >
-                Find your
-                study circle.
+                Find your study circle.
               </h2>
+
 
               <p
                 style={{
@@ -4327,12 +5620,16 @@ export default function StudyGroups() {
                     '14px'
                 }}
               >
+
                 {searchQuery
                   ? 'No approved study circles match your search yet.'
                   : 'There are no approved circles available yet. Create one and submit it for Campora review.'}
+
               </p>
 
+
               {!searchQuery && (
+
                 <button
                   onClick={() =>
                     setView(
@@ -4341,18 +5638,24 @@ export default function StudyGroups() {
                   }
                   style={{
                     ...addBtnStyle,
+
                     margin:
                       '0 auto'
                   }}
                 >
+
                   <Plus
                     size={18}
                   />
+
                   Create a Circle
+
                 </button>
               )}
+
             </div>
           )}
+
         </div>
       )}
 
@@ -4361,7 +5664,9 @@ export default function StudyGroups() {
       ================================================= */}
 
       {view === 'created' && (
+
         <div>
+
           <h2
             style={{
               fontSize:
@@ -4377,11 +5682,12 @@ export default function StudyGroups() {
                 '20px'
             }}
           >
-            Circles Created
-            By Me
+            Circles Created By Me
           </h2>
 
+
           {loading ? (
+
             <div
               style={{
                 padding:
@@ -4400,6 +5706,7 @@ export default function StudyGroups() {
                   '1.5px solid #E9EDF7'
               }}
             >
+
               <p
                 style={{
                   color:
@@ -4408,15 +5715,18 @@ export default function StudyGroups() {
                   fontWeight:
                     '800',
 
-                  margin: 0
+                  margin:
+                    0
                 }}
               >
-                Loading your
-                circles...
+                Loading your circles...
               </p>
+
             </div>
+
           ) : createdGroups.length >
             0 ? (
+
             <div
               style={{
                 display:
@@ -4425,20 +5735,28 @@ export default function StudyGroups() {
                 gridTemplateColumns:
                   'repeat(auto-fill,minmax(380px,1fr))',
 
-                gap: '30px'
+                gap:
+                  '30px'
               }}
             >
+
               {sortGroupsWithPins(
                 createdGroups
-              ).map((g) => (
-                <GroupCard
-                  key={g.id}
-                  group={g}
-                  buttonLabel="Open Circle Details"
-                />
-              ))}
+              ).map(
+                (group) => (
+
+                  <GroupCard
+                    key={group.id}
+                    group={group}
+                    buttonLabel="Open Circle Details"
+                  />
+                )
+              )}
+
             </div>
+
           ) : (
+
             <div
               style={{
                 padding:
@@ -4457,6 +5775,7 @@ export default function StudyGroups() {
                   '2px dashed #E9EDF7'
               }}
             >
+
               <p
                 style={{
                   color:
@@ -4472,11 +5791,9 @@ export default function StudyGroups() {
                     '0 0 20px'
                 }}
               >
-                You haven't
-                created any
-                study circles
-                yet.
+                You haven't created any study circles yet.
               </p>
+
 
               <button
                 onClick={() =>
@@ -4486,27 +5803,35 @@ export default function StudyGroups() {
                 }
                 style={{
                   ...addBtnStyle,
+
                   margin:
                     'auto'
                 }}
               >
+
                 <Plus
                   size={18}
                 />
-                Create Your
-                First Circle
+
+                Create Your First Circle
+
               </button>
+
             </div>
           )}
+
         </div>
       )}
+
 
       {/* =================================================
           JOINED GROUPS
       ================================================= */}
 
       {view === 'joined' && (
+
         <div>
+
           <h2
             style={{
               fontSize:
@@ -4522,12 +5847,13 @@ export default function StudyGroups() {
                 '20px'
             }}
           >
-            Circles I've
-            Joined
+            Circles I've Joined
           </h2>
+
 
           {joinedOnlyGroups.length >
           0 ? (
+
             <div
               style={{
                 display:
@@ -4536,20 +5862,28 @@ export default function StudyGroups() {
                 gridTemplateColumns:
                   'repeat(auto-fill,minmax(380px,1fr))',
 
-                gap: '30px'
+                gap:
+                  '30px'
               }}
             >
+
               {sortGroupsWithPins(
                 joinedOnlyGroups
-              ).map((g) => (
-                <GroupCard
-                  key={g.id}
-                  group={g}
-                  buttonLabel="Open Circle Details"
-                />
-              ))}
+              ).map(
+                (group) => (
+
+                  <GroupCard
+                    key={group.id}
+                    group={group}
+                    buttonLabel="Open Circle Details"
+                  />
+                )
+              )}
+
             </div>
+
           ) : (
+
             <div
               style={{
                 padding:
@@ -4568,6 +5902,7 @@ export default function StudyGroups() {
                   '2px dashed #E9EDF7'
               }}
             >
+
               <p
                 style={{
                   color:
@@ -4583,11 +5918,9 @@ export default function StudyGroups() {
                     '0 0 20px'
                 }}
               >
-                You haven't
-                joined any
-                study groups
-                yet.
+                You haven't joined any study groups yet.
               </p>
+
 
               <button
                 onClick={() =>
@@ -4597,34 +5930,39 @@ export default function StudyGroups() {
                 }
                 style={{
                   ...addBtnStyle,
+
                   margin:
                     'auto'
                 }}
               >
-                Explore
-                Available
-                Circles
+                Explore Available Circles
               </button>
+
             </div>
           )}
+
         </div>
       )}
+
 
       {/* =================================================
           DIRECT MESSAGES
       ================================================= */}
 
       {view === 'dms' && (
+
         <div
           style={{
-            display: 'grid',
+            display:
+              'grid',
 
             gridTemplateColumns:
               selectedDmUser
                 ? '340px 1fr'
                 : '1fr',
 
-            gap: '24px',
+            gap:
+              '24px',
 
             background:
               'linear-gradient(135deg,#FFFFFF 0%,#F7F9FF 100%)',
@@ -4642,6 +5980,7 @@ export default function StudyGroups() {
               '600px'
           }}
         >
+
           {/* LEFT SIDE */}
 
           <div
@@ -4657,6 +5996,7 @@ export default function StudyGroups() {
                   : 0
             }}
           >
+
             <h2
               style={{
                 fontSize:
@@ -4675,6 +6015,7 @@ export default function StudyGroups() {
               Direct Messages
             </h2>
 
+
             <div
               style={{
                 position:
@@ -4684,6 +6025,7 @@ export default function StudyGroups() {
                   '20px'
               }}
             >
+
               <div
                 style={{
                   ...searchBarContainer,
@@ -4695,10 +6037,12 @@ export default function StudyGroups() {
                     '10px 16px'
                 }}
               >
+
                 <Search
                   size={18}
                   color="#A3AED0"
                 />
+
 
                 <input
                   type="text"
@@ -4709,15 +6053,16 @@ export default function StudyGroups() {
                   value={
                     dmSearchQuery
                   }
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setDmSearchQuery(
-                      e.target
-                        .value
+                      event.target.value
                     )
                   }
                 />
 
+
                 {dmSearchQuery && (
+
                   <button
                     onClick={() =>
                       setDmSearchQuery(
@@ -4735,15 +6080,20 @@ export default function StudyGroups() {
                         'pointer'
                     }}
                   >
+
                     <X
                       size={16}
                       color="#A3AED0"
                     />
+
                   </button>
                 )}
+
               </div>
 
+
               {dmSearchQuery && (
+
                 <div
                   style={{
                     position:
@@ -4752,9 +6102,11 @@ export default function StudyGroups() {
                     top:
                       'calc(100% + 6px)',
 
-                    left: 0,
+                    left:
+                      0,
 
-                    right: 0,
+                    right:
+                      0,
 
                     background:
                       'white',
@@ -4778,7 +6130,9 @@ export default function StudyGroups() {
                       'auto'
                   }}
                 >
+
                   {searchingUsers ? (
+
                     <p
                       style={{
                         padding:
@@ -4799,12 +6153,13 @@ export default function StudyGroups() {
                     >
                       Searching...
                     </p>
+
                   ) : dmSearchResults.length >
                     0 ? (
+
                     dmSearchResults.map(
-                      (
-                        profile
-                      ) => (
+                      (profile) => (
+
                         <div
                           key={
                             profile.id
@@ -4834,6 +6189,7 @@ export default function StudyGroups() {
                               '1px solid #F1F5F9'
                           }}
                         >
+
                           <div
                             style={{
                               width:
@@ -4848,7 +6204,7 @@ export default function StudyGroups() {
                               background:
                                 getAvatarColor(
                                   profile.full_name ||
-                                    profile.email
+                                  profile.email
                                 ),
 
                               display:
@@ -4870,14 +6226,18 @@ export default function StudyGroups() {
                                 '14px'
                             }}
                           >
+
                             {getInitials(
                               profile.full_name ||
-                                profile.email ||
-                                'S'
+                              profile.email ||
+                              'S'
                             )}
+
                           </div>
 
+
                           <div>
+
                             <p
                               style={{
                                 margin:
@@ -4900,10 +6260,11 @@ export default function StudyGroups() {
                                 'Student'}
                             </p>
 
+
                             <p
                               style={{
                                 margin:
-                                  0,
+                                  '2px 0 0',
 
                                 fontSize:
                                   '11px',
@@ -4915,14 +6276,28 @@ export default function StudyGroups() {
                                   '700'
                               }}
                             >
-                              {profile.major ||
-                                'Major not specified'}
+                              {[
+                                profile.major,
+                                profile.academic_year
+                              ]
+                                .filter(
+                                  (value) =>
+                                    value &&
+                                    value !==
+                                      'Not specified'
+                                )
+                                .join(' · ') ||
+                                'Student'}
                             </p>
+
                           </div>
+
                         </div>
                       )
                     )
+
                   ) : (
+
                     <p
                       style={{
                         padding:
@@ -4941,16 +6316,19 @@ export default function StudyGroups() {
                           '13px'
                       }}
                     >
-                      No students
-                      found.
+                      No students found.
                     </p>
                   )}
+
                 </div>
               )}
+
             </div>
+
 
             {dmConversations.length ===
             0 ? (
+
               <div
                 style={{
                   padding:
@@ -4963,12 +6341,12 @@ export default function StudyGroups() {
                     '#A3AED0'
                 }}
               >
+
                 <Mail
                   size={40}
-                  strokeWidth={
-                    1.5
-                  }
+                  strokeWidth={1.5}
                 />
+
 
                 <p
                   style={{
@@ -4982,9 +6360,9 @@ export default function StudyGroups() {
                       '14px'
                   }}
                 >
-                  No direct
-                  messages yet.
+                  No direct messages yet.
                 </p>
+
 
                 <p
                   style={{
@@ -4995,14 +6373,13 @@ export default function StudyGroups() {
                       '4px 0 0'
                   }}
                 >
-                  Search above
-                  or click a
-                  member in any
-                  group to start
-                  chatting.
+                  Search above or click a member in any group to start chatting.
                 </p>
+
               </div>
+
             ) : (
+
               <div
                 style={{
                   display:
@@ -5015,25 +6392,31 @@ export default function StudyGroups() {
                     '10px'
                 }}
               >
+
                 {sortedDmConversations.map(
-                  (conv) => {
+                  (conversation) => {
+
                     const isPinned =
                       pinnedChats.dms.includes(
-                        conv.partnerId
+                        conversation.partnerId
                       );
 
+
                     const isSelected =
-                      selectedDmUser?.partnerId ===
-                      conv.partnerId;
+                      selectedDmUser
+                        ?.partnerId ===
+                      conversation.partnerId;
+
 
                     return (
+
                       <div
                         key={
-                          conv.partnerId
+                          conversation.partnerId
                         }
                         onClick={() =>
                           setSelectedDmUser(
-                            conv
+                            conversation
                           )
                         }
                         style={{
@@ -5050,7 +6433,7 @@ export default function StudyGroups() {
 
                           color:
                             isSelected
-                              ? 'white'
+                              ? '#FFFFFF'
                               : '#0B1A3F',
 
                           cursor:
@@ -5077,6 +6460,7 @@ export default function StudyGroups() {
                             '10px'
                         }}
                       >
+
                         <div
                           style={{
                             display:
@@ -5092,6 +6476,7 @@ export default function StudyGroups() {
                               0
                           }}
                         >
+
                           <div
                             style={{
                               width:
@@ -5107,12 +6492,12 @@ export default function StudyGroups() {
                                 isSelected
                                   ? 'rgba(255,255,255,0.15)'
                                   : getAvatarColor(
-                                      conv.name
+                                      conversation.name
                                     ),
 
                               color:
                                 isSelected
-                                  ? 'white'
+                                  ? '#FFFFFF'
                                   : '#0B1A3F',
 
                               display:
@@ -5128,13 +6513,19 @@ export default function StudyGroups() {
                                 '900',
 
                               fontSize:
-                                '14px'
+                                '14px',
+
+                              flexShrink:
+                                0
                             }}
                           >
+
                             {getInitials(
-                              conv.name
+                              conversation.name
                             )}
+
                           </div>
+
 
                           <div
                             style={{
@@ -5142,6 +6533,7 @@ export default function StudyGroups() {
                                 0
                             }}
                           >
+
                             <div
                               style={{
                                 display:
@@ -5154,23 +6546,24 @@ export default function StudyGroups() {
                                   '6px'
                               }}
                             >
+
                               {isPinned && (
+
                                 <Pin
-                                  size={
-                                    11
-                                  }
+                                  size={11}
                                   fill={
                                     isSelected
-                                      ? 'white'
+                                      ? '#FFFFFF'
                                       : PIN_COLORS.icon
                                   }
                                   color={
                                     isSelected
-                                      ? 'white'
+                                      ? '#FFFFFF'
                                       : PIN_COLORS.icon
                                   }
                                 />
                               )}
+
 
                               <p
                                 style={{
@@ -5184,11 +6577,11 @@ export default function StudyGroups() {
                                     '15px'
                                 }}
                               >
-                                {
-                                  conv.name
-                                }
+                                {conversation.name}
                               </p>
+
                             </div>
+
 
                             <p
                               style={{
@@ -5211,20 +6604,23 @@ export default function StudyGroups() {
                                   'ellipsis'
                               }}
                             >
-                              {conv.lastMessage ||
+                              {conversation.lastMessage ||
                                 'Click to view conversation'}
                             </p>
+
                           </div>
+
                         </div>
 
+
                         <button
-                          onClick={(
-                            e
-                          ) => {
-                            e.stopPropagation();
+                          type="button"
+                          onClick={(event) => {
+
+                            event.stopPropagation();
 
                             togglePinDm(
-                              conv.partnerId
+                              conversation.partnerId
                             );
                           }}
                           style={{
@@ -5244,35 +6640,42 @@ export default function StudyGroups() {
                               'flex'
                           }}
                         >
+
                           <Pin
                             size={16}
                             fill={
                               isPinned
                                 ? isSelected
-                                  ? 'white'
+                                  ? '#FFFFFF'
                                   : PIN_COLORS.icon
                                 : 'none'
                             }
                             color={
                               isSelected
-                                ? 'white'
+                                ? '#FFFFFF'
                                 : isPinned
                                   ? PIN_COLORS.icon
                                   : '#A3AED0'
                             }
                           />
+
                         </button>
+
                       </div>
                     );
                   }
                 )}
+
               </div>
             )}
+
           </div>
+
 
           {/* ACTIVE DM */}
 
           {selectedDmUser ? (
+
             <div
               style={{
                 display:
@@ -5285,6 +6688,7 @@ export default function StudyGroups() {
                   '100%'
               }}
             >
+
               <div
                 style={{
                   marginBottom:
@@ -5296,9 +6700,10 @@ export default function StudyGroups() {
                   borderRadius:
                     '18px',
 
-                  background: `linear-gradient(135deg,${getAvatarColor(
-                    selectedDmUser.name
-                  )} 0%,#FFFFFF 130%)`,
+                  background:
+                    `linear-gradient(135deg,${getAvatarColor(
+                      selectedDmUser.name
+                    )} 0%,#FFFFFF 130%)`,
 
                   border:
                     '1px solid #E2E8F0',
@@ -5310,9 +6715,13 @@ export default function StudyGroups() {
                     'space-between',
 
                   alignItems:
-                    'center'
+                    'center',
+
+                  gap:
+                    '12px'
                 }}
               >
+
                 <div
                   style={{
                     display:
@@ -5325,6 +6734,7 @@ export default function StudyGroups() {
                       '12px'
                   }}
                 >
+
                   <div
                     style={{
                       width:
@@ -5358,12 +6768,16 @@ export default function StudyGroups() {
                         '16px'
                     }}
                   >
+
                     {getInitials(
                       selectedDmUser.name
                     )}
+
                   </div>
 
+
                   <div>
+
                     <h3
                       style={{
                         margin:
@@ -5379,15 +6793,14 @@ export default function StudyGroups() {
                           '#0B1A3F'
                       }}
                     >
-                      {
-                        selectedDmUser.name
-                      }
+                      {selectedDmUser.name}
                     </h3>
+
 
                     <p
                       style={{
                         margin:
-                          0,
+                          '2px 0 0',
 
                         fontSize:
                           '12px',
@@ -5399,22 +6812,37 @@ export default function StudyGroups() {
                           '700'
                       }}
                     >
-                      {
-                        selectedDmUser.major
-                      }
+                      {[
+                        selectedDmUser.major,
+                        selectedDmUser.academic_year
+                      ]
+                        .filter(
+                          (value) =>
+                            value &&
+                            value !==
+                              'Not specified'
+                        )
+                        .join(' · ') ||
+                        'Student'}
                     </p>
+
                   </div>
+
                 </div>
+
 
                 <div
                   style={{
                     display:
                       'flex',
 
-                    gap: '8px'
+                    gap:
+                      '8px'
                   }}
                 >
+
                   <button
+                    type="button"
                     onClick={() =>
                       togglePinDm(
                         selectedDmUser.partnerId
@@ -5438,6 +6866,7 @@ export default function StudyGroups() {
                           : 'none'
                     }}
                   >
+
                     <Pin
                       size={16}
                       color={
@@ -5455,9 +6884,12 @@ export default function StudyGroups() {
                           : 'none'
                       }
                     />
+
                   </button>
 
+
                   <button
+                    type="button"
                     onClick={() =>
                       setSelectedDmUser(
                         null
@@ -5467,17 +6899,23 @@ export default function StudyGroups() {
                       iconBtnStyle
                     }
                   >
+
                     <X
                       size={18}
                       color="#0B1A3F"
                     />
+
                   </button>
+
                 </div>
+
               </div>
+
 
               <div
                 style={{
-                  flex: 1,
+                  flex:
+                    1,
 
                   overflowY:
                     'auto',
@@ -5495,8 +6933,10 @@ export default function StudyGroups() {
                     '8px'
                 }}
               >
+
                 {dmMessages.length ===
                 0 ? (
+
                   <p
                     style={{
                       margin:
@@ -5512,21 +6952,24 @@ export default function StudyGroups() {
                         '13px'
                     }}
                   >
-                    Start your
-                    private
-                    conversation...
+                    Start your private conversation...
                   </p>
+
                 ) : (
+
                   dmMessages.map(
-                    (msg) => {
+                    (message) => {
+
                       const isMe =
-                        msg.sender_id ===
+                        message.sender_id ===
                         currentUser?.id;
 
+
                       return (
+
                         <div
                           key={
-                            msg.id
+                            message.id
                           }
                           style={{
                             alignSelf:
@@ -5538,6 +6981,7 @@ export default function StudyGroups() {
                               '70%'
                           }}
                         >
+
                           <div
                             style={{
                               padding:
@@ -5555,7 +6999,7 @@ export default function StudyGroups() {
 
                               color:
                                 isMe
-                                  ? 'white'
+                                  ? '#FFFFFF'
                                   : '#0B1A3F',
 
                               fontWeight:
@@ -5570,16 +7014,17 @@ export default function StudyGroups() {
                                   : '1px solid #E2E8F0'
                             }}
                           >
-                            {
-                              msg.content
-                            }
+                            {message.content}
                           </div>
+
                         </div>
                       );
                     }
                   )
                 )}
+
               </div>
+
 
               <form
                 onSubmit={
@@ -5592,27 +7037,30 @@ export default function StudyGroups() {
                   display:
                     'flex',
 
-                  gap: '10px'
+                  gap:
+                    '10px'
                 }}
               >
+
                 <input
                   type="text"
                   placeholder="Type a private message..."
                   value={
                     newDmMessageText
                   }
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setNewDmMessageText(
-                      e.target
-                        .value
+                      event.target.value
                     )
                   }
                   style={{
                     ...inputStyle,
 
-                    flex: 1
+                    flex:
+                      1
                   }}
                 />
+
 
                 <button
                   type="submit"
@@ -5620,15 +7068,22 @@ export default function StudyGroups() {
                     saveBtn
                   }
                 >
+
                   <Send
                     size={16}
                   />
+
                 </button>
+
               </form>
+
             </div>
+
           ) : (
+
             dmConversations.length >
               0 && (
+
               <div
                 style={{
                   display:
@@ -5647,12 +7102,11 @@ export default function StudyGroups() {
                     '800'
                 }}
               >
-                Select a
-                conversation to
-                start messaging
+                Select a conversation to start messaging
               </div>
             )
           )}
+
         </div>
       )}
 
@@ -5660,8 +7114,8 @@ export default function StudyGroups() {
           VIBE SETTINGS
       ================================================= */}
 
-      {view ===
-        'preferences' && (
+      {view === 'preferences' && (
+
         <div
           style={{
             maxWidth:
@@ -5686,15 +7140,18 @@ export default function StudyGroups() {
               '0 10px 25px 5px rgba(0,0,0,0.05)'
           }}
         >
+
           <div
             style={{
               marginBottom:
                 '32px'
             }}
           >
+
             <h2
               style={{
-                margin: 0,
+                margin:
+                  0,
 
                 fontSize:
                   '28px',
@@ -5706,9 +7163,9 @@ export default function StudyGroups() {
                   '#0B1A3F'
               }}
             >
-              Your Ideal Study
-              Vibe
+              Your Ideal Study Vibe
             </h2>
+
 
             <p
               style={{
@@ -5725,13 +7182,11 @@ export default function StudyGroups() {
                   '15px'
               }}
             >
-              Customize your
-              preferences so
-              Campora can match
-              you with compatible
-              study circles.
+              Customize your preferences so Campora can match you with compatible study circles.
             </p>
+
           </div>
+
 
           <div
             style={{
@@ -5741,14 +7196,19 @@ export default function StudyGroups() {
               flexDirection:
                 'column',
 
-              gap: '28px'
+              gap:
+                '28px'
             }}
           >
+
+            {/* MAJOR */}
+
             <div
               style={
                 formSectionStyle
               }
             >
+
               <label
                 style={
                   labelStyle
@@ -5757,6 +7217,7 @@ export default function StudyGroups() {
                 YOUR MAJOR
               </label>
 
+
               <select
                 style={
                   inputStyle
@@ -5764,65 +7225,67 @@ export default function StudyGroups() {
                 value={
                   myPrefs.major
                 }
-                onChange={(e) =>
-                  setMyPrefs(
-                    {
-                      ...myPrefs,
+                onChange={(event) =>
+                  setMyPrefs({
+                    ...myPrefs,
 
-                      major:
-                        e
-                          .target
-                          .value
-                    }
-                  )
+                    major:
+                      event.target.value
+                  })
                 }
               >
+
                 {MAJORS_PREFERENCES.map(
-                  (m) => (
+                  (major) => (
+
                     <option
-                      key={m}
-                      value={m}
+                      key={major}
+                      value={major}
                     >
-                      {m}
+                      {major}
                     </option>
                   )
                 )}
+
               </select>
+
             </div>
+
+
+            {/* STUDY GOAL */}
 
             <div
               style={
                 formSectionStyle
               }
             >
+
               <label
                 style={
                   labelStyle
                 }
               >
-                PRIMARY STUDY
-                GOAL
+                PRIMARY STUDY GOAL
               </label>
+
 
               <div
                 style={
                   chipGridStyle
                 }
               >
+
                 {STUDY_GOALS.map(
                   (goal) => (
+
                     <button
-                      key={
-                        goal
-                      }
+                      key={goal}
                       type="button"
                       onClick={() =>
-                        setMyPrefs(
-                          {
-                            ...myPrefs,
-                            goal
-                          }
-                        )
+                        setMyPrefs({
+                          ...myPrefs,
+                          goal
+                        })
                       }
                       style={
                         myPrefs.goal ===
@@ -5835,90 +7298,102 @@ export default function StudyGroups() {
                     </button>
                   )
                 )}
+
               </div>
+
             </div>
+
+
+            {/* NOISE */}
 
             <div
               style={
                 formSectionStyle
               }
             >
+
               <label
                 style={
                   labelStyle
                 }
               >
-                PREFERRED NOISE
-                LEVEL
+                PREFERRED NOISE LEVEL
               </label>
+
 
               <div
                 style={
                   chipGridStyle
                 }
               >
+
                 {NOISE_LEVELS.map(
-                  (env) => (
+                  (environment) => (
+
                     <button
                       key={
-                        env
+                        environment
                       }
                       type="button"
                       onClick={() =>
-                        setMyPrefs(
-                          {
-                            ...myPrefs,
-                            env
-                          }
-                        )
+                        setMyPrefs({
+                          ...myPrefs,
+
+                          env:
+                            environment
+                        })
                       }
                       style={
                         myPrefs.env ===
-                        env
+                        environment
                           ? activeChipStyle
                           : chipStyle
                       }
                     >
-                      {env}
+                      {environment}
                     </button>
                   )
                 )}
+
               </div>
+
             </div>
+
+
+            {/* LOCATION */}
 
             <div
               style={
                 formSectionStyle
               }
             >
+
               <label
                 style={
                   labelStyle
                 }
               >
-                STUDY LOCATION
-                PREFERENCE
+                STUDY LOCATION PREFERENCE
               </label>
+
 
               <div
                 style={
                   chipGridStyle
                 }
               >
+
                 {STUDY_MODES.map(
                   (mode) => (
+
                     <button
-                      key={
-                        mode
-                      }
+                      key={mode}
                       type="button"
                       onClick={() =>
-                        setMyPrefs(
-                          {
-                            ...myPrefs,
-                            mode
-                          }
-                        )
+                        setMyPrefs({
+                          ...myPrefs,
+                          mode
+                        })
                       }
                       style={
                         myPrefs.mode ===
@@ -5927,17 +7402,23 @@ export default function StudyGroups() {
                           : chipStyle
                       }
                     >
+
                       {mode ===
                       'In-person'
                         ? 'On Campus'
                         : 'Online / Zoom'}
+
                     </button>
                   )
                 )}
+
               </div>
+
             </div>
 
+
             <button
+              type="button"
               onClick={() =>
                 setView(
                   'browse'
@@ -5950,18 +7431,21 @@ export default function StudyGroups() {
                   '10px'
               }}
             >
-              Save Vibe & View
-              Matches
+              Save Vibe & View Matches
             </button>
+
           </div>
+
         </div>
       )}
+
 
       {/* =================================================
           CREATE CIRCLE
       ================================================= */}
 
       {view === 'create' && (
+
         <div
           style={{
             maxWidth:
@@ -5986,15 +7470,18 @@ export default function StudyGroups() {
               '0 10px 25px 5px rgba(0,0,0,0.05)'
           }}
         >
+
           <div
             style={{
               marginBottom:
                 '30px'
             }}
           >
+
             <h2
               style={{
-                margin: 0,
+                margin:
+                  0,
 
                 fontWeight:
                   '900',
@@ -6006,9 +7493,9 @@ export default function StudyGroups() {
                   '#0B1A3F'
               }}
             >
-              Launch a Study
-              Circle
+              Launch a Study Circle
             </h2>
+
 
             <p
               style={{
@@ -6025,13 +7512,11 @@ export default function StudyGroups() {
                   '15px'
               }}
             >
-              Build your circle
-              and submit it for
-              Campora review
-              before it appears
-              publicly.
+              Build your circle and submit it for Campora review before it appears publicly.
             </p>
+
           </div>
+
 
           <form
             onSubmit={
@@ -6044,9 +7529,13 @@ export default function StudyGroups() {
               flexDirection:
                 'column',
 
-              gap: '28px'
+              gap:
+                '28px'
             }}
           >
+
+            {/* NAME + MAJOR */}
+
             <div
               style={{
                 display:
@@ -6055,14 +7544,17 @@ export default function StudyGroups() {
                 gridTemplateColumns:
                   'repeat(auto-fit,minmax(250px,1fr))',
 
-                gap: '20px'
+                gap:
+                  '20px'
               }}
             >
+
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -6070,6 +7562,7 @@ export default function StudyGroups() {
                 >
                   CIRCLE NAME
                 </label>
+
 
                 <input
                   type="text"
@@ -6081,26 +7574,25 @@ export default function StudyGroups() {
                   value={
                     newGroup.name
                   }
-                  onChange={(e) =>
-                    setNewGroup(
-                      {
-                        ...newGroup,
+                  onChange={(event) =>
+                    setNewGroup({
+                      ...newGroup,
 
-                        name:
-                          e
-                            .target
-                            .value
-                      }
-                    )
+                      name:
+                        event.target.value
+                    })
                   }
                 />
+
               </div>
+
 
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -6109,6 +7601,7 @@ export default function StudyGroups() {
                   MAJOR / FIELD
                 </label>
 
+
                 <select
                   style={
                     inputStyle
@@ -6116,34 +7609,36 @@ export default function StudyGroups() {
                   value={
                     newGroup.major
                   }
-                  onChange={(e) =>
-                    setNewGroup(
-                      {
-                        ...newGroup,
+                  onChange={(event) =>
+                    setNewGroup({
+                      ...newGroup,
 
-                        major:
-                          e
-                            .target
-                            .value
-                      }
-                    )
+                      major:
+                        event.target.value
+                    })
                   }
                 >
+
                   {MAJORS_CREATION.map(
-                    (m) => (
+                    (major) => (
+
                       <option
-                        key={m}
-                        value={
-                          m
-                        }
+                        key={major}
+                        value={major}
                       >
-                        {m}
+                        {major}
                       </option>
                     )
                   )}
+
                 </select>
+
               </div>
+
             </div>
+
+
+            {/* CAPACITY + FORMAT */}
 
             <div
               style={{
@@ -6153,14 +7648,17 @@ export default function StudyGroups() {
                 gridTemplateColumns:
                   'repeat(auto-fit,minmax(250px,1fr))',
 
-                gap: '20px'
+                gap:
+                  '20px'
               }}
             >
+
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -6169,6 +7667,7 @@ export default function StudyGroups() {
                   MAX CAPACITY
                 </label>
 
+
                 <select
                   style={
                     inputStyle
@@ -6176,22 +7675,19 @@ export default function StudyGroups() {
                   value={
                     newGroup.max_size
                   }
-                  onChange={(e) =>
-                    setNewGroup(
-                      {
-                        ...newGroup,
+                  onChange={(event) =>
+                    setNewGroup({
+                      ...newGroup,
 
-                        max_size:
-                          parseInt(
-                            e
-                              .target
-                              .value,
-                            10
-                          )
-                      }
-                    )
+                      max_size:
+                        parseInt(
+                          event.target.value,
+                          10
+                        )
+                    })
                   }
                 >
+
                   {[
                     2,
                     3,
@@ -6203,22 +7699,29 @@ export default function StudyGroups() {
                     12,
                     15,
                     20
-                  ].map((n) => (
-                    <option
-                      key={n}
-                      value={n}
-                    >
-                      {n} People
-                    </option>
-                  ))}
+                  ].map(
+                    (number) => (
+
+                      <option
+                        key={number}
+                        value={number}
+                      >
+                        {number} People
+                      </option>
+                    )
+                  )}
+
                 </select>
+
               </div>
+
 
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -6226,6 +7729,7 @@ export default function StudyGroups() {
                 >
                   FORMAT
                 </label>
+
 
                 <div
                   style={{
@@ -6239,21 +7743,18 @@ export default function StudyGroups() {
                       'wrap'
                   }}
                 >
+
                   {STUDY_MODES.map(
                     (mode) => (
+
                       <button
-                        key={
-                          mode
-                        }
+                        key={mode}
                         type="button"
                         onClick={() =>
-                          setNewGroup(
-                            {
-                              ...newGroup,
-
-                              mode
-                            }
-                          )
+                          setNewGroup({
+                            ...newGroup,
+                            mode
+                          })
                         }
                         style={
                           newGroup.mode ===
@@ -6266,15 +7767,22 @@ export default function StudyGroups() {
                       </button>
                     )
                   )}
+
                 </div>
+
               </div>
+
             </div>
+
+
+            {/* STUDY GOAL */}
 
             <div
               style={
                 formSectionStyle
               }
             >
+
               <label
                 style={
                   labelStyle
@@ -6283,26 +7791,24 @@ export default function StudyGroups() {
                 STUDY GOAL
               </label>
 
+
               <div
                 style={
                   chipGridStyle
                 }
               >
+
                 {STUDY_GOALS.map(
                   (goal) => (
+
                     <button
-                      key={
-                        goal
-                      }
+                      key={goal}
                       type="button"
                       onClick={() =>
-                        setNewGroup(
-                          {
-                            ...newGroup,
-
-                            goal
-                          }
-                        )
+                        setNewGroup({
+                          ...newGroup,
+                          goal
+                        })
                       }
                       style={
                         newGroup.goal ===
@@ -6315,14 +7821,20 @@ export default function StudyGroups() {
                     </button>
                   )
                 )}
+
               </div>
+
             </div>
+
+
+            {/* NOISE */}
 
             <div
               style={
                 formSectionStyle
               }
             >
+
               <label
                 style={
                   labelStyle
@@ -6331,55 +7843,61 @@ export default function StudyGroups() {
                 NOISE VIBE
               </label>
 
+
               <div
                 style={
                   chipGridStyle
                 }
               >
+
                 {NOISE_LEVELS.map(
-                  (env) => (
+                  (environment) => (
+
                     <button
                       key={
-                        env
+                        environment
                       }
                       type="button"
                       onClick={() =>
-                        setNewGroup(
-                          {
-                            ...newGroup,
+                        setNewGroup({
+                          ...newGroup,
 
-                            environment:
-                              env
-                          }
-                        )
+                          environment
+                        })
                       }
                       style={
                         newGroup.environment ===
-                        env
+                        environment
                           ? activeChipStyle
                           : chipStyle
                       }
                     >
-                      {env}
+                      {environment}
                     </button>
                   )
                 )}
+
               </div>
+
             </div>
+
+
+            {/* DESCRIPTION */}
 
             <div
               style={
                 formSectionStyle
               }
             >
+
               <label
                 style={
                   labelStyle
                 }
               >
-                DESCRIPTION &
-                RULES
+                DESCRIPTION & RULES
               </label>
+
 
               <textarea
                 placeholder="Tell everyone how you'll study, where to meet, and what to bring..."
@@ -6395,124 +7913,424 @@ export default function StudyGroups() {
                 value={
                   newGroup.description
                 }
-                onChange={(e) =>
-                  setNewGroup(
-                    {
-                      ...newGroup,
+                onChange={(event) =>
+                  setNewGroup({
+                    ...newGroup,
 
-                      description:
-                        e
-                          .target
-                          .value
-                    }
-                  )
+                    description:
+                      event.target.value
+                  })
                 }
               />
+
             </div>
+
+
+            {/* =================================================
+                CIRCLE COLOR
+            ================================================= */}
 
             <div
               style={
                 formSectionStyle
               }
             >
+
               <label
                 style={
                   labelStyle
                 }
               >
-                CIRCLE THEME
-                COLOR
+                CIRCLE THEME COLOR
               </label>
+
+
+              <p
+                style={{
+                  margin:
+                    '0 0 4px',
+
+                  color:
+                    '#94A3B8',
+
+                  fontSize:
+                    '12px',
+
+                  fontWeight:
+                    '700'
+                }}
+              >
+                Pick one of the Campora colors or choose any custom shade you want.
+              </p>
+
 
               <div
                 style={{
                   display:
                     'flex',
 
-                  gap: '16px',
+                  gap:
+                    '16px',
 
                   marginTop:
                     '6px',
 
                   flexWrap:
-                    'wrap'
+                    'wrap',
+
+                  alignItems:
+                    'center'
                 }}
               >
-                {pastelColors.map(
-                  (c) => (
-                    <button
-                      type="button"
-                      key={
-                        c.bg
-                      }
-                      onClick={() =>
-                        setNewGroup(
-                          {
+
+                {/* DEFAULT COLORS */}
+
+                {GROUP_COLORS.map(
+                  (colorOption) => {
+
+                    const isSelected =
+                      newGroup.color ===
+                      colorOption.bg;
+
+
+                    const checkColor =
+                      getContrastColor(
+                        colorOption.bg
+                      );
+
+
+                    return (
+
+                      <button
+                        type="button"
+                        key={
+                          colorOption.bg
+                        }
+                        onClick={() =>
+                          setNewGroup({
                             ...newGroup,
 
                             color:
-                              c.bg
-                          }
-                        )
-                      }
-                      title={
-                        c.name
-                      }
-                      style={{
-                        width:
-                          '44px',
+                              colorOption.bg
+                          })
+                        }
+                        title={
+                          colorOption.name
+                        }
+                        style={{
+                          width:
+                            '44px',
 
-                        height:
-                          '44px',
+                          height:
+                            '44px',
 
-                        borderRadius:
-                          '50%',
+                          borderRadius:
+                            '50%',
 
-                        background:
-                          c.bg,
+                          background:
+                            colorOption.bg,
 
-                        cursor:
-                          'pointer',
+                          cursor:
+                            'pointer',
 
-                        border:
-                          newGroup.color ===
-                          c.bg
-                            ? '3px solid #0B1A3F'
-                            : '1px solid #CBD5E1',
+                          border:
+                            isSelected
+                              ? '3px solid #0B1A3F'
+                              : '1px solid #CBD5E1',
 
-                        display:
-                          'flex',
+                          display:
+                            'flex',
 
-                        alignItems:
-                          'center',
+                          alignItems:
+                            'center',
 
-                        justifyContent:
-                          'center',
+                          justifyContent:
+                            'center',
 
-                        boxShadow:
-                          newGroup.color ===
-                          c.bg
-                            ? '0 4px 12px rgba(0,0,0,0.15)'
-                            : 'none'
-                      }}
-                    >
-                      {newGroup.color ===
-                        c.bg && (
-                        <Check
-                          size={
-                            18
-                          }
-                          color="#0B1A3F"
-                          strokeWidth={
-                            3
-                          }
-                        />
-                      )}
-                    </button>
-                  )
+                          boxShadow:
+                            isSelected
+                              ? '0 4px 12px rgba(11,26,63,0.18)'
+                              : 'none',
+
+                          transition:
+                            'all 0.15s ease',
+
+                          transform:
+                            isSelected
+                              ? 'scale(1.06)'
+                              : 'scale(1)'
+                        }}
+                      >
+
+                        {isSelected && (
+
+                          <Check
+                            size={18}
+                            color={
+                              checkColor
+                            }
+                            strokeWidth={3}
+                          />
+                        )}
+
+                      </button>
+                    );
+                  }
                 )}
+
+
+                {/* CUSTOM COLOR PICKER */}
+
+                <label
+                  title="Choose any custom color or shade"
+                  style={{
+                    width:
+                      '44px',
+
+                    height:
+                      '44px',
+
+                    borderRadius:
+                      '50%',
+
+                    overflow:
+                      'hidden',
+
+                    cursor:
+                      'pointer',
+
+                    position:
+                      'relative',
+
+                    flexShrink:
+                      0,
+
+                    border:
+                      !GROUP_COLORS.some(
+                        (colorOption) =>
+                          colorOption.bg.toLowerCase() ===
+                          newGroup.color?.toLowerCase()
+                      )
+                        ? '3px solid #0B1A3F'
+                        : '1px solid #CBD5E1',
+
+                    boxShadow:
+                      !GROUP_COLORS.some(
+                        (colorOption) =>
+                          colorOption.bg.toLowerCase() ===
+                          newGroup.color?.toLowerCase()
+                      )
+                        ? '0 4px 12px rgba(11,26,63,0.18)'
+                        : 'none'
+                  }}
+                >
+
+                  <input
+                    type="color"
+                    aria-label="Choose any custom circle color"
+                    value={
+                      newGroup.color ||
+                      '#E0F2FE'
+                    }
+                    onChange={(event) =>
+                      setNewGroup({
+                        ...newGroup,
+
+                        color:
+                          event.target.value
+                      })
+                    }
+                    style={{
+                      position:
+                        'absolute',
+
+                      width:
+                        '70px',
+
+                      height:
+                        '70px',
+
+                      top:
+                        '-13px',
+
+                      left:
+                        '-13px',
+
+                      border:
+                        'none',
+
+                      padding:
+                        0,
+
+                      cursor:
+                        'pointer'
+                    }}
+                  />
+
+                </label>
+
               </div>
+
+
+              {/* CURRENT COLOR */}
+
+              <div
+                style={{
+                  display:
+                    'flex',
+
+                  alignItems:
+                    'center',
+
+                  gap:
+                    '10px',
+
+                  marginTop:
+                    '10px'
+                }}
+              >
+
+                <div
+                  style={{
+                    width:
+                      '24px',
+
+                    height:
+                      '24px',
+
+                    borderRadius:
+                      '7px',
+
+                    background:
+                      newGroup.color,
+
+                    border:
+                      '1px solid #CBD5E1',
+
+                    flexShrink:
+                      0
+                  }}
+                />
+
+
+                <span
+                  style={{
+                    fontSize:
+                      '12px',
+
+                    fontWeight:
+                      '700',
+
+                    color:
+                      '#64748B'
+                  }}
+                >
+                  {newGroup.color?.toUpperCase()} · Current circle color
+                </span>
+
+              </div>
+
+
+              {/* LIVE DARK/LIGHT PREVIEW */}
+
+              <div
+                style={{
+                  marginTop:
+                    '14px',
+
+                  padding:
+                    '18px 20px',
+
+                  borderRadius:
+                    '16px',
+
+                  background:
+                    newGroup.color ||
+                    '#E0F2FE',
+
+                  border:
+                    `1px solid ${getContrastBorder(
+                      newGroup.color
+                    )}`
+                }}
+              >
+
+                <p
+                  style={{
+                    margin:
+                      0,
+
+                    fontSize:
+                      '10px',
+
+                    fontWeight:
+                      '900',
+
+                    letterSpacing:
+                      '0.5px',
+
+                    textTransform:
+                      'uppercase',
+
+                    color:
+                      getMutedContrastColor(
+                        newGroup.color
+                      )
+                  }}
+                >
+                  PREVIEW
+                </p>
+
+
+                <h3
+                  style={{
+                    margin:
+                      '5px 0 3px',
+
+                    fontSize:
+                      '18px',
+
+                    fontWeight:
+                      '900',
+
+                    color:
+                      getContrastColor(
+                        newGroup.color
+                      )
+                  }}
+                >
+                  {newGroup.name ||
+                    'Your Study Circle'}
+                </h3>
+
+
+                <p
+                  style={{
+                    margin:
+                      0,
+
+                    fontSize:
+                      '12px',
+
+                    fontWeight:
+                      '700',
+
+                    color:
+                      getMutedContrastColor(
+                        newGroup.color
+                      )
+                  }}
+                >
+                  {newGroup.major ||
+                    'All Majors Welcome'}
+                </p>
+
+              </div>
+
             </div>
+
+
+            {/* SUBMIT */}
 
             <button
               type="submit"
@@ -6531,94 +8349,385 @@ export default function StudyGroups() {
                     : 1
               }}
             >
+
               {actionLoading
                 ? 'Submitting...'
                 : 'Submit Circle for Review'}
+
             </button>
+
           </form>
+
         </div>
       )}
+
 
       {/* =================================================
           GROUP DETAILS
       ================================================= */}
 
-      {view ===
-        'details' &&
+      {view === 'details' &&
         selectedGroup && (
+
+        <div
+          style={{
+            maxWidth:
+              '850px',
+
+            margin:
+              '0 auto',
+
+            background:
+              'white',
+
+            borderRadius:
+              '32px',
+
+            border:
+              '1px solid #E2E8F0',
+
+            padding:
+              '40px',
+
+            boxShadow:
+              '0 20px 30px -10px rgba(0,0,0,0.05)'
+          }}
+        >
+
+          {/* BACK BUTTON */}
+
+          <button
+            onClick={() =>
+              setView(
+                selectedGroup.creator_id ===
+                  currentUser?.id
+                  ? 'created'
+                  : joinedGroupIds.includes(
+                      selectedGroup.id
+                    )
+                    ? 'joined'
+                    : 'browse'
+              )
+            }
+            style={
+              backBtn
+            }
+          >
+
+            <ArrowLeft
+              size={16}
+            />
+
+            Back
+
+          </button>
+
+
+          {/* =================================================
+              GROUP COLOR HERO
+          ================================================= */}
+
           <div
             style={{
-              maxWidth:
-                '850px',
-
               margin:
-                '0 auto',
-
-              background:
-                'white',
-
-              borderRadius:
-                '32px',
-
-              border:
-                '1px solid #E2E8F0',
+                '24px 0',
 
               padding:
-                '40px',
+                '28px',
 
-              boxShadow:
-                '0 20px 30px -10px rgba(0,0,0,0.05)'
+              borderRadius:
+                '24px',
+
+              background:
+                selectedGroup.color ||
+                '#E0F2FE',
+
+              border:
+                `1px solid ${getContrastBorder(
+                  selectedGroup.color ||
+                    '#E0F2FE'
+                )}`
             }}
           >
-            <button
-              onClick={() =>
-                setView(
-                  selectedGroup.creator_id ===
-                    currentUser?.id
-                    ? 'created'
-                    : joinedGroupIds.includes(
-                          selectedGroup.id
-                        )
-                      ? 'joined'
-                      : 'browse'
-                )
-              }
-              style={
-                backBtn
-              }
-            >
-              <ArrowLeft
-                size={16}
-              />
-              Back
-            </button>
 
             <div
               style={{
-                margin:
-                  '24px 0',
+                display:
+                  'flex',
 
-                padding:
-                  '28px',
+                justifyContent:
+                  'space-between',
 
-                borderRadius:
-                  '24px',
+                alignItems:
+                  'center',
 
-                background:
-                  selectedGroup.color ||
-                  '#E0F2FE'
+                gap:
+                  '12px',
+
+                flexWrap:
+                  'wrap'
               }}
             >
+
+              {/* MAJOR TAG */}
+
+              <span
+                style={{
+                  ...tagStyle,
+
+                  background:
+                    isDarkColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                      ? 'rgba(255,255,255,0.16)'
+                      : 'rgba(255,255,255,0.8)',
+
+                  border:
+                    isDarkColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                      ? '1px solid rgba(255,255,255,0.22)'
+                      : 'none',
+
+                  color:
+                    getContrastColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                }}
+              >
+                {selectedGroup.major ||
+                  'All Majors Welcome'}
+              </span>
+
+
+              {/* COMPATIBILITY */}
+
+              <span
+                style={{
+                  fontSize:
+                    '13px',
+
+                  fontWeight:
+                    '900',
+
+                  color:
+                    getContrastColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                }}
+              >
+                Compatibility Score:{' '}
+
+                {calculateMatch(
+                  selectedGroup
+                )}
+                %
+              </span>
+
+            </div>
+
+
+            {/* GROUP NAME */}
+
+            <h1
+              style={{
+                fontSize:
+                  '36px',
+
+                fontWeight:
+                  '900',
+
+                color:
+                  getContrastColor(
+                    selectedGroup.color ||
+                      '#E0F2FE'
+                  ),
+
+                margin:
+                  '16px 0 8px'
+              }}
+            >
+              {selectedGroup.name}
+            </h1>
+
+
+            {/* DESCRIPTION */}
+
+            <p
+              style={{
+                margin:
+                  0,
+
+                fontWeight:
+                  '700',
+
+                color:
+                  getMutedContrastColor(
+                    selectedGroup.color ||
+                      '#E0F2FE'
+                  ),
+
+                lineHeight:
+                  '1.55'
+              }}
+            >
+              {selectedGroup.description ||
+                'No description provided.'}
+            </p>
+
+          </div>
+
+
+          {/* =================================================
+              GROUP INFORMATION
+          ================================================= */}
+
+          <div
+            style={{
+              display:
+                'grid',
+
+              gridTemplateColumns:
+                'repeat(auto-fit,minmax(200px,1fr))',
+
+              gap:
+                '20px',
+
+              marginBottom:
+                '32px'
+            }}
+          >
+
+            {[
+              [
+                'GOAL',
+                selectedGroup.goal
+              ],
+
+              [
+                'ENVIRONMENT',
+                selectedGroup.environment
+              ],
+
+              [
+                'MODE',
+                selectedGroup.mode
+              ]
+            ].map(
+              ([
+                label,
+                value
+              ]) => (
+
+                <div
+                  key={
+                    label
+                  }
+                  style={{
+                    padding:
+                      '20px',
+
+                    background:
+                      '#F8FAFC',
+
+                    borderRadius:
+                      '18px',
+
+                    border:
+                      '1px solid #E2E8F0'
+                  }}
+                >
+
+                  <p
+                    style={{
+                      margin:
+                        0,
+
+                      fontSize:
+                        '11px',
+
+                      fontWeight:
+                        '900',
+
+                      color:
+                        '#A3AED0'
+                    }}
+                  >
+                    {label}
+                  </p>
+
+
+                  <p
+                    style={{
+                      margin:
+                        '6px 0 0',
+
+                      fontWeight:
+                        '800',
+
+                      color:
+                        '#0B1A3F'
+                    }}
+                  >
+                    {value ||
+                      'Not specified'}
+                  </p>
+
+                </div>
+              )
+            )}
+
+          </div>
+
+
+          {/* =================================================
+              CIRCLE MEMBERS
+          ================================================= */}
+
+          <div
+            style={{
+              marginBottom:
+                '32px'
+            }}
+          >
+
+            <h3
+              style={{
+                fontSize:
+                  '18px',
+
+                fontWeight:
+                  '900',
+
+                color:
+                  '#0B1A3F',
+
+                marginBottom:
+                  '16px'
+              }}
+            >
+              Circle Members (
+
+              {getGroupMemberCount(
+                selectedGroup
+              )}{' '}
+              /{' '}
+              {selectedGroup.max_size}
+
+              )
+            </h3>
+
+
+            {groupMembers.length > 0 ? (
+
               <div
                 style={{
                   display:
                     'flex',
-
-                  justifyContent:
-                    'space-between',
-
-                  alignItems:
-                    'center',
 
                   gap:
                     '12px',
@@ -6627,227 +8736,35 @@ export default function StudyGroups() {
                     'wrap'
                 }}
               >
-                <span
-                  style={
-                    tagStyle
-                  }
-                >
-                  {
-                    selectedGroup.major
-                  }
-                </span>
 
-                <span
-                  style={{
-                    fontSize:
-                      '13px',
-
-                    fontWeight:
-                      '900',
-
-                    color:
-                      '#0B1A3F'
-                  }}
-                >
-                  Compatibility
-                  Score:{' '}
-                  {calculateMatch(
-                    selectedGroup
-                  )}
-                  %
-                </span>
-              </div>
-
-              <h1
-                style={{
-                  fontSize:
-                    '36px',
-
-                  fontWeight:
-                    '900',
-
-                  color:
-                    '#0B1A3F',
-
-                  margin:
-                    '16px 0 8px'
-                }}
-              >
-                {
-                  selectedGroup.name
-                }
-              </h1>
-
-              <p
-                style={{
-                  margin: 0,
-
-                  fontWeight:
-                    '700',
-
-                  color:
-                    '#0B1A3F',
-
-                  opacity:
-                    0.8
-                }}
-              >
-                {selectedGroup.description ||
-                  'No description provided.'}
-              </p>
-            </div>
-
-            <div
-              style={{
-                display:
-                  'grid',
-
-                gridTemplateColumns:
-                  'repeat(auto-fit,minmax(200px,1fr))',
-
-                gap: '20px',
-
-                marginBottom:
-                  '32px'
-              }}
-            >
-              {[
-                [
-                  'GOAL',
-                  selectedGroup.goal
-                ],
-                [
-                  'ENVIRONMENT',
-                  selectedGroup.environment
-                ],
-                [
-                  'MODE',
-                  selectedGroup.mode
-                ]
-              ].map(
-                ([
-                  label,
-                  value
-                ]) => (
-                  <div
-                    key={
-                      label
-                    }
-                    style={{
-                      padding:
-                        '20px',
-
-                      background:
-                        '#F8FAFC',
-
-                      borderRadius:
-                        '18px',
-
-                      border:
-                        '1px solid #E2E8F0'
-                    }}
-                  >
-                    <p
-                      style={{
-                        margin:
-                          0,
-
-                        fontSize:
-                          '11px',
-
-                        fontWeight:
-                          '900',
-
-                        color:
-                          '#A3AED0'
-                      }}
-                    >
-                      {label}
-                    </p>
-
-                    <p
-                      style={{
-                        margin:
-                          '6px 0 0',
-
-                        fontWeight:
-                          '800',
-
-                        color:
-                          '#0B1A3F'
-                      }}
-                    >
-                      {value ||
-                        'Not specified'}
-                    </p>
-                  </div>
-                )
-              )}
-            </div>
-
-            <div
-              style={{
-                marginBottom:
-                  '32px'
-              }}
-            >
-              <h3
-                style={{
-                  fontSize:
-                    '18px',
-
-                  fontWeight:
-                    '900',
-
-                  color:
-                    '#0B1A3F',
-
-                  marginBottom:
-                    '16px'
-                }}
-              >
-                Circle Members (
-                {getGroupMemberCount(
-                  selectedGroup
-                )}{' '}
-                /{' '}
-                {
-                  selectedGroup.max_size
-                }
-                )
-              </h3>
-
-              <div
-                style={{
-                  display:
-                    'flex',
-
-                  gap: '12px',
-
-                  flexWrap:
-                    'wrap'
-                }}
-              >
                 {groupMembers.map(
-                  (m) => (
+                  (member) => (
+
                     <div
                       key={
-                        m.user_id
+                        member.user_id
                       }
-                      onClick={() =>
-                        openMemberChat(
-                          m
-                        )
-                      }
+                      onClick={() => {
+
+                        if (
+                          member.user_id !==
+                          currentUser?.id
+                        ) {
+
+                          setSelectedMember(
+                            member
+                          );
+                        }
+                      }}
                       style={{
                         padding:
-                          '10px 16px',
+                          '10px 14px',
 
                         borderRadius:
-                          '12px',
+                          '14px',
 
                         background:
-                          '#F1F5F9',
+                          '#F8FAFC',
 
                         border:
                           '1px solid #E2E8F0',
@@ -6859,84 +8776,208 @@ export default function StudyGroups() {
                           'center',
 
                         gap:
-                          '8px',
+                          '10px',
 
                         cursor:
-                          m.user_id ===
+                          member.user_id ===
                           currentUser?.id
                             ? 'default'
-                            : 'pointer'
+                            : 'pointer',
+
+                        transition:
+                          'all 0.15s ease'
                       }}
                     >
-                      <User
-                        size={
-                          16
-                        }
-                        color="#0B1A3F"
-                      />
 
-                      <span
+                      {/* AVATAR */}
+
+                      <div
                         style={{
-                          fontWeight:
-                            '800',
+                          width:
+                            '34px',
 
-                          fontSize:
-                            '13px',
+                          height:
+                            '34px',
+
+                          borderRadius:
+                            '50%',
+
+                          background:
+                            getAvatarColor(
+                              member
+                                .profiles
+                                ?.full_name ||
+                              member
+                                .profiles
+                                ?.email
+                            ),
 
                           color:
-                            '#0B1A3F'
+                            '#0B1A3F',
+
+                          display:
+                            'flex',
+
+                          alignItems:
+                            'center',
+
+                          justifyContent:
+                            'center',
+
+                          fontWeight:
+                            '900',
+
+                          fontSize:
+                            '12px',
+
+                          flexShrink:
+                            0
                         }}
                       >
-                        {m
-                          .profiles
-                          ?.full_name ||
-                          m
+                        {getInitials(
+                          member
+                            .profiles
+                            ?.full_name ||
+                          member
                             .profiles
                             ?.email ||
-                          'Student'}
-                      </span>
+                          'Student'
+                        )}
+                      </div>
 
-                      {m.user_id ===
-                        selectedGroup.creator_id && (
-                        <span
+
+                      {/* NAME + DETAILS */}
+
+                      <div>
+
+                        <div
                           style={{
-                            fontSize:
-                              '10px',
+                            display:
+                              'flex',
 
-                            background:
-                              'rgba(255,255,255,0.75)',
+                            alignItems:
+                              'center',
 
-                            border:
-                              '1px solid rgba(11,26,63,0.15)',
-
-                            color:
-                              '#0B1A3F',
-
-                            padding:
-                              '2px 6px',
-
-                            borderRadius:
+                            gap:
                               '6px',
 
-                            fontWeight:
-                              '800'
+                            flexWrap:
+                              'wrap'
                           }}
                         >
-                          Creator
-                        </span>
-                      )}
 
-                      {m.user_id !==
+                          <span
+                            style={{
+                              fontWeight:
+                                '800',
+
+                              fontSize:
+                                '13px',
+
+                              color:
+                                '#0B1A3F'
+                            }}
+                          >
+                            {member
+                              .profiles
+                              ?.full_name ||
+                              member
+                                .profiles
+                                ?.email
+                                ?.split('@')[0] ||
+                              'Student'}
+
+                            {member.user_id ===
+                              currentUser?.id
+                              ? ' (You)'
+                              : ''}
+                          </span>
+
+
+                          {member.user_id ===
+                            selectedGroup.creator_id && (
+
+                            <span
+                              style={{
+                                fontSize:
+                                  '9px',
+
+                                background:
+                                  PIN_COLORS.bg,
+
+                                border:
+                                  `1px solid ${PIN_COLORS.border}`,
+
+                                color:
+                                  PIN_COLORS.icon,
+
+                                padding:
+                                  '2px 6px',
+
+                                borderRadius:
+                                  '6px',
+
+                                fontWeight:
+                                  '900'
+                              }}
+                            >
+                              Creator
+                            </span>
+                          )}
+
+                        </div>
+
+
+                        <p
+                          style={{
+                            margin:
+                              '2px 0 0',
+
+                            fontSize:
+                              '11px',
+
+                            color:
+                              '#94A3B8',
+
+                            fontWeight:
+                              '700'
+                          }}
+                        >
+                          {[
+                            member
+                              .profiles
+                              ?.major,
+
+                            member
+                              .profiles
+                              ?.academic_year
+                          ]
+                            .filter(
+                              (value) =>
+                                value &&
+                                value !==
+                                  'Not specified'
+                            )
+                            .join(' · ') ||
+                            'Student'}
+                        </p>
+
+                      </div>
+
+
+                      {/* MORE BUTTON */}
+
+                      {member.user_id !==
                         currentUser?.id && (
+
                         <button
                           type="button"
-                          onClick={(
-                            e
-                          ) => {
-                            e.stopPropagation();
+                          onClick={(event) => {
+
+                            event.stopPropagation();
 
                             setSelectedMember(
-                              m
+                              member
                             );
                           }}
                           style={{
@@ -6953,223 +8994,295 @@ export default function StudyGroups() {
                               '2px',
 
                             display:
-                              'flex'
+                              'flex',
+
+                            marginLeft:
+                              '2px'
                           }}
                         >
+
                           <MoreVertical
-                            size={
-                              14
-                            }
+                            size={14}
                             color="#A3AED0"
                           />
+
                         </button>
                       )}
+
                     </div>
                   )
                 )}
+
               </div>
-            </div>
 
-            <div
-              style={{
-                display:
-                  'flex',
+            ) : (
 
-                gap: '16px',
+              <div
+                style={{
+                  padding:
+                    '18px',
 
-                flexWrap:
-                  'wrap'
-              }}
-            >
-              {selectedGroup.approval_status !==
-              'approved' ? (
-                <div
+                  borderRadius:
+                    '16px',
+
+                  background:
+                    '#F8FAFC',
+
+                  border:
+                    '1px solid #E2E8F0'
+                }}
+              >
+
+                <p
                   style={{
-                    flex: 1,
+                    margin:
+                      0,
 
+                    color:
+                      '#94A3B8',
+
+                    fontWeight:
+                      '700',
+
+                    fontSize:
+                      '13px'
+                  }}
+                >
+                  Member information is loading...
+                </p>
+
+              </div>
+            )}
+
+          </div>
+
+
+          {/* =================================================
+              GROUP ACTIONS
+          ================================================= */}
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              gap:
+                '16px',
+
+              flexWrap:
+                'wrap'
+            }}
+          >
+
+            {selectedGroup.approval_status !==
+            'approved' ? (
+
+              <div
+                style={{
+                  flex:
+                    1,
+
+                  padding:
+                    '14px 18px',
+
+                  borderRadius:
+                    '14px',
+
+                  background:
+                    selectedGroup.approval_status ===
+                    'rejected'
+                      ? '#FEE2E2'
+                      : '#FFF4D8',
+
+                  color:
+                    selectedGroup.approval_status ===
+                    'rejected'
+                      ? '#B91C1C'
+                      : '#B7791F',
+
+                  fontWeight:
+                    '900',
+
+                  textAlign:
+                    'center'
+                }}
+              >
+
+                {selectedGroup.approval_status ===
+                'rejected'
+                  ? 'This circle was declined and is not visible publicly.'
+                  : 'This circle is waiting for Campora review.'}
+
+              </div>
+
+            ) : joinedGroupIds.includes(
+                selectedGroup.id
+              ) ||
+              selectedGroup.creator_id ===
+                currentUser?.id ? (
+
+              <button
+                onClick={() =>
+                  setView(
+                    'chat'
+                  )
+                }
+                style={{
+                  ...saveBtn,
+
+                  flex:
+                    1,
+
+                  display:
+                    'flex',
+
+                  alignItems:
+                    'center',
+
+                  justifyContent:
+                    'center',
+
+                  gap:
+                    '8px'
+                }}
+              >
+
+                <MessageSquare
+                  size={18}
+                />
+
+                Open Group Chat
+
+              </button>
+
+            ) : (
+
+              <button
+                onClick={() =>
+                  handleJoin(
+                    selectedGroup.id
+                  )
+                }
+                disabled={
+                  actionLoading ||
+                  getGroupMemberCount(
+                    selectedGroup
+                  ) >=
+                    selectedGroup.max_size
+                }
+                style={{
+                  ...saveBtn,
+
+                  flex:
+                    1,
+
+                  display:
+                    'flex',
+
+                  alignItems:
+                    'center',
+
+                  justifyContent:
+                    'center',
+
+                  gap:
+                    '8px',
+
+                  opacity:
+                    getGroupMemberCount(
+                      selectedGroup
+                    ) >=
+                    selectedGroup.max_size
+                      ? 0.55
+                      : 1
+                }}
+              >
+
+                <UserPlus
+                  size={18}
+                />
+
+
+                {getGroupMemberCount(
+                  selectedGroup
+                ) >=
+                selectedGroup.max_size
+                  ? 'Group Full'
+                  : 'Join Study Circle'}
+
+              </button>
+            )}
+
+
+            {/* LEAVE */}
+
+            {selectedGroup.approval_status ===
+              'approved' &&
+              joinedGroupIds.includes(
+                selectedGroup.id
+              ) &&
+              selectedGroup.creator_id !==
+                currentUser?.id && (
+
+                <button
+                  onClick={() =>
+                    handleLeaveGroup(
+                      selectedGroup.id
+                    )
+                  }
+                  disabled={
+                    actionLoading
+                  }
+                  style={{
                     padding:
-                      '14px 18px',
+                      '14px 20px',
 
                     borderRadius:
                       '14px',
 
+                    border:
+                      '1.5px solid #F6CACA',
+
                     background:
-                      selectedGroup.approval_status ===
-                      'rejected'
-                        ? '#FEE2E2'
-                        : '#FFF4D8',
+                      '#FFF0F0',
 
                     color:
-                      selectedGroup.approval_status ===
-                      'rejected'
-                        ? '#B91C1C'
-                        : '#B7791F',
+                      '#D84C4C',
 
                     fontWeight:
                       '900',
 
-                    textAlign:
-                      'center'
-                  }}
-                >
-                  {selectedGroup.approval_status ===
-                  'rejected'
-                    ? 'This circle was declined and is not visible publicly.'
-                    : 'This circle is waiting for Campora review.'}
-                </div>
-              ) : joinedGroupIds.includes(
-                  selectedGroup.id
-                ) ||
-                selectedGroup.creator_id ===
-                  currentUser?.id ? (
-                <button
-                  onClick={() =>
-                    setView(
-                      'chat'
-                    )
-                  }
-                  style={{
-                    ...saveBtn,
+                    fontSize:
+                      '14px',
 
-                    flex: 1,
+                    cursor:
+                      'pointer',
 
                     display:
                       'flex',
 
                     alignItems:
-                      'center',
-
-                    justifyContent:
                       'center',
 
                     gap:
                       '8px'
                   }}
                 >
-                  <MessageSquare
-                    size={
-                      18
-                    }
-                  />
-                  Open Group Chat
-                </button>
-              ) : (
-                <button
-                  onClick={() =>
-                    handleJoin(
-                      selectedGroup.id
-                    )
-                  }
-                  disabled={
-                    actionLoading ||
-                    getGroupMemberCount(
-                      selectedGroup
-                    ) >=
-                      selectedGroup.max_size
-                  }
-                  style={{
-                    ...saveBtn,
 
-                    flex: 1,
-
-                    display:
-                      'flex',
-
-                    alignItems:
-                      'center',
-
-                    justifyContent:
-                      'center',
-
-                    gap:
-                      '8px',
-
-                    opacity:
-                      getGroupMemberCount(
-                        selectedGroup
-                      ) >=
-                      selectedGroup.max_size
-                        ? 0.55
-                        : 1
-                  }}
-                >
-                  <UserPlus
-                    size={
-                      18
-                    }
+                  <LogOut
+                    size={18}
                   />
 
-                  {getGroupMemberCount(
-                    selectedGroup
-                  ) >=
-                  selectedGroup.max_size
-                    ? 'Group Full'
-                    : 'Join Study Circle'}
+                  Leave
+
                 </button>
               )}
 
-              {selectedGroup.approval_status ===
-                'approved' &&
-                joinedGroupIds.includes(
-                  selectedGroup.id
-                ) &&
-                selectedGroup.creator_id !==
-                  currentUser?.id && (
-                  <button
-                    onClick={() =>
-                      handleLeaveGroup(
-                        selectedGroup.id
-                      )
-                    }
-                    disabled={
-                      actionLoading
-                    }
-                    style={{
-                      padding:
-                        '14px 20px',
-
-                      borderRadius:
-                        '14px',
-
-                      border:
-                        '1.5px solid #F6CACA',
-
-                      background:
-                        '#FFF0F0',
-
-                      color:
-                        '#D84C4C',
-
-                      fontWeight:
-                        '900',
-
-                      fontSize:
-                        '14px',
-
-                      cursor:
-                        'pointer',
-
-                      display:
-                        'flex',
-
-                      alignItems:
-                        'center',
-
-                      gap:
-                        '8px'
-                    }}
-                  >
-                    <LogOut
-                      size={
-                        18
-                      }
-                    />
-                    Leave
-                  </button>
-                )}
-            </div>
           </div>
-        )}
+
+        </div>
+      )}
+
 
       {/* =================================================
           GROUP CHAT
@@ -7177,66 +9290,514 @@ export default function StudyGroups() {
 
       {view === 'chat' &&
         selectedGroup && (
+
+        <div
+          style={{
+            maxWidth:
+              '900px',
+
+            margin:
+              '0 auto',
+
+            background:
+              '#FFFFFF',
+
+            borderRadius:
+              '28px',
+
+            border:
+              '1px solid #E2E8F0',
+
+            height:
+              '80vh',
+
+            display:
+              'flex',
+
+            flexDirection:
+              'column',
+
+            overflow:
+              'hidden',
+
+            boxShadow:
+              '0 20px 40px -15px rgba(0,0,0,0.08)'
+          }}
+        >
+
+          {/* =================================================
+              CHAT HEADER
+          ================================================= */}
+
           <div
             style={{
-              maxWidth:
-                '900px',
-
-              margin:
-                '0 auto',
+              padding:
+                '20px 28px',
 
               background:
-                '#FFFFFF',
+                selectedGroup.color ||
+                '#E0F2FE',
 
-              borderRadius:
-                '28px',
-
-              border:
-                '1px solid #E2E8F0',
-
-              height:
-                '80vh',
+              borderBottom:
+                `1px solid ${getContrastBorder(
+                  selectedGroup.color ||
+                    '#E0F2FE'
+                )}`,
 
               display:
                 'flex',
 
-              flexDirection:
-                'column',
+              justifyContent:
+                'space-between',
 
-              overflow:
-                'hidden',
+              alignItems:
+                'center',
 
-              boxShadow:
-                '0 20px 40px -15px rgba(0,0,0,0.08)'
+              gap:
+                '14px'
             }}
           >
-            {/* CHAT HEADER */}
 
             <div
               style={{
-                padding:
-                  '20px 28px',
-
-                background:
-                  selectedGroup.color ||
-                  '#E0F2FE',
-
-                borderBottom:
-                  '1px solid #E2E8F0',
-
                 display:
                   'flex',
-
-                justifyContent:
-                  'space-between',
 
                 alignItems:
                   'center',
 
                 gap:
-                  '14px'
+                  '16px'
               }}
             >
+
+              {/* BACK */}
+
+              <button
+                onClick={() =>
+                  setView(
+                    'details'
+                  )
+                }
+                style={{
+                  border:
+                    `1px solid ${getContrastBorder(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )}`,
+
+                  background:
+                    isDarkColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                      ? 'rgba(255,255,255,0.15)'
+                      : 'rgba(255,255,255,0.6)',
+
+                  padding:
+                    '8px',
+
+                  borderRadius:
+                    '10px',
+
+                  cursor:
+                    'pointer',
+
+                  display:
+                    'flex',
+
+                  alignItems:
+                    'center',
+
+                  justifyContent:
+                    'center'
+                }}
+              >
+
+                <ArrowLeft
+                  size={18}
+                  color={
+                    getContrastColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                  }
+                />
+
+              </button>
+
+
+              <div>
+
+                <h3
+                  style={{
+                    margin:
+                      0,
+
+                    fontSize:
+                      '20px',
+
+                    fontWeight:
+                      '900',
+
+                    color:
+                      getContrastColor(
+                        selectedGroup.color ||
+                          '#E0F2FE'
+                      )
+                  }}
+                >
+                  {selectedGroup.name}
+                </h3>
+
+
+                <div
+                  style={{
+                    display:
+                      'flex',
+
+                    alignItems:
+                      'center',
+
+                    gap:
+                      '6px',
+
+                    marginTop:
+                      '2px'
+                  }}
+                >
+
+                  <Circle
+                    size={8}
+                    fill="#22C55E"
+                    color="#22C55E"
+                  />
+
+
+                  <p
+                    style={{
+                      margin:
+                        0,
+
+                      fontSize:
+                        '12px',
+
+                      fontWeight:
+                        '800',
+
+                      color:
+                        getMutedContrastColor(
+                          selectedGroup.color ||
+                            '#E0F2FE'
+                        )
+                    }}
+                  >
+                    {getActiveOnlineCount()}{' '}
+                    Members Active Now
+                  </p>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            {/* CHAT ACTIONS */}
+
+            <div
+              style={{
+                display:
+                  'flex',
+
+                gap:
+                  '10px',
+
+                flexWrap:
+                  'wrap'
+              }}
+            >
+
+              {/* PIN GROUP */}
+
+              <button
+                onClick={() =>
+                  togglePinGroup(
+                    selectedGroup.id
+                  )
+                }
+                style={{
+                  ...iconBtnStyle,
+
+                  background:
+                    pinnedChats.groups.includes(
+                      selectedGroup.id
+                    )
+                      ? PIN_COLORS.bg
+                      : isDarkColor(
+                          selectedGroup.color ||
+                            '#E0F2FE'
+                        )
+                        ? 'rgba(255,255,255,0.16)'
+                        : 'rgba(255,255,255,0.7)',
+
+                  border:
+                    pinnedChats.groups.includes(
+                      selectedGroup.id
+                    )
+                      ? `1px solid ${PIN_COLORS.border}`
+                      : `1px solid ${getContrastBorder(
+                          selectedGroup.color ||
+                            '#E0F2FE'
+                        )}`
+                }}
+              >
+
+                <Pin
+                  size={18}
+                  color={
+                    pinnedChats.groups.includes(
+                      selectedGroup.id
+                    )
+                      ? PIN_COLORS.icon
+                      : getContrastColor(
+                          selectedGroup.color ||
+                            '#E0F2FE'
+                        )
+                  }
+                  fill={
+                    pinnedChats.groups.includes(
+                      selectedGroup.id
+                    )
+                      ? PIN_COLORS.icon
+                      : 'none'
+                  }
+                />
+
+              </button>
+
+
+              {/* POLL */}
+
+              <button
+                onClick={() =>
+                  setShowPollModal(
+                    true
+                  )
+                }
+                style={{
+                  ...iconBtnStyle,
+
+                  background:
+                    isDarkColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                      ? 'rgba(255,255,255,0.16)'
+                      : 'rgba(255,255,255,0.7)',
+
+                  border:
+                    `1px solid ${getContrastBorder(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )}`
+                }}
+              >
+
+                <BarChart2
+                  size={18}
+                  color={
+                    getContrastColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                  }
+                />
+
+              </button>
+
+
+              {/* MEMBERS */}
+
+              <button
+                onClick={() =>
+                  setShowMembersDrawer(
+                    true
+                  )
+                }
+                style={{
+                  ...iconBtnStyle,
+
+                  background:
+                    isDarkColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                      ? 'rgba(255,255,255,0.16)'
+                      : 'rgba(255,255,255,0.7)',
+
+                  border:
+                    `1px solid ${getContrastBorder(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )}`
+                }}
+              >
+
+                <Users
+                  size={18}
+                  color={
+                    getContrastColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                  }
+                />
+
+              </button>
+
+
+              {/* NOTIFICATIONS */}
+
+              <button
+                onClick={() =>
+                  toggleNotifications(
+                    selectedGroup.id
+                  )
+                }
+                style={{
+                  ...iconBtnStyle,
+
+                  background:
+                    isDarkColor(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )
+                      ? 'rgba(255,255,255,0.16)'
+                      : 'rgba(255,255,255,0.7)',
+
+                  border:
+                    `1px solid ${getContrastBorder(
+                      selectedGroup.color ||
+                        '#E0F2FE'
+                    )}`
+                }}
+              >
+
+                {notificationsMuted[
+                  selectedGroup.id
+                ] ? (
+
+                  <BellOff
+                    size={18}
+                    color="#EF4444"
+                  />
+
+                ) : (
+
+                  <Bell
+                    size={18}
+                    color={
+                      getContrastColor(
+                        selectedGroup.color ||
+                          '#E0F2FE'
+                      )
+                    }
+                  />
+                )}
+
+              </button>
+
+
+              {/* DELETE / LEAVE */}
+
+              {selectedGroup.creator_id ===
+              currentUser?.id ? (
+
+                <button
+                  onClick={
+                    handleClearChat
+                  }
+                  style={{
+                    ...iconBtnStyle,
+
+                    background:
+                      '#FEE2E2',
+
+                    border:
+                      '1px solid #FECACA'
+                  }}
+                >
+
+                  <Trash2
+                    size={18}
+                    color="#B91C1C"
+                  />
+
+                </button>
+
+              ) : (
+
+                <button
+                  onClick={() =>
+                    handleLeaveGroup(
+                      selectedGroup.id
+                    )
+                  }
+                  style={{
+                    ...iconBtnStyle,
+
+                    background:
+                      '#FEE2E2',
+
+                    border:
+                      '1px solid #FECACA'
+                  }}
+                >
+
+                  <LogOut
+                    size={18}
+                    color="#B91C1C"
+                  />
+
+                </button>
+              )}
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              PINNED MESSAGE BANNER
+          ================================================= */}
+
+          {pinnedGroupMessages[
+            selectedGroup.id
+          ]?.length > 0 && (
+
+            <div
+              style={{
+                background:
+                  PIN_COLORS.bg,
+
+                padding:
+                  '10px 20px',
+
+                borderBottom:
+                  `1.5px solid ${PIN_COLORS.border}`,
+
+                display:
+                  'flex',
+
+                flexDirection:
+                  'column',
+
+                gap:
+                  '6px'
+              }}
+            >
+
               <div
                 style={{
                   display:
@@ -7246,698 +9807,450 @@ export default function StudyGroups() {
                     'center',
 
                   gap:
-                    '16px'
+                    '6px',
+
+                  fontSize:
+                    '12px',
+
+                  fontWeight:
+                    '900',
+
+                  color:
+                    PIN_COLORS.icon
                 }}
               >
-                <button
-                  onClick={() =>
-                    setView(
-                      'details'
-                    )
+
+                <Pin
+                  size={14}
+                  fill={
+                    PIN_COLORS.icon
                   }
-                  style={{
-                    border:
-                      'none',
+                  color={
+                    PIN_COLORS.icon
+                  }
+                />
 
-                    background:
-                      'rgba(255,255,255,0.6)',
+                Pinned Messages (
 
-                    padding:
-                      '8px',
+                {
+                  pinnedGroupMessages[
+                    selectedGroup.id
+                  ].length
+                }
 
-                    borderRadius:
-                      '10px',
+                )
 
-                    cursor:
-                      'pointer'
-                  }}
-                >
-                  <ArrowLeft
-                    size={
-                      18
-                    }
-                    color="#0B1A3F"
-                  />
-                </button>
-
-                <div>
-                  <h3
-                    style={{
-                      margin:
-                        0,
-
-                      fontSize:
-                        '20px',
-
-                      fontWeight:
-                        '900',
-
-                      color:
-                        '#0B1A3F'
-                    }}
-                  >
-                    {
-                      selectedGroup.name
-                    }
-                  </h3>
-
-                  <div
-                    style={{
-                      display:
-                        'flex',
-
-                      alignItems:
-                        'center',
-
-                      gap:
-                        '6px',
-
-                      marginTop:
-                        '2px'
-                    }}
-                  >
-                    <Circle
-                      size={8}
-                      fill="#22C55E"
-                      color="#22C55E"
-                    />
-
-                    <p
-                      style={{
-                        margin:
-                          0,
-
-                        fontSize:
-                          '12px',
-
-                        fontWeight:
-                          '800',
-
-                        color:
-                          '#0B1A3F',
-
-                        opacity:
-                          0.8
-                      }}
-                    >
-                      {getActiveOnlineCount()}{' '}
-                      Members Active
-                      Now
-                    </p>
-                  </div>
-                </div>
               </div>
+
 
               <div
                 style={{
-                  display:
-                    'flex',
-
-                  gap: '10px',
-
-                  flexWrap:
-                    'wrap'
-                }}
-              >
-                <button
-                  onClick={() =>
-                    togglePinGroup(
-                      selectedGroup.id
-                    )
-                  }
-                  style={{
-                    ...iconBtnStyle,
-
-                    background:
-                      pinnedChats.groups.includes(
-                        selectedGroup.id
-                      )
-                        ? PIN_COLORS.bg
-                        : 'rgba(255,255,255,0.7)',
-
-                    border:
-                      pinnedChats.groups.includes(
-                        selectedGroup.id
-                      )
-                        ? `1px solid ${PIN_COLORS.border}`
-                        : 'none'
-                  }}
-                >
-                  <Pin
-                    size={18}
-                    color={
-                      pinnedChats.groups.includes(
-                        selectedGroup.id
-                      )
-                        ? PIN_COLORS.icon
-                        : '#0B1A3F'
-                    }
-                    fill={
-                      pinnedChats.groups.includes(
-                        selectedGroup.id
-                      )
-                        ? PIN_COLORS.icon
-                        : 'none'
-                    }
-                  />
-                </button>
-
-                <button
-                  onClick={() =>
-                    setShowPollModal(
-                      true
-                    )
-                  }
-                  style={
-                    iconBtnStyle
-                  }
-                >
-                  <BarChart2
-                    size={
-                      18
-                    }
-                    color="#0B1A3F"
-                  />
-                </button>
-
-                <button
-                  onClick={() =>
-                    setShowMembersDrawer(
-                      true
-                    )
-                  }
-                  style={
-                    iconBtnStyle
-                  }
-                >
-                  <Users
-                    size={
-                      18
-                    }
-                    color="#0B1A3F"
-                  />
-                </button>
-
-                <button
-                  onClick={() =>
-                    toggleNotifications(
-                      selectedGroup.id
-                    )
-                  }
-                  style={
-                    iconBtnStyle
-                  }
-                >
-                  {notificationsMuted[
-                    selectedGroup
-                      .id
-                  ] ? (
-                    <BellOff
-                      size={
-                        18
-                      }
-                      color="#B91C1C"
-                    />
-                  ) : (
-                    <Bell
-                      size={
-                        18
-                      }
-                      color="#0B1A3F"
-                    />
-                  )}
-                </button>
-
-                {selectedGroup.creator_id ===
-                currentUser?.id ? (
-                  <button
-                    onClick={
-                      handleClearChat
-                    }
-                    style={{
-                      ...iconBtnStyle,
-
-                      background:
-                        '#FEE2E2'
-                    }}
-                  >
-                    <Trash2
-                      size={
-                        18
-                      }
-                      color="#B91C1C"
-                    />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() =>
-                      handleLeaveGroup(
-                        selectedGroup.id
-                      )
-                    }
-                    style={{
-                      ...iconBtnStyle,
-
-                      background:
-                        '#FEE2E2'
-                    }}
-                  >
-                    <LogOut
-                      size={
-                        18
-                      }
-                      color="#B91C1C"
-                    />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* PINNED MESSAGE BANNER - SAME ORANGE AS OTHER PINS */}
-
-            {pinnedGroupMessages[
-              selectedGroup.id
-            ]?.length > 0 && (
-              <div
-                style={{
-                  background:
-                    PIN_COLORS.bg,
-
-                  padding:
-                    '10px 20px',
-
-                  borderBottom: `1.5px solid ${PIN_COLORS.border}`,
-
                   display:
                     'flex',
 
                   flexDirection:
                     'column',
 
-                  gap: '6px'
+                  gap:
+                    '4px',
+
+                  maxHeight:
+                    '90px',
+
+                  overflowY:
+                    'auto'
                 }}
               >
-                <div
-                  style={{
-                    display:
-                      'flex',
 
-                    alignItems:
-                      'center',
+                {pinnedGroupMessages[
+                  selectedGroup.id
+                ].map(
+                  (pinnedId) => {
 
-                    gap: '6px',
+                    const pinnedMessage =
+                      messages.find(
+                        (message) =>
+                          message.id ===
+                          pinnedId
+                      );
 
-                    fontSize:
-                      '12px',
 
-                    fontWeight:
-                      '900',
+                    if (!pinnedMessage) {
 
-                    color:
-                      PIN_COLORS.icon
-                  }}
-                >
-                  <Pin
-                    size={14}
-                    fill={
-                      PIN_COLORS.icon
+                      return null;
                     }
-                    color={
-                      PIN_COLORS.icon
-                    }
-                  />
 
-                  Pinned Messages (
-                  {
-                    pinnedGroupMessages[
-                      selectedGroup
-                        .id
-                    ].length
-                  }
-                  )
-                </div>
 
-                <div
-                  style={{
-                    display:
-                      'flex',
+                    return (
 
-                    flexDirection:
-                      'column',
+                      <div
+                        key={
+                          pinnedId
+                        }
+                        style={{
+                          display:
+                            'flex',
 
-                    gap:
-                      '4px',
+                          justifyContent:
+                            'space-between',
 
-                    maxHeight:
-                      '90px',
+                          alignItems:
+                            'center',
 
-                    overflowY:
-                      'auto'
-                  }}
-                >
-                  {pinnedGroupMessages[
-                    selectedGroup
-                      .id
-                  ].map(
-                    (pId) => {
-                      const pMsg =
-                        messages.find(
-                          (m) =>
-                            m.id ===
-                            pId
-                        );
+                          gap:
+                            '10px',
 
-                      if (!pMsg) {
-                        return null;
-                      }
+                          background:
+                            'rgba(255,255,255,0.75)',
 
-                      return (
-                        <div
-                          key={
-                            pId
-                          }
+                          border:
+                            `1px solid ${PIN_COLORS.border}`,
+
+                          padding:
+                            '6px 10px',
+
+                          borderRadius:
+                            '8px',
+
+                          fontSize:
+                            '12px'
+                        }}
+                      >
+
+                        <span
                           style={{
-                            display:
-                              'flex',
+                            fontWeight:
+                              '700',
 
-                            justifyContent:
-                              'space-between',
+                            color:
+                              '#0B1A3F',
 
-                            alignItems:
-                              'center',
+                            overflow:
+                              'hidden',
 
-                            gap:
-                              '10px',
+                            textOverflow:
+                              'ellipsis',
 
-                            background:
-                              'rgba(255,255,255,0.75)',
-
-                            border: `1px solid ${PIN_COLORS.border}`,
-
-                            padding:
-                              '6px 10px',
-
-                            borderRadius:
-                              '8px',
-
-                            fontSize:
-                              '12px'
+                            whiteSpace:
+                              'nowrap'
                           }}
                         >
-                          <span
-                            style={{
-                              fontWeight:
-                                '700',
 
-                              color:
-                                '#0B1A3F',
-
-                              overflow:
-                                'hidden',
-
-                              textOverflow:
-                                'ellipsis',
-
-                              whiteSpace:
-                                'nowrap'
-                            }}
-                          >
-                            <strong>
-                              {
-                                pMsg.sender_name
-                              }
-                              :
-                            </strong>{' '}
-                            {pMsg.type ===
-                            'poll'
-                              ? pMsg
-                                  .poll_data
-                                  ?.question
-                              : pMsg.content}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              togglePinGroupMessage(
-                                pId
-                              )
+                          <strong>
+                            {
+                              pinnedMessage.sender_name
                             }
+                            :
+                          </strong>{' '}
+
+                          {pinnedMessage.type ===
+                          'poll'
+                            ? pinnedMessage
+                                .poll_data
+                                ?.question
+                            : pinnedMessage.content}
+
+                        </span>
+
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            togglePinGroupMessage(
+                              pinnedId
+                            )
+                          }
+                          style={{
+                            border:
+                              'none',
+
+                            background:
+                              'none',
+
+                            cursor:
+                              'pointer',
+
+                            color:
+                              PIN_COLORS.icon,
+
+                            fontWeight:
+                              '900',
+
+                            fontSize:
+                              '11px'
+                          }}
+                        >
+                          Unpin
+                        </button>
+
+                      </div>
+                    );
+                  }
+                )}
+
+              </div>
+
+            </div>
+          )}
+
+
+          {/* =================================================
+              MESSAGES
+          ================================================= */}
+
+          <div
+            style={{
+              flex:
+                1,
+
+              padding:
+                '24px',
+
+              overflowY:
+                'auto',
+
+              display:
+                'flex',
+
+              flexDirection:
+                'column',
+
+              gap:
+                '16px',
+
+              background:
+                '#F8FAFC'
+            }}
+          >
+
+            {messages.length ===
+            0 ? (
+
+              <div
+                style={{
+                  margin:
+                    'auto',
+
+                  textAlign:
+                    'center',
+
+                  color:
+                    '#A3AED0'
+                }}
+              >
+
+                <MessageCircle
+                  size={48}
+                  strokeWidth={1.5}
+                />
+
+
+                <p
+                  style={{
+                    fontWeight:
+                      '800',
+
+                    margin:
+                      '12px 0 0'
+                  }}
+                >
+                  No messages yet. Say hello to start the discussion!
+                </p>
+
+              </div>
+
+            ) : (
+
+              messages.map(
+                (message) => {
+
+                  const isMe =
+                    message.user_id ===
+                    currentUser?.id;
+
+
+                  const isTemp =
+                    String(
+                      message.id
+                    ).startsWith(
+                      'temp-'
+                    );
+
+
+                  return (
+
+                    <div
+                      key={
+                        message.id
+                      }
+                      style={{
+                        alignSelf:
+                          isMe
+                            ? 'flex-end'
+                            : 'flex-start',
+
+                        maxWidth:
+                          '75%',
+
+                        position:
+                          'relative'
+                      }}
+                    >
+
+                      {/* SENDER NAME */}
+
+                      <div
+                        style={{
+                          fontSize:
+                            '11px',
+
+                          fontWeight:
+                            '800',
+
+                          color:
+                            '#A3AED0',
+
+                          marginBottom:
+                            '4px',
+
+                          textAlign:
+                            isMe
+                              ? 'right'
+                              : 'left'
+                        }}
+                      >
+                        {message.sender_name}
+                      </div>
+
+
+                      {/* =================================================
+                          POLL MESSAGE
+                      ================================================= */}
+
+                      {message.type ===
+                      'poll' ? (
+
+                        <div
+                          style={{
+                            background:
+                              '#FFFFFF',
+
+                            padding:
+                              '20px',
+
+                            borderRadius:
+                              '20px',
+
+                            border:
+                              '1.5px solid #E2E8F0',
+
+                            boxShadow:
+                              '0 4px 12px rgba(0,0,0,0.03)'
+                          }}
+                        >
+
+                          <p
                             style={{
-                              border:
-                                'none',
-
-                              background:
-                                'none',
-
-                              cursor:
-                                'pointer',
-
-                              color:
-                                PIN_COLORS.icon,
+                              margin:
+                                '0 0 14px',
 
                               fontWeight:
                                 '900',
 
                               fontSize:
-                                '11px'
+                                '15px',
+
+                              color:
+                                '#0B1A3F'
                             }}
                           >
-                            Unpin
-                          </button>
-                        </div>
-                      );
-                    }
-                  )}
-                </div>
-              </div>
-            )}
+                            {
+                              message
+                                .poll_data
+                                ?.question
+                            }
+                          </p>
 
-            {/* MESSAGES */}
 
-            <div
-              style={{
-                flex: 1,
-
-                padding:
-                  '24px',
-
-                overflowY:
-                  'auto',
-
-                display:
-                  'flex',
-
-                flexDirection:
-                  'column',
-
-                gap: '16px',
-
-                background:
-                  '#F8FAFC'
-              }}
-            >
-              {messages.length ===
-              0 ? (
-                <div
-                  style={{
-                    margin:
-                      'auto',
-
-                    textAlign:
-                      'center',
-
-                    color:
-                      '#A3AED0'
-                  }}
-                >
-                  <MessageCircle
-                    size={
-                      48
-                    }
-                    strokeWidth={
-                      1.5
-                    }
-                  />
-
-                  <p
-                    style={{
-                      fontWeight:
-                        '800',
-
-                      margin:
-                        '12px 0 0'
-                    }}
-                  >
-                    No messages
-                    yet. Say hello
-                    to start the
-                    discussion!
-                  </p>
-                </div>
-              ) : (
-                messages.map(
-                  (msg) => {
-                    const isMe =
-                      msg.user_id ===
-                      currentUser?.id;
-
-                    const isTemp =
-                      String(
-                        msg.id
-                      ).startsWith(
-                        'temp-'
-                      );
-
-                    return (
-                      <div
-                        key={
-                          msg.id
-                        }
-                        style={{
-                          alignSelf:
-                            isMe
-                              ? 'flex-end'
-                              : 'flex-start',
-
-                          maxWidth:
-                            '75%',
-
-                          position:
-                            'relative'
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize:
-                              '11px',
-
-                            fontWeight:
-                              '800',
-
-                            color:
-                              '#A3AED0',
-
-                            marginBottom:
-                              '4px',
-
-                            textAlign:
-                              isMe
-                                ? 'right'
-                                : 'left'
-                          }}
-                        >
-                          {
-                            msg.sender_name
-                          }
-                        </div>
-
-                        {msg.type ===
-                        'poll' ? (
                           <div
                             style={{
-                              background:
-                                '#FFFFFF',
+                              display:
+                                'flex',
 
-                              padding:
-                                '20px',
+                              flexDirection:
+                                'column',
 
-                              borderRadius:
-                                '20px',
-
-                              border:
-                                '1.5px solid #E2E8F0',
-
-                              boxShadow:
-                                '0 4px 12px rgba(0,0,0,0.03)'
+                              gap:
+                                '8px'
                             }}
                           >
-                            <p
-                              style={{
-                                margin:
-                                  '0 0 14px',
 
-                                fontWeight:
-                                  '900',
-
-                                fontSize:
-                                  '15px',
-
-                                color:
-                                  '#0B1A3F'
-                              }}
-                            >
-                              {
-                                msg
-                                  .poll_data
-                                  ?.question
-                              }
-                            </p>
-
-                            <div
-                              style={{
-                                display:
-                                  'flex',
-
-                                flexDirection:
-                                  'column',
-
-                                gap:
-                                  '8px'
-                              }}
-                            >
-                              {msg.poll_data?.options?.map(
+                            {message.poll_data
+                              ?.options
+                              ?.map(
                                 (
-                                  opt,
-                                  oIdx
+                                  option,
+                                  optionIndex
                                 ) => {
-                                  const totalVotes =
-                                    msg.poll_data.options.reduce(
-                                      (
-                                        acc,
-                                        curr
-                                      ) =>
-                                        acc +
-                                        (curr
-                                          .votes
-                                          ?.length ||
-                                          0),
-                                      0
-                                    );
 
-                                  const optVotes =
-                                    opt
+                                  const totalVotes =
+                                    message
+                                      .poll_data
+                                      .options
+                                      .reduce(
+                                        (
+                                          total,
+                                          currentOption
+                                        ) =>
+                                          total +
+                                          (
+                                            currentOption
+                                              .votes
+                                              ?.length ||
+                                            0
+                                          ),
+                                        0
+                                      );
+
+
+                                  const optionVotes =
+                                    option
                                       .votes
                                       ?.length ||
                                     0;
 
+
                                   const percentage =
-                                    totalVotes >
-                                    0
+                                    totalVotes > 0
                                       ? Math.round(
-                                          (optVotes /
-                                            totalVotes) *
+                                          (
+                                            optionVotes /
+                                            totalVotes
+                                          ) *
                                             100
                                         )
                                       : 0;
 
+
                                   const hasVoted =
-                                    opt.votes?.includes(
+                                    option.votes?.includes(
                                       currentUser?.id
                                     );
 
+
                                   return (
+
                                     <button
                                       key={
-                                        oIdx
+                                        optionIndex
                                       }
                                       disabled={
                                         isTemp
                                       }
                                       onClick={() =>
                                         handleVotePoll(
-                                          msg.id,
-                                          oIdx
+                                          message.id,
+                                          optionIndex
                                         )
                                       }
                                       style={{
@@ -7970,23 +10283,29 @@ export default function StudyGroups() {
                                           'hidden'
                                       }}
                                     >
+
                                       <div
                                         style={{
                                           position:
                                             'absolute',
 
-                                          top: 0,
+                                          top:
+                                            0,
 
-                                          left: 0,
+                                          left:
+                                            0,
 
-                                          bottom: 0,
+                                          bottom:
+                                            0,
 
-                                          width: `${percentage}%`,
+                                          width:
+                                            `${percentage}%`,
 
                                           background:
                                             'rgba(11,26,63,0.12)'
                                         }}
                                       />
+
 
                                       <div
                                         style={{
@@ -7999,6 +10318,9 @@ export default function StudyGroups() {
                                           justifyContent:
                                             'space-between',
 
+                                          gap:
+                                            '12px',
+
                                           fontWeight:
                                             '800',
 
@@ -8009,37 +10331,102 @@ export default function StudyGroups() {
                                             '#0B1A3F'
                                         }}
                                       >
+
                                         <span>
+
                                           {hasVoted
                                             ? '✓ '
                                             : ''}
+
                                           {
-                                            opt.text
+                                            option.text
                                           }
+
                                         </span>
 
+
                                         <span>
-                                          {
-                                            percentage
-                                          }
-                                          % (
-                                          {
-                                            optVotes
-                                          }
-                                          )
+                                          {percentage}% ({optionVotes})
                                         </span>
+
                                       </div>
+
                                     </button>
                                   );
                                 }
                               )}
-                            </div>
 
-                            <p
+                          </div>
+
+
+                          <p
+                            style={{
+                              margin:
+                                '10px 0 0',
+
+                              fontSize:
+                                '11px',
+
+                              fontWeight:
+                                '700',
+
+                              color:
+                                '#A3AED0'
+                            }}
+                          >
+                            Tap your choice again to remove your vote.
+                          </p>
+
+                        </div>
+
+                      ) : (
+
+                        /* =================================================
+                           REGULAR MESSAGE
+                        ================================================= */
+
+                        <div
+                          style={{
+                            padding:
+                              '14px 18px',
+
+                            borderRadius:
+                              isMe
+                                ? '20px 20px 4px 20px'
+                                : '20px 20px 20px 4px',
+
+                            background:
+                              isMe
+                                ? '#0B1A3F'
+                                : '#FFFFFF',
+
+                            color:
+                              isMe
+                                ? '#FFFFFF'
+                                : '#0B1A3F',
+
+                            fontWeight:
+                              '700',
+
+                            fontSize:
+                              '14px',
+
+                            border:
+                              isMe
+                                ? 'none'
+                                : '1px solid #E2E8F0',
+
+                            boxShadow:
+                              '0 2px 8px rgba(0,0,0,0.03)'
+                          }}
+                        >
+
+                          {/* REPLIED MESSAGE */}
+
+                          {message.reply_to_id && (
+
+                            <div
                               style={{
-                                margin:
-                                  '10px 0 0',
-
                                 fontSize:
                                   '11px',
 
@@ -8047,451 +10434,265 @@ export default function StudyGroups() {
                                   '700',
 
                                 color:
-                                  '#A3AED0'
-                              }}
-                            >
-                              Tap your
-                              choice
-                              again to
-                              remove
-                              your vote.
-                            </p>
-                          </div>
-                        ) : (
-                          <div
-                            style={{
-                              padding:
-                                '14px 18px',
+                                  isMe
+                                    ? 'rgba(255,255,255,0.85)'
+                                    : '#64748B',
 
-                              borderRadius:
-                                isMe
-                                  ? '20px 20px 4px 20px'
-                                  : '20px 20px 20px 4px',
+                                background:
+                                  isMe
+                                    ? 'rgba(255,255,255,0.15)'
+                                    : '#F1F5F9',
 
-                              background:
-                                isMe
-                                  ? '#0B1A3F'
-                                  : '#FFFFFF',
-
-                              color:
-                                isMe
-                                  ? '#FFFFFF'
-                                  : '#0B1A3F',
-
-                              fontWeight:
-                                '700',
-
-                              fontSize:
-                                '14px',
-
-                              border:
-                                isMe
-                                  ? 'none'
-                                  : '1px solid #E2E8F0',
-
-                              boxShadow:
-                                '0 2px 8px rgba(0,0,0,0.03)'
-                            }}
-                          >
-                            {msg.reply_to_id && (
-                              <div
-                                style={{
-                                  fontSize:
-                                    '11px',
-
-                                  fontWeight:
-                                    '700',
-
-                                  color:
-                                    isMe
-                                      ? 'rgba(255,255,255,0.85)'
-                                      : '#64748B',
-
-                                  background:
-                                    isMe
-                                      ? 'rgba(255,255,255,0.15)'
-                                      : '#F1F5F9',
-
-                                  borderLeft: `3px solid ${
+                                borderLeft:
+                                  `3px solid ${
                                     isMe
                                       ? 'rgba(255,255,255,0.6)'
                                       : '#0B1A3F'
                                   }`,
 
-                                  padding:
-                                    '6px 10px',
+                                padding:
+                                  '6px 10px',
 
-                                  borderRadius:
-                                    '8px',
+                                borderRadius:
+                                  '8px',
 
-                                  marginBottom:
-                                    '8px'
-                                }}
-                              >
-                                <strong>
-                                  {
-                                    msg.reply_to_sender
-                                  }
-                                </strong>
-                                :{' '}
-                                {
-                                  msg.reply_to_content
-                                }
-                              </div>
-                            )}
-
-                            {
-                              msg.content
-                            }
-                          </div>
-                        )}
-
-                        {msg.reactions &&
-                          Object.keys(
-                            msg.reactions
-                          ).some(
-                            (
-                              key
-                            ) =>
-                              msg
-                                .reactions[
-                                key
-                              ]
-                                ?.length >
-                              0
-                          ) && (
-                            <div
-                              style={{
-                                display:
-                                  'flex',
-
-                                gap:
-                                  '4px',
-
-                                marginTop:
-                                  '4px',
-
-                                flexWrap:
-                                  'wrap',
-
-                                justifyContent:
-                                  isMe
-                                    ? 'flex-end'
-                                    : 'flex-start'
+                                marginBottom:
+                                  '8px'
                               }}
                             >
-                              {Object.entries(
-                                msg.reactions
-                              ).map(
-                                ([
-                                  emoji,
-                                  uids
-                                ]) =>
-                                  uids.length >
-                                    0 && (
-                                    <button
-                                      key={
-                                        emoji
-                                      }
-                                      onClick={() =>
-                                        handleReactToMessage(
-                                          msg.id,
-                                          emoji
-                                        )
-                                      }
-                                      style={{
-                                        background:
-                                          '#FFFFFF',
 
-                                        border:
-                                          '1px solid #E2E8F0',
+                              <strong>
+                                {
+                                  message.reply_to_sender
+                                }
+                              </strong>
+                              :{' '}
 
-                                        borderRadius:
-                                          '12px',
+                              {
+                                message.reply_to_content
+                              }
 
-                                        padding:
-                                          '2px 8px',
-
-                                        fontSize:
-                                          '12px',
-
-                                        fontWeight:
-                                          '800',
-
-                                        color:
-                                          '#0B1A3F',
-
-                                        cursor:
-                                          'pointer'
-                                      }}
-                                    >
-                                      {
-                                        emoji
-                                      }{' '}
-                                      {
-                                        uids.length
-                                      }
-                                    </button>
-                                  )
-                              )}
                             </div>
                           )}
 
-                        {!isTemp && (
-                          <button
-                            onClick={() =>
-                              setActiveMessageMenu(
-                                activeMessageMenu ===
-                                  msg.id
-                                  ? null
-                                  : msg.id
-                              )
-                            }
-                            style={{
-                              position:
-                                'absolute',
 
-                              top: 0,
+                          {message.content}
 
-                              right:
-                                isMe
-                                  ? '100%'
-                                  : 'auto',
+                        </div>
+                      )}
 
-                              left:
-                                isMe
-                                  ? 'auto'
-                                  : '100%',
 
-                              background:
-                                'none',
+                      {/* =================================================
+                          REACTIONS
+                      ================================================= */}
 
-                              border:
-                                'none',
+                      {message.reactions &&
+                        Object.keys(
+                          message.reactions
+                        ).some(
+                          (emoji) =>
+                            message
+                              .reactions[
+                                emoji
+                              ]
+                              ?.length >
+                            0
+                        ) && (
 
-                              cursor:
-                                'pointer',
-
-                              padding:
-                                '4px'
-                            }}
-                          >
-                            <MoreVertical
-                              size={
-                                14
-                              }
-                              color="#A3AED0"
-                            />
-                          </button>
-                        )}
-
-                        {activeMessageMenu ===
-                          msg.id && (
                           <div
                             style={{
-                              position:
-                                'absolute',
-
-                              top:
-                                '24px',
-
-                              [
-                                isMe
-                                  ? 'right'
-                                  : 'left'
-                              ]:
-                                '100%',
-
-                              background:
-                                'white',
-
-                              borderRadius:
-                                '12px',
-
-                              padding:
-                                '8px',
-
-                              border:
-                                '1px solid #E2E8F0',
-
-                              boxShadow:
-                                '0 10px 20px rgba(0,0,0,0.1)',
-
-                              zIndex:
-                                10,
-
                               display:
                                 'flex',
 
                               gap:
-                                '6px',
+                                '4px',
 
-                              alignItems:
-                                'center'
+                              marginTop:
+                                '4px',
+
+                              flexWrap:
+                                'wrap',
+
+                              justifyContent:
+                                isMe
+                                  ? 'flex-end'
+                                  : 'flex-start'
                             }}
                           >
-                            {EMOJI_REACTIONS.map(
-                              (
-                                emoji
-                              ) => (
-                                <button
-                                  key={
-                                    emoji
-                                  }
-                                  onClick={() =>
-                                    handleReactToMessage(
-                                      msg.id,
+
+                            {Object.entries(
+                              message.reactions
+                            ).map(
+                              ([
+                                emoji,
+                                userIds
+                              ]) =>
+                                userIds.length >
+                                  0 && (
+
+                                  <button
+                                    key={
                                       emoji
-                                    )
-                                  }
-                                  style={{
-                                    border:
-                                      'none',
+                                    }
+                                    onClick={() =>
+                                      handleReactToMessage(
+                                        message.id,
+                                        emoji
+                                      )
+                                    }
+                                    style={{
+                                      background:
+                                        '#FFFFFF',
 
-                                    background:
-                                      'none',
+                                      border:
+                                        '1px solid #E2E8F0',
 
-                                    cursor:
-                                      'pointer',
+                                      borderRadius:
+                                        '12px',
 
-                                    fontSize:
-                                      '16px'
-                                  }}
-                                >
-                                  {
-                                    emoji
-                                  }
-                                </button>
-                              )
+                                      padding:
+                                        '2px 8px',
+
+                                      fontSize:
+                                        '12px',
+
+                                      fontWeight:
+                                        '800',
+
+                                      color:
+                                        '#0B1A3F',
+
+                                      cursor:
+                                        'pointer'
+                                    }}
+                                  >
+                                    {emoji}{' '}
+                                    {userIds.length}
+                                  </button>
+                                )
                             )}
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setReplyingTo(
-                                  msg
-                                );
+                          </div>
+                        )}
 
-                                setActiveMessageMenu(
-                                  null
-                                );
-                              }}
-                              style={{
-                                border:
-                                  'none',
 
-                                background:
-                                  '#EEF2FF',
+                      {/* =================================================
+                          MESSAGE MENU BUTTON
+                      ================================================= */}
 
-                                padding:
-                                  '4px 8px',
+                      {!isTemp && (
 
-                                borderRadius:
-                                  '6px',
+                        <button
+                          onClick={() =>
+                            setActiveMessageMenu(
+                              activeMessageMenu ===
+                                message.id
+                                ? null
+                                : message.id
+                            )
+                          }
+                          style={{
+                            position:
+                              'absolute',
 
-                                cursor:
-                                  'pointer',
+                            top:
+                              0,
 
-                                display:
-                                  'flex',
+                            right:
+                              isMe
+                                ? '100%'
+                                : 'auto',
 
-                                alignItems:
-                                  'center',
+                            left:
+                              isMe
+                                ? 'auto'
+                                : '100%',
 
-                                gap:
-                                  '4px',
+                            background:
+                              'none',
 
-                                fontSize:
-                                  '12px',
+                            border:
+                              'none',
 
-                                fontWeight:
-                                  '800',
+                            cursor:
+                              'pointer',
 
-                                color:
-                                  '#0B1A3F'
-                              }}
-                            >
-                              <Reply
-                                size={
-                                  12
-                                }
-                              />
-                              Reply
-                            </button>
+                            padding:
+                              '4px'
+                          }}
+                        >
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                togglePinGroupMessage(
-                                  msg.id
-                                )
-                              }
-                              style={{
-                                border: `1px solid ${PIN_COLORS.border}`,
+                          <MoreVertical
+                            size={14}
+                            color="#A3AED0"
+                          />
 
-                                background:
-                                  PIN_COLORS.bg,
+                        </button>
+                      )}
 
-                                padding:
-                                  '4px 8px',
 
-                                borderRadius:
-                                  '6px',
+                      {/* =================================================
+                          MESSAGE ACTION MENU
+                      ================================================= */}
 
-                                cursor:
-                                  'pointer',
+                      {activeMessageMenu ===
+                        message.id && (
 
-                                display:
-                                  'flex',
+                        <div
+                          style={{
+                            position:
+                              'absolute',
 
-                                alignItems:
-                                  'center',
+                            top:
+                              '24px',
 
-                                gap:
-                                  '4px',
+                            [isMe
+                              ? 'right'
+                              : 'left']:
+                              '100%',
 
-                                fontSize:
-                                  '12px',
+                            background:
+                              'white',
 
-                                fontWeight:
-                                  '800',
+                            borderRadius:
+                              '12px',
 
-                                color:
-                                  PIN_COLORS.icon
-                              }}
-                            >
-                              <Pin
-                                size={
-                                  12
-                                }
-                                fill={
-                                  PIN_COLORS.icon
-                                }
-                                color={
-                                  PIN_COLORS.icon
-                                }
-                              />
+                            padding:
+                              '8px',
 
-                              {(
-                                pinnedGroupMessages[
-                                  selectedGroup
-                                    .id
-                                ] ||
-                                []
-                              ).includes(
-                                msg.id
-                              )
-                                ? 'Unpin'
-                                : 'Pin'}
-                            </button>
+                            border:
+                              '1px solid #E2E8F0',
 
-                            {(isMe ||
-                              selectedGroup.creator_id ===
-                                currentUser?.id) && (
+                            boxShadow:
+                              '0 10px 20px rgba(0,0,0,0.1)',
+
+                            zIndex:
+                              10,
+
+                            display:
+                              'flex',
+
+                            gap:
+                              '6px',
+
+                            alignItems:
+                              'center'
+                          }}
+                        >
+
+                          {/* EMOJIS */}
+
+                          {EMOJI_REACTIONS.map(
+                            (emoji) => (
+
                               <button
+                                key={
+                                  emoji
+                                }
                                 onClick={() =>
-                                  handleDeleteMessage(
-                                    msg.id
+                                  handleReactToMessage(
+                                    message.id,
+                                    emoji
                                   )
                                 }
                                 style={{
@@ -8499,171 +10700,220 @@ export default function StudyGroups() {
                                     'none',
 
                                   background:
-                                    '#FEE2E2',
-
-                                  padding:
-                                    '4px 8px',
-
-                                  borderRadius:
-                                    '6px',
+                                    'none',
 
                                   cursor:
-                                    'pointer'
+                                    'pointer',
+
+                                  fontSize:
+                                    '16px'
                                 }}
                               >
-                                <Trash2
-                                  size={
-                                    12
-                                  }
-                                  color="#B91C1C"
-                                />
+                                {emoji}
                               </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-                )
-              )}
+                            )
+                          )}
 
-              <div
-                ref={
-                  chatBottomRef
+
+                          {/* REPLY */}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+
+                              setReplyingTo(
+                                message
+                              );
+
+                              setActiveMessageMenu(
+                                null
+                              );
+                            }}
+                            style={{
+                              border:
+                                'none',
+
+                              background:
+                                '#EEF2FF',
+
+                              padding:
+                                '4px 8px',
+
+                              borderRadius:
+                                '6px',
+
+                              cursor:
+                                'pointer',
+
+                              display:
+                                'flex',
+
+                              alignItems:
+                                'center',
+
+                              gap:
+                                '4px',
+
+                              fontSize:
+                                '12px',
+
+                              fontWeight:
+                                '800',
+
+                              color:
+                                '#0B1A3F'
+                            }}
+                          >
+
+                            <Reply
+                              size={12}
+                            />
+
+                            Reply
+
+                          </button>
+
+
+                          {/* PIN MESSAGE */}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              togglePinGroupMessage(
+                                message.id
+                              )
+                            }
+                            style={{
+                              border:
+                                `1px solid ${PIN_COLORS.border}`,
+
+                              background:
+                                PIN_COLORS.bg,
+
+                              padding:
+                                '4px 8px',
+
+                              borderRadius:
+                                '6px',
+
+                              cursor:
+                                'pointer',
+
+                              display:
+                                'flex',
+
+                              alignItems:
+                                'center',
+
+                              gap:
+                                '4px',
+
+                              fontSize:
+                                '12px',
+
+                              fontWeight:
+                                '800',
+
+                              color:
+                                PIN_COLORS.icon
+                            }}
+                          >
+
+                            <Pin
+                              size={12}
+                              fill={
+                                PIN_COLORS.icon
+                              }
+                              color={
+                                PIN_COLORS.icon
+                              }
+                            />
+
+
+                            {(
+                              pinnedGroupMessages[
+                                selectedGroup.id
+                              ] ||
+                              []
+                            ).includes(
+                              message.id
+                            )
+                              ? 'Unpin'
+                              : 'Pin'}
+
+                          </button>
+
+
+                          {/* DELETE MESSAGE */}
+
+                          {(isMe ||
+                            selectedGroup.creator_id ===
+                              currentUser?.id) && (
+
+                            <button
+                              onClick={() =>
+                                handleDeleteMessage(
+                                  message.id
+                                )
+                              }
+                              style={{
+                                border:
+                                  'none',
+
+                                background:
+                                  '#FEE2E2',
+
+                                padding:
+                                  '4px 8px',
+
+                                borderRadius:
+                                  '6px',
+
+                                cursor:
+                                  'pointer'
+                              }}
+                            >
+
+                              <Trash2
+                                size={12}
+                                color="#B91C1C"
+                              />
+
+                            </button>
+                          )}
+
+                        </div>
+                      )}
+
+                    </div>
+                  );
                 }
-              />
-            </div>
-
-            {/* REPLY PREVIEW */}
-
-            {replyingTo && (
-              <div
-                style={{
-                  padding:
-                    '10px 24px',
-
-                  background:
-                    '#EEF2FF',
-
-                  borderTop:
-                    '1px solid #E2E8F0',
-
-                  display:
-                    'flex',
-
-                  justifyContent:
-                    'space-between',
-
-                  alignItems:
-                    'center',
-
-                  gap:
-                    '12px'
-                }}
-              >
-                <div
-                  style={{
-                    borderLeft:
-                      '3px solid #0B1A3F',
-
-                    paddingLeft:
-                      '10px',
-
-                    minWidth:
-                      0
-                  }}
-                >
-                  <p
-                    style={{
-                      margin:
-                        0,
-
-                      fontSize:
-                        '11px',
-
-                      fontWeight:
-                        '900',
-
-                      color:
-                        '#0B1A3F'
-                    }}
-                  >
-                    Replying to{' '}
-                    {
-                      replyingTo.sender_name
-                    }
-                  </p>
-
-                  <p
-                    style={{
-                      margin:
-                        '2px 0 0',
-
-                      fontSize:
-                        '12px',
-
-                      color:
-                        '#64748B',
-
-                      fontWeight:
-                        '700',
-
-                      whiteSpace:
-                        'nowrap',
-
-                      overflow:
-                        'hidden',
-
-                      textOverflow:
-                        'ellipsis'
-                    }}
-                  >
-                    {replyingTo.type ===
-                    'poll'
-                      ? replyingTo
-                          .poll_data
-                          ?.question
-                      : replyingTo.content}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() =>
-                    setReplyingTo(
-                      null
-                    )
-                  }
-                  style={{
-                    border:
-                      'none',
-
-                    background:
-                      'none',
-
-                    cursor:
-                      'pointer'
-                  }}
-                >
-                  <X
-                    size={16}
-                    color="#A3AED0"
-                  />
-                </button>
-              </div>
+              )
             )}
 
-            {/* MESSAGE INPUT */}
 
-            <form
-              onSubmit={
-                handleSendMessage
+            <div
+              ref={
+                chatBottomRef
               }
+            />
+
+          </div>
+
+
+          {/* =================================================
+              REPLY PREVIEW
+          ================================================= */}
+
+          {replyingTo && (
+
+            <div
               style={{
                 padding:
-                  '20px',
+                  '10px 24px',
 
                 background:
-                  'white',
+                  '#EEF2FF',
 
                 borderTop:
                   '1px solid #E2E8F0',
@@ -8671,79 +10921,223 @@ export default function StudyGroups() {
                 display:
                   'flex',
 
-                gap: '12px'
+                justifyContent:
+                  'space-between',
+
+                alignItems:
+                  'center',
+
+                gap:
+                  '12px'
               }}
             >
-              <input
-                type="text"
-                placeholder={
-                  replyingTo
-                    ? `Reply to ${replyingTo.sender_name}...`
-                    : 'Type your message...'
-                }
-                value={
-                  newMessage
-                }
-                onChange={(e) =>
-                  setNewMessage(
-                    e.target
-                      .value
+
+              <div
+                style={{
+                  borderLeft:
+                    '3px solid #0B1A3F',
+
+                  paddingLeft:
+                    '10px',
+
+                  minWidth:
+                    0
+                }}
+              >
+
+                <p
+                  style={{
+                    margin:
+                      0,
+
+                    fontSize:
+                      '11px',
+
+                    fontWeight:
+                      '900',
+
+                    color:
+                      '#0B1A3F'
+                  }}
+                >
+                  Replying to{' '}
+
+                  {
+                    replyingTo.sender_name
+                  }
+                </p>
+
+
+                <p
+                  style={{
+                    margin:
+                      '2px 0 0',
+
+                    fontSize:
+                      '12px',
+
+                    color:
+                      '#64748B',
+
+                    fontWeight:
+                      '700',
+
+                    whiteSpace:
+                      'nowrap',
+
+                    overflow:
+                      'hidden',
+
+                    textOverflow:
+                      'ellipsis'
+                  }}
+                >
+
+                  {replyingTo.type ===
+                  'poll'
+                    ? replyingTo
+                        .poll_data
+                        ?.question
+                    : replyingTo.content}
+
+                </p>
+
+              </div>
+
+
+              <button
+                onClick={() =>
+                  setReplyingTo(
+                    null
                   )
                 }
                 style={{
-                  ...inputStyle,
-
-                  flex: 1,
+                  border:
+                    'none',
 
                   background:
-                    '#F8FAFC'
-                }}
-              />
+                    'none',
 
-              <button
-                type="submit"
-                disabled={
-                  !newMessage.trim()
-                }
-                style={{
-                  ...saveBtn,
-
-                  padding:
-                    '12px 20px',
-
-                  display:
-                    'flex',
-
-                  alignItems:
-                    'center',
-
-                  justifyContent:
-                    'center',
-
-                  opacity:
-                    newMessage.trim()
-                      ? 1
-                      : 0.5
+                  cursor:
+                    'pointer'
                 }}
               >
-                <Send
-                  size={18}
+
+                <X
+                  size={16}
+                  color="#A3AED0"
                 />
+
               </button>
-            </form>
-          </div>
-        )}
+
+            </div>
+          )}
+
+
+          {/* =================================================
+              MESSAGE INPUT
+          ================================================= */}
+
+          <form
+            onSubmit={
+              handleSendMessage
+            }
+            style={{
+              padding:
+                '20px',
+
+              background:
+                'white',
+
+              borderTop:
+                '1px solid #E2E8F0',
+
+              display:
+                'flex',
+
+              gap:
+                '12px'
+            }}
+          >
+
+            <input
+              type="text"
+              placeholder={
+                replyingTo
+                  ? `Reply to ${replyingTo.sender_name}...`
+                  : 'Type your message...'
+              }
+              value={
+                newMessage
+              }
+              onChange={(event) =>
+                setNewMessage(
+                  event.target.value
+                )
+              }
+              style={{
+                ...inputStyle,
+
+                flex:
+                  1,
+
+                background:
+                  '#F8FAFC'
+              }}
+            />
+
+
+            <button
+              type="submit"
+              disabled={
+                !newMessage.trim()
+              }
+              style={{
+                ...saveBtn,
+
+                padding:
+                  '12px 20px',
+
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                opacity:
+                  newMessage.trim()
+                    ? 1
+                    : 0.5
+              }}
+            >
+
+              <Send
+                size={18}
+              />
+
+            </button>
+
+          </form>
+
+        </div>
+      )}
+
 
       {/* =================================================
           EDIT GROUP MODAL
       ================================================= */}
 
       {editingGroup && (
+
         <div
           style={
             overlay
           }
         >
+
           <div
             style={{
               width:
@@ -8771,6 +11165,7 @@ export default function StudyGroups() {
                 'auto'
             }}
           >
+
             <div
               style={{
                 display:
@@ -8786,6 +11181,7 @@ export default function StudyGroups() {
                   '24px'
               }}
             >
+
               <h2
                 style={{
                   margin:
@@ -8804,6 +11200,7 @@ export default function StudyGroups() {
                 Edit Circle
               </h2>
 
+
               <button
                 onClick={() =>
                   setEditingGroup(
@@ -8821,12 +11218,16 @@ export default function StudyGroups() {
                     'pointer'
                 }}
               >
+
                 <X
                   size={20}
                   color="#A3AED0"
                 />
+
               </button>
+
             </div>
+
 
             <form
               onSubmit={
@@ -8843,11 +11244,15 @@ export default function StudyGroups() {
                   '20px'
               }}
             >
+
+              {/* NAME */}
+
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -8855,6 +11260,7 @@ export default function StudyGroups() {
                 >
                   NAME
                 </label>
+
 
                 <input
                   type="text"
@@ -8865,26 +11271,27 @@ export default function StudyGroups() {
                   value={
                     editingGroup.name
                   }
-                  onChange={(e) =>
-                    setEditingGroup(
-                      {
-                        ...editingGroup,
+                  onChange={(event) =>
+                    setEditingGroup({
+                      ...editingGroup,
 
-                        name:
-                          e
-                            .target
-                            .value
-                      }
-                    )
+                      name:
+                        event.target.value
+                    })
                   }
                 />
+
               </div>
+
+
+              {/* MAJOR */}
 
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -8893,6 +11300,7 @@ export default function StudyGroups() {
                   MAJOR
                 </label>
 
+
                 <select
                   style={
                     inputStyle
@@ -8900,39 +11308,41 @@ export default function StudyGroups() {
                   value={
                     editingGroup.major
                   }
-                  onChange={(e) =>
-                    setEditingGroup(
-                      {
-                        ...editingGroup,
+                  onChange={(event) =>
+                    setEditingGroup({
+                      ...editingGroup,
 
-                        major:
-                          e
-                            .target
-                            .value
-                      }
-                    )
+                      major:
+                        event.target.value
+                    })
                   }
                 >
+
                   {MAJORS_CREATION.map(
-                    (m) => (
+                    (major) => (
+
                       <option
-                        key={m}
-                        value={
-                          m
-                        }
+                        key={major}
+                        value={major}
                       >
-                        {m}
+                        {major}
                       </option>
                     )
                   )}
+
                 </select>
+
               </div>
+
+
+              {/* STUDY GOAL */}
 
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -8941,26 +11351,24 @@ export default function StudyGroups() {
                   STUDY GOAL
                 </label>
 
+
                 <div
                   style={
                     chipGridStyle
                   }
                 >
+
                   {STUDY_GOALS.map(
                     (goal) => (
+
                       <button
-                        key={
-                          goal
-                        }
+                        key={goal}
                         type="button"
                         onClick={() =>
-                          setEditingGroup(
-                            {
-                              ...editingGroup,
-
-                              goal
-                            }
-                          )
+                          setEditingGroup({
+                            ...editingGroup,
+                            goal
+                          })
                         }
                         style={
                           editingGroup.goal ===
@@ -8973,14 +11381,20 @@ export default function StudyGroups() {
                       </button>
                     )
                   )}
+
                 </div>
+
               </div>
+
+
+              {/* NOISE */}
 
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -8989,26 +11403,27 @@ export default function StudyGroups() {
                   NOISE VIBE
                 </label>
 
+
                 <div
                   style={
                     chipGridStyle
                   }
                 >
+
                   {NOISE_LEVELS.map(
                     (environment) => (
+
                       <button
                         key={
                           environment
                         }
                         type="button"
                         onClick={() =>
-                          setEditingGroup(
-                            {
-                              ...editingGroup,
+                          setEditingGroup({
+                            ...editingGroup,
 
-                              environment
-                            }
-                          )
+                            environment
+                          })
                         }
                         style={
                           editingGroup.environment ===
@@ -9017,20 +11432,24 @@ export default function StudyGroups() {
                             : chipStyle
                         }
                       >
-                        {
-                          environment
-                        }
+                        {environment}
                       </button>
                     )
                   )}
+
                 </div>
+
               </div>
+
+
+              {/* DESCRIPTION */}
 
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -9038,6 +11457,7 @@ export default function StudyGroups() {
                 >
                   DESCRIPTION
                 </label>
+
 
                 <textarea
                   style={{
@@ -9053,20 +11473,300 @@ export default function StudyGroups() {
                     editingGroup.description ||
                     ''
                   }
-                  onChange={(e) =>
-                    setEditingGroup(
-                      {
-                        ...editingGroup,
+                  onChange={(event) =>
+                    setEditingGroup({
+                      ...editingGroup,
 
-                        description:
-                          e
-                            .target
-                            .value
-                      }
-                    )
+                      description:
+                        event.target.value
+                    })
                   }
                 />
+
               </div>
+
+
+              {/* =================================================
+                  EDIT COLOR
+              ================================================= */}
+
+              <div
+                style={
+                  formSectionStyle
+                }
+              >
+
+                <label
+                  style={
+                    labelStyle
+                  }
+                >
+                  CIRCLE THEME COLOR
+                </label>
+
+
+                <div
+                  style={{
+                    display:
+                      'flex',
+
+                    gap:
+                      '12px',
+
+                    marginTop:
+                      '6px',
+
+                    flexWrap:
+                      'wrap',
+
+                    alignItems:
+                      'center'
+                  }}
+                >
+
+                  {GROUP_COLORS.map(
+                    (
+                      colorOption
+                    ) => {
+
+                      const isSelected =
+                        editingGroup.color ===
+                        colorOption.bg;
+
+
+                      return (
+
+                        <button
+                          type="button"
+                          key={
+                            colorOption.bg
+                          }
+                          title={
+                            colorOption.name
+                          }
+                          onClick={() =>
+                            setEditingGroup({
+                              ...editingGroup,
+
+                              color:
+                                colorOption.bg
+                            })
+                          }
+                          style={{
+                            width:
+                              '40px',
+
+                            height:
+                              '40px',
+
+                            borderRadius:
+                              '50%',
+
+                            background:
+                              colorOption.bg,
+
+                            cursor:
+                              'pointer',
+
+                            border:
+                              isSelected
+                                ? '3px solid #0B1A3F'
+                                : '1px solid #CBD5E1',
+
+                            display:
+                              'flex',
+
+                            alignItems:
+                              'center',
+
+                            justifyContent:
+                              'center',
+
+                            boxShadow:
+                              isSelected
+                                ? '0 4px 12px rgba(11,26,63,0.15)'
+                                : 'none'
+                          }}
+                        >
+
+                          {isSelected && (
+
+                            <Check
+                              size={16}
+                              color={
+                                getContrastColor(
+                                  colorOption.bg
+                                )
+                              }
+                              strokeWidth={3}
+                            />
+                          )}
+
+                        </button>
+                      );
+                    }
+                  )}
+
+
+                  {/* CUSTOM COLOR */}
+
+                  <label
+                    title="Choose any custom color or shade"
+                    style={{
+                      width:
+                        '40px',
+
+                      height:
+                        '40px',
+
+                      borderRadius:
+                        '50%',
+
+                      overflow:
+                        'hidden',
+
+                      cursor:
+                        'pointer',
+
+                      position:
+                        'relative',
+
+                      border:
+                        !GROUP_COLORS.some(
+                          (
+                            colorOption
+                          ) =>
+                            colorOption.bg.toLowerCase() ===
+                            editingGroup.color
+                              ?.toLowerCase()
+                        )
+                          ? '3px solid #0B1A3F'
+                          : '1px solid #CBD5E1'
+                    }}
+                  >
+
+                    <input
+                      type="color"
+                      aria-label="Choose any custom circle color"
+                      value={
+                        editingGroup.color ||
+                        '#E0F2FE'
+                      }
+                      onChange={(event) =>
+                        setEditingGroup({
+                          ...editingGroup,
+
+                          color:
+                            event.target.value
+                        })
+                      }
+                      style={{
+                        position:
+                          'absolute',
+
+                        width:
+                          '65px',
+
+                        height:
+                          '65px',
+
+                        top:
+                          '-12px',
+
+                        left:
+                          '-12px',
+
+                        border:
+                          'none',
+
+                        padding:
+                          0,
+
+                        cursor:
+                          'pointer'
+                      }}
+                    />
+
+                  </label>
+
+                </div>
+
+
+                {/* COLOR PREVIEW */}
+
+                <div
+                  style={{
+                    marginTop:
+                      '10px',
+
+                    padding:
+                      '15px',
+
+                    borderRadius:
+                      '14px',
+
+                    background:
+                      editingGroup.color ||
+                      '#E0F2FE',
+
+                    border:
+                      `1px solid ${getContrastBorder(
+                        editingGroup.color ||
+                          '#E0F2FE'
+                      )}`
+                  }}
+                >
+
+                  <p
+                    style={{
+                      margin:
+                        0,
+
+                      fontWeight:
+                        '900',
+
+                      fontSize:
+                        '15px',
+
+                      color:
+                        getContrastColor(
+                          editingGroup.color ||
+                            '#E0F2FE'
+                        )
+                    }}
+                  >
+                    {editingGroup.name ||
+                      'Study Circle'}
+                  </p>
+
+
+                  <p
+                    style={{
+                      margin:
+                        '3px 0 0',
+
+                      fontWeight:
+                        '700',
+
+                      fontSize:
+                        '11px',
+
+                      color:
+                        getMutedContrastColor(
+                          editingGroup.color ||
+                            '#E0F2FE'
+                        )
+                    }}
+                  >
+                    Preview of your updated theme
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              {/* SAVE */}
 
               <button
                 type="submit"
@@ -9077,25 +11777,33 @@ export default function StudyGroups() {
                   saveBtn
                 }
               >
+
                 {actionLoading
                   ? 'Saving...'
                   : 'Save Changes'}
+
               </button>
+
             </form>
+
           </div>
+
         </div>
       )}
+
 
       {/* =================================================
           CREATE POLL MODAL
       ================================================= */}
 
       {showPollModal && (
+
         <div
           style={
             overlay
           }
         >
+
           <div
             style={{
               width:
@@ -9117,6 +11825,7 @@ export default function StudyGroups() {
                 '1px solid #E2E8F0'
             }}
           >
+
             <div
               style={{
                 display:
@@ -9132,6 +11841,7 @@ export default function StudyGroups() {
                   '20px'
               }}
             >
+
               <h3
                 style={{
                   margin:
@@ -9147,9 +11857,9 @@ export default function StudyGroups() {
                     '#0B1A3F'
                 }}
               >
-                Create Group
-                Poll
+                Create Group Poll
               </h3>
+
 
               <button
                 onClick={() =>
@@ -9168,12 +11878,16 @@ export default function StudyGroups() {
                     'pointer'
                 }}
               >
+
                 <X
                   size={20}
                   color="#A3AED0"
                 />
+
               </button>
+
             </div>
+
 
             <form
               onSubmit={
@@ -9190,11 +11904,13 @@ export default function StudyGroups() {
                   '16px'
               }}
             >
+
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -9202,6 +11918,7 @@ export default function StudyGroups() {
                 >
                   QUESTION
                 </label>
+
 
                 <input
                   type="text"
@@ -9213,20 +11930,22 @@ export default function StudyGroups() {
                   value={
                     pollQuestion
                   }
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setPollQuestion(
-                      e.target
-                        .value
+                      event.target.value
                     )
                   }
                 />
+
               </div>
+
 
               <div
                 style={
                   formSectionStyle
                 }
               >
+
                 <label
                   style={
                     labelStyle
@@ -9235,17 +11954,24 @@ export default function StudyGroups() {
                   OPTIONS
                 </label>
 
+
                 {pollOptions.map(
                   (
-                    opt,
-                    idx
+                    option,
+                    optionIndex
                   ) => (
+
                     <input
                       key={
-                        idx
+                        optionIndex
                       }
                       type="text"
-                      placeholder={`Option ${idx + 1}`}
+                      placeholder={
+                        `Option ${
+                          optionIndex +
+                          1
+                        }`
+                      }
                       required
                       style={{
                         ...inputStyle,
@@ -9254,36 +11980,38 @@ export default function StudyGroups() {
                           '8px'
                       }}
                       value={
-                        opt
+                        option
                       }
-                      onChange={(e) => {
-                        const newOpts =
+                      onChange={(event) => {
+
+                        const updated =
                           [
                             ...pollOptions
                           ];
 
-                        newOpts[
-                          idx
+
+                        updated[
+                          optionIndex
                         ] =
-                          e.target.value;
+                          event.target.value;
+
 
                         setPollOptions(
-                          newOpts
+                          updated
                         );
                       }}
                     />
                   )
                 )}
 
+
                 <button
                   type="button"
                   onClick={() =>
-                    setPollOptions(
-                      [
-                        ...pollOptions,
-                        ''
-                      ]
-                    )
+                    setPollOptions([
+                      ...pollOptions,
+                      ''
+                    ])
                   }
                   style={{
                     border:
@@ -9313,7 +12041,9 @@ export default function StudyGroups() {
                 >
                   + Add Option
                 </button>
+
               </div>
+
 
               <button
                 type="submit"
@@ -9324,24 +12054,29 @@ export default function StudyGroups() {
                     '10px'
                 }}
               >
-                Post Poll to
-                Chat
+                Post Poll to Chat
               </button>
+
             </form>
+
           </div>
+
         </div>
       )}
+
 
       {/* =================================================
           MEMBERS MODAL
       ================================================= */}
 
       {showMembersDrawer && (
+
         <div
           style={
             overlay
           }
         >
+
           <div
             style={{
               width:
@@ -9363,6 +12098,7 @@ export default function StudyGroups() {
                 '1px solid #E2E8F0'
             }}
           >
+
             <div
               style={{
                 display:
@@ -9378,7 +12114,9 @@ export default function StudyGroups() {
                   '20px'
               }}
             >
+
               <div>
+
                 <h3
                   style={{
                     margin:
@@ -9397,6 +12135,7 @@ export default function StudyGroups() {
                   All Members
                 </h3>
 
+
                 <p
                   style={{
                     margin:
@@ -9412,12 +12151,12 @@ export default function StudyGroups() {
                       '700'
                   }}
                 >
-                  {
-                    groupMembers.length
-                  }{' '}
+                  {groupMembers.length}{' '}
                   Total Members
                 </p>
+
               </div>
+
 
               <button
                 onClick={() =>
@@ -9436,12 +12175,16 @@ export default function StudyGroups() {
                     'pointer'
                 }}
               >
+
                 <X
                   size={20}
                   color="#A3AED0"
                 />
+
               </button>
+
             </div>
+
 
             <div
               style={{
@@ -9461,20 +12204,25 @@ export default function StudyGroups() {
                   'auto'
               }}
             >
+
               {groupMembers.map(
-                (m) => (
+                (member) => (
+
                   <div
                     key={
-                      m.user_id
+                      member.user_id
                     }
                     onClick={() => {
+
                       if (
-                        m.user_id !==
+                        member.user_id !==
                         currentUser?.id
                       ) {
+
                         openMemberChat(
-                          m
+                          member
                         );
+
 
                         setShowMembersDrawer(
                           false
@@ -9495,7 +12243,7 @@ export default function StudyGroups() {
                         '1px solid #E2E8F0',
 
                       cursor:
-                        m.user_id ===
+                        member.user_id ===
                         currentUser?.id
                           ? 'default'
                           : 'pointer',
@@ -9507,9 +12255,13 @@ export default function StudyGroups() {
                         'space-between',
 
                       alignItems:
-                        'center'
+                        'center',
+
+                      gap:
+                        '12px'
                     }}
                   >
+
                     <div
                       style={{
                         display:
@@ -9519,26 +12271,35 @@ export default function StudyGroups() {
                           'center',
 
                         gap:
-                          '10px'
+                          '10px',
+
+                        minWidth:
+                          0
                       }}
                     >
+
                       <Circle
-                        size={
-                          10
-                        }
+                        size={10}
                         fill={
-                          m.isOnline
+                          member.isOnline
                             ? '#22C55E'
                             : '#94A3B8'
                         }
                         color={
-                          m.isOnline
+                          member.isOnline
                             ? '#22C55E'
                             : '#94A3B8'
                         }
                       />
 
-                      <div>
+
+                      <div
+                        style={{
+                          minWidth:
+                            0
+                        }}
+                      >
+
                         <div
                           style={{
                             display:
@@ -9548,9 +12309,13 @@ export default function StudyGroups() {
                               'center',
 
                             gap:
-                              '6px'
+                              '6px',
+
+                            flexWrap:
+                              'wrap'
                           }}
                         >
+
                           <p
                             style={{
                               margin:
@@ -9566,14 +12331,25 @@ export default function StudyGroups() {
                                 '14px'
                             }}
                           >
-                            {m
+                            {member
                               .profiles
                               ?.full_name ||
+                              member
+                                .profiles
+                                ?.email
+                                ?.split('@')[0] ||
                               'Student'}
+
+                            {member.user_id ===
+                              currentUser?.id
+                              ? ' (You)'
+                              : ''}
                           </p>
 
-                          {m.user_id ===
+
+                          {member.user_id ===
                             selectedGroup?.creator_id && (
+
                             <span
                               style={{
                                 fontSize:
@@ -9582,7 +12358,8 @@ export default function StudyGroups() {
                                 background:
                                   PIN_COLORS.bg,
 
-                                border: `1px solid ${PIN_COLORS.border}`,
+                                border:
+                                  `1px solid ${PIN_COLORS.border}`,
 
                                 color:
                                   PIN_COLORS.icon,
@@ -9600,12 +12377,14 @@ export default function StudyGroups() {
                               Creator
                             </span>
                           )}
+
                         </div>
+
 
                         <p
                           style={{
                             margin:
-                              0,
+                              '2px 0 0',
 
                             fontWeight:
                               '600',
@@ -9617,16 +12396,33 @@ export default function StudyGroups() {
                               '12px'
                           }}
                         >
-                          {m
-                            .profiles
-                            ?.major ||
-                            'No major set'}
+                          {[
+                            member
+                              .profiles
+                              ?.major,
+
+                            member
+                              .profiles
+                              ?.academic_year
+                          ]
+                            .filter(
+                              (value) =>
+                                value &&
+                                value !==
+                                  'Not specified'
+                            )
+                            .join(' · ') ||
+                            'Student'}
                         </p>
+
                       </div>
+
                     </div>
 
-                    {m.user_id !==
+
+                    {member.user_id !==
                       currentUser?.id && (
+
                       <div
                         style={{
                           display:
@@ -9639,16 +12435,18 @@ export default function StudyGroups() {
                             '8px'
                         }}
                       >
+
                         <button
                           type="button"
-                          onClick={(
-                            e
-                          ) => {
-                            e.stopPropagation();
+                          onClick={(event) => {
+
+                            event.stopPropagation();
+
 
                             setSelectedMember(
-                              m
+                              member
                             );
+
 
                             setShowMembersDrawer(
                               false
@@ -9668,40 +12466,47 @@ export default function StudyGroups() {
                               'flex'
                           }}
                         >
+
                           <User
-                            size={
-                              18
-                            }
+                            size={18}
                             color="#A3AED0"
                           />
+
                         </button>
 
+
                         <MessageSquare
-                          size={
-                            18
-                          }
+                          size={18}
                           color="#0B1A3F"
                         />
+
                       </div>
                     )}
+
                   </div>
                 )
               )}
+
             </div>
+
           </div>
+
         </div>
       )}
+
 
       {/* =================================================
           MEMBER PROFILE MODAL
       ================================================= */}
 
       {selectedMember && (
+
         <div
           style={
             overlay
           }
         >
+
           <div
             style={{
               width:
@@ -9723,6 +12528,7 @@ export default function StudyGroups() {
                 '1px solid #E2E8F0'
             }}
           >
+
             <div
               style={{
                 display:
@@ -9738,30 +12544,43 @@ export default function StudyGroups() {
                   '20px'
               }}
             >
+
               <span
                 style={{
                   ...tagStyle,
 
                   background:
                     selectedGroup?.color ||
-                    '#E0F2FE'
+                    '#E0F2FE',
+
+                  color:
+                    getContrastColor(
+                      selectedGroup?.color ||
+                        '#E0F2FE'
+                    )
                 }}
               >
+
                 {selectedMember.user_id ===
                 selectedGroup?.creator_id
                   ? 'Circle Leader'
                   : 'Member'}
+
               </span>
+
 
               <button
                 onClick={() => {
+
                   setSelectedMember(
                     null
                   );
 
+
                   setShowDMChat(
                     false
                   );
+
 
                   setDirectChatMessage(
                     ''
@@ -9778,12 +12597,16 @@ export default function StudyGroups() {
                     'pointer'
                 }}
               >
+
                 <X
                   size={20}
                   color="#A3AED0"
                 />
+
               </button>
+
             </div>
+
 
             <div
               style={{
@@ -9794,6 +12617,9 @@ export default function StudyGroups() {
                   '10px 0 20px'
               }}
             >
+
+              {/* AVATAR */}
+
               <div
                 style={{
                   width:
@@ -9809,7 +12635,10 @@ export default function StudyGroups() {
                     getAvatarColor(
                       selectedMember
                         .profiles
-                        ?.full_name
+                        ?.full_name ||
+                      selectedMember
+                        .profiles
+                        ?.email
                     ),
 
                   color:
@@ -9837,9 +12666,14 @@ export default function StudyGroups() {
                 {getInitials(
                   selectedMember
                     .profiles
-                    ?.full_name
+                    ?.full_name ||
+                  selectedMember
+                    .profiles
+                    ?.email ||
+                  'Student'
                 )}
               </div>
+
 
               <h4
                 style={{
@@ -9859,8 +12693,13 @@ export default function StudyGroups() {
                 {selectedMember
                   .profiles
                   ?.full_name ||
+                  selectedMember
+                    .profiles
+                    ?.email
+                    ?.split('@')[0] ||
                   'Student'}
               </h4>
+
 
               <p
                 style={{
@@ -9883,6 +12722,9 @@ export default function StudyGroups() {
                   'No public email provided'}
               </p>
 
+
+              {/* INFO */}
+
               <div
                 style={{
                   marginTop:
@@ -9898,6 +12740,9 @@ export default function StudyGroups() {
                     '8px'
                 }}
               >
+
+                {/* MAJOR */}
+
                 <div
                   style={{
                     background:
@@ -9916,6 +12761,7 @@ export default function StudyGroups() {
                       '1px solid #E2E8F0'
                   }}
                 >
+
                   <span
                     style={{
                       fontSize:
@@ -9934,6 +12780,7 @@ export default function StudyGroups() {
                     MAJOR
                   </span>
 
+
                   <span
                     style={{
                       fontSize:
@@ -9951,7 +12798,11 @@ export default function StudyGroups() {
                       ?.major ||
                       'Not specified'}
                   </span>
+
                 </div>
+
+
+                {/* ACADEMIC LEVEL */}
 
                 <div
                   style={{
@@ -9971,6 +12822,7 @@ export default function StudyGroups() {
                       '1px solid #E2E8F0'
                   }}
                 >
+
                   <span
                     style={{
                       fontSize:
@@ -9986,9 +12838,9 @@ export default function StudyGroups() {
                         'block'
                     }}
                   >
-                    ACADEMIC
-                    LEVEL
+                    ACADEMIC LEVEL
                   </span>
+
 
                   <span
                     style={{
@@ -10007,9 +12859,15 @@ export default function StudyGroups() {
                       ?.academic_year ||
                       'Not specified'}
                   </span>
+
                 </div>
+
               </div>
+
             </div>
+
+
+            {/* SEND DM BUTTON */}
 
             <button
               onClick={() =>
@@ -10036,14 +12894,20 @@ export default function StudyGroups() {
                   '8px'
               }}
             >
+
               <MessageSquare
                 size={16}
               />
-              Send Direct
-              Message
+
+              Send Direct Message
+
             </button>
 
+
+            {/* QUICK DM */}
+
             {showDMChat && (
+
               <div
                 style={{
                   marginTop:
@@ -10059,6 +12923,7 @@ export default function StudyGroups() {
                     '8px'
                 }}
               >
+
                 <textarea
                   placeholder="Type a private message..."
                   style={{
@@ -10073,13 +12938,13 @@ export default function StudyGroups() {
                   value={
                     directChatMessage
                   }
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setDirectChatMessage(
-                      e.target
-                        .value
+                      event.target.value
                     )
                   }
                 />
+
 
                 <button
                   onClick={
@@ -10091,11 +12956,16 @@ export default function StudyGroups() {
                 >
                   Send DM
                 </button>
+
               </div>
             )}
+
           </div>
+
         </div>
       )}
+
     </div>
   );
 }
+
