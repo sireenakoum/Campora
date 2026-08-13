@@ -14,6 +14,8 @@ import {
   ChevronDown,
   Pencil,
   CheckCheck,
+  Bell,
+  AlarmClock,
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -69,6 +71,9 @@ export default function Todo() {
   title: '',
   details: '',
   priority: '',
+  alertType: '',
+  alertDate: '',
+  alertTime: '',
  });
 
  useEffect(() => {
@@ -78,7 +83,23 @@ export default function Todo() {
  const loadTasks = async () => {
    try {
      const data = await getTodosForCurrentUser();
-     setTasks(data || []);
+
+     const {
+       data: { user },
+     } = await supabase.auth.getUser();
+
+     const links = user
+       ? readTodoAlertLinks(user.id)
+       : {};
+
+     setTasks(
+       (data || []).map((task) => ({
+         ...task,
+         _alertType: links[task.id]?.type || '',
+         _alertDate: links[task.id]?.date || '',
+         _alertTime: links[task.id]?.time || '',
+       }))
+     );
    } catch (error) {
      console.error('Error loading tasks:', error);
    }
@@ -91,6 +112,9 @@ export default function Todo() {
    title: '',
    details: '',
    priority: '',
+   alertType: '',
+   alertDate: '',
+   alertTime: '',
   });
 
   setFormError('');
@@ -106,6 +130,9 @@ const openEditTask = (task) => {
   priority: String(task.priority || '')
      .trim()
      .toLowerCase(),
+  alertType: task._alertType || '',
+  alertDate: task._alertDate || '',
+  alertTime: task._alertTime || '',
  });
 
   setFormError('');
@@ -123,13 +150,78 @@ const closeTaskModal = () => {
    title: '',
    details: '',
    priority: '',
+   alertType: '',
+   alertDate: '',
+   alertTime: '',
   });
+};
+
+
+const getTodoAlertStorageKey = (userId) =>
+  `campora-todo-alert-links-${userId}`;
+
+const readTodoAlertLinks = (userId) => {
+  if (!userId) return {};
+
+  try {
+    return JSON.parse(
+      localStorage.getItem(getTodoAlertStorageKey(userId)) || '{}'
+    );
+  } catch {
+    return {};
+  }
+};
+
+const writeTodoAlertLinks = (userId, links) => {
+  if (!userId) return;
+
+  localStorage.setItem(
+    getTodoAlertStorageKey(userId),
+    JSON.stringify(links || {})
+  );
+};
+
+const removeLinkedTodoAlert = async (userId, todoId) => {
+  if (!userId || !todoId) return;
+
+  const links = readTodoAlertLinks(userId);
+
+  delete links[todoId];
+
+  writeTodoAlertLinks(userId, links);
+};
+
+const createLinkedTodoAlert = async ({
+  userId,
+  todo,
+  alertType,
+  alertDate,
+  alertTime,
+}) => {
+  if (!userId || !todo?.id || !alertType) return;
+
+  const links = readTodoAlertLinks(userId);
+
+  links[todo.id] = {
+    type: alertType,
+    title: todo.title || 'To-Do',
+    details: todo.details || '',
+    priority: todo.priority || '',
+    date: alertDate || '',
+    time: alertTime || '',
+    created_at: new Date().toISOString(),
+  };
+
+  writeTodoAlertLinks(userId, links);
 };
 
 const handleSaveTask = async () => {
  const title = newTask.title.trim();
  const details = newTask.details.trim();
  const priority = newTask.priority;
+ const alertType = newTask.alertType;
+ const alertDate = newTask.alertDate;
+ const alertTime = newTask.alertTime;
 
  setFormError('');
 
@@ -139,30 +231,51 @@ const handleSaveTask = async () => {
  }
 
  if (!priority) {
+   setFormError('Please choose a priority.');
+   return;
+ }
 
-    setFormError('Please choose a priority.');
-    return;
-}
+ if (!['high', 'medium', 'low'].includes(priority)) {
+   setFormError('Please choose a valid priority.');
+   return;
+ }
 
-if (!['high', 'medium', 'low'].includes(priority)) {
-  setFormError('Please choose a valid priority.');
-  return;
-}
+ if (alertType === 'reminder' && !alertDate) {
+   setFormError('Please choose a date for the reminder.');
+   return;
+ }
 
-setSaving(true);
+ setSaving(true);
 
-try {
-  if (editingTask) {
-    const { data, error } = await supabase
-      .from('todos')
-      .update({
-        title,
-        details,
-        priority,
-      })
-      .eq('id', editingTask.id)
-      .select('*')
-      .single();
+ try {
+   const {
+     data: { user },
+     error: userError,
+   } = await supabase.auth.getUser();
+
+   if (userError) {
+     setFormError(userError.message);
+     return;
+   }
+
+   if (!user) {
+     setFormError('You must be logged in to save a task.');
+     return;
+   }
+
+   let savedTask = null;
+
+   if (editingTask) {
+     const { data, error } = await supabase
+       .from('todos')
+       .update({
+         title,
+         details,
+         priority,
+       })
+       .eq('id', editingTask.id)
+       .select('*')
+       .single();
 
      if (error) {
        console.error('Supabase edit error:', error);
@@ -170,29 +283,22 @@ try {
        return;
      }
 
-      setTasks((current) =>
-        current.map((task) =>
-          task.id === editingTask.id ? data : task
-        )
-      );
-    } else {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+     savedTask = data;
 
-     if (userError) {
-       setFormError(userError.message);
-       return;
-     }
-
-     if (!user) {
-
-          setFormError('You must be logged in to add a task.');
-          return;
-      }
-
-      const { data, error } = await supabase
+     setTasks((current) =>
+       current.map((task) =>
+         task.id === editingTask.id
+           ? {
+               ...data,
+               _alertType: alertType,
+               _alertDate: alertDate,
+               _alertTime: alertTime,
+             }
+           : task
+       )
+     );
+   } else {
+     const { data, error } = await supabase
        .from('todos')
        .insert([
          {
@@ -206,20 +312,57 @@ try {
        .select('*')
        .single();
 
-      if (error) {
-        console.error('Supabase add error:', error);
-        setFormError(error.message);
-        return;
-      }
+     if (error) {
+       console.error('Supabase add error:', error);
+       setFormError(error.message);
+       return;
+     }
 
-      setTasks((current) => [data, ...current]);
-  }
+     savedTask = data;
 
-  setNewTask({
-   title: '',
-   details: '',
-   priority: '',
-  });
+     setTasks((current) => [
+       {
+         ...data,
+         _alertType: alertType,
+         _alertDate: alertDate,
+         _alertTime: alertTime,
+       },
+       ...current,
+     ]);
+   }
+
+   try {
+     if (alertType) {
+       await createLinkedTodoAlert({
+         userId: user.id,
+         todo: savedTask,
+         alertType,
+         alertDate,
+         alertTime,
+       });
+     } else {
+       await removeLinkedTodoAlert(user.id, savedTask?.id);
+     }
+   } catch (alertError) {
+     console.error('Could not create To-Do alert:', alertError);
+
+     setFormError(
+       `Task saved, but the ${
+         alertType === 'reminder' ? 'reminder' : 'notification'
+       } could not be added: ${alertError?.message || 'Unknown error'}`
+     );
+
+     return;
+   }
+
+   setNewTask({
+     title: '',
+     details: '',
+     priority: '',
+     alertType: '',
+     alertDate: '',
+     alertTime: '',
+   });
 
    setEditingTask(null);
    setFormError('');
@@ -227,12 +370,12 @@ try {
  } catch (error) {
    console.error('Task save error:', error);
 
-    setFormError(
-      error?.message || 'Something went wrong while saving the task.'
-    );
-  } finally {
-    setSaving(false);
-  }
+   setFormError(
+     error?.message || 'Something went wrong while saving the task.'
+   );
+ } finally {
+   setSaving(false);
+ }
 };
 
 const toggleTask = async (id) => {
@@ -258,14 +401,22 @@ const toggleTask = async (id) => {
 
 const handleDeleteTask = async (id) => {
  try {
+   const {
+     data: { user },
+   } = await supabase.auth.getUser();
+
    await deleteTodo(id);
 
-    setTasks((current) =>
-      current.filter((task) => task.id !== id)
-    );
-  } catch (error) {
-    console.error('Error deleting task:', error);
-  }
+   if (user) {
+     await removeLinkedTodoAlert(user.id, id);
+   }
+
+   setTasks((current) =>
+     current.filter((task) => task.id !== id)
+   );
+ } catch (error) {
+   console.error('Error deleting task:', error);
+ }
 };
 
 const completeAllInPriority = async (priority) => {
@@ -1112,6 +1263,175 @@ return (
  />
 </div>
 
+<FormLabel>Alert</FormLabel>
+
+<div
+ style={{
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: '9px',
+  marginBottom: newTask.alertType ? '14px' : '22px',
+ }}
+>
+ {[
+   {
+     value: '',
+     label: 'None',
+     icon: Circle,
+     color: '#75839A',
+     soft: '#F6F8FB',
+     border: '#E4E8EF',
+   },
+   {
+     value: 'notification',
+     label: 'Notification',
+     icon: Bell,
+     color: '#648CCB',
+     soft: '#F3F7FD',
+     border: '#DDE7F5',
+   },
+   {
+     value: 'reminder',
+     label: 'Reminder',
+     icon: AlarmClock,
+     color: '#8B78B8',
+     soft: '#F7F4FC',
+     border: '#E7E0F2',
+   },
+ ].map((option) => {
+   const AlertIcon = option.icon;
+   const active = newTask.alertType === option.value;
+
+   return (
+     <button
+       key={option.label}
+       type="button"
+       onClick={() => {
+         setNewTask((current) => ({
+           ...current,
+           alertType: option.value,
+           alertDate:
+             option.value === 'reminder'
+               ? current.alertDate
+               : '',
+           alertTime:
+             option.value === 'reminder'
+               ? current.alertTime
+               : '',
+         }));
+
+         setFormError('');
+       }}
+       style={{
+         minHeight: '48px',
+         borderRadius: '13px',
+         border: active
+           ? `1.5px solid ${option.color}`
+           : `1px solid ${option.border}`,
+         background: active
+           ? option.color
+           : option.soft,
+         color: active
+           ? '#FFFFFF'
+           : option.color,
+         display: 'flex',
+         alignItems: 'center',
+         justifyContent: 'center',
+         gap: '7px',
+         cursor: 'pointer',
+         fontWeight: '900',
+         fontSize: '11px',
+       }}
+     >
+       <AlertIcon size={15} />
+       {option.label}
+     </button>
+   );
+ })}
+</div>
+
+{newTask.alertType === 'notification' && (
+ <div
+  style={{
+   marginBottom: '20px',
+   padding: '10px 12px',
+   borderRadius: '11px',
+   background: '#F3F7FD',
+   border: '1px solid #DDE7F5',
+   color: '#648CCB',
+   fontSize: '11px',
+   fontWeight: '800',
+   lineHeight: 1.45,
+  }}
+ >
+  A To-Do notification will be added to Notifications.
+ </div>
+)}
+
+{newTask.alertType === 'reminder' && (
+ <>
+  <div
+   style={{
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+    gap: '10px',
+    marginBottom: '8px',
+   }}
+  >
+   <div>
+    <FormLabel>Reminder Date</FormLabel>
+
+    <input
+     type="date"
+     value={newTask.alertDate}
+     onChange={(e) => {
+      setNewTask((current) => ({
+       ...current,
+       alertDate: e.target.value,
+      }));
+
+      setFormError('');
+     }}
+     style={{
+      ...inputStyle,
+      marginBottom: 0,
+     }}
+    />
+   </div>
+
+   <div>
+    <FormLabel>Reminder Time</FormLabel>
+
+    <input
+     type="time"
+     value={newTask.alertTime}
+     onChange={(e) =>
+      setNewTask((current) => ({
+       ...current,
+       alertTime: e.target.value,
+      }))
+     }
+     style={{
+      ...inputStyle,
+      marginBottom: 0,
+     }}
+    />
+   </div>
+  </div>
+
+  <div
+   style={{
+    marginBottom: '20px',
+    color: '#8F9BB3',
+    fontSize: '10px',
+    fontWeight: '700',
+   }}
+  >
+   This will appear under Reminders in Notifications & Reminders.
+  </div>
+ </>
+)}
+
 {formError && (
   <div
    style={{
@@ -1529,6 +1849,39 @@ function TaskCard({
   >
     {task.details}
   </p>
+ )}
+
+ {task._alertType && (
+  <div
+   style={{
+    marginTop: '7px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '4px 7px',
+    borderRadius: '999px',
+    background:
+      task._alertType === 'reminder'
+        ? '#F7F4FC'
+        : '#F3F7FD',
+    color:
+      task._alertType === 'reminder'
+        ? '#8B78B8'
+        : '#648CCB',
+    fontSize: '9px',
+    fontWeight: '900',
+   }}
+  >
+   {task._alertType === 'reminder' ? (
+    <AlarmClock size={10} />
+   ) : (
+    <Bell size={10} />
+   )}
+
+   {task._alertType === 'reminder'
+     ? `Reminder${task._alertDate ? ` • ${task._alertDate}` : ''}`
+     : 'Notification'}
+  </div>
  )}
 </div>
 

@@ -314,6 +314,128 @@ export default function Notifications() {
       }
 
       // ===================================================
+      // LOCAL TO-DO ALERTS
+      // ===================================================
+
+      try {
+        const todoAlertLinks = JSON.parse(
+          localStorage.getItem(
+            `campora-todo-alert-links-${currentUser.id}`
+          ) || '{}'
+        );
+
+        Object.entries(todoAlertLinks || {}).forEach(
+          ([todoId, alert]) => {
+            if (!alert?.type) return;
+
+            const id = `todo-local-${todoId}`;
+
+            combined.push({
+              id,
+              rawId: todoId,
+
+              title:
+                alert.title ||
+                'To-Do',
+
+              message: [
+                alert.details || null,
+                alert.date
+                  ? `Due ${alert.date}${
+                      alert.time ? ` at ${alert.time}` : ''
+                    }`
+                  : null,
+                alert.priority
+                  ? `${alert.priority} priority`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' • '),
+
+              category: 'To-Do',
+
+              section:
+                alert.type === 'reminder'
+                  ? 'Reminders'
+                  : 'Notifications',
+
+              source: 'todo_local_alert',
+
+              created_at: getSafeDate(
+                alert.created_at
+              ),
+
+              read: savedReadIds.includes(id),
+            });
+          }
+        );
+      } catch (error) {
+        console.log(
+          'Local To-Do alerts could not be loaded:',
+          error
+        );
+      }
+
+      // ===================================================
+      // LOCAL PLANNER NOTIFICATIONS
+      // ===================================================
+
+      try {
+        const plannerAlertLinks = JSON.parse(
+          localStorage.getItem(
+            `campora-planner-alert-links-${currentUser.id}`
+          ) || '{}'
+        );
+
+        Object.entries(plannerAlertLinks || {}).forEach(
+          ([entryId, alert]) => {
+            if (alert?.type !== 'notification') return;
+
+            const id = `planner-local-${entryId}`;
+
+            combined.push({
+              id,
+              rawId: entryId,
+
+              title:
+                alert.title ||
+                'Planner Notification',
+
+              message: [
+                alert.entryType || null,
+                alert.date
+                  ? `on ${alert.date}`
+                  : null,
+                alert.time
+                  ? `at ${String(alert.time).substring(0, 5)}`
+                  : null,
+                alert.description || null,
+              ]
+                .filter(Boolean)
+                .join(' • '),
+
+              category: 'Planner',
+
+              section: 'Notifications',
+
+              source: 'planner_local_alert',
+
+              created_at: getSafeDate(
+                alert.created_at
+              ),
+
+              read: savedReadIds.includes(id),
+            });
+          }
+        );
+      } catch (error) {
+        console.log(
+          'Local Planner notifications could not be loaded:',
+          error
+        );
+      }
+
+      // ===================================================
       // CAMPUS HUB ANNOUNCEMENTS
       // ===================================================
 
@@ -688,6 +810,8 @@ export default function Notifications() {
     'All',
     'Announcements',
     'Courses',
+    'Planner',
+    'To-Do',
     'Study Groups',
   ];
 
@@ -1026,6 +1150,52 @@ export default function Notifications() {
               'id',
               item.rawId
             );
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      if (
+        item.source ===
+        'todo_local_alert'
+      ) {
+        try {
+          const key =
+            `campora-todo-alert-links-${user?.id}`;
+
+          const links = JSON.parse(
+            localStorage.getItem(key) || '{}'
+          );
+
+          delete links[item.rawId];
+
+          localStorage.setItem(
+            key,
+            JSON.stringify(links)
+          );
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      if (
+        item.source ===
+        'planner_local_alert'
+      ) {
+        try {
+          const key =
+            `campora-planner-alert-links-${user?.id}`;
+
+          const links = JSON.parse(
+            localStorage.getItem(key) || '{}'
+          );
+
+          delete links[item.rawId];
+
+          localStorage.setItem(
+            key,
+            JSON.stringify(links)
+          );
         } catch (error) {
           console.log(error);
         }

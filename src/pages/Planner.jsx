@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   Trash2,
   AlertCircle,
-  Palette
+  Palette,
+  AlarmClock
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -182,7 +183,8 @@ export default function Planner() {
     end_time: '10:00',
     color: '#E1F2FF',
     repeat: 'none',
-    reminder: false
+    reminder: false,
+    alertType: 'none'
   };
 
   const [newEntry, setNewEntry] = useState(initialEntryState);
@@ -289,6 +291,73 @@ export default function Planner() {
         detail: { kind: link.kind }
       })
     );
+  };
+
+  // =========================================================
+  // PLANNER NOTIFICATION LINKS
+  // =========================================================
+
+  const plannerAlertKey = (userId) =>
+    `campora-planner-alert-links-${userId}`;
+
+  const readPlannerAlertLinks = () => {
+    if (!user) return {};
+
+    try {
+      return JSON.parse(
+        localStorage.getItem(plannerAlertKey(user.id)) || '{}'
+      );
+    } catch {
+      return {};
+    }
+  };
+
+  const writePlannerAlertLinks = (links) => {
+    if (!user) return;
+
+    localStorage.setItem(
+      plannerAlertKey(user.id),
+      JSON.stringify(links || {})
+    );
+  };
+
+  const savePlannerAlertChoice = (entries = [], alertType = 'none') => {
+    if (!user || !entries.length) return;
+
+    const links = readPlannerAlertLinks();
+
+    entries.forEach((entry) => {
+      if (!entry?.id) return;
+
+      if (alertType === 'none') {
+        delete links[entry.id];
+        return;
+      }
+
+      links[entry.id] = {
+        type: alertType,
+        title: entry.name || 'Planner entry',
+        entryType: entry.type || '',
+        date: entry.date || '',
+        time: entry.start_time || '',
+        description: visiblePlannerDescription(entry.description || ''),
+        created_at: new Date().toISOString(),
+      };
+    });
+
+    writePlannerAlertLinks(links);
+  };
+
+  const deletePlannerAlertChoices = (entryIds = []) => {
+    if (!user || !entryIds.length) return;
+
+    const links = readPlannerAlertLinks();
+
+    entryIds.forEach((entryId) => {
+      delete links[entryId];
+    });
+
+    writePlannerAlertLinks(links);
   };
 
   // =========================================================
@@ -535,7 +604,10 @@ export default function Planner() {
         : '10:00',
       color: entry.color || '#E1F2FF',
       repeat: repeatPattern,
-      reminder: !!entry.reminder
+      reminder: !!entry.reminder,
+      alertType:
+        readPlannerAlertLinks()[entry.id]?.type ||
+        (entry.reminder ? 'reminder' : 'none')
     });
 
     setIsModalOpen(true);
@@ -543,7 +615,7 @@ export default function Planner() {
 
   const buildSeriesEntries = ({ entryData, groupId }) => {
     const entries = [];
-    const { repeat, until_date, ...dbEntry } = entryData;
+    const { repeat, until_date, alertType, ...dbEntry } = entryData;
 
     const makeEntry = (date) => ({
       ...dbEntry,
@@ -616,62 +688,6 @@ export default function Planner() {
   };
 
 
-  const findPlannerDuplicates = async (entries = []) => {
-    if (!user || entries.length === 0) return [];
-
-    const dates = Array.from(
-      new Set(entries.map((entry) => entry.date).filter(Boolean))
-    );
-
-    if (!dates.length) return [];
-
-    const { data, error } = await supabase
-      .from('planner_courses')
-      .select('id,name,date,start_time,end_time,type,description')
-      .eq('user_id', user.id)
-      .in('date', dates);
-
-    if (error) {
-      console.error('Duplicate check error:', error);
-      return [];
-    }
-
-    return (data || []).filter((existing) =>
-      entries.some(
-        (candidate) =>
-          (existing.name || '').trim().toLowerCase() ===
-            (candidate.name || '').trim().toLowerCase() &&
-          existing.date === candidate.date &&
-          (existing.start_time || '').substring(0, 5) ===
-            (candidate.start_time || '').substring(0, 5) &&
-          (existing.end_time || '').substring(0, 5) ===
-            (candidate.end_time || '').substring(0, 5)
-      )
-    );
-  };
-
-  const confirmDuplicatePlannerEntries = async (entries = []) => {
-    const duplicates = await findPlannerDuplicates(entries);
-
-    if (!duplicates.length) return true;
-
-    const first = duplicates[0];
-    const extra =
-      duplicates.length > 1
-        ? ` There are ${duplicates.length} matching entries total.`
-        : '';
-
-    return window.confirm(
-      `"${first.name}" already exists on ${first.date} from ${first.start_time?.substring(
-        0,
-        5
-      )} to ${first.end_time?.substring(
-        0,
-        5
-      )}.${extra} Do you still want to add it again?`
-    );
-  };
-
   const createEntryOrSeries = async () => {
     const groupId = crypto.randomUUID();
 
@@ -703,8 +719,15 @@ export default function Planner() {
       return false;
     }
 
-    if (newEntry.reminder && savedEntries?.length) {
-      await saveRemindersForEntries(savedEntries);
+    if (savedEntries?.length) {
+      if (newEntry.alertType === 'reminder') {
+        await saveRemindersForEntries(savedEntries);
+        savePlannerAlertChoice(savedEntries, 'reminder');
+      }
+
+      if (newEntry.alertType === 'notification') {
+        savePlannerAlertChoice(savedEntries, 'notification');
+      }
     }
 
     return true;
@@ -727,7 +750,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       start_time: newEntry.start_time,
       end_time: newEntry.end_time,
       color: newEntry.color,
-      reminder: newEntry.reminder
+      reminder: newEntry.alertType === 'reminder'
     };
 
     const { data, error } = await supabase
@@ -745,9 +768,20 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     }
 
     await deleteRemindersForEntries([editingEntry.id]);
+    deletePlannerAlertChoices([editingEntry.id]);
 
-    if (newEntry.reminder && data) {
-      await saveRemindersForEntries([data]);
+    if (data) {
+      if (newEntry.alertType === 'none') {
+        deletePlannerAlertChoices([data.id]);
+      }
+
+      if (newEntry.alertType === 'reminder') {
+        await saveRemindersForEntries([data]);
+      }
+
+      if (newEntry.alertType === 'notification') {
+        savePlannerAlertChoice([data], 'notification');
+      }
     }
 
     if (data) {
@@ -798,6 +832,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     }
 
     await deleteRemindersForEntries([editingEntry.id]);
+    deletePlannerAlertChoices([editingEntry.id]);
 
     const { error: deleteError } = await supabase
       .from('planner_courses')
@@ -809,8 +844,15 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       console.error('Delete old entry error:', deleteError);
     }
 
-    if (newEntry.reminder && savedEntries?.length) {
-      await saveRemindersForEntries(savedEntries);
+    if (savedEntries?.length) {
+      if (newEntry.alertType === 'reminder') {
+        await saveRemindersForEntries(savedEntries);
+        savePlannerAlertChoice(savedEntries, 'reminder');
+      }
+
+      if (newEntry.alertType === 'notification') {
+        savePlannerAlertChoice(savedEntries, 'notification');
+      }
     }
 
     return true;
@@ -845,7 +887,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         start_time: newEntry.start_time,
         end_time: newEntry.end_time,
         color: newEntry.color,
-        reminder: newEntry.reminder,
+        reminder: newEntry.alertType === 'reminder',
         group_id: null,
         user_id: user.id
       };
@@ -863,6 +905,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       }
 
       await deleteRemindersForEntries(oldIds);
+      deletePlannerAlertChoices(oldIds);
 
       const { error: deleteError } = await supabase
         .from('planner_courses')
@@ -874,8 +917,15 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         console.error('Old series delete error:', deleteError);
       }
 
-      if (newEntry.reminder && data) {
-        await saveRemindersForEntries([data]);
+      if (data) {
+        if (newEntry.alertType === 'reminder') {
+          await saveRemindersForEntries([data]);
+          savePlannerAlertChoice([data], 'reminder');
+        }
+
+        if (newEntry.alertType === 'notification') {
+          await saveNotificationsForEntries([data]);
+        }
       }
 
       return true;
@@ -905,6 +955,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     }
 
     await deleteRemindersForEntries(oldIds);
+    deletePlannerAlertChoices(oldIds);
 
     const { error: deleteError } = await supabase
       .from('planner_courses')
@@ -916,8 +967,15 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       console.error('Series delete error:', deleteError);
     }
 
-    if (newEntry.reminder && savedEntries?.length) {
-      await saveRemindersForEntries(savedEntries);
+    if (savedEntries?.length) {
+      if (newEntry.alertType === 'reminder') {
+        await saveRemindersForEntries(savedEntries);
+        savePlannerAlertChoice(savedEntries, 'reminder');
+      }
+
+      if (newEntry.alertType === 'notification') {
+        savePlannerAlertChoice(savedEntries, 'notification');
+      }
     }
 
     return true;
@@ -1041,6 +1099,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         const seriesIds = seriesItems.map((entry) => entry.id);
 
         await deleteRemindersForEntries(seriesIds);
+        deletePlannerAlertChoices(seriesIds);
 
         const { error } = await supabase
           .from('planner_courses')
@@ -1059,6 +1118,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         const plannerEntry = courses.find((entry) => entry.id === id);
 
         await deleteRemindersForEntries([id]);
+        deletePlannerAlertChoices([id]);
 
         const { error } = await supabase
           .from('planner_courses')
@@ -1141,6 +1201,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     const allIds = courses.map((entry) => entry.id);
 
     await deleteRemindersForEntries(allIds);
+    deletePlannerAlertChoices(allIds);
 
     const linkedEntries = courses.filter((entry) =>
       parseCourseLink(entry.description || '')
@@ -2511,45 +2572,119 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setNewEntry({
-                    ...newEntry,
-                    reminder: !newEntry.reminder
-                  })
-                }
+              <div
                 style={{
-                  ...modalInput,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  background: newEntry.reminder
-                    ? '#F8FAFF'
-                    : 'white'
+                  padding: '12px',
+                  background: '#F8FAFF',
+                  border: '1px solid #E9EDF7',
+                  borderRadius: '12px'
                 }}
               >
-                {newEntry.reminder ? (
-                  <Bell size={15} color="#0B1A3F" />
-                ) : (
-                  <BellOff size={15} color="#A3AED0" />
-                )}
-
-                <span
+                <div
                   style={{
-                    color: newEntry.reminder
-                      ? '#0B1A3F'
-                      : '#A3AED0',
-                    fontSize: '12px'
+                    fontSize: '10px',
+                    fontWeight: '900',
+                    color: '#94A3B8',
+                    marginBottom: '9px'
                   }}
                 >
-                  {newEntry.reminder
-                    ? 'Notification Set'
-                    : 'Add Reminder'}
-                </span>
-              </button>
+                  ALERT
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: '8px'
+                  }}
+                >
+                  {[
+                    {
+                      value: 'none',
+                      label: 'None',
+                      icon: BellOff,
+                      color: '#75839A',
+                      soft: '#F6F8FB',
+                      border: '#E4E8EF'
+                    },
+                    {
+                      value: 'notification',
+                      label: 'Notification',
+                      icon: Bell,
+                      color: '#648CCB',
+                      soft: '#F3F7FD',
+                      border: '#DDE7F5'
+                    },
+                    {
+                      value: 'reminder',
+                      label: 'Reminder',
+                      icon: AlarmClock,
+                      color: '#8B78B8',
+                      soft: '#F7F4FC',
+                      border: '#E7E0F2'
+                    }
+                  ].map((option) => {
+                    const AlertIcon = option.icon;
+                    const active = newEntry.alertType === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() =>
+                          setNewEntry({
+                            ...newEntry,
+                            alertType: option.value,
+                            reminder: option.value === 'reminder'
+                          })
+                        }
+                        style={{
+                          minHeight: '43px',
+                          borderRadius: '10px',
+                          border: active
+                            ? `1.5px solid ${option.color}`
+                            : `1px solid ${option.border}`,
+                          background: active
+                            ? option.color
+                            : option.soft,
+                          color: active
+                            ? '#FFFFFF'
+                            : option.color,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          fontSize: '10px',
+                          fontWeight: '900'
+                        }}
+                      >
+                        <AlertIcon size={14} />
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {newEntry.alertType !== 'none' && (
+                  <div
+                    style={{
+                      marginTop: '9px',
+                      color:
+                        newEntry.alertType === 'reminder'
+                          ? '#8B78B8'
+                          : '#648CCB',
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      lineHeight: 1.45
+                    }}
+                  >
+                    {newEntry.alertType === 'reminder'
+                      ? 'This entry will appear under Reminders in Notifications & Reminders.'
+                      : 'This entry will be added to the Notifications section.'}
+                  </div>
+                )}
+              </div>
 
               <div style={{ paddingTop: '4px' }}>
                 <div

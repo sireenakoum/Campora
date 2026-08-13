@@ -1,7 +1,8 @@
 /* =========================================================
    CAMPORA — APP.CSS
    LIGHT MODE + BOLD NAVY THEME
-   FIXED SIDEBAR + SCROLLABLE PAGE CONTENT
+   FIXED SIDEBAR + SCROLLABLE APP CONTENT
+   PUBLIC PAGES SCROLL NORMALLY
 ========================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800;900&display=swap');
@@ -40,20 +41,21 @@ html,
 body,
 #root {
   width: 100%;
-  height: 100%;
   min-height: 100%;
 
   background-color: #F4F7FE !important;
 
   font-family: 'Plus Jakarta Sans', sans-serif;
 
-  /*
-    IMPORTANT:
-    The browser/body itself should NOT scroll.
+  overflow-x: hidden;
+}
 
-    Only .main-content will scroll.
-  */
-  overflow: hidden;
+
+/* Public pages can scroll normally */
+
+html,
+body {
+  overflow-y: auto;
 }
 
 body {
@@ -64,6 +66,13 @@ body {
 /* =========================================================
    APP LAYOUT
 ========================================================= */
+
+/*
+  Only the logged-in Campora area uses this layout.
+
+  This keeps the sidebar fixed without breaking
+  About / Features / Landing Page scrolling.
+*/
 
 .layout {
   position: relative;
@@ -101,13 +110,9 @@ body {
 
   z-index: 100;
 
-  /*
-    The sidebar itself does NOT scroll with the page.
-  */
   overflow: visible;
 
-  transition:
-    width 0.3s ease;
+  transition: width 0.3s ease;
 
   box-shadow:
     4px 0 20px rgba(11, 26, 63, 0.02);
@@ -150,12 +155,6 @@ body {
 
   min-height: 0;
 
-  /*
-    The navigation itself can scroll ONLY if the user's
-    screen is too short to display all navigation items.
-
-    This does NOT make it scroll with the main page.
-  */
   overflow-y: auto;
   overflow-x: hidden;
 
@@ -280,10 +279,9 @@ body {
 ========================================================= */
 
 /*
-  THIS is the important part.
+  Sidebar stays fixed.
 
-  The sidebar stays fixed on the left.
-
+  Only the right side scrolls:
   Dashboard
   Announcements
   Notifications
@@ -294,8 +292,6 @@ body {
   To-Do
   Study Groups
   Profile
-
-  all scroll inside THIS container.
 */
 
 .main-content {
@@ -329,8 +325,7 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #D9DFEB transparent;
 
-  transition:
-    left 0.3s ease;
+  transition: left 0.3s ease;
 }
 
 
@@ -370,11 +365,6 @@ body {
    MAIN CONTENT CHILDREN
 ========================================================= */
 
-/*
-  Prevent pages from accidentally shrinking inside
-  the main content flex container.
-*/
-
 .main-content > * {
   flex-shrink: 0;
 }
@@ -394,13 +384,6 @@ body {
 /* =========================================================
    HEADINGS
 ========================================================= */
-
-/*
-  Default Campora heading style.
-
-  Inline styles still override these when you intentionally
-  use white or another color inside cards.
-*/
 
 h1,
 h2,
@@ -461,12 +444,10 @@ button {
 ========================================================= */
 
 @media (max-width: 1100px) {
-
   .main-content {
     padding:
       32px 36px 50px;
   }
-
 }
 
 
@@ -475,7 +456,6 @@ button {
 ========================================================= */
 
 @media (max-width: 850px) {
-
   :root {
     --sidebar-width: 220px;
   }
@@ -491,7 +471,6 @@ button {
     padding:
       28px 26px 45px;
   }
-
 }
 
 
@@ -500,7 +479,6 @@ button {
 ========================================================= */
 
 @media (max-width: 650px) {
-
   :root {
     --sidebar-width: 190px;
     --sidebar-collapsed-width: 76px;
@@ -524,5 +502,4 @@ button {
     padding:
       24px 18px 40px;
   }
-
 }

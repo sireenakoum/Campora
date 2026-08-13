@@ -1028,23 +1028,6 @@ try {
      if (coursesError) throw coursesError;
  }
 
- const schedulePlannerIds =
-  coursePlannerSchedules[selectedCourse.id]?.plannerIds || [];
-
- if (schedulePlannerIds.length > 0 && userId) {
-   await supabase
-     .from('planner_courses')
-     .delete()
-     .eq('user_id', userId)
-     .in('id', schedulePlannerIds);
- }
-
- setCoursePlannerSchedules((prev) => {
-  const next = { ...prev };
-  delete next[selectedCourse.id];
-  return next;
- });
-
  const semesterSchedulePlannerIds = courseIds.flatMap(
   (courseId) =>
 
@@ -1110,6 +1093,13 @@ setCourseEvents((prev) =>
 
   if (selectedSemester === semesterName) {
     setSelectedSemester(null);
+  }
+
+  if (
+    selectedCourse &&
+    courseIds.includes(selectedCourse.id)
+  ) {
+    setSelectedCourse(null);
   }
 
     setDashboardView(null);
