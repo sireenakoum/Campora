@@ -28,20 +28,22 @@ export default function Profile() {
           data: { user },
         } = await supabase.auth.getUser();
 
-        if (user) {
-          const { data, error } = await getProfile(user.id);
+        if (!user) {
+          throw new Error('User is not logged in.');
+        }
 
-          if (error) throw error;
+        const { data, error } = await getProfile(user.id);
 
-          if (data) {
-            setFullName(data.name || '');
-            setAvatarUrl(data.avatar_url || '');
-            setAccountType(data.account_type || 'Student');
-            setMajor(data.major || '');
-            setYear(data.year || '');
-            setGuestTitle(data.guest_title || '');
-            setCoursesTaken(data.courses_taken || []);
-          }
+        if (error) throw error;
+
+        if (data) {
+          setFullName(data.name || '');
+          setAvatarUrl(data.avatar_url || '');
+          setAccountType(data.account_type || 'Student');
+          setMajor(data.major || '');
+          setYear(data.year || '');
+          setGuestTitle(data.guest_title || '');
+          setCoursesTaken(data.courses_taken || []);
         }
       } catch (err) {
         setError(err.message);
@@ -96,12 +98,12 @@ export default function Profile() {
 
       if (avatarFile) {
         const fileExtension = avatarFile.name.split('.').pop();
-        const fileName = `${user.id}.${fileExtension}`;
+        const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(fileName, avatarFile, {
-            upsert: true,
+            upsert: false,
             contentType: avatarFile.type,
           });
 
@@ -184,14 +186,20 @@ export default function Profile() {
 
           <div style={styles.infoGrid}>
             <div style={styles.infoItem}>
-              <span style={styles.infoKey}>Account Type</span>
+              <span style={styles.infoKey}>
+                Account Type
+              </span>
+
               <span style={styles.infoValue}>
                 {accountType}
               </span>
             </div>
 
             <div style={styles.infoItem}>
-              <span style={styles.infoKey}>Major</span>
+              <span style={styles.infoKey}>
+                Major
+              </span>
+
               <span style={styles.infoValue}>
                 {major || '—'}
               </span>
@@ -199,14 +207,20 @@ export default function Profile() {
 
             {accountType === 'Guest' ? (
               <div style={styles.infoItem}>
-                <span style={styles.infoKey}>Title</span>
+                <span style={styles.infoKey}>
+                  Title
+                </span>
+
                 <span style={styles.infoValue}>
                   {guestTitle || '—'}
                 </span>
               </div>
             ) : (
               <div style={styles.infoItem}>
-                <span style={styles.infoKey}>Year</span>
+                <span style={styles.infoKey}>
+                  Year
+                </span>
+
                 <span style={styles.infoValue}>
                   {year || '—'}
                 </span>
@@ -215,7 +229,9 @@ export default function Profile() {
           </div>
 
           <div style={styles.infoItem}>
-            <span style={styles.infoKey}>Courses Taken</span>
+            <span style={styles.infoKey}>
+              Courses Taken
+            </span>
 
             <div style={styles.tagWrap}>
               {coursesTaken.length === 0 ? (
