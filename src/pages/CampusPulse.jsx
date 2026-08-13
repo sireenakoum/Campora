@@ -18,12 +18,17 @@ import {
   Reply,
   Pin,
   MessageSquare,
-  BellPlus,
-  ArrowLeft,
-  ExternalLink
+  BellPlus
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+
+import {
+  PageShell,
+  SectionHeader,
+  SegmentedControl,
+  EmptyState
+} from '../components/luminous';
 
 // =========================================================
 // CATEGORIES
@@ -47,10 +52,10 @@ const CATEGORIES = [
 
 const CATEGORY_STYLES = {
   All: {
-    bg: '#F4F7FE',
-    text: '#0B1A3F',
+    bg: '#FAF9FE',
+    text: '#002D62',
     border: '#DDE3EE',
-    accent: '#0B1A3F'
+    accent: '#002D62'
   },
 
   'Clubs & Events': {
@@ -103,7 +108,7 @@ const CATEGORY_STYLES = {
   }
 };
 
-const DM_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+const DM_REACTIONS = ['ًں‘چ', 'â‌¤ï¸ڈ', 'ًںک‚', 'ًںک®', 'ًںک¢', 'ًں”¥'];
 
 // =========================================================
 // SHARED CAMPORA PROFILE COLORS
@@ -142,7 +147,7 @@ const getAvatarTextColor = (backgroundColor) => {
     .replace('#', '')
     .trim();
 
-  if (hex.length !== 6) return '#0B1A3F';
+  if (hex.length !== 6) return '#002D62';
 
   const red = parseInt(hex.substring(0, 2), 16);
   const green = parseInt(hex.substring(2, 4), 16);
@@ -151,7 +156,7 @@ const getAvatarTextColor = (backgroundColor) => {
   const luminance =
     (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
 
-  return luminance < 0.58 ? '#FFFFFF' : '#0B1A3F';
+  return luminance < 0.58 ? '#FFFFFF' : '#002D62';
 };
 
 // =========================================================
@@ -1570,97 +1575,57 @@ export default function CampusPulse() {
   });
 
   return (
-    <div ref={pageTopRef} style={pageStyle}>
-      <div style={headerStyle}>
-        <div>
-          <div style={campusFeedBadgeStyle}>
-            <Sparkles size={14} color="#0B1A3F" />
+    <PageShell>
+      <div ref={pageTopRef}>
+        <div className="stack" style={{ gap: '14px' }}>
+          <span className="pill" style={{ alignSelf: 'flex-start', background: 'var(--campora-bg)', border: '1px solid var(--hairline)', color: 'var(--campora-text)' }}>
+            <Sparkles size={14} />
             CAMPUS FEED
-          </div>
+          </span>
 
-          <h1 style={pageTitleStyle}>Campus Pulse</h1>
-
-          <p style={pageSubtitleStyle}>
-            What's happening in your student community today?
-          </p>
+          <SectionHeader
+            title="Campus Pulse"
+            subtitle="What's happening in your student community today?"
+            action={
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="btn btn-primary"
+              >
+                <Plus size={20} strokeWidth={3} />
+                Create Post
+              </button>
+            }
+          />
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          style={addBtnStyle}
-        >
-          <Plus size={20} strokeWidth={3} />
-          Create Post
-        </button>
-      </div>
-
-      {/* FEED + DIRECT MESSAGES BOTH USE CAMPORA NAVY */}
-      <div style={viewTabsWrapStyle}>
-        <button
-          type="button"
-          onClick={() => setActiveView('feed')}
-          style={{
-            ...viewTabStyle,
-            background:
-              activeView === 'feed'
-                ? '#0B1A3F'
-                : '#F4F7FE',
-            color:
-              activeView === 'feed'
-                ? '#FFFFFF'
-                : '#0B1A3F',
-            borderColor:
-              activeView === 'feed'
-                ? '#0B1A3F'
-                : '#DDE3EE',
-            boxShadow:
-              activeView === 'feed'
-                ? '0 6px 16px rgba(11,26,63,0.18)'
-                : 'none'
-          }}
-        >
-          <Sparkles size={16} />
-          Feed
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveView('messages')}
-          style={{
-            ...viewTabStyle,
-            background:
-              activeView === 'messages'
-                ? '#0B1A3F'
-                : '#F4F7FE',
-            color:
-              activeView === 'messages'
-                ? '#FFFFFF'
-                : '#0B1A3F',
-            borderColor:
-              activeView === 'messages'
-                ? '#0B1A3F'
-                : '#DDE3EE',
-            boxShadow:
-              activeView === 'messages'
-                ? '0 6px 16px rgba(11,26,63,0.18)'
-                : 'none'
-          }}
-        >
-          <MessageSquare size={16} />
-          Direct Messages
-        </button>
-      </div>
+        <SegmentedControl
+          options={[
+            { value: 'feed', label: 'Feed', icon: Sparkles },
+            { value: 'messages', label: 'Direct Messages', icon: MessageSquare }
+          ]}
+          value={activeView}
+          onChange={setActiveView}
+        />
 
       {activeView === 'feed' && (
         <>
-          <div style={{ marginBottom: '28px' }}>
-            <div style={searchBarContainer}>
-              <Search size={20} color="#0B1A3F" />
+          <div className="stack">
+            <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Search size={20} className="text-primary" />
 
               <input
                 type="text"
                 placeholder="Search discussions, announcements, lost items..."
-                style={searchField}
+                className="search-field"
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  width: '100%',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: 'var(--campora-text)',
+                  background: 'transparent'
+                }}
                 value={searchQuery}
                 onChange={event =>
                   setSearchQuery(event.target.value)
@@ -1670,19 +1635,15 @@ export default function CampusPulse() {
               {searchQuery && (
                 <X
                   size={18}
-                  color="#A3AED0"
-                  style={{ cursor: 'pointer' }}
+                  className="muted"
+                  style={{ cursor: 'pointer', flexShrink: 0 }}
                   onClick={() => setSearchQuery('')}
                 />
               )}
             </div>
 
-            <div style={categoryTabsStyle}>
+            <div className="filter-row">
               {CATEGORIES.map(category => {
-                const categoryStyle =
-                  CATEGORY_STYLES[category] ||
-                  CATEGORY_STYLES.Other;
-
                 const isActive =
                   activeCategory === category;
 
@@ -1693,28 +1654,7 @@ export default function CampusPulse() {
                     onClick={() =>
                       setActiveCategory(category)
                     }
-                    style={{
-                      padding: '8px 18px',
-                      borderRadius: '50px',
-                      fontSize: '12px',
-                      fontWeight: '900',
-                      fontFamily: 'inherit',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.2s ease',
-                      background: isActive
-                        ? categoryStyle.accent
-                        : categoryStyle.bg,
-                      color: isActive
-                        ? '#FFFFFF'
-                        : categoryStyle.text,
-                      border: isActive
-                        ? `1.5px solid ${categoryStyle.accent}`
-                        : `1.5px solid ${categoryStyle.border}`,
-                      boxShadow: isActive
-                        ? `0 5px 14px ${categoryStyle.accent}22`
-                        : 'none'
-                    }}
+                    className={`filter-chip ${isActive ? 'active' : ''}`}
                   >
                     {category}
                   </button>
@@ -1723,25 +1663,21 @@ export default function CampusPulse() {
             </div>
           </div>
 
-          <div style={feedListStyle}>
+          <div className="stack">
             {loading ? (
-              <div style={loadingStateStyle}>
+              <div className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '40px 20px' }}>
                 <RefreshCw
-                  className="animate-spin"
+                  className="animate-spin text-primary"
                   size={32}
-                  color="#0B1A3F"
                 />
-                <p>Loading latest posts...</p>
+                <p className="muted" style={{ fontWeight: 700 }}>Loading latest posts...</p>
               </div>
             ) : filteredPosts.length === 0 ? (
-              <div style={emptyFeedStyle}>
-                <MessageCircle size={40} color="#A3AED0" />
-                <h3>No posts found</h3>
-                <p>
-                  Be the first one to share something under{' '}
-                  {activeCategory}!
-                </p>
-              </div>
+              <EmptyState
+                icon={MessageCircle}
+                title="No posts found"
+                text={`Be the first one to share something under ${activeCategory}!`}
+              />
             ) : (
               filteredPosts.map(post => {
                 const isOwner =
@@ -1808,10 +1744,10 @@ export default function CampusPulse() {
                 };
 
                 return (
-                  <div
+                  <article
                     key={post.id}
+                    className="panel"
                     style={{
-                      ...postCardStyle,
                       borderColor: categoryBadge.accent,
                       borderTop:
                         `10px solid ${categoryBadge.accent}`
@@ -1848,18 +1784,18 @@ export default function CampusPulse() {
                           style={{
                             ...avatarCircle,
                             background: post.is_anonymous
-                              ? '#0B1A3F'
+                              ? 'var(--campora-navy)'
                               : getAvatarColor(
                                   post.author_name || 'Student'
                                 ),
                             color: post.is_anonymous
-                              ? '#FFFFFF'
+                              ? 'var(--surface-container-lowest)'
                               : getAvatarTextColor(
                                   getAvatarColor(
                                     post.author_name || 'Student'
                                   )
                                 ),
-                            border: '1px solid rgba(11,26,63,0.08)'
+                            border: '1px solid var(--hairline)'
                           }}
                         >
                           {post.is_anonymous ? (
@@ -1965,7 +1901,7 @@ export default function CampusPulse() {
                                   }}
                                   style={{
                                     ...dropdownItem,
-                                    color: '#EE5D50'
+                                    color: 'var(--campora-urgent)'
                                   }}
                                 >
                                   <Trash2 size={15} />
@@ -2018,14 +1954,14 @@ export default function CampusPulse() {
                             onClick={() =>
                               setEditingPostId(null)
                             }
-                            style={cancelBtn}
+                            className="btn btn-ghost btn-sm"
                           >
                             Cancel
                           </button>
 
                           <button
                             type="submit"
-                            style={saveBtnSmall}
+                            className="btn btn-primary btn-sm"
                           >
                             Save Changes
                           </button>
@@ -2077,7 +2013,7 @@ export default function CampusPulse() {
                           color={
                             hasLiked
                               ? '#FF4D4D'
-                              : '#A3AED0'
+                              : 'var(--campora-muted)'
                           }
                         />
 
@@ -2086,7 +2022,7 @@ export default function CampusPulse() {
                             color:
                               hasLiked
                                 ? '#FF4D4D'
-                                : '#A3AED0',
+                                : 'var(--campora-muted)',
                             fontWeight: '800'
                           }}
                         >
@@ -2105,8 +2041,8 @@ export default function CampusPulse() {
                           size={18}
                           color={
                             postCommentState.open
-                              ? '#0B1A3F'
-                              : '#A3AED0'
+                              ? 'var(--campora-navy)'
+                              : 'var(--campora-muted)'
                           }
                         />
 
@@ -2114,8 +2050,8 @@ export default function CampusPulse() {
                           style={{
                             color:
                               postCommentState.open
-                                ? '#0B1A3F'
-                                : '#A3AED0'
+                                ? 'var(--campora-navy)'
+                                : 'var(--campora-muted)'
                           }}
                         >
                           {commentCount}{' '}
@@ -2146,7 +2082,7 @@ export default function CampusPulse() {
                             Array.isArray(remindedPostIds) &&
                             remindedPostIds.includes(post.id)
                               ? categoryBadge.accent
-                              : '#A3AED0',
+                              : 'var(--campora-muted)',
                           opacity:
                             Array.isArray(remindedPostIds) &&
                             remindedPostIds.includes(post.id)
@@ -2259,12 +2195,12 @@ export default function CampusPulse() {
                               ...anonymousCommentButtonStyle,
                               background:
                                 postCommentState.is_anonymous
-                                  ? '#0B1A3F'
-                                  : '#F4F7FE',
+                                  ? 'var(--campora-navy)'
+                                  : 'var(--campora-bg)',
                               color:
                                 postCommentState.is_anonymous
-                                  ? '#FFFFFF'
-                                  : '#0B1A3F'
+                                  ? 'var(--surface-container-lowest)'
+                                  : 'var(--campora-navy)'
                             }}
                           >
                             {postCommentState.is_anonymous ? (
@@ -2284,7 +2220,7 @@ export default function CampusPulse() {
                             <RefreshCw
                               className="animate-spin"
                               size={20}
-                              color="#0B1A3F"
+                              color="var(--campora-navy)"
                             />
                             <p>Loading discussion...</p>
                           </div>
@@ -2337,7 +2273,7 @@ export default function CampusPulse() {
                         )}
                       </div>
                     )}
-                  </div>
+                  </article>
                 );
               })
             )}
@@ -2353,7 +2289,7 @@ export default function CampusPulse() {
                 margin: 0,
                 fontSize: '24px',
                 fontWeight: '900',
-                color: '#0B1A3F'
+                color: 'var(--campora-text)'
               }}
             >
               Direct Messages
@@ -2362,7 +2298,7 @@ export default function CampusPulse() {
             <p
               style={{
                 margin: '5px 0 0',
-                color: '#94A3B8',
+                color: 'var(--campora-muted)',
                 fontSize: '13px',
                 fontWeight: '700'
               }}
@@ -2382,7 +2318,7 @@ export default function CampusPulse() {
                   </p>
                 </div>
 
-                <MessageCircle size={20} color="#0B1A3F" />
+                <MessageCircle size={20} color="var(--campora-navy)" />
               </div>
 
               <div style={instagramSearchWrap}>
@@ -2544,8 +2480,8 @@ export default function CampusPulse() {
                               {isPinned && (
                                 <Pin
                                   size={11}
-                                  fill="#0B1A3F"
-                                  color="#0B1A3F"
+                                  fill="var(--campora-navy)"
+                                  color="var(--campora-navy)"
                                 />
                               )}
 
@@ -2581,8 +2517,12 @@ export default function CampusPulse() {
                         >
                           <Pin
                             size={15}
-                            fill={isPinned ? '#0B1A3F' : 'none'}
-                            color={isPinned ? '#0B1A3F' : '#A3AED0'}
+                            fill={isPinned ? 'var(--campora-navy)' : 'none'}
+                            color={
+                              isPinned
+                                ? 'var(--campora-navy)'
+                                : 'var(--campora-muted)'
+                            }
                           />
                         </span>
                       </button>
@@ -2653,15 +2593,15 @@ export default function CampusPulse() {
                             ? pinnedDmUsers
                             : []
                           ).includes(activeDmUser.id)
-                            ? '#0B1A3F'
-                            : '#64748B'
+                            ? 'var(--campora-navy)'
+                            : 'var(--campora-muted)'
                         }
                         fill={
                           (Array.isArray(pinnedDmUsers)
                             ? pinnedDmUsers
                             : []
                           ).includes(activeDmUser.id)
-                            ? '#0B1A3F'
+                            ? 'var(--campora-navy)'
                             : 'none'
                         }
                       />
@@ -2740,7 +2680,7 @@ export default function CampusPulse() {
 
                         <strong
                           style={{
-                            color: '#0B1A3F',
+                            color: 'var(--campora-text)',
                             fontSize: '15px'
                           }}
                         >
@@ -2878,7 +2818,7 @@ export default function CampusPulse() {
                                     : { left: '100%' })
                                 }}
                               >
-                                •••
+                                â€¢â€¢â€¢
                               </button>
 
                               {activeDmMessageMenu === message.id && (
@@ -3154,6 +3094,7 @@ export default function CampusPulse() {
         </div>
       )}
     </div>
+    </PageShell>
   );
 }
 
@@ -3206,11 +3147,11 @@ function CommentItem({
         style={{
           ...commentCardStyle,
           background: isReplying
-            ? '#F8FAFC'
-            : '#FFFFFF',
+            ? 'var(--surface-container-high)'
+            : 'var(--surface-container-lowest)',
           border: isReplying
-            ? '1.5px solid #CBD5E1'
-            : '1px solid #E2E8F0'
+            ? '1.5px solid var(--divider)'
+            : '1px solid var(--divider)'
         }}
       >
         <div style={commentTopRowStyle}>
@@ -3234,18 +3175,18 @@ function CommentItem({
               style={{
                 ...commentAvatarStyle,
                 background: isAnonymous
-                  ? '#0B1A3F'
+                  ? 'var(--campora-navy)'
                   : getAvatarColor(
                       comment.author_name || 'Student'
                     ),
                 color: isAnonymous
-                  ? '#FFFFFF'
+                  ? 'var(--surface-container-lowest)'
                   : getAvatarTextColor(
                       getAvatarColor(
                         comment.author_name || 'Student'
                       )
                     ),
-                border: '1px solid rgba(11,26,63,0.08)'
+                border: '1px solid rgba(0,45,98,0.08)'
               }}
             >
               {isAnonymous ? (
@@ -3433,157 +3374,6 @@ function CommentItem({
 // STYLES
 // =========================================================
 
-const pageStyle = {
-  width: '100%',
-  maxWidth: '1280px',
-  margin: '0 auto',
-  padding: '8px 20px 70px',
-  boxSizing: 'border-box',
-  scrollMarginTop: '8px',
-  fontFamily: 'inherit'
-};
-
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-end',
-  gap: '20px',
-  flexWrap: 'wrap',
-  marginBottom: '26px'
-};
-
-const campusFeedBadgeStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '8px',
-  background: '#F4F7FE',
-  padding: '6px 14px',
-  borderRadius: '30px',
-  fontSize: '11px',
-  fontWeight: '800',
-  color: '#0B1A3F',
-  marginBottom: '10px',
-  border: '1px solid #E9EDF7'
-};
-
-const pageTitleStyle = {
-  fontSize: '40px',
-  fontWeight: '900',
-  color: '#0B1A3F',
-  margin: 0,
-  letterSpacing: '-0.7px'
-};
-
-const pageSubtitleStyle = {
-  color: '#8A98B8',
-  fontWeight: '700',
-  margin: '6px 0 0',
-  fontSize: '14px'
-};
-
-const addBtnStyle = {
-  background: '#0B1A3F',
-  color: '#FFFFFF',
-  border: 'none',
-  borderRadius: '14px',
-  padding: '11px 18px',
-  fontWeight: '900',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '7px',
-  boxShadow: '0 8px 20px rgba(11,26,63,0.14)',
-  fontFamily: 'inherit'
-};
-
-const viewTabsWrapStyle = {
-  display: 'flex',
-  gap: '10px',
-  marginTop: '4px',
-  marginBottom: '24px',
-  flexWrap: 'wrap'
-};
-
-const viewTabStyle = {
-  border: '1.5px solid #E2E8F0',
-  borderRadius: '14px',
-  padding: '9px 14px',
-  fontWeight: '900',
-  fontSize: '12px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '7px',
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  transition: 'all 0.18s ease'
-};
-
-const searchBarContainer = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '12px',
-  background: '#FFFFFF',
-  padding: '13px 18px',
-  minHeight: '52px',
-  borderRadius: '18px',
-  border: '1.5px solid #E2E8F0',
-  marginBottom: '14px',
-  boxSizing: 'border-box'
-};
-
-const searchField = {
-  border: 'none',
-  outline: 'none',
-  width: '100%',
-  fontSize: '14px',
-  fontWeight: '700',
-  color: '#0B1A3F',
-  background: 'transparent',
-  fontFamily: 'inherit'
-};
-
-const categoryTabsStyle = {
-  display: 'flex',
-  gap: '8px',
-  overflowX: 'auto',
-  overflowY: 'visible',
-  paddingTop: '8px',
-  paddingBottom: '8px',
-  scrollbarWidth: 'none'
-};
-
-const feedListStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '24px'
-};
-
-const loadingStateStyle = {
-  textAlign: 'center',
-  padding: '60px',
-  color: '#0B1A3F',
-  fontWeight: '800'
-};
-
-const emptyFeedStyle = {
-  textAlign: 'center',
-  padding: '60px',
-  background: '#FFFFFF',
-  borderRadius: '24px',
-  border: '1.5px dashed #E2E8F0',
-  color: '#0B1A3F'
-};
-
-const postCardStyle = {
-  background: '#FFFFFF',
-  borderRadius: '22px',
-  padding: '24px',
-  borderStyle: 'solid',
-  borderWidth: '2px',
-  boxShadow: '0 10px 26px rgba(11,26,63,0.045)',
-  overflow: 'hidden'
-};
-
 const postHeaderStyle = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -3627,14 +3417,14 @@ const postAuthorRowStyle = {
 const postAuthorNameStyle = {
   margin: 0,
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '15px'
 };
 
 const anonymousTagStyle = {
   fontSize: '10px',
-  background: '#F4F7FE',
-  color: '#A3AED0',
+  background: 'var(--campora-bg)',
+  color: 'var(--campora-muted)',
   padding: '2px 8px',
   borderRadius: '10px',
   fontWeight: '800'
@@ -3643,7 +3433,7 @@ const anonymousTagStyle = {
 const postDateStyle = {
   margin: '2px 0 0',
   fontSize: '11px',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   fontWeight: '700'
 };
 
@@ -3659,7 +3449,7 @@ const moreButtonStyle = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   padding: '4px'
 };
 
@@ -3680,12 +3470,12 @@ const postTitleStyle = {
   fontSize: '20px',
   fontWeight: '900',
   margin: '0 0 8px',
-  color: '#0B1A3F'
+  color: 'var(--campora-text)'
 };
 
 const postContentStyle = {
   fontSize: '15px',
-  color: '#2B3674',
+  color: 'var(--campora-text)',
   lineHeight: '1.6',
   fontWeight: '600',
   margin: 0,
@@ -3703,13 +3493,13 @@ const inputStyle = {
   width: '100%',
   padding: '10px 14px',
   borderRadius: '10px',
-  border: '1.5px solid #E9EDF7',
+  border: '1.5px solid var(--divider)',
   outline: 'none',
   fontSize: '13px',
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   boxSizing: 'border-box',
   fontFamily: 'inherit',
-  background: '#FFFFFF'
+  background: 'var(--surface-container-lowest)'
 };
 
 const actionBtn = {
@@ -3721,7 +3511,7 @@ const actionBtn = {
   gap: '6px',
   fontSize: '13px',
   fontWeight: '800',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   padding: 0,
   fontFamily: 'inherit'
 };
@@ -3739,7 +3529,7 @@ const commentComposerRowStyle = {
 };
 
 const sendBtn = {
-  background: '#0B1A3F',
+  background: 'var(--campora-navy)',
   color: '#FFFFFF',
   border: 'none',
   borderRadius: '10px',
@@ -3768,14 +3558,14 @@ const anonymousCommentButtonStyle = {
 const commentsLoadingStyle = {
   textAlign: 'center',
   padding: '20px',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   fontSize: '12px',
   fontWeight: '800'
 };
 
 const noCommentsStyle = {
   fontSize: '13px',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   fontWeight: '700',
   textAlign: 'center',
   margin: '15px 0'
@@ -3799,10 +3589,10 @@ const dropdownMenu = {
   position: 'absolute',
   right: 0,
   top: '28px',
-  background: '#FFFFFF',
+  background: 'var(--surface-container-lowest)',
   borderRadius: '12px',
-  boxShadow: '0 10px 25px rgba(11,26,63,0.15)',
-  border: '1px solid #E9EDF7',
+  boxShadow: '0 10px 25px rgba(0,45,98,0.15)',
+  border: '1px solid var(--divider)',
   padding: '6px',
   display: 'flex',
   flexDirection: 'column',
@@ -3816,7 +3606,7 @@ const dropdownItem = {
   padding: '8px 12px',
   fontSize: '12px',
   fontWeight: '700',
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
@@ -3829,7 +3619,7 @@ const dropdownItem = {
 const overlay = {
   position: 'fixed',
   inset: 0,
-  background: 'rgba(11,26,63,0.4)',
+  background: 'rgba(0,45,98,0.4)',
   backdropFilter: 'blur(6px)',
   display: 'flex',
   alignItems: 'center',
@@ -3843,8 +3633,8 @@ const modalCardStyle = {
   maxWidth: '540px',
   padding: '32px',
   borderRadius: '24px',
-  background: '#FFFFFF',
-  boxShadow: '0 20px 50px rgba(11,26,63,0.2)'
+  background: 'var(--surface-container-lowest)',
+  boxShadow: '0 20px 50px rgba(0,45,98,0.2)'
 };
 
 const modalHeaderStyle = {
@@ -3852,13 +3642,13 @@ const modalHeaderStyle = {
   justifyContent: 'space-between',
   alignItems: 'center',
   marginBottom: '20px',
-  color: '#0B1A3F'
+  color: 'var(--campora-text)'
 };
 
 const modalCloseStyle = {
   border: 'none',
   background: 'transparent',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   cursor: 'pointer',
   display: 'flex'
 };
@@ -3872,7 +3662,7 @@ const modalFormStyle = {
 const labelStyle = {
   fontSize: '11px',
   fontWeight: '800',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   display: 'block',
   marginBottom: '6px',
   letterSpacing: '0.5px'
@@ -3885,7 +3675,7 @@ const anonymousPostRowStyle = {
   cursor: 'pointer',
   fontSize: '13px',
   fontWeight: '700',
-  color: '#0B1A3F'
+  color: 'var(--campora-text)'
 };
 
 const modalFooterStyle = {
@@ -3896,8 +3686,8 @@ const modalFooterStyle = {
 };
 
 const cancelBtn = {
-  background: '#F4F7FE',
-  color: '#0B1A3F',
+  background: 'var(--campora-bg)',
+  color: 'var(--campora-text)',
   border: 'none',
   borderRadius: '12px',
   padding: '10px 18px',
@@ -3908,7 +3698,7 @@ const cancelBtn = {
 };
 
 const saveBtnSmall = {
-  background: '#0B1A3F',
+  background: 'var(--campora-navy)',
   color: '#FFFFFF',
   border: 'none',
   borderRadius: '12px',
@@ -3916,7 +3706,7 @@ const saveBtnSmall = {
   fontWeight: '800',
   fontSize: '13px',
   cursor: 'pointer',
-  boxShadow: '0 6px 15px rgba(11,26,63,0.2)',
+  boxShadow: '0 6px 15px rgba(0,45,98,0.2)',
   fontFamily: 'inherit'
 };
 
@@ -3965,7 +3755,7 @@ const commentAvatarStyle = {
 const commentAuthorStyle = {
   fontWeight: '900',
   fontSize: '13px',
-  color: '#0B1A3F'
+  color: 'var(--campora-text)'
 };
 
 const commentActionsStyle = {
@@ -3977,7 +3767,7 @@ const commentActionsStyle = {
 const replyButtonStyle = {
   background: 'none',
   border: 'none',
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '11px',
   fontWeight: '800',
   cursor: 'pointer',
@@ -3991,7 +3781,7 @@ const deleteCommentButtonStyle = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  color: '#EE5D50',
+  color: 'var(--campora-urgent)',
   padding: 0
 };
 
@@ -3999,8 +3789,8 @@ const replyingToTagStyle = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: '5px',
-  color: '#64748B',
-  background: '#F1F5F9',
+  color: 'var(--campora-muted)',
+  background: 'var(--surface-container-low)',
   fontSize: '10px',
   fontWeight: '800',
   padding: '5px 8px',
@@ -4012,7 +3802,7 @@ const replyingToTagStyle = {
 const commentContentStyle = {
   margin: 0,
   fontSize: '13px',
-  color: '#2B3674',
+  color: 'var(--campora-text)',
   fontWeight: '600',
   lineHeight: '1.4'
 };
@@ -4020,7 +3810,7 @@ const commentContentStyle = {
 const inlineReplyWrapStyle = {
   marginLeft: '18px',
   padding: '10px 0 2px 12px',
-  borderLeft: '2px solid #CBD5E1',
+  borderLeft: '2px solid var(--divider)',
   display: 'flex',
   flexDirection: 'column',
   gap: '10px',
@@ -4038,7 +3828,7 @@ const replyAnonymousButtonStyle = {
   alignSelf: 'flex-start',
   background: 'none',
   border: 'none',
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '11px',
   fontWeight: '800',
   cursor: 'pointer',
@@ -4050,7 +3840,7 @@ const replyAnonymousButtonStyle = {
 const nestedRepliesStyle = {
   marginLeft: '20px',
   padding: '8px 0 2px 14px',
-  borderLeft: '2px solid #CBD5E1',
+  borderLeft: '2px solid var(--divider)',
   display: 'flex',
   flexDirection: 'column',
   gap: '10px',
@@ -4063,34 +3853,34 @@ const instagramDmShell = {
   minHeight: '700px',
   height: '76vh',
   maxHeight: '880px',
-  background: '#FFFFFF',
-  border: '1.5px solid #E2E8F0',
+  background: 'var(--surface-container-lowest)',
+  border: '1.5px solid var(--divider)',
   borderRadius: '24px',
   overflow: 'hidden',
 
-  boxShadow: '0 10px 30px rgba(11,26,57,0.08)'
+  boxShadow: '0 10px 30px rgba(0,45,98,0.08)'
 };
 
-const instagramDmSidebar = { borderRight: '1px solid #E2E8F0', display: 'flex',
-flexDirection: 'column', minWidth: 0, background: '#FFFFFF' };
+const instagramDmSidebar = { borderRight: '1px solid var(--divider)', display: 'flex',
+flexDirection: 'column', minWidth: 0, background: 'var(--surface-container-lowest)' };
 
 const instagramDmSidebarHeader = { padding: '24px 22px 16px', display: 'flex',
 alignItems: 'center', justifyContent: 'space-between', gap: '12px' };
 
-const instagramDmSidebarTitle = { margin: 0, color: '#0B1A3F', fontSize: '22px',
+const instagramDmSidebarTitle = { margin: 0, color: 'var(--campora-text)', fontSize: '22px',
 fontWeight: '900' };
 
-const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: '#94A3B8',
+const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: 'var(--campora-muted)',
 fontSize: '11px', fontWeight: '700' };
 
 const instagramSearchWrap = { padding: '0 18px 16px' };
 
-const instagramSearchBar = { height: '50px', border: '1.5px solid #E2E8F0',
-borderRadius: '15px', background: '#F8FAFC', display: 'flex', alignItems:
+const instagramSearchBar = { height: '50px', border: '1.5px solid var(--divider)',
+borderRadius: '15px', background: 'var(--surface-container-high)', display: 'flex', alignItems:
 'center', gap: '10px', padding: '0 15px', boxSizing: 'border-box' };
 
 const instagramSearchIcon = {
-  color: '#94A3B8',
+  color: 'var(--campora-muted)',
   pointerEvents: 'none',
   flexShrink: 0
 };
@@ -4104,7 +3894,7 @@ const instagramSearchInput = {
   padding: 0,
   margin: 0,
   background: 'transparent',
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '13px',
   fontWeight: '700',
   fontFamily: 'inherit',
@@ -4115,7 +3905,7 @@ const instagramSearchInput = {
 const instagramSearchClear = {
   border: 'none',
   background: 'transparent',
-  color: '#94A3B8',
+  color: 'var(--campora-muted)',
   cursor: 'pointer',
   padding: 0,
   display: 'flex',
@@ -4126,20 +3916,20 @@ const instagramSearchClear = {
 
 const instagramSearchResults = {
   margin: '0 16px 12px',
-  border: '1px solid #E2E8F0',
+  border: '1px solid var(--divider)',
   borderRadius: '14px',
   padding: '6px',
   maxHeight: '250px',
   overflowY: 'auto',
-  background: '#FFFFFF',
-  boxShadow: '0 8px 22px rgba(11,26,57,0.08)',
+  background: 'var(--surface-container-lowest)',
+  boxShadow: '0 8px 22px rgba(0,45,98,0.08)',
   zIndex: 2
 };
 
 const instagramSearchStatus = {
   padding: '14px',
   textAlign: 'center',
-  color: '#94A3B8',
+  color: 'var(--campora-muted)',
   fontSize: '12px',
   fontWeight: '700'
 };
@@ -4147,7 +3937,7 @@ const instagramSearchStatus = {
 const instagramSearchResultRow = {
   width: '100%',
   border: 'none',
-  background: '#FFFFFF',
+  background: 'var(--surface-container-lowest)',
   borderRadius: '11px',
   padding: '11px',
   display: 'flex',
@@ -4165,16 +3955,16 @@ const instagramThreadRow = { width: '100%', border: 'none', background:
 '13px', alignItems: 'center', textAlign: 'left', cursor: 'pointer', fontFamily:
 'inherit' };
 
-const instagramThreadRowActive = { background: '#F1F5F9' };
+const instagramThreadRowActive = { background: 'var(--surface-container-low)' };
 
 const instagramAvatar = {
   width: '54px',
   height: '54px',
   borderRadius: '50%',
   flexShrink: 0,
-  border: '1px solid rgba(11,26,63,0.08)',
+  border: '1px solid rgba(0,45,98,0.08)',
   background: '#E0F2FE',
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '14px',
   fontWeight: '900',
   display: 'flex',
@@ -4191,7 +3981,7 @@ const instagramAvatarLarge = {
 
 const instagramPersonName = {
   margin: 0,
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '14px',
   fontWeight: '900',
   whiteSpace: 'nowrap',
@@ -4201,7 +3991,7 @@ const instagramPersonName = {
 
 const instagramPersonMeta = {
   margin: '3px 0 0',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   fontSize: '10px',
   fontWeight: '700',
   whiteSpace: 'nowrap',
@@ -4217,7 +4007,7 @@ const instagramThreadTopLine = {
 };
 
 const instagramThreadDate = {
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   fontSize: '8px',
   fontWeight: '700',
   flexShrink: 0
@@ -4225,7 +4015,7 @@ const instagramThreadDate = {
 
 const instagramMessagePreview = {
   margin: '5px 0 0',
-  color: '#64748B',
+  color: 'var(--campora-muted)',
   fontSize: '11px',
   fontWeight: '600',
   whiteSpace: 'nowrap',
@@ -4236,7 +4026,7 @@ const instagramMessagePreview = {
 const instagramEmptyThreads = {
   padding: '32px 14px',
   textAlign: 'center',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   fontSize: '11px',
   fontWeight: '700'
 };
@@ -4256,24 +4046,24 @@ const instagramChatPanel = {
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  background: '#FFFFFF',
+  background: 'var(--surface-container-lowest)',
   overflow: 'hidden'
 };
 
 const instagramChatHeader = { minHeight: '86px', padding: '16px 24px',
-borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center',
+borderBottom: '1px solid var(--divider)', display: 'flex', alignItems: 'center',
 justifyContent: 'space-between', gap: '14px' };
 
 const instagramChatName = {
   margin: 0,
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '18px',
   fontWeight: '900'
 };
 
 const instagramChatEmail = {
   margin: '4px 0 0',
-  color: '#94A3B8',
+  color: 'var(--campora-muted)',
   fontSize: '11px',
   fontWeight: '700'
 };
@@ -4282,8 +4072,8 @@ const instagramHeaderPin = {
   width: '40px',
   height: '40px',
   borderRadius: '12px',
-  border: '1px solid #E2E8F0',
-  background: '#FFFFFF',
+  border: '1px solid var(--divider)',
+  background: 'var(--surface-container-lowest)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -4301,7 +4091,7 @@ const instagramEmptyChat = {
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#A3AED0',
+  color: 'var(--campora-muted)',
   fontSize: '12px',
   fontWeight: '700'
 };
@@ -4320,8 +4110,8 @@ const instagramNoChatIcon = {
   width: '72px',
   height: '72px',
   borderRadius: '50%',
-  border: '2px solid #0B1A3F',
-  color: '#0B1A3F',
+  border: '2px solid var(--campora-navy)',
+  color: 'var(--campora-text)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -4330,14 +4120,14 @@ const instagramNoChatIcon = {
 
 const instagramNoChatTitle = {
   margin: 0,
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '18px',
   fontWeight: '900'
 };
 
 const instagramNoChatText = {
   margin: '7px 0 0',
-  color: '#94A3B8',
+  color: 'var(--campora-muted)',
   maxWidth: '320px',
   fontSize: '11px',
   fontWeight: '700',
@@ -4352,14 +4142,14 @@ const instagramBubble = {
 };
 
 const instagramBubbleMine = {
-  background: '#0B1A3F',
+  background: 'var(--campora-navy)',
   color: '#FFFFFF',
   borderBottomRightRadius: '6px'
 };
 
 const instagramBubbleTheirs = {
-  background: '#F1F5F9',
-  color: '#0B1A3F',
+  background: 'var(--surface-container-low)',
+  color: 'var(--campora-text)',
   borderBottomLeftRadius: '6px'
 };
 
@@ -4389,8 +4179,8 @@ const instagramReplyQuote = {
   padding: '7px 9px',
   marginBottom: '7px',
   borderRadius: '9px',
-  background: '#FFFFFF',
-  borderLeft: '3px solid #0B1A3F',
+  background: 'var(--surface-container-lowest)',
+  borderLeft: '3px solid var(--campora-navy)',
   fontSize: '10px'
 };
 
@@ -4407,8 +4197,8 @@ const instagramReactionRow = {
 };
 
 const instagramReactionPill = {
-  border: '1px solid #E2E8F0',
-  background: '#FFFFFF',
+  border: '1px solid var(--divider)',
+  background: 'var(--surface-container-lowest)',
   borderRadius: '999px',
   padding: '3px 7px',
   fontSize: '10px',
@@ -4416,26 +4206,26 @@ const instagramReactionPill = {
 };
 
 const instagramMessageMenuButton = { position: 'absolute', top: '8px', border:
-'none', background: 'transparent', color: '#A3AED0', cursor: 'pointer', padding:
+'none', background: 'transparent', color: 'var(--campora-muted)', cursor: 'pointer', padding:
 '4px 7px', fontWeight: '900', letterSpacing: '1px' };
 
 const instagramMessageMenu = { position: 'absolute', top: '34px', background:
-'#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '13px', padding: '7px',
-boxShadow: '0 10px 25px rgba(11,26,57,0.12)', zIndex: 40, display: 'flex',
+'#FFFFFF', border: '1px solid var(--divider)', borderRadius: '13px', padding: '7px',
+boxShadow: '0 10px 25px rgba(0,45,98,0.12)', zIndex: 40, display: 'flex',
 alignItems: 'center', gap: '3px', flexWrap: 'wrap', minWidth: '250px', maxWidth:
 'min(310px, calc(100vw - 80px))' };
 
 const instagramEmojiButton = { border: 'none', background: 'transparent',
 fontSize: '16px', cursor: 'pointer', padding: '4px' };
 
-const instagramMenuAction = { border: 'none', background: '#F8FAFC', color:
-'#0B1A3F', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems:
+const instagramMenuAction = { border: 'none', background: 'var(--surface-container-high)', color:
+'var(--campora-text)', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems:
 'center', gap: '4px', fontSize: '10px', fontWeight: '800', cursor: 'pointer' };
 
 const instagramReplyComposerPreview = {
-  borderTop: '1px solid #E2E8F0',
+  borderTop: '1px solid var(--divider)',
   padding: '10px 20px',
-  background: '#F8FAFC',
+  background: 'var(--surface-container-high)',
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -4446,7 +4236,7 @@ const instagramReplyComposerPreview = {
 const instagramReplyClose = {
   border: 'none',
   background: 'transparent',
-  color: '#94A3B8',
+  color: 'var(--campora-muted)',
   cursor: 'pointer',
   display: 'flex'
 };
@@ -4490,7 +4280,7 @@ const instagramPinnedChip = {
 };
 
 const instagramPinnedMessageText = {
-  color: '#0B1A3F',
+  color: 'var(--campora-text)',
   fontSize: '11px',
   fontWeight: '700',
   whiteSpace: 'nowrap',
@@ -4508,11 +4298,11 @@ const instagramPinnedRemove = {
   flexShrink: 0
 };
 
-const instagramComposer = { borderTop: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: '#FFFFFF', flexShrink: 0, position: 'relative', zIndex: 3 };
+const instagramComposer = { borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--surface-container-lowest)', flexShrink: 0, position: 'relative', zIndex: 3 };
 
 const instagramComposerInput = { flex: 1, height: '50px', minWidth: 0,
-borderRadius: '20px', border: '1.5px solid #E2E8F0', background: '#F8FAFC',
-padding: '0 16px', fontSize: '13px', fontWeight: '700', color: '#0B1A3F', outline:
+borderRadius: '20px', border: '1.5px solid var(--divider)', background: 'var(--surface-container-high)',
+padding: '0 16px', fontSize: '13px', fontWeight: '700', color: 'var(--campora-text)', outline:
 'none', boxSizing: 'border-box', fontFamily: 'inherit' };
 
 const instagramSendButton = {
@@ -4520,7 +4310,7 @@ const instagramSendButton = {
   height: '52px',
   borderRadius: '50%',
   border: 'none',
-  background: '#0B1A3F',
+  background: 'var(--campora-navy)',
   color: '#FFFFFF',
   display: 'flex',
   alignItems: 'center',

@@ -142,7 +142,7 @@ export default function AdminStudyGroups() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#A3AED0',
+          color: '#717786',
           fontWeight: '800',
         }}
       >
@@ -170,7 +170,7 @@ export default function AdminStudyGroups() {
             border: '1.5px solid #E8ECF4',
             borderRadius: '28px',
             padding: '48px 36px',
-            boxShadow: '0 18px 50px rgba(11, 26, 63, 0.07)',
+            boxShadow: '0 18px 50px rgba(0, 45, 98, 0.07)',
           }}
         >
           <div
@@ -191,7 +191,7 @@ export default function AdminStudyGroups() {
 
           <h2
             style={{
-              color: '#0B1A3F',
+              color: '#1A1B1F',
               fontSize: '28px',
               fontWeight: '900',
               marginBottom: '8px',
@@ -202,7 +202,7 @@ export default function AdminStudyGroups() {
 
           <p
             style={{
-              color: '#A3AED0',
+              color: '#717786',
               fontWeight: '700',
               lineHeight: '1.6',
             }}
@@ -253,7 +253,7 @@ export default function AdminStudyGroups() {
 
           <h1
             style={{
-              color: '#0B1A3F',
+              color: '#1A1B1F',
               fontSize: '42px',
               fontWeight: '900',
               margin: 0,
@@ -265,7 +265,7 @@ export default function AdminStudyGroups() {
           <p
             style={{
               margin: '8px 0 0',
-              color: '#A3AED0',
+              color: '#717786',
               fontWeight: '700',
               fontSize: '15px',
             }}
@@ -278,9 +278,9 @@ export default function AdminStudyGroups() {
         <button
           onClick={fetchPendingGroups}
           style={{
-            border: '1.5px solid #E2E8F0',
+            border: '1.5px solid #E3E2E7',
             background: '#FFFFFF',
-            color: '#0B1A3F',
+            color: '#1A1B1F',
             borderRadius: '14px',
             padding: '11px 16px',
             fontWeight: '900',
@@ -328,7 +328,7 @@ export default function AdminStudyGroups() {
           <p
             style={{
               margin: 0,
-              color: '#0B1A3F',
+              color: '#1A1B1F',
               fontWeight: '900',
               fontSize: '14px',
             }}
@@ -385,7 +385,7 @@ export default function AdminStudyGroups() {
             <h2
               style={{
                 margin: '0 0 8px',
-                color: '#0B1A3F',
+                color: '#1A1B1F',
                 fontSize: '25px',
                 fontWeight: '900',
               }}
@@ -396,7 +396,7 @@ export default function AdminStudyGroups() {
             <p
               style={{
                 margin: 0,
-                color: '#A3AED0',
+                color: '#717786',
                 fontWeight: '700',
               }}
             >
@@ -422,7 +422,7 @@ export default function AdminStudyGroups() {
                 borderRadius: '26px',
                 padding: '26px',
                 boxShadow:
-                  '0 16px 40px rgba(11, 26, 63, 0.06)',
+                  '0 16px 40px rgba(0, 45, 98, 0.06)',
               }}
             >
               <div
@@ -456,7 +456,7 @@ export default function AdminStudyGroups() {
 
                   <h2
                     style={{
-                      color: '#0B1A3F',
+                      color: '#1A1B1F',
                       fontSize: '26px',
                       fontWeight: '900',
                       margin: '14px 0 4px',
@@ -469,7 +469,7 @@ export default function AdminStudyGroups() {
                     <p
                       style={{
                         margin: 0,
-                        color: '#A3AED0',
+                        color: '#717786',
                         fontWeight: '800',
                       }}
                     >
@@ -487,7 +487,7 @@ export default function AdminStudyGroups() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#0B1A3F',
+                    color: '#1A1B1F',
                   }}
                 >
                   <Users size={22} />
@@ -530,7 +530,7 @@ export default function AdminStudyGroups() {
               {group.description && (
                 <div
                   style={{
-                    background: '#F8FAFC',
+                    background: '#E9E7ED',
                     borderRadius: '14px',
                     padding: '14px',
                     marginBottom: '20px',
@@ -539,7 +539,7 @@ export default function AdminStudyGroups() {
                   <p
                     style={{
                       margin: '0 0 4px',
-                      color: '#A3AED0',
+                      color: '#717786',
                       fontSize: '10px',
                       fontWeight: '900',
                       textTransform: 'uppercase',
@@ -596,7 +596,7 @@ export default function AdminStudyGroups() {
                   onClick={() => approveGroup(group.id)}
                   style={{
                     border: 'none',
-                    background: '#0B1A3F',
+                    background: '#002D62',
                     color: '#FFFFFF',
                     padding: '13px',
                     borderRadius: '14px',
@@ -624,7 +624,7 @@ function InfoItem({ icon, label, value }) {
   return (
     <div
       style={{
-        background: '#F8FAFC',
+        background: '#E9E7ED',
         border: '1px solid #EDF1F7',
         borderRadius: '14px',
         padding: '12px',
@@ -635,7 +635,7 @@ function InfoItem({ icon, label, value }) {
           display: 'flex',
           alignItems: 'center',
           gap: '7px',
-          color: '#A3AED0',
+          color: '#717786',
           fontSize: '10px',
           fontWeight: '900',
           textTransform: 'uppercase',
@@ -648,7 +648,7 @@ function InfoItem({ icon, label, value }) {
 
       <div
         style={{
-          color: '#0B1A3F',
+          color: '#1A1B1F',
           fontSize: '13px',
           fontWeight: '800',
         }}

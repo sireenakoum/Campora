@@ -185,7 +185,7 @@ export default function Announcements() {
         style={{
           fontSize: "36px",
           fontWeight: "900",
-          color: "#0B1A3F",
+          color: "#1A1B1F",
           marginBottom: "8px",
         }}
       >
@@ -228,7 +228,7 @@ export default function Announcements() {
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(to right, rgba(11,26,63,0.55), rgba(11,26,63,0.05))",
+              "linear-gradient(to right, rgba(0,45,98,0.55), rgba(0,45,98,0.05))",
             display: "flex",
             alignItems: "center",
             padding: "30px",
@@ -327,7 +327,7 @@ export default function Announcements() {
               cursor: "pointer",
               background:
                 activeTab === tab.key
-                  ? "#0B1A3F"
+                  ? "#002D62"
                   : "#E5E7EB",
               color:
                 activeTab === tab.key

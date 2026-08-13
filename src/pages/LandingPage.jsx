@@ -20,7 +20,7 @@ export default function LandingPage() {
     height: '100vh',
     background:
       'linear-gradient(135deg, #ffffff 0%, #f7faff 45%, #edf4fb 100%)',
-    color: '#0B1A3F',
+    color: '#1A1B1F',
     overflow: 'hidden',
     position: 'relative',
   }}
@@ -69,19 +69,19 @@ export default function LandingPage() {
             fontSize: '15px',
           }}
         >
-          <Link to="/about" style={{ color: '#0B1A3F', textDecoration: 'none' }}>
+          <Link to="/about" style={{ color: '#1A1B1F', textDecoration: 'none' }}>
   About
 </Link>
 
           
-         <Link to="/features" style={{ color: '#0B1A3F', textDecoration: 'none' }}>
+         <Link to="/features" style={{ color: '#1A1B1F', textDecoration: 'none' }}>
   Features
 </Link>
 
           <Link
             to="/login"
             style={{
-              color: '#0B1A3F',
+              color: '#1A1B1F',
               textDecoration: 'none',
               marginLeft: '20px',
             }}
@@ -92,12 +92,12 @@ export default function LandingPage() {
           <Link
             to="/signup"
             style={{
-              background: '#0B1A3F',
+              background: '#002D62',
               color: '#fff',
               padding: '14px 24px',
               borderRadius: '14px',
               textDecoration: 'none',
-              boxShadow: '0 10px 24px rgba(11, 26, 63, 0.15)',
+              boxShadow: '0 10px 24px rgba(0, 45, 98, 0.15)',
             }}
           >
             Sign Up
@@ -155,7 +155,7 @@ export default function LandingPage() {
             made for{' '}
             <span
               style={{
-                background: 'linear-gradient(90deg, #648CCB, #0B1A3F)',
+                background: 'linear-gradient(90deg, #648CCB, #002D62)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
@@ -185,7 +185,7 @@ Created by Engineering and Computer Science students, Campora is designed to mak
                 alignItems: 'center',
                 gap: '12px',
                 padding: '16px 26px',
-                background: '#0B1A3F',
+                background: '#002D62',
                 color: '#fff',
                 textDecoration: 'none',
                 borderRadius: '14px',
@@ -234,7 +234,7 @@ Created by Engineering and Computer Science students, Campora is designed to mak
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 24px 55px rgba(11, 26, 63, 0.13)',
+              boxShadow: '0 24px 55px rgba(0, 45, 98, 0.13)',
               transform: 'rotate(0deg)',
               position: 'relative',
               zIndex: 3,
@@ -320,7 +320,7 @@ function FeatureCard({ icon, title, text, style }) {
         padding: '22px',
         borderRadius: '24px',
         background: 'rgba(255,255,255,0.96)',
-        boxShadow: '0 14px 32px rgba(11, 26, 63, 0.09)',
+        boxShadow: '0 14px 32px rgba(0, 45, 98, 0.09)',
         border: '1px solid rgba(221, 231, 245, 0.95)',
         zIndex: 4,
         ...style,
@@ -347,7 +347,7 @@ function FeatureCard({ icon, title, text, style }) {
           margin: '0 0 8px',
           fontSize: '16px',
           fontWeight: '900',
-          color: '#0B1A3F',
+          color: '#1A1B1F',
         }}
       >
         {title}

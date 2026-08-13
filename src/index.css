@@ -4,6 +4,10 @@
 
 body {
   margin: 0;
+  background-color: #FAF9FE;
+  color: #1A1B1F;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {

@@ -33,10 +33,22 @@ import {
   LogOut,
   CheckCheck,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Loader2,
+  FileText,
+  Calendar,
+  Clock
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import {
+  PageShell,
+  SectionHeader,
+  EmptyState,
+  IconChip,
+  StatTile,
+  SegmentedControl
+} from '../components/luminous';
 
 const DmShellPortal = ({ active, children }) =>
   active ? createPortal(children, document.body) : children;
@@ -133,7 +145,7 @@ const GROUP_COLORS = [
   { bg: '#CFFAFE', name: 'Light Blue' },
   { bg: '#D1FAE5', name: 'Mint' },
   { bg: '#E0E7FF', name: 'Periwinkle' },
-  { bg: '#0B1A3F', name: 'Navy' }
+  { bg: '#002D62', name: 'Navy' }
 ];
 
 
@@ -174,7 +186,7 @@ const blue = parseInt(hex.substring(4, 6), 16);
 const luminance =
  (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
 
-  return luminance < 0.58 ? '#FFFFFF' : '#0B1A3F';
+  return luminance < 0.58 ? '#FFFFFF' : '#002D62';
 };
 
 
@@ -190,7 +202,7 @@ const isDarkColor = (backgroundColor) => {
 const getMutedContrastColor = (backgroundColor) => {
   return isDarkColor(backgroundColor)
    ? 'rgba(255,255,255,0.78)'
-   : '#64748B';
+   : '#717786';
 };
 
 
@@ -199,13 +211,13 @@ const getMutedContrastColor = (backgroundColor) => {
 const getSoftContrastColor = (backgroundColor) => {
  return isDarkColor(backgroundColor)
   ? 'rgba(255,255,255,0.14)'
-  : 'rgba(11,26,63,0.07)';
+  : 'rgba(0,45,98,0.07)';
 
 };
 const getContrastBorder = (backgroundColor) => {
   return isDarkColor(backgroundColor)
    ? 'rgba(255,255,255,0.24)'
-   : 'rgba(11,26,63,0.10)';
+   : 'rgba(0,45,98,0.10)';
 };
 // =====================================================
 // USER HELPERS
@@ -3261,7 +3273,7 @@ fontSize:
 fontWeight:
  '800',
 color:
-'#0B1A3F',
+'#1A1B1F',
 
   textTransform:
    'uppercase'
@@ -3297,33 +3309,10 @@ const STUDY_NAV_COLORS = {
   browse: { bg: '#F3F7FD', text: '#648CCB', border: '#DDE7F5' },
   created: { bg: '#F7F4FC', text: '#8B78B8', border: '#E7E0F2' },
   joined: { bg: '#F2F9F7', text: '#5E9A8B', border: '#D9EBE6' },
-  dms: { bg: '#F4F7FE', text: '#0B1A3F', border: '#DDE3EE' },
+  dms: { bg: '#FAF9FE', text: '#002D62', border: '#DDE3EE' },
   preferences: { bg: '#FFF9F1', text: '#C99758', border: '#F0E2CB' },
   create: { bg: '#FFF5F6', text: '#C76E7D', border: '#F0DDE1' }
 };
-const getStudyNavTabStyle = (tabKey, isActive) => {
-const tone = STUDY_NAV_COLORS[tabKey] || STUDY_NAV_COLORS.browse;
-return {
-padding: '10px 18px',
-borderRadius: '12px',
-border: isActive
-? `2px solid ${tone.border}`
-: `1.5px solid ${tone.border}`,
-background: isActive ? tone.text : tone.bg,
-color: isActive ? '#FFFFFF' : tone.text,
-fontWeight: '900',
-fontSize: '13px',
-cursor: 'pointer',
-display: 'flex',
-alignItems: 'center',
-gap: '8px',
-transition: 'all 0.18s ease',
-boxShadow: isActive
-? `0 6px 16px ${tone.border}66`
-: 'none'
-};
-};
-
 
 const addBtnStyle = {
 
@@ -3337,7 +3326,7 @@ border:
 'none',
 
 background:
-'#0B1A3F',
+'#002D62',
 
 color:
  'white',
@@ -3360,7 +3349,7 @@ alignItems:
 gap:
  '8px',
  boxShadow:
-  '0 8px 16px rgba(11,26,63,0.2)'
+  '0 8px 16px rgba(0,45,98,0.2)'
 };
 
 
@@ -3386,7 +3375,7 @@ fontWeight:
  '900',
 
 color:
- '#A3AED0',
+ '#717786',
 
   letterSpacing:
     '0.5px'
@@ -3402,20 +3391,20 @@ borderRadius:
 '12px',
 
 border:
-'1.5px solid #E2E8F0',
+'1.5px solid #E3E2E7',
 fontSize:
  '14px',
 fontWeight:
  '700',
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
 
 outline:
 'none',
 
 background:
-'#F8FAFC',
+'#E9E7ED',
 
   boxSizing:
    'border-box'
@@ -3446,12 +3435,12 @@ borderRadius:
 '10px',
 
 border:
-'1.5px solid #E2E8F0',
+'1.5px solid #E3E2E7',
 
 background:
-'#F8FAFC',
+'#E9E7ED',
 color:
- '#64748B',
+ '#717786',
 
 fontSize:
  '12px',
@@ -3471,13 +3460,13 @@ const activeChipStyle = {
 ...chipStyle,
 
 background:
-'#0B1A3F',
+'#002D62',
 
 color:
  'white',
 
   borderColor:
-   '#0B1A3F'
+   '#002D62'
 };
 
 const saveBtn = {
@@ -3492,7 +3481,7 @@ border:
 'none',
 
 background:
-'#0B1A3F',
+'#002D62',
 
 color:
  'white',
@@ -3526,7 +3515,7 @@ background:
 
 color:
 
-'#A3AED0',
+'#717786',
 
 fontWeight:
  '800',
@@ -3555,7 +3544,13 @@ bottom:
 0,
 
 background:
-'rgba(11,26,63,0.5)',
+'rgba(0,45,98,0.5)',
+
+backdropFilter:
+ 'blur(10px)',
+
+WebkitBackdropFilter:
+ 'blur(10px)',
 
 display:
 'flex',
@@ -3564,7 +3559,7 @@ alignItems:
  'center',
 
 justifyContent:
-  'center',
+   'center',
 
 zIndex:
  1000,
@@ -3581,33 +3576,33 @@ gap: '4px', color: PIN_COLORS.icon, fontSize: '9px', fontWeight: '900',
 marginBottom: '4px' };
 const instagramReactionRow = { display: 'flex', gap: '4px', flexWrap: 'wrap',
 marginTop: '4px' };
-const instagramReactionPill = { border: '1px solid #E2E8F0', background:
+const instagramReactionPill = { border: '1px solid #E3E2E7', background:
 '#FFFFFF', borderRadius: '999px', padding: '3px 8px', fontSize: '11px', cursor:
-'pointer', color: '#0B1A3F', fontWeight: '800' };
+'pointer', color: '#1A1B1F', fontWeight: '800' };
 const instagramMessageMenuButton = { position: 'absolute', top: '8px', border:
-'none', background: 'transparent', color: '#A3AED0', cursor: 'pointer', padding:
+'none', background: 'transparent', color: '#717786', cursor: 'pointer', padding:
 '4px 7px', fontWeight: '900', letterSpacing: '1px' };
 const instagramMessageMenu = { position: 'absolute', top: '34px', background:
-'#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '13px', padding: '7px',
-boxShadow: '0 10px 25px rgba(11,26,57,0.12)', zIndex: 40, display: 'flex',
+'#FFFFFF', border: '1px solid #E3E2E7', borderRadius: '13px', padding: '7px',
+boxShadow: '0 10px 25px rgba(0,45,98,0.12)', zIndex: 40, display: 'flex',
 alignItems: 'center', gap: '3px', flexWrap: 'wrap', minWidth: '250px', maxWidth:
 'min(310px, calc(100vw - 80px))' };
 const instagramEmojiButton = { border: 'none', background: 'transparent',
 fontSize: '16px', cursor: 'pointer', padding: '4px' };
-const instagramMenuAction = { border: 'none', background: '#F8FAFC', color:
-'#0B1A3F', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems:
+const instagramMenuAction = { border: 'none', background: '#E9E7ED', color:
+'#1A1B1F', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems:
 'center', gap: '4px', fontSize: '10px', fontWeight: '800', cursor: 'pointer' };
 const instagramReplyQuote = { display: 'flex', flexDirection: 'column', gap: '2px',
 padding: '7px 9px', marginBottom: '7px', borderRadius: '9px', background:
-'#FFFFFF', borderLeft: '3px solid #0B1A3F', color: '#64748B', fontSize: '10px' };
+'#FFFFFF', borderLeft: '3px solid #002D62', color: '#717786', fontSize: '10px' };
 const instagramReplyQuoteMine = { background: 'rgba(255,255,255,0.13)',
 borderLeftColor: 'rgba(255,255,255,0.7)', color: 'rgba(255,255,255,0.9)' };
 const instagramReplyComposerPreview = { padding: '10px 18px', borderTop:
-'1px solid #E2E8F0', background: '#F8FAFC', display: 'flex', alignItems: 'center',
-justifyContent: 'space-between', gap: '12px', color: '#0B1A3F', fontSize: '10px',
+'1px solid #E3E2E7', background: '#E9E7ED', display: 'flex', alignItems: 'center',
+justifyContent: 'space-between', gap: '12px', color: '#1A1B1F', fontSize: '10px',
 flexShrink: 0, position: 'relative', zIndex: 3 };
 const instagramReplyClose = { border: 'none', background: 'transparent', color:
-'#94A3B8', cursor: 'pointer', display: 'flex' };
+'#717786', cursor: 'pointer', display: 'flex' };
 const instagramDmShell = {
   display: 'grid',
   gridTemplateColumns: '390px minmax(0, 1fr)',
@@ -3615,37 +3610,37 @@ const instagramDmShell = {
   height: '76vh',
   maxHeight: '880px',
   background: '#FFFFFF',
-  border: '1.5px solid #E2E8F0',
+  border: '1.5px solid #E3E2E7',
   borderRadius: '24px',
   overflow: 'hidden',
 
-  boxShadow: '0 10px 30px rgba(11,26,57,0.08)'
+  boxShadow: '0 10px 30px rgba(0,45,98,0.08)'
 };
-const instagramDmSidebar = { borderRight: '1px solid #E2E8F0', display: 'flex',
+const instagramDmSidebar = { borderRight: '1px solid #E3E2E7', display: 'flex',
 flexDirection: 'column', minWidth: 0, background: '#FFFFFF' };
 const instagramDmSidebarHeader = { padding: '24px 22px 16px', display: 'flex',
 alignItems: 'center', justifyContent: 'space-between', gap: '12px' };
-const instagramDmSidebarTitle = { margin: 0, color: '#0B1A3F', fontSize: '22px',
+const instagramDmSidebarTitle = { margin: 0, color: '#1A1B1F', fontSize: '22px',
 fontWeight: '900' };
-const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: '#94A3B8',
+const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: '#717786',
 fontSize: '11px', fontWeight: '700' };
 const instagramSearchWrap = { padding: '0 18px 16px' };
-const instagramSearchBar = { height: '50px', border: '1.5px solid #E2E8F0',
-borderRadius: '15px', background: '#F8FAFC', display: 'flex', alignItems:
+const instagramSearchBar = { height: '50px', border: '1.5px solid #E3E2E7',
+borderRadius: '15px', background: '#E9E7ED', display: 'flex', alignItems:
 'center', gap: '10px', padding: '0 15px', boxSizing: 'border-box' };
-const instagramSearchIcon = { color: '#94A3B8', pointerEvents: 'none',
+const instagramSearchIcon = { color: '#717786', pointerEvents: 'none',
 flexShrink: 0 };
 const instagramSearchInput = { width: '100%', minWidth: 0, height: '100%',
 border: 'none', outline: 'none', padding: 0, margin: 0, background: 'transparent',
-color: '#0B1A3F', fontSize: '13px', fontWeight: '700', fontFamily: 'inherit',
+color: '#1A1B1F', fontSize: '13px', fontWeight: '700', fontFamily: 'inherit',
 boxSizing: 'border-box', lineHeight: 1 };
 const instagramSearchClear = { border: 'none', background: 'transparent',
-color: '#94A3B8', cursor: 'pointer', padding: 0, display: 'flex', alignItems:
+color: '#717786', cursor: 'pointer', padding: 0, display: 'flex', alignItems:
 'center', justifyContent: 'center', flexShrink: 0 };
-const instagramSearchResults = { margin: '0 16px 12px', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '6px', maxHeight: '250px', overflowY: 'auto', background: '#FFFFFF', boxShadow: '0 8px 22px rgba(11,26,57,0.08)',
+const instagramSearchResults = { margin: '0 16px 12px', border: '1px solid #E3E2E7', borderRadius: '14px', padding: '6px', maxHeight: '250px', overflowY: 'auto', background: '#FFFFFF', boxShadow: '0 8px 22px rgba(0,45,98,0.08)',
 zIndex: 2 };
 const instagramSearchStatus = { padding: '14px', textAlign: 'center', color:
-'#94A3B8', fontSize: '12px', fontWeight: '700' };
+'#717786', fontSize: '12px', fontWeight: '700' };
 const instagramSearchResultRow = { width: '100%', border: 'none', background:
 '#FFFFFF', borderRadius: '11px', padding: '11px', display: 'flex', alignItems:
 'center', gap: '12px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' };
@@ -3655,42 +3650,42 @@ const instagramThreadList = { flex: 1, overflowY: 'auto', padding: '6px 10px 16p
 'inherit' };
 const instagramThreadRowActive = { background: '#F1F5F9' };
 const instagramAvatar = { width: '48px', height: '48px', borderRadius: '50%',
-flexShrink: 0, border: '1.5px solid #E2E8F0', background: '#F8FAFC', color:
-'#0B1A3F', fontSize: '14px', fontWeight: '900', display: 'flex', alignItems:
+flexShrink: 0, border: '1.5px solid #E3E2E7', background: '#E9E7ED', color:
+'#1A1B1F', fontSize: '14px', fontWeight: '900', display: 'flex', alignItems:
 'center', justifyContent: 'center' };
 const instagramAvatarLarge = { ...instagramAvatar, width: '52px', height:
 '52px',
 fontSize: '15px' };
-const instagramPersonName = { margin: 0, color: '#0B1A3F', fontSize: '14px',
+const instagramPersonName = { margin: 0, color: '#1A1B1F', fontSize: '14px',
 
 fontWeight: '900', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow:
 'ellipsis' };
-const instagramPersonMeta = { margin: '3px 0 0', color: '#A3AED0', fontSize:
+const instagramPersonMeta = { margin: '3px 0 0', color: '#717786', fontSize:
 '10px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden',
 textOverflow: 'ellipsis' };
 const instagramThreadTopLine = { display: 'flex', alignItems: 'center',
 justifyContent: 'space-between', gap: '8px' };
-const instagramThreadDate = { color: '#A3AED0', fontSize: '8px', fontWeight:
+const instagramThreadDate = { color: '#717786', fontSize: '8px', fontWeight:
 '700', flexShrink: 0 };
-const instagramMessagePreview = { margin: '5px 0 0', color: '#64748B',
+const instagramMessagePreview = { margin: '5px 0 0', color: '#717786',
 fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden',
 textOverflow: 'ellipsis' };
 const instagramEmptyThreads = { padding: '32px 14px', textAlign: 'center',
-color: '#A3AED0', fontSize: '11px', fontWeight: '700' };
+color: '#717786', fontSize: '11px', fontWeight: '700' };
 const instagramPinButton = { border: 'none', background: 'transparent', cursor:
 'pointer', padding: '5px', display: 'flex', flexShrink: 0 };
 const instagramChatPanel = { minWidth: 0, minHeight: 0, height: '100%',
 display: 'flex', flexDirection: 'column', background: '#FFFFFF', overflow:
 'hidden' };
 const instagramChatHeader = { minHeight: '86px', padding: '16px 24px',
-borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center',
+borderBottom: '1px solid #E3E2E7', display: 'flex', alignItems: 'center',
 justifyContent: 'space-between', gap: '14px' };
-const instagramChatName = { margin: 0, color: '#0B1A3F', fontSize: '17px',
+const instagramChatName = { margin: 0, color: '#1A1B1F', fontSize: '17px',
 fontWeight: '900' };
-const instagramChatEmail = { margin: '4px 0 0', color: '#94A3B8', fontSize:
+const instagramChatEmail = { margin: '4px 0 0', color: '#717786', fontSize:
 '11px', fontWeight: '700' };
 const instagramHeaderPin = { width: '40px', height: '40px', borderRadius:
-'12px', border: '1px solid #E2E8F0', background: '#FFFFFF', display: 'flex',
+'12px', border: '1px solid #E3E2E7', background: '#FFFFFF', display: 'flex',
 alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
 const instagramHeaderPinActive = { background: PIN_COLORS.bg, border: `1px
 solid ${PIN_COLORS.border}` };
@@ -3699,37 +3694,37 @@ overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain',
 WebkitOverflowScrolling: 'touch', padding: '26px 24px', background:
 '#FFFFFF' };
 const instagramEmptyChat = { height: '100%', display: 'flex', flexDirection:
-'column', alignItems: 'center', justifyContent: 'center', color: '#A3AED0',
+'column', alignItems: 'center', justifyContent: 'center', color: '#717786',
 fontSize: '12px', fontWeight: '700' };
 const instagramNoChat = { height: '100%', display: 'flex', flexDirection:
 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
 padding: '35px' };
 const instagramNoChatIcon = { width: '72px', height: '72px', borderRadius:
-'50%', border: '2px solid #0B1A3F', color: '#0B1A3F', display: 'flex', alignItems:
+'50%', border: '2px solid #002D62', color: '#1A1B1F', display: 'flex', alignItems:
 'center', justifyContent: 'center', marginBottom: '14px' };
-const instagramNoChatTitle = { margin: 0, color: '#0B1A3F', fontSize: '18px',
+const instagramNoChatTitle = { margin: 0, color: '#1A1B1F', fontSize: '18px',
 fontWeight: '900' };
-const instagramNoChatText = { margin: '7px 0 0', color: '#94A3B8', maxWidth:
+const instagramNoChatText = { margin: '7px 0 0', color: '#717786', maxWidth:
 
 '320px', fontSize: '11px', fontWeight: '700', lineHeight: 1.5 };
 const instagramBubble = { maxWidth: '72%', padding: '12px 14px',
 borderRadius: '19px', fontSize: '13px' };
-const instagramBubbleMine = { background: '#0B1A3F', color: '#FFFFFF',
+const instagramBubbleMine = { background: '#002D62', color: '#FFFFFF',
 borderBottomRightRadius: '6px' };
-const instagramBubbleTheirs = { background: '#F1F5F9', color: '#0B1A3F',
+const instagramBubbleTheirs = { background: '#F1F5F9', color: '#1A1B1F',
 borderBottomLeftRadius: '6px' };
 const instagramBubbleText = { margin: 0, fontSize: '13px', lineHeight: 1.5,
 fontWeight: '600', whiteSpace: 'pre-wrap', wordBreak: 'break-word' };
 const instagramBubbleFooter = { display: 'flex', alignItems: 'center',
 justifyContent: 'space-between', gap: '10px', marginTop: '5px', fontSize: '8px',
 opacity: 0.7 };
-const instagramComposer = { borderTop: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: '#FFFFFF', flexShrink: 0, position: 'relative', zIndex: 3 };
+const instagramComposer = { borderTop: '1px solid #E3E2E7', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: '#FFFFFF', flexShrink: 0, position: 'relative', zIndex: 3 };
 const instagramComposerInput = { flex: 1, height: '50px', minWidth: 0,
-borderRadius: '20px', border: '1.5px solid #E2E8F0', background: '#F8FAFC',
-padding: '0 16px', fontSize: '13px', fontWeight: '700', color: '#0B1A3F', outline:
+borderRadius: '20px', border: '1.5px solid #E3E2E7', background: '#E9E7ED',
+padding: '0 16px', fontSize: '13px', fontWeight: '700', color: '#1A1B1F', outline:
 'none', boxSizing: 'border-box', fontFamily: 'inherit' };
 const instagramSendButton = { width: '48px', height: '48px', borderRadius:
-'50%', border: 'none', background: '#0B1A3F', color: '#FFFFFF', display: 'flex',
+'50%', border: 'none', background: '#002D62', color: '#FFFFFF', display: 'flex',
 alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 };
 
 // =====================================================
@@ -3830,6 +3825,7 @@ const status =
 return (
 
 <div
+className="panel"
 onClick={() => {
 setSelectedGroup(
   group
@@ -3840,24 +3836,8 @@ setSelectedGroup(
  );
 }}
 style={{
-
-background:
-'#FFFFFF',
-
-border:
-'1.5px solid #E5EAF4',
-
-borderRadius:
-'26px',
-
-padding:
-'26px',
-
 cursor:
  'pointer',
-
-boxShadow:
-'0 14px 36px rgba(11,26,63,0.06)',
 
 transition:
   'all 0.2s ease',
@@ -3933,7 +3913,7 @@ border:
 '1.5px solid #DCE3F0',
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
 
 fontSize:
  '11px',
@@ -3975,7 +3955,7 @@ padding:
 borderRadius:
 '10px',
 background:
-'#0B1A3F',
+'#002D62',
 
 color:
  '#FFFFFF',
@@ -4101,7 +4081,7 @@ style={{
  margin:
  '2px 0 0',
  color:
-  '#0B1A3F',
+  '#1A1B1F',
 
 fontSize:
  '20px',
@@ -4164,7 +4144,7 @@ alignItems:
  color={
    isPinned
      ? PIN_COLORS.icon
-     : '#0B1A3F'
+     : '#002D62'
  }
  fill={
    isPinned
@@ -4221,7 +4201,7 @@ alignItems:
 
 <Edit3
  size={16}
- color="#0B1A3F"
+ color="#002D62"
 />
 
 </button>
@@ -4286,7 +4266,7 @@ margin:
 '28px 0 16px',
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
  fontWeight:
    '900'
 }}
@@ -4345,7 +4325,7 @@ color:
 
 <Target
 size={17}
- color="#0B1A3F"
+ color="#002D62"
 />
 
 <span
@@ -4354,7 +4334,7 @@ style={{
   '900',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 Goal:
@@ -4393,7 +4373,7 @@ color:
 
 <Volume2
  size={17}
- color="#0B1A3F"
+ color="#002D62"
 />
 
 <span
@@ -4402,7 +4382,7 @@ style={{
   '900',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 Environment:
@@ -4441,7 +4421,7 @@ color:
 >
  <Users
   size={17}
-  color="#0B1A3F"
+  color="#002D62"
  />
 
 <span
@@ -4450,7 +4430,7 @@ style={{
   '900',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 Members:
@@ -4680,7 +4660,7 @@ border:
 'none',
 
 background:
-'#0B1A3F',
+'#002D62',
 
 color:
  '#FFFFFF',
@@ -4727,178 +4707,43 @@ display:
 
 return (
 
-<div
-style={{
- width:
- '100%',
-
-maxWidth:
-'1200px',
-
-   margin:
-     '0 auto'
-  }}
- >
+<PageShell>
 {/* =================================================
    HEADER + ALIGNED NAVIGATION
 ================================================= */}
 
 {view !== 'chat' && (
+  <>
+    <SectionHeader title="Study Groups" />
 
-<div
-style={{
- marginBottom:
-   '40px'
-}}
->
-
-<h1
-style={{
- fontSize:
-  '42px',
-
-fontWeight:
- '900',
-
-color:
-'#0B1A3F',
-
- margin:
-   0
-}}
->
-Study Groups
-</h1>
-
-
-<div
-style={{
- display:
- 'flex',
-
-gap:
-'12px',
-
-marginTop:
-'15px',
-
-   flexWrap:
-     'wrap',
- alignItems:
-   'center'
-}}
->
-
-<button
-onClick={() =>
-  setView(
-    'browse'
-  )
-}
-style={getStudyNavTabStyle('browse', view === 'browse')}
->
-
-<LayoutGrid
- size={16}
-/>
-
-Discover
-</button>
-
-
-<button
-onClick={() =>
-  setView(
-    'created'
-  )
-}
-style={getStudyNavTabStyle('created', view === 'created')}
->
-
- <Crown
-  size={16}
- />
-Circles Created (
-{createdGroups.length}
-)
-
-</button>
-
-
-<button
-onClick={() =>
-  setView(
-    'joined'
-  )
-}
-style={getStudyNavTabStyle('joined', view === 'joined')}
->
-
-<BookmarkCheck
-
- size={16}
-/>
-
-Joined Circles (
-{joinedOnlyGroups.length}
-)
-
-</button>
-
-
-<button
-onClick={() =>
-  setView(
-    'dms'
-  )
-}
-style={getStudyNavTabStyle('dms', view === 'dms')}
->
-<Mail
- size={16}
-/>
-
-Direct Messages
-
-</button>
-
-
-<button
-onClick={() =>
-  setView(
-    'preferences'
-  )
-}
-style={getStudyNavTabStyle('preferences', view === 'preferences')}
->
-
-<Sliders
- size={16}
-/>
-
-My Vibe Settings
-</button>
-
-
-<button
-onClick={() =>
- setView(
-
-     'create'
- )
-}
-style={getStudyNavTabStyle('create', view === 'create')}
->
-  <Plus
-   size={16}
-  />
-
-Create Circle
-
-</button>
-
-   </div>
- </div>
+    <div className="filter-row">
+      {[
+        { key: 'browse', label: 'Discover', icon: LayoutGrid },
+        { key: 'created', label: `Circles Created (${createdGroups.length})`, icon: Crown },
+        { key: 'joined', label: `Joined Circles (${joinedOnlyGroups.length})`, icon: BookmarkCheck },
+        { key: 'dms', label: 'Direct Messages', icon: Mail },
+        { key: 'preferences', label: 'My Vibe Settings', icon: Sliders },
+        { key: 'create', label: 'Create Circle', icon: Plus }
+      ].map(({ key, label, icon: Icon }) => {
+        const active = view === key;
+        const tone = STUDY_NAV_COLORS[key] || STUDY_NAV_COLORS.browse;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setView(key)}
+            className={active ? 'filter-chip active' : 'filter-chip'}
+            style={active
+              ? { background: tone.text, border: `2px solid ${tone.border}`, color: '#FFFFFF', boxShadow: `0 6px 16px ${tone.border}66` }
+              : { background: tone.bg, border: `1.5px solid ${tone.border}`, color: tone.text }}
+          >
+            <Icon size={15} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  </>
 )}
 
 
@@ -4987,7 +4832,7 @@ style={{
     '900',
 
    color:
-    '#0B1A3F',
+    '#1A1B1F',
 
   fontSize:
     '14px'
@@ -5031,10 +4876,27 @@ Discover.
 
 {loading ? (
 
+<div
+className="panel"
+style={{
+ textAlign:
+  'center'
+}}
+>
+<Loader2
+ size={22}
+ className="animate-spin"
+ style={{
+  margin:
+   '0 auto',
+  display:
+   'block'
+ }}
+/>
 <p
 style={{
  color:
-  '#A3AED0',
+  'var(--campora-muted)',
 
  fontWeight:
    '700'
@@ -5042,6 +4904,7 @@ style={{
 >
 Loading available circles...
 </p>
+</div>
 ) : discoverGroups.length >
  0?(
 
@@ -5081,137 +4944,35 @@ gridTemplateColumns:
 
 ):(
 
-<div
-style={{
- padding:
- '58px 30px',
-
-    textAlign:
-     'center',
- background:
- 'linear-gradient(135deg,#FFFFFF 0%,#F9F7FF 100%)',
-borderRadius:
-'30px',
-
-border:
-'1.5px solid #E7EAF6',
-
- boxShadow:
-   '0 16px 40px rgba(81,95,160,0.05)'
-}}
->
-
- <div
-style={{
- width:
- '74px',
-
-height:
-'74px',
-
-margin:
-
-'0 auto 18px',
-
-borderRadius:
-'24px',
-
-background:
-'linear-gradient(135deg,#EDE9FF,#F1F7FF)',
-
-color:
- '#8B78B8',
-
-display:
-'flex',
-
-alignItems:
- 'center',
-
- justifyContent:
-   'center'
-}}
->
-
-<Users
-size={34}
-/>
-</div>
-
-
-<h2
-style={{
- margin:
- '0 0 8px',
-
-color:
- '#0B1A3F',
-
-fontSize:
- '24px',
-   fontWeight:
-     '900'
-  }}
-  >
-  Find your study circle.
-  </h2>
-
-
- <p
-
- style={{
-  maxWidth:
-  '560px',
-
- margin:
- '0 auto 22px',
-
- color:
-  '#A3AED0',
-
- lineHeight:
-   '1.65',
-
- fontWeight:
-  '700',
-
-  fontSize:
-    '14px'
- }}
- >
-
- {'There are no approved circles available yet. Create one and submit it for Campora review.'}
-
- </p>
-
-
- {(
-
- <button
-  onClick={() =>
+<EmptyState
+ icon={Users}
+ title="Find your study circle."
+ text="There are no approved circles available yet. Create one and submit it for Campora review."
+ action={(
+  <button
+   onClick={() =>
     setView(
       'create'
     )
-  }
- style={{
-  ...addBtnStyle,
+   }
+  style={{
+   ...addBtnStyle,
 
- margin:
-   '0 auto'
-}}
->
+  margin:
+    '0 auto'
+ }}
+  >
 
- <Plus
- size={18}
+   <Plus
+   size={18}
 
- />
+   />
 
- Create a Circle
+   Create a Circle
 
- </button>
-)}
-
- </div>
+  </button>
+ )}
+/>
 )}
 
  </div>
@@ -5234,7 +4995,7 @@ fontWeight:
  '900',
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
 
  marginBottom:
    '20px'
@@ -5247,34 +5008,32 @@ Circles Created By Me
 {loading ? (
 
 <div
+className="panel"
 style={{
- padding:
- '60px',
-
-textAlign:
- 'center',
-
-background:
-'white',
-
-borderRadius:
-'30px',
-
- border:
-   '1.5px solid #E9EDF7'
+ textAlign:
+  'center'
 }}
 >
-
+<Loader2
+ size={22}
+ className="animate-spin"
+ style={{
+  margin:
+   '0 auto',
+  display:
+   'block'
+ }}
+/>
 <p
 style={{
  color:
-  '#A3AED0',
+  'var(--campora-muted)',
 
 fontWeight:
  '800',
 
  margin:
- 0
+  0
 }}
 >
 Loading your circles...
@@ -5315,46 +5074,29 @@ style={{
 
 ):(
 
-<div
-style={{
- padding:
- '60px',
-
-   textAlign:
-    'center',
-background:
-'white',
-
-borderRadius:
-'30px',
-
- border:
-   '2px dashed #E9EDF7'
-}}
->
-
-<p
-style={{
- color:
-  '#A3AED0',
-
-fontWeight:
- '800',
-
-fontSize:
- '16px',
-
- margin:
-   '0 0 20px'
-}}
->
-You haven't created any study circles yet. </p> <button onClick={() =>
-setView( 'create' ) } style={{ ...addBtnStyle, margin: 'auto' }} > <Plus size={18} /
-> Create Your First Circle </button> </div> )} </div> )} {/*
+<EmptyState
+ icon={Crown}
+ title="You haven't created any study circles yet."
+ action={(
+  <button
+   type="button"
+   onClick={() =>
+    setView(
+      'create'
+    )
+   }
+   className="btn btn-primary"
+  >
+   <Plus size={18} />
+   Create Your First Circle
+  </button>
+ )}
+/>
+)} </div> )} {/*
 ================================================= JOINED
 GROUPS ================================================= */}
 {view === 'joined' && ( <div> <h2 style={{ fontSize: '22px', fontWeight: '900',
-color: '#0B1A3F', marginBottom: '20px' }} > Circles I've Joined
+color: '#1A1B1F', marginBottom: '20px' }} > Circles I've Joined
 </h2>
 
 
@@ -5390,60 +5132,23 @@ gridTemplateColumns:
 
 ):(
 
-<div
-style={{
- padding:
- '60px',
-
-   textAlign:
-    'center',
-
-   background:
-   'white',
-
-   borderRadius:
-   '30px',
-
- border:
-   '2px dashed #E9EDF7'
-}}
->
-
-<p
-style={{
- color:
-  '#A3AED0',
-   fontWeight:
-   '800',
-
- fontSize:
-  '16px',
-
- margin:
-   '0 0 20px'
-}}
->
-You haven't joined any study groups yet.
-</p>
-
-
-<button
-onClick={() =>
-  setView(
-    'browse'
-  )
-}
-style={{
-  ...addBtnStyle,
-
- margin:
-   'auto'
-}}
->
-Explore Available Circles
-</button>
-
- </div>
+<EmptyState
+ icon={BookmarkCheck}
+ title="You haven't joined any study groups yet."
+ action={(
+  <button
+   type="button"
+   onClick={() =>
+    setView(
+      'browse'
+    )
+   }
+   className="btn btn-outline"
+  >
+   Explore Available Circles
+  </button>
+ )}
+/>
 )}
 
  </div>
@@ -5457,10 +5162,10 @@ Explore Available Circles
   <div>
   <div style={{ marginBottom: '18px' }}>
    <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color:
-'#0B1A3F' }}>
+'#1A1B1F' }}>
     Direct Messages
    </h2>
-   <p style={{ margin: '5px 0 0', color: '#94A3B8', fontSize: '13px', fontWeight:
+   <p style={{ margin: '5px 0 0', color: '#717786', fontSize: '13px', fontWeight:
 '700' }}>
     Search by student name or email and keep your private conversations in
 one place.
@@ -5483,7 +5188,7 @@ one place.
   borderRadius: 0,
   border: 'none',
   zIndex: 9990,
-  boxShadow: '0 0 60px rgba(11,26,57,0.35)'
+  boxShadow: '0 0 60px rgba(0,45,98,0.35)'
  } : {}) }}>
  {!dmFullscreen && (
  <aside style={instagramDmSidebar}>
@@ -5492,7 +5197,7 @@ one place.
     <h4 style={instagramDmSidebarTitle}>Messages</h4>
     <p style={instagramDmSidebarSubtitle}>Your conversations</p>
   </div>
-  <MessageCircle size={20} color="#0B1A3F" />
+  <MessageCircle size={20} color="#002D62" />
   </div>
 
    <div style={instagramSearchWrap}>
@@ -5605,7 +5310,7 @@ conversation.unreadCount}
           {conversation.email && <p style={instagramPersonMeta}
 >{conversation.email}</p>}
           <p style={{ ...instagramMessagePreview,
-...(conversation.unreadCount > 0 ? { color: '#0B1A3F', fontWeight: '800' } :
+...(conversation.unreadCount > 0 ? { color: '#1A1B1F', fontWeight: '800' } :
 {}) }}
 >{parseStudyDm(conversation.lastMessage).text || 'Click to view conversation'}
 </p>
@@ -5619,7 +5324,7 @@ conversation.unreadCount}
          >
           <Pin size={15} fill={isPinned ? PIN_COLORS.icon : 'none'}
 
-color={isPinned ? PIN_COLORS.icon : '#A3AED0'} />
+color={isPinned ? PIN_COLORS.icon : '#717786'} />
          </span>
         </button>
       );
@@ -5649,7 +5354,7 @@ getAvatarColor(selectedDmUser.name) }}>
        <div style={{ minWidth: 0 }}>
         <h4 style={instagramChatName}>{selectedDmUser.name}</h4>
         {partnerTyping ? (
-         <p style={{ ...instagramChatEmail, color: '#0B1A3F', display: 'flex', alignItems: 'center', gap: '5px' }}>
+         <p style={{ ...instagramChatEmail, color: '#1A1B1F', display: 'flex', alignItems: 'center', gap: '5px' }}>
           <span style={{
            width: '6px',
            height: '6px',
@@ -5678,7 +5383,7 @@ getAvatarColor(selectedDmUser.name) }}>
        <Pin
         size={16}
         color={pinnedChats.dms.includes(selectedDmUser.partnerId) ?
- PIN_COLORS.icon : '#64748B'}
+ PIN_COLORS.icon : '#717786'}
         fill={pinnedChats.dms.includes(selectedDmUser.partnerId) ?
  PIN_COLORS.icon : 'none'}
 
@@ -5691,9 +5396,9 @@ getAvatarColor(selectedDmUser.name) }}>
      style={{ ...instagramHeaderPin, ...(dmFullscreen ? instagramHeaderPinActive : {}) }}
     >
      {dmFullscreen ? (
-      <Minimize2 size={16} color="#64748B" />
+      <Minimize2 size={16} color="#717786" />
      ) : (
-      <Maximize2 size={16} color="#64748B" />
+      <Maximize2 size={16} color="#717786" />
      )}
     </button>
     </div>
@@ -5763,7 +5468,7 @@ currentUser?.id;
     {pinnedMine ? 'You' : selectedDmUser.name}
   </div>
   <div style={{
-    color: '#0B1A3F',
+    color: '#1A1B1F',
     fontSize: '11px',
     fontWeight: '700',
     whiteSpace: 'nowrap',
@@ -5805,7 +5510,7 @@ currentUser?.id;
 background: getAvatarColor(selectedDmUser.name), marginBottom: '10px' }}>
           {getInitials(selectedDmUser.name)}
         </div>
-        <strong style={{ color: '#0B1A3F', fontSize: '15px' }}
+        <strong style={{ color: '#1A1B1F', fontSize: '15px' }}
 >{selectedDmUser.name}</strong>
         <span style={{ marginTop: '5px' }}>Start your private conversation.</span>
        </div>
@@ -5955,7 +5660,7 @@ borderRadius:
 '28px',
 
 border:
- '1px solid #E2E8F0',
+ '1px solid #E3E2E7',
 padding:
 '40px',
 
@@ -5983,7 +5688,7 @@ fontWeight:
  '900',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 Your Ideal Study Vibe
@@ -5992,7 +5697,7 @@ Your Ideal Study Vibe
 <p
 style={{
  color:
-  '#64748B',
+  '#717786',
 
 fontWeight:
  '600',
@@ -6239,10 +5944,9 @@ onClick={() =>
    'browse'
  )
  }
+className="btn btn-primary"
  style={{
-   ...saveBtn,
-
- marginTop:
+  marginTop:
    '10px'
 }}
 >
@@ -6276,7 +5980,7 @@ background:
 borderRadius:
  '28px',
 border:
-'1px solid #E2E8F0',
+'1px solid #E3E2E7',
 
 padding:
 '40px',
@@ -6304,7 +6008,7 @@ fontSize:
  '30px',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 Launch a Study Circle
@@ -6314,7 +6018,7 @@ Launch a Study Circle
 <p
 style={{
  color:
-  '#64748B',
+  '#717786',
 
 fontWeight:
  '600',
@@ -6764,7 +6468,7 @@ style={{
  '0 0 4px',
 
 color:
- '#94A3B8',
+ '#717786',
   fontSize:
    '12px',
 
@@ -6846,7 +6550,7 @@ cursor:
 
 border:
  isSelected
-   ? '3px solid #0B1A3F'
+   ? '3px solid #002D62'
    : '1px solid #CBD5E1',
 
 display:
@@ -6859,7 +6563,7 @@ justifyContent:
   'center',
 boxShadow:
 isSelected
-  ? '0 4px 12px rgba(11,26,63,0.18)'
+  ? '0 4px 12px rgba(0,45,98,0.18)'
   : 'none',
 
 transition:
@@ -6904,7 +6608,7 @@ style={{
    (colorOption) =>
      colorOption.bg.toLowerCase() === newGroup.color?.toLowerCase()
  )
-   ? '2px solid #0B1A3F'
+   ? '2px solid #002D62'
    : '1.5px solid #CBD5E1',
  background: '#FFFFFF',
  display: 'inline-flex',
@@ -6912,12 +6616,12 @@ style={{
  gap: '9px',
  fontSize: '12px',
  fontWeight: '900',
- color: '#0B1A3F',
+ color: '#1A1B1F',
  boxShadow: !GROUP_COLORS.some(
    (colorOption) =>
      colorOption.bg.toLowerCase() === newGroup.color?.toLowerCase()
  )
-   ? '0 4px 12px rgba(11,26,63,0.12)'
+   ? '0 4px 12px rgba(0,45,98,0.12)'
    : 'none',
  overflow: 'hidden',
  marginTop: '12px',
@@ -7012,7 +6716,7 @@ fontWeight:
  '700',
 
  color:
-   '#64748B'
+   '#717786'
 }}
 >
 Current circle color
@@ -7127,9 +6831,8 @@ type="submit"
 disabled={
  actionLoading
 }
+className="btn btn-primary"
 style={{
-  ...saveBtn,
-
 marginTop:
 '10px',
 
@@ -7139,11 +6842,9 @@ actionLoading
     :1
  }}
 >
-
 {actionLoading
  ? 'Submitting...'
  : 'Submit Circle for Review'}
-
 </button>
 
 </form>
@@ -7174,7 +6875,7 @@ background:
 borderRadius:
 '32px',
 border:
-'1px solid #E2E8F0',
+'1px solid #E3E2E7',
 
 padding:
 '40px',
@@ -7198,11 +6899,8 @@ onClick={() =>
        : 'browse'
   )
 }
-style={
-  backBtn
-}
+className="btn btn-ghost"
 >
-
 <ArrowLeft
  size={16}
 />
@@ -7420,13 +7118,13 @@ style={{
  '20px',
 
 background:
-'#F8FAFC',
+'#E9E7ED',
 
 borderRadius:
 '18px',
 
  border:
-   '1px solid #E2E8F0'
+   '1px solid #E3E2E7'
 }}
 >
 
@@ -7442,7 +7140,7 @@ fontWeight:
  '900',
 
   color:
-   '#A3AED0'
+   '#717786'
 }}
 >
 {label}
@@ -7460,7 +7158,7 @@ fontWeight:
  '800',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 {value ||
@@ -7496,7 +7194,7 @@ style={{
        '900',
 
       color:
-       '#0B1A3F',
+       '#1A1B1F',
 
  marginBottom:
    '16px'
@@ -7554,10 +7252,10 @@ style={{
  '14px',
 
 background:
-'#F8FAFC',
+'#E9E7ED',
 
   border:
-'1px solid #E2E8F0',
+'1px solid #E3E2E7',
 
 display:
 'flex',
@@ -7603,7 +7301,7 @@ member
 ),
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
 display:
 'flex',
 
@@ -7661,7 +7359,7 @@ fontSize:
  '13px',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 {member
@@ -7723,7 +7421,7 @@ style={{
       '11px',
 
      color:
-      '#94A3B8',
+      '#717786',
 
  fontWeight:
    '700'
@@ -7787,7 +7485,7 @@ style={{
       <MoreVertical
        size={14}
 
-       color="#A3AED0"
+       color="#717786"
       />
 
        </button>
@@ -7809,10 +7507,10 @@ style={{
       '16px',
 
       background:
-      '#F8FAFC',
+      '#E9E7ED',
 
  border:
-   '1px solid #E2E8F0'
+   '1px solid #E3E2E7'
 }}
 >
 
@@ -7822,7 +7520,7 @@ style={{
  0,
 
       color:
-       '#94A3B8',
+       '#717786',
 
    fontWeight:
     '700',
@@ -8014,41 +7712,8 @@ selectedGroup.max_size
  disabled={
  actionLoading
 }
-style={{
-    padding:
-     '14px 20px',
-
-borderRadius:
-'14px',
-
-border:
-'1.5px solid #F6CACA',
-
-background:
-'#FFF0F0',
- color:
-  '#D84C4C',
-
- fontWeight:
-  '900',
-
- fontSize:
-  '14px',
-
- cursor:
-  'pointer',
-
- display:
- 'flex',
-
- alignItems:
-  'center',
-
- gap:
-   '8px'
-}}
+className="btn btn-danger"
 >
-
 <LogOut
  size={18}
 />
@@ -8087,7 +7752,7 @@ borderRadius:
 '28px',
 
 border:
-'1px solid #E2E8F0',
+'1px solid #E3E2E7',
 
 height:
 '80vh',
@@ -8703,7 +8368,7 @@ style={{
   '700',
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
 
 overflow:
 'hidden',
@@ -8796,42 +8461,23 @@ gap:
 '16px',
 
  background:
-   '#F8FAFC'
+   '#E9E7ED'
 }}
 >
 
 {messages.length ===
-0?(
+ 0?(
 
 <div
 style={{
   margin:
-  'auto',
-
-    textAlign:
-     'center',
- color:
-   '#A3AED0'
+  'auto'
 }}
 >
-
-<MessageCircle
- size={48}
- strokeWidth={1.5}
+<EmptyState
+ icon={MessageCircle}
+ title="No messages yet. Say hello to start the discussion!"
 />
-
-<p
-style={{
- fontWeight:
-  '800',
-
- margin:
-   '12px 0 0'
-}}
->
-No messages yet. Say hello to start the discussion!
-</p>
-
 </div>
 
 ):(
@@ -8883,7 +8529,7 @@ style={{
   '800',
 
  color:
-  '#A3AED0',
+  '#717786',
 
  marginBottom:
  '4px',
@@ -8917,7 +8563,7 @@ style={{
    '20px',
 
    border:
-   '1.5px solid #E2E8F0',
+   '1.5px solid #E3E2E7',
 
    boxShadow:
      '0 4px 12px rgba(0,0,0,0.03)'
@@ -8936,7 +8582,7 @@ style={{
     '15px',
 
       color:
-       '#0B1A3F'
+       '#1A1B1F'
     }}
     >
     {
@@ -9035,11 +8681,11 @@ borderRadius:
 
 border:
 hasVoted
-? '2px solid #0B1A3F'
+? '2px solid #002D62'
 : '1px solid #CBD5E1',
 
 background:
-'#F8FAFC',
+'#E9E7ED',
 
 textAlign:
  'left',
@@ -9072,7 +8718,7 @@ width:
 `${percentage}%`,
 
   background:
-    'rgba(11,26,63,0.12)'
+    'rgba(0,45,98,0.12)'
  }}
 />
 <div
@@ -9094,7 +8740,7 @@ fontWeight:
 fontSize:
  '13px',
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 
@@ -9141,7 +8787,7 @@ fontSize:
         '700',
 
      color:
-       '#A3AED0'
+       '#717786'
     }}
     >
     Tap your choice again to remove your vote.
@@ -9169,13 +8815,13 @@ fontSize:
 
     background:
     isMe
-? '#0B1A3F'
+? '#002D62'
 : '#FFFFFF',
 
 color:
  isMe
    ? '#FFFFFF'
-   : '#0B1A3F',
+   : '#002D62',
 
 fontWeight:
  '700',
@@ -9186,7 +8832,7 @@ fontSize:
 border:
 isMe
   ? 'none'
-  : '1px solid #E2E8F0',
+  : '1px solid #E3E2E7',
  boxShadow:
    '0 2px 8px rgba(0,0,0,0.03)'
 }}
@@ -9207,7 +8853,7 @@ fontWeight:
 color:
  isMe
    ? 'rgba(255,255,255,0.85)'
-   : '#64748B',
+   : '#717786',
 
 background:
 isMe
@@ -9218,7 +8864,7 @@ borderLeft:
   `3px solid ${
    isMe
      ? 'rgba(255,255,255,0.6)'
-     : '#0B1A3F'
+     : '#002D62'
   }`,
 
        padding:
@@ -9320,7 +8966,7 @@ flexWrap:
        background:
        '#FFFFFF',
        border:
-       '1px solid #E2E8F0',
+       '1px solid #E3E2E7',
 
         borderRadius:
         '12px',
@@ -9336,7 +8982,7 @@ flexWrap:
 
         color:
 
-          '#0B1A3F',
+          '#1A1B1F',
 
            cursor:
              'pointer'
@@ -9403,7 +9049,7 @@ cursor:
 
 <MoreVertical
  size={14}
- color="#A3AED0"
+ color="#717786"
 />
 
 </button>
@@ -9445,7 +9091,7 @@ cursor:
    '8px',
 
    border:
-   '1px solid #E2E8F0',
+   '1px solid #E3E2E7',
 
    boxShadow:
    '0 10px 20px rgba(0,0,0,0.1)',
@@ -9546,7 +9192,7 @@ fontWeight:
  '800',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 
@@ -9695,7 +9341,7 @@ style={{
  '#EEF2FF',
 
 borderTop:
-'1px solid #E2E8F0',
+'1px solid #E3E2E7',
 
 display:
 'flex',
@@ -9713,7 +9359,7 @@ alignItems:
 <div
 style={{
  borderLeft:
- '3px solid #0B1A3F',
+ '3px solid #002D62',
 
 paddingLeft:
 '10px',
@@ -9734,7 +9380,7 @@ style={{
       '900',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 Replying to{' '}
@@ -9754,7 +9400,7 @@ style={{
      '12px',
 
     color:
-     '#64748B',
+     '#717786',
 
     fontWeight:
      '700',
@@ -9802,7 +9448,7 @@ style={{
 
 <X
  size={16}
- color="#A3AED0"
+ color="#717786"
 />
 
 </button>
@@ -9827,7 +9473,7 @@ style={{
   'white',
 
 borderTop:
-'1px solid #E2E8F0',
+'1px solid #E3E2E7',
 
  display:
  'flex',
@@ -9858,7 +9504,7 @@ flex:
   1,
 
   background:
-    '#F8FAFC'
+    '#E9E7ED'
  }}
 />
 
@@ -9870,24 +9516,12 @@ type="submit"
 disabled={
   !newMessage.trim()
 }
+  className="btn btn-primary"
   style={{
-   ...saveBtn,
-
-padding:
-'12px 20px',
-
-display:
-'flex',
-alignItems:
- 'center',
-
-justifyContent:
-  'center',
-
- opacity:
-   newMessage.trim()
-   ?1
-   : 0.5
+   opacity:
+    newMessage.trim()
+    ?1
+    : 0.5
 }}
 >
 
@@ -9931,7 +9565,7 @@ padding:
 '36px',
 
 border:
-'1px solid #E2E8F0',
+'1px solid #E3E2E7',
 maxHeight:
 '90vh',
 
@@ -9967,7 +9601,7 @@ fontWeight:
  fontSize:
   '24px',
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 Edit Circle
@@ -9995,7 +9629,7 @@ background:
 <X
 size={20}
 
- color="#A3AED0"
+ color="#717786"
 />
 
 </button>
@@ -10359,7 +9993,7 @@ style={{
 
    border:
    isSelected
-     ? '3px solid #0B1A3F'
+     ? '3px solid #002D62'
   : '1px solid #CBD5E1',
 
  display:
@@ -10373,7 +10007,7 @@ style={{
 
  boxShadow:
    isSelected
-     ? '0 4px 12px rgba(11,26,63,0.15)'
+     ? '0 4px 12px rgba(0,45,98,0.15)'
      : 'none'
 }}
 >
@@ -10411,7 +10045,7 @@ style={{
    (colorOption) =>
      colorOption.bg.toLowerCase() === editingGroup.color?.toLowerCase()
  )
-   ? '2px solid #0B1A3F'
+   ? '2px solid #002D62'
    : '1.5px solid #CBD5E1',
  background: '#FFFFFF',
  display: 'inline-flex',
@@ -10419,7 +10053,7 @@ style={{
  gap: '8px',
  fontSize: '11px',
  fontWeight: '900',
- color: '#0B1A3F',
+ color: '#1A1B1F',
  overflow: 'hidden',
  marginTop: '10px',
  alignSelf: 'flex-start'
@@ -10544,10 +10178,8 @@ type="submit"
 disabled={
   actionLoading
 }
-style={
-  saveBtn
-}
- >
+className="btn btn-primary"
+>
 
 {actionLoading
  ? 'Saving...'
@@ -10594,7 +10226,7 @@ padding:
 '32px',
 
  border:
-   '1px solid #E2E8F0'
+   '1px solid #E3E2E7'
 }}
 >
 
@@ -10626,7 +10258,7 @@ fontSize:
  '22px',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 Create Group Poll
@@ -10653,7 +10285,7 @@ style={{
 
 <X
  size={20}
- color="#A3AED0"
+ color="#717786"
 />
 
 </button>
@@ -10802,7 +10434,7 @@ background:
 'none',
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
 
 fontWeight:
  '800',
@@ -10830,11 +10462,10 @@ fontSize:
 
 <button
 type="submit"
-style={{
- ...saveBtn,
-
- marginTop:
-   '10px'
+className="btn btn-primary"
+ style={{
+  marginTop:
+    '10px'
 }}
 >
 Post Poll to Chat
@@ -10880,7 +10511,7 @@ padding:
 '32px',
 
  border:
-   '1px solid #E2E8F0'
+   '1px solid #E3E2E7'
 }}
 >
 
@@ -10914,7 +10545,7 @@ fontSize:
  '22px',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 All Members
@@ -10932,7 +10563,7 @@ fontSize:
  '12px',
 
 color:
- '#A3AED0',
+ '#717786',
 
 fontWeight:
  '700'
@@ -10967,7 +10598,7 @@ style={{
 
 <X
  size={20}
- color="#A3AED0"
+ color="#717786"
 />
 
 </button>
@@ -11028,10 +10659,10 @@ borderRadius:
 '16px',
 
 background:
-'#F8FAFC',
+'#E9E7ED',
 
 border:
-'1px solid #E2E8F0',
+'1px solid #E3E2E7',
 
 cursor:
  member.user_id ===
@@ -11074,12 +10705,12 @@ size={10}
 fill={
   member.isOnline
     ? '#22C55E'
-    : '#94A3B8'
+    : '#717786'
 }
 color={
   member.isOnline
      ? '#22C55E'
-     : '#94A3B8'
+     : '#717786'
 }
 />
 
@@ -11118,7 +10749,7 @@ fontWeight:
  '800',
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
 
  fontSize:
    '14px'
@@ -11179,7 +10810,7 @@ fontWeight:
  '600',
 
 color:
- '#A3AED0',
+ '#717786',
 
  fontSize:
    '12px'
@@ -11257,13 +10888,13 @@ onClick={(event) => {
 
      <User
       size={18}
-      color="#A3AED0"
+      color="#717786"
      />
 
      </button>
       <MessageSquare
        size={18}
-       color="#0B1A3F"
+       color="#002D62"
       />
 
       </div>
@@ -11309,7 +10940,7 @@ padding:
 '32px',
 
  border:
-   '1px solid #E2E8F0'
+   '1px solid #E3E2E7'
 }}
 >
 
@@ -11381,7 +11012,7 @@ background:
 
 <X
  size={20}
- color="#A3AED0"
+ color="#717786"
 />
 
 </button>
@@ -11426,7 +11057,7 @@ getAvatarColor(
 ),
 
 color:
- '#0B1A3F',
+ '#1A1B1F',
 
 display:
 'flex',
@@ -11472,7 +11103,7 @@ fontWeight:
  '900',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 {selectedMember
@@ -11496,7 +11127,7 @@ fontWeight:
  '700',
 
 color:
- '#A3AED0',
+ '#717786',
 
  fontSize:
    '13px'
@@ -11535,7 +11166,7 @@ flexDirection:
 <div
 style={{
  background:
- '#F8FAFC',
+ '#E9E7ED',
 
 padding:
 '10px 14px',
@@ -11546,7 +11177,7 @@ textAlign:
  'left',
 
  border:
-   '1px solid #E2E8F0'
+   '1px solid #E3E2E7'
 }}
 >
  <span
@@ -11558,7 +11189,7 @@ fontWeight:
  '900',
 
    color:
-    '#A3AED0',
+    '#717786',
  display:
    'block'
 }}
@@ -11579,7 +11210,7 @@ fontWeight:
  '800',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 {selectedMember
@@ -11597,7 +11228,7 @@ fontWeight:
 <div
 style={{
  background:
- '#F8FAFC',
+ '#E9E7ED',
 padding:
 '10px 14px',
 
@@ -11608,7 +11239,7 @@ textAlign:
  'left',
 
 border:
-   '1px solid #E2E8F0'
+   '1px solid #E3E2E7'
 }}
 
 >
@@ -11622,7 +11253,7 @@ fontWeight:
  '900',
 
 color:
- '#A3AED0',
+ '#717786',
 
  display:
    'block'
@@ -11643,7 +11274,7 @@ style={{
   '800',
 
  color:
-   '#0B1A3F'
+   '#1A1B1F'
 }}
 >
 {selectedMember
@@ -11664,26 +11295,12 @@ onClick={() => {
  openMemberChat(selectedMember);
  setSelectedMember(null);
 }}
+className="btn btn-primary"
 style={{
- ...saveBtn,
-
 width:
-'100%',
-
-display:
-'flex',
-
-alignItems:
- 'center',
-
-justifyContent:
-  'center',
-
- gap:
-   '8px'
+'100%'
 }}
 >
-
 <MessageSquare
  size={16}
 />
@@ -11696,7 +11313,7 @@ Send Direct Message
      </div>
     )}
 
-      </div>
+    </PageShell>
     );
 }
 

@@ -28,6 +28,10 @@ import NewsCard from "../components/NewsCard";
 import EventCard from "../components/EventCard";
 import ResourceCard from "../components/ResourceCard";
 
+import PageShell, {
+  EmptyState,
+} from "../components/luminous";
+
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
   const [news, setNews] = useState([]);
@@ -283,11 +287,16 @@ export default function Announcements() {
 
   if (loading) {
     return (
-      <div style={styles.page}>
+      <PageShell>
         <div style={styles.loadingCard}>
-          <div style={styles.loadingIcon}>
-            <Landmark size={24} />
-          </div>
+          <span
+            className="icon-chip tone-primary"
+          >
+            <Landmark
+              size={24}
+              strokeWidth={1.6}
+            />
+          </span>
 
           <div>
             <div style={styles.loadingTitle}>
@@ -299,7 +308,7 @@ export default function Announcements() {
             </div>
           </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -311,11 +320,20 @@ export default function Announcements() {
     !resources.length
   ) {
     return (
-      <div style={styles.page}>
+      <PageShell>
         <div style={styles.errorCard}>
-          <div style={styles.errorIcon}>
+          <span
+            className="icon-chip tone-error"
+            style={{
+              width: "34px",
+              height: "34px",
+              borderRadius: "var(--radius-sm)",
+              fontWeight: "900",
+              fontSize: "14px",
+            }}
+          >
             !
-          </div>
+          </span>
 
           <div>
             <div style={styles.errorTitle}>
@@ -327,12 +345,12 @@ export default function Announcements() {
             </div>
           </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div style={styles.page}>
+    <PageShell>
       {/* =========================
           NAVY CAMPUS HUB HEADER
       ========================= */}
@@ -429,7 +447,10 @@ export default function Announcements() {
       <div style={styles.mainCard}>
         {/* COLORFUL TOP TABS */}
 
-        <div style={styles.tabsContainer}>
+        <div
+          className="filter-row"
+          style={styles.tabsContainer}
+        >
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
 
@@ -443,9 +464,12 @@ export default function Announcements() {
                 onClick={() =>
                   handleTabChange(tab.key)
                 }
+                className={
+                  isActive
+                    ? "filter-chip active"
+                    : "filter-chip"
+                }
                 style={{
-                  ...styles.tabButton,
-
                   background: isActive
                     ? tab.color
                     : tab.softColor,
@@ -524,6 +548,7 @@ export default function Announcements() {
           </div>
 
           <div
+            className="pill"
             style={{
               ...styles.countBadge,
 
@@ -643,12 +668,6 @@ export default function Announcements() {
                 icon={Megaphone}
                 title="No announcements found"
                 text="There aren't any announcements matching your search right now."
-                color={
-                  activeTabData.color
-                }
-                softColor={
-                  activeTabData.softColor
-                }
               />
             ))}
 
@@ -665,12 +684,6 @@ export default function Announcements() {
                 icon={BookOpen}
                 title="No campus news found"
                 text="There aren't any news posts matching your search right now."
-                color={
-                  activeTabData.color
-                }
-                softColor={
-                  activeTabData.softColor
-                }
               />
             ))}
 
@@ -687,12 +700,6 @@ export default function Announcements() {
                 icon={CalendarDays}
                 title="No events found"
                 text="There aren't any upcoming events matching your search."
-                color={
-                  activeTabData.color
-                }
-                softColor={
-                  activeTabData.softColor
-                }
               />
             ))}
 
@@ -711,60 +718,15 @@ export default function Announcements() {
                 icon={ExternalLink}
                 title="No resources found"
                 text="There aren't any resources matching your search right now."
-                color={
-                  activeTabData.color
-                }
-                softColor={
-                  activeTabData.softColor
-                }
               />
             ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-function EmptyState({
-  icon: Icon,
-  title,
-  text,
-  color,
-  softColor,
-}) {
-  return (
-    <div style={styles.emptyState}>
-      <div
-        style={{
-          ...styles.emptyIcon,
-          color,
-          background: softColor,
-        }}
-      >
-        <Icon
-          size={25}
-          strokeWidth={1.9}
-        />
-      </div>
-
-      <h3 style={styles.emptyTitle}>
-        {title}
-      </h3>
-
-      <p style={styles.emptyText}>
-        {text}
-      </p>
-    </div>
+    </PageShell>
   );
 }
 
 const styles = {
-  page: {
-    width: "100%",
-    padding: "8px 0 40px",
-    boxSizing: "border-box",
-  },
-
   /* =========================
      CAMPUS HUB - NAVY ONLY
   ========================= */
@@ -776,18 +738,16 @@ const styles = {
     width: "100%",
     minHeight: "150px",
 
-    borderRadius: "22px",
+    borderRadius: "var(--radius)",
 
     padding: "26px 29px",
-    marginBottom: "22px",
 
     boxSizing: "border-box",
 
     background:
-      "linear-gradient(135deg, #08152F 0%, #0B1A3F 52%, #142B5A 100%)",
+      "linear-gradient(135deg, var(--campora-active) 0%, var(--campora-navy) 52%, var(--primary-container) 100%)",
 
-    boxShadow:
-      "0 15px 35px rgba(11, 26, 63, 0.16)",
+    boxShadow: "var(--shadow-lift)",
   },
 
   heroGlowOne: {
@@ -949,18 +909,15 @@ const styles = {
 
     padding: "18px 20px",
 
-    borderRadius: "17px",
+    borderRadius: "var(--radius-secondary)",
 
     background:
-      "linear-gradient(135deg, #FFF7ED, #FFFBF5)",
+      "linear-gradient(135deg, var(--campora-navy-tint-alpha), var(--surface-container-low))",
 
     border:
-      "1px solid #FED7AA",
+      "1px solid var(--hairline)",
 
-    boxShadow:
-      "0 6px 18px rgba(124,45,18,0.05)",
-
-    marginBottom: "20px",
+    boxShadow: "var(--shadow-soft)",
   },
 
   pinnedIconWrap: {
@@ -969,15 +926,15 @@ const styles = {
 
     flexShrink: 0,
 
-    borderRadius: "11px",
+    borderRadius: "var(--radius-sm)",
 
     display: "flex",
 
     alignItems: "center",
     justifyContent: "center",
 
-    background: "#FFEDD5",
-    color: "#C2410C",
+    background: "var(--campora-navy-tint)",
+    color: "var(--campora-navy)",
   },
 
   pinnedContent: {
@@ -985,7 +942,7 @@ const styles = {
   },
 
   pinnedLabel: {
-    color: "#C2410C",
+    color: "var(--campora-navy)",
 
     fontSize: "10px",
     fontWeight: "900",
@@ -996,7 +953,7 @@ const styles = {
   },
 
   pinnedTitle: {
-    color: "#431407",
+    color: "var(--campora-text)",
 
     fontSize: "16px",
     fontWeight: "800",
@@ -1005,7 +962,7 @@ const styles = {
   },
 
   pinnedText: {
-    color: "#7C2D12",
+    color: "var(--campora-body)",
 
     fontSize: "13px",
     lineHeight: 1.55,
@@ -1020,15 +977,14 @@ const styles = {
   mainCard: {
     width: "100%",
 
-    background: "#FFFFFF",
+    background: "var(--surface-container-lowest)",
 
     border:
-      "1px solid #E5E7EB",
+      "1px solid var(--divider)",
 
-    borderRadius: "22px",
+    borderRadius: "var(--radius-secondary)",
 
-    boxShadow:
-      "0 10px 30px rgba(15,23,42,0.06)",
+    boxShadow: "var(--shadow-soft)",
 
     overflow: "hidden",
 
@@ -1040,48 +996,14 @@ const styles = {
   ========================= */
 
   tabsContainer: {
-    display: "flex",
-
-    alignItems: "center",
+    padding: "14px",
 
     gap: "9px",
 
-    padding: "14px",
-
-    overflowX: "auto",
-
-    background: "#F8FAFC",
+    background: "var(--surface-container-high)",
 
     borderBottom:
-      "1px solid #E8EDF4",
-  },
-
-  tabButton: {
-    border: "none",
-    outline: "none",
-
-    padding: "10px 15px",
-
-    borderRadius: "12px",
-
-    display: "flex",
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    gap: "7px",
-
-    fontFamily: "inherit",
-
-    fontSize: "13px",
-    fontWeight: "750",
-
-    cursor: "pointer",
-
-    whiteSpace: "nowrap",
-
-    transition:
-      "all 0.18s ease",
+      "1px solid var(--divider)",
   },
 
   /* =========================
@@ -1114,7 +1036,7 @@ const styles = {
     width: "35px",
     height: "35px",
 
-    borderRadius: "10px",
+    borderRadius: "var(--radius-sm)",
 
     display: "flex",
 
@@ -1125,7 +1047,7 @@ const styles = {
   sectionTitle: {
     margin: 0,
 
-    color: "#0B1A3F",
+    color: "var(--campora-text)",
 
     fontSize: "19px",
 
@@ -1136,7 +1058,7 @@ const styles = {
   },
 
   sectionSubtitle: {
-    color: "#8490A3",
+    color: "var(--campora-muted)",
 
     fontSize: "12.5px",
 
@@ -1148,8 +1070,6 @@ const styles = {
 
   countBadge: {
     padding: "7px 11px",
-
-    borderRadius: "999px",
 
     fontSize: "11px",
 
@@ -1182,12 +1102,12 @@ const styles = {
 
     alignItems: "center",
 
-    background: "#FFFFFF",
+    background: "var(--surface-container-lowest)",
 
     border:
-      "1px solid #E2E8F0",
+      "1px solid var(--divider)",
 
-    borderRadius: "12px",
+    borderRadius: "var(--radius-sm)",
 
     boxSizing: "border-box",
   },
@@ -1197,7 +1117,7 @@ const styles = {
 
     left: "13px",
 
-    color: "#94A3B8",
+    color: "var(--campora-muted)",
 
     pointerEvents: "none",
   },
@@ -1215,7 +1135,7 @@ const styles = {
     padding:
       "0 14px 0 41px",
 
-    color: "#0F172A",
+    color: "var(--campora-text)",
 
     fontFamily: "inherit",
 
@@ -1231,12 +1151,12 @@ const styles = {
 
     position: "relative",
 
-    background: "#FFFFFF",
+    background: "var(--surface-container-lowest)",
 
     border:
-      "1px solid #E2E8F0",
+      "1px solid var(--divider)",
 
-    borderRadius: "12px",
+    borderRadius: "var(--radius-sm)",
   },
 
   select: {
@@ -1251,7 +1171,7 @@ const styles = {
 
     background: "transparent",
 
-    color: "#334155",
+    color: "var(--campora-body)",
 
     padding:
       "0 38px 0 13px",
@@ -1275,7 +1195,7 @@ const styles = {
     transform:
       "translateY(-50%)",
 
-    color: "#94A3B8",
+    color: "var(--campora-muted)",
 
     pointerEvents: "none",
   },
@@ -1296,82 +1216,18 @@ const styles = {
     padding:
       "10px 12px",
 
-    borderRadius: "10px",
+    borderRadius: "var(--radius-sm)",
 
-    background: "#FEF2F2",
+    background: "var(--tone-error-soft)",
 
-    color: "#B91C1C",
+    color: "var(--tone-error)",
 
     border:
-      "1px solid #FECACA",
+      "1px solid var(--tone-error-soft)",
 
     fontSize: "12px",
 
     fontWeight: "600",
-  },
-
-  /* =========================
-     EMPTY STATE
-  ========================= */
-
-  emptyState: {
-    minHeight: "220px",
-
-    borderRadius: "16px",
-
-    border:
-      "1px dashed #CBD5E1",
-
-    background: "#FAFCFF",
-
-    display: "flex",
-
-    flexDirection: "column",
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    padding: "30px",
-
-    textAlign: "center",
-  },
-
-  emptyIcon: {
-    width: "50px",
-    height: "50px",
-
-    borderRadius: "15px",
-
-    display: "flex",
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    marginBottom: "12px",
-  },
-
-  emptyTitle: {
-    margin: 0,
-
-    color: "#172554",
-
-    fontSize: "15px",
-
-    fontWeight: "800",
-  },
-
-  emptyText: {
-    maxWidth: "370px",
-
-    margin:
-      "6px 0 0",
-
-    color: "#94A3B8",
-
-    fontSize: "12px",
-
-    lineHeight: 1.55,
   },
 
   /* =========================
@@ -1389,35 +1245,18 @@ const styles = {
 
     padding: "24px",
 
-    borderRadius: "18px",
+    borderRadius: "var(--radius-secondary)",
 
-    background: "#FFFFFF",
+    background: "var(--surface-container-lowest)",
 
     border:
-      "1px solid #E5E7EB",
+      "1px solid var(--divider)",
 
-    boxShadow:
-      "0 8px 25px rgba(15,23,42,0.06)",
-  },
-
-  loadingIcon: {
-    width: "46px",
-    height: "46px",
-
-    borderRadius: "14px",
-
-    background: "#EEF3FB",
-
-    color: "#0B1A3F",
-
-    display: "flex",
-
-    alignItems: "center",
-    justifyContent: "center",
+    boxShadow: "var(--shadow-soft)",
   },
 
   loadingTitle: {
-    color: "#0B1A3F",
+    color: "var(--campora-text)",
 
     fontSize: "15px",
 
@@ -1425,7 +1264,7 @@ const styles = {
   },
 
   loadingText: {
-    color: "#94A3B8",
+    color: "var(--campora-muted)",
 
     fontSize: "12px",
 
@@ -1441,38 +1280,20 @@ const styles = {
 
     gap: "13px",
 
+    alignItems: "center",
+
     padding: "20px",
 
-    borderRadius: "16px",
+    borderRadius: "var(--radius-secondary)",
 
-    background: "#FFF7F7",
+    background: "var(--tone-error-soft)",
 
     border:
-      "1px solid #FECACA",
-  },
-
-  errorIcon: {
-    width: "34px",
-    height: "34px",
-
-    flexShrink: 0,
-
-    borderRadius: "10px",
-
-    background: "#FEE2E2",
-
-    color: "#B91C1C",
-
-    display: "flex",
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    fontWeight: "900",
+      "1px solid var(--tone-error-soft)",
   },
 
   errorTitle: {
-    color: "#991B1B",
+    color: "var(--tone-error)",
 
     fontWeight: "800",
 
@@ -1480,7 +1301,7 @@ const styles = {
   },
 
   errorText: {
-    color: "#B91C1C",
+    color: "var(--tone-error)",
 
     fontSize: "12px",
 

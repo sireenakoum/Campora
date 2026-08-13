@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import { toast } from '../lib/toast';
 
 import {
   getTodosForCurrentUser,
@@ -26,7 +27,13 @@ import {
   deleteTodo,
 } from '../lib/queries';
 
-const NAVY = '#0B1A3F';
+import PageShell, {
+  SectionHeader,
+  StatTile,
+  EmptyState,
+} from '../components/luminous';
+
+const NAVY = 'var(--campora-navy)';
 
 const PRIORITY_CONFIG = {
   high: {
@@ -77,32 +84,32 @@ export default function Todo() {
  });
 
  useEffect(() => {
-   loadTasks();
+  loadTasks();
  }, []);
 
  const loadTasks = async () => {
-   try {
-     const data = await getTodosForCurrentUser();
+  try {
+    const data = await getTodosForCurrentUser();
 
-     const {
-       data: { user },
-     } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-     const links = user
-       ? readTodoAlertLinks(user.id)
-       : {};
+    const links = user
+      ? readTodoAlertLinks(user.id)
+      : {};
 
-     setTasks(
-       (data || []).map((task) => ({
-         ...task,
-         _alertType: links[task.id]?.type || '',
-         _alertDate: links[task.id]?.date || '',
-         _alertTime: links[task.id]?.time || '',
-       }))
-     );
-   } catch (error) {
-     console.error('Error loading tasks:', error);
-   }
+    setTasks(
+      (data || []).map((task) => ({
+        ...task,
+        _alertType: links[task.id]?.type || '',
+        _alertDate: links[task.id]?.date || '',
+        _alertTime: links[task.id]?.time || '',
+      }))
+    );
+  } catch (error) {
+    console.error('Error loading tasks:', error);
+  }
  };
 
  const openAddTask = () => {
@@ -119,7 +126,7 @@ export default function Todo() {
 
   setFormError('');
   setShowTaskModal(true);
-};
+ };
 
 const openEditTask = (task) => {
  setEditingTask(task);
@@ -331,42 +338,44 @@ const handleSaveTask = async () => {
      ]);
    }
 
-   try {
-     if (alertType) {
-       await createLinkedTodoAlert({
-         userId: user.id,
-         todo: savedTask,
-         alertType,
-         alertDate,
-         alertTime,
-       });
-     } else {
-       await removeLinkedTodoAlert(user.id, savedTask?.id);
-     }
-   } catch (alertError) {
-     console.error('Could not create To-Do alert:', alertError);
+   toast('Task added');
 
-     setFormError(
-       `Task saved, but the ${
-         alertType === 'reminder' ? 'reminder' : 'notification'
-       } could not be added: ${alertError?.message || 'Unknown error'}`
-     );
+  try {
+    if (alertType) {
+      await createLinkedTodoAlert({
+        userId: user.id,
+        todo: savedTask,
+        alertType,
+        alertDate,
+        alertTime,
+      });
+    } else {
+      await removeLinkedTodoAlert(user.id, savedTask?.id);
+    }
+  } catch (alertError) {
+    console.error('Could not create To-Do alert:', alertError);
 
-     return;
-   }
+    setFormError(
+      `Task saved, but the ${
+        alertType === 'reminder' ? 'reminder' : 'notification'
+      } could not be added: ${alertError?.message || 'Unknown error'}`
+    );
 
-   setNewTask({
-     title: '',
-     details: '',
-     priority: '',
-     alertType: '',
-     alertDate: '',
-     alertTime: '',
-   });
+    return;
+  }
 
-   setEditingTask(null);
-   setFormError('');
-   setShowTaskModal(false);
+  setNewTask({
+    title: '',
+    details: '',
+    priority: '',
+    alertType: '',
+    alertDate: '',
+    alertTime: '',
+  });
+
+  setEditingTask(null);
+  setFormError('');
+  setShowTaskModal(false);
  } catch (error) {
    console.error('Task save error:', error);
 
@@ -394,6 +403,12 @@ const toggleTask = async (id) => {
         task.id === id ? updated : task
       )
     );
+
+    if (updated.completed) {
+      toast('Task completed');
+    } else {
+      toast('Task marked incomplete', 'info');
+    }
   } catch (error) {
     console.error('Error toggling task:', error);
   }
@@ -531,7 +546,7 @@ const remainingCount =
 
 const progress =
  tasks.length === 0
-  ?0
+  ? 0
   : Math.round(
       (completedCount / tasks.length) * 100
     );
@@ -573,160 +588,118 @@ const priorityGroups = useMemo(() => {
 }, [activeTasks]);
 
 return (
- <div style={{ width: '100%' }}>
+ <PageShell>
 
-{/* HEADER */}
+ {/* HEADER */}
 
-<div style={{ marginBottom: '22px' }}>
- <div
-  style={{
-   display: 'inline-flex',
-   alignItems: 'center',
-   gap: '8px',
-   padding: '7px 11px',
-   borderRadius: '999px',
-   background: '#EAF0F8',
-   color: NAVY,
-   fontWeight: '900',
-   fontSize: '12px',
-   marginBottom: '10px',
-  }}
- >
-  <Sparkles size={14} />
-  Stay Productive
+ <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+  <span
+   className="pill"
+   style={{
+    alignSelf: 'flex-start',
+    background: 'var(--campora-navy-tint)',
+    color: 'var(--campora-navy)',
+   }}
+  >
+   <Sparkles size={13} />
+   Stay Productive
+  </span>
+
+  <SectionHeader
+   title="To-Do List"
+   subtitle="Keep your tasks organized, focus on what matters most, and celebrate your progress."
+  />
  </div>
 
- <h1
-  style={{
-   fontSize: '38px',
-   fontWeight: '900',
-   color: NAVY,
-   margin: '0 0 6px',
-  }}
- >
-  To-Do List
- </h1>
+ {/* SUMMARY */}
 
- <p
-  style={{
-    color: '#8F9BB3',
-    fontWeight: '700',
-    maxWidth: '600px',
-    lineHeight: '1.5',
-    margin: 0,
-  }}
- >
-  Keep your tasks organized, focus on what matters most,
-  and celebrate your progress.
- </p>
-</div>
+ <div className="grid-3">
+  <StatTile
+   icon={ListTodo}
+   title={String(tasks.length)}
+   desc="Total Tasks"
+   tone="secondary"
+  />
 
-{/* SUMMARY */}
+  <StatTile
+   icon={Target}
+   title={String(remainingCount)}
+   desc="Remaining"
+   tone="primary"
+  />
 
-<div
- style={{
-  display: 'grid',
-  gridTemplateColumns:
-    'repeat(auto-fit, minmax(210px, 1fr))',
-  gap: '14px',
-  marginBottom: '16px',
- }}
->
- <SummaryCard
-  icon={<ListTodo size={21} />}
-  label="Total Tasks"
-  value={tasks.length}
-  background="#F7F4FC"
-  iconBackground="#EEE8F7"
-  iconColor="#8B78B8"
- />
+  <StatTile
+   icon={Trophy}
+   title={String(completedCount)}
+   desc="Completed"
+   tone="success"
+  />
+ </div>
 
- <SummaryCard
-  icon={<Target size={21} />}
-  label="Remaining"
-  value={remainingCount}
-  background="#F3F7FD"
-  iconBackground="#E3ECF8"
-  iconColor="#648CCB"
- />
+ {/* PROGRESS */}
 
- <SummaryCard
-  icon={<Trophy size={21} />}
-  label="Completed"
-  value={completedCount}
-  background="#F2F9F7"
-  iconBackground="#E1F1ED"
-  iconColor="#5E9A8B"
- />
-</div>
-
-{/* PROGRESS */}
-
-<div
- style={{
-  background:
-   'linear-gradient(135deg, #0B1A3F, #22386F)',
-  borderRadius: '22px',
-  padding: '18px 22px',
-  marginBottom: '16px',
-
-  color: 'white',
-  boxShadow:
-    '0 16px 38px rgba(11, 26, 63, 0.12)',
- }}
->
  <div
   style={{
+   background:
+    'linear-gradient(135deg, var(--campora-active) 0%, var(--campora-navy) 60%, var(--primary-container) 100%)',
+   borderRadius: 'var(--radius)',
+   padding: '18px 22px',
+   color: '#FFFFFF',
+   boxShadow: 'var(--shadow-lift)',
+  }}
+ >
+  <div
+   style={{
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '10px',
-  }}
- >
-  <div>
+   }}
+  >
+   <div>
     <p
-      style={{
-       margin: '0 0 3px',
-       fontWeight: '900',
-       fontSize: '15px',
-      }}
+     style={{
+      margin: '0 0 3px',
+      fontWeight: '900',
+      fontSize: '15px',
+     }}
     >
-      Your Progress
+     Your Progress
     </p>
 
-   <p
-    style={{
+    <p
+     style={{
       margin: 0,
-      color: 'rgba(255,255,255,0.70)',
+      opacity: 0.7,
       fontSize: '12px',
       fontWeight: '700',
+     }}
+    >
+     {tasks.length === 0
+       ? 'Add your first task to get started.'
+       : `${completedCount} of ${tasks.length} tasks completed`}
+    </p>
+   </div>
+
+   <div
+    style={{
+     fontSize: '24px',
+     fontWeight: '900',
     }}
    >
-    {tasks.length === 0
-      ? 'Add your first task to get started.'
-      : `${completedCount} of ${tasks.length} tasks completed`}
-   </p>
+    {progress}%
+   </div>
   </div>
 
   <div
    style={{
-     fontSize: '24px',
-     fontWeight: '900',
-   }}
-  >
-   {progress}%
-  </div>
- </div>
-
- <div
-  style={{
     height: '8px',
     borderRadius: '999px',
     background: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
-  }}
- >
-  <div
+   }}
+  >
+   <div
     style={{
      width: `${progress}%`,
      height: '100%',
@@ -734,195 +707,131 @@ return (
      borderRadius: '999px',
      transition: 'width 0.3s ease',
     }}
+   />
+  </div>
+ </div>
+
+ {/* PRIORITY OVERVIEW */}
+
+ <div className="grid-3">
+  <PriorityOverviewCard
+   priority="high"
+   count={priorityGroups.high.length}
+  />
+
+  <PriorityOverviewCard
+   priority="medium"
+   count={priorityGroups.medium.length}
+  />
+
+  <PriorityOverviewCard
+   priority="low"
+   count={priorityGroups.low.length}
   />
  </div>
-</div>
 
-{/* PRIORITY OVERVIEW */}
+ {/* ADD TASK BAR */}
 
-<div
- style={{
-  display: 'grid',
-  gridTemplateColumns:
-    'repeat(auto-fit, minmax(210px, 1fr))',
-  gap: '14px',
-  marginBottom: '16px',
- }}
->
- <PriorityOverviewCard
-  priority="high"
-  count={priorityGroups.high.length}
- />
-
- <PriorityOverviewCard
-  priority="medium"
-  count={priorityGroups.medium.length}
- />
-
- <PriorityOverviewCard
-  priority="low"
-  count={priorityGroups.low.length}
- />
-</div>
-
-{/* ADD TASK BAR */}
-
-<div
- style={{
-  background: '#FFFFFF',
-  border: '1.5px solid #E9EDF7',
-  borderRadius: '22px',
-  padding: '17px 20px',
-  marginBottom: '16px',
-  boxShadow:
-    '0 12px 30px rgba(81, 95, 160, 0.05)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: '20px',
-  flexWrap: 'wrap',
- }}
->
- <div>
-  <p
+ <div
+  className="panel"
+  style={{
+   display: 'flex',
+   justifyContent: 'space-between',
+   alignItems: 'center',
+   gap: '20px',
+   flexWrap: 'wrap',
+   boxShadow: 'var(--shadow-soft)',
+  }}
+ >
+  <div>
+   <p
     style={{
      margin: 0,
      color: NAVY,
      fontWeight: '900',
      fontSize: '14px',
     }}
-  >
+   >
     What do you need to get done?
-  </p>
+   </p>
 
-  <p
-   style={{
+   <p
+    style={{
      margin: '4px 0 0',
-     color: '#A3AED0',
+     color: 'var(--campora-muted)',
      fontSize: '12px',
      fontWeight: '700',
-   }}
+    }}
+   >
+    Create a task and choose its priority.
+   </p>
+  </div>
+
+  <button
+   type="button"
+   onClick={openAddTask}
+   className="btn btn-primary"
   >
-   Create a task and choose its priority.
-  </p>
+   <Plus size={17} />
+   Add Task
+  </button>
  </div>
 
- <button
-  type="button"
-  onClick={openAddTask}
-  style={{
+ {/* YOUR TASKS */}
 
-    border: 'none',
-    background: NAVY,
-    color: '#FFFFFF',
-    borderRadius: '13px',
-    padding: '13px 20px',
-    fontWeight: '900',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '7px',
-    boxShadow:
-     '0 9px 20px rgba(11, 26, 63, 0.16)',
-  }}
- >
-  <Plus size={17} />
-  Add Task
- </button>
-</div>
+ <div className="panel" style={{ boxShadow: 'var(--shadow-soft)' }}>
+  <SectionHeader
+   title="Your Tasks"
+   subtitle="Keep track of what matters most."
+   action={
+    <span
+     className="pill"
+     style={{
+      background: 'var(--campora-navy-tint)',
+      color: 'var(--campora-navy)',
+     }}
+    >
+     {remainingCount} left
+    </span>
+   }
+  />
 
-{/* YOUR TASKS */}
-
-<div
- style={{
-  background: '#FFFFFF',
-  borderRadius: '22px',
-  padding: '20px',
-  border: '1.5px solid #E9EDF7',
-  boxShadow:
-    '0 12px 30px rgba(81, 95, 160, 0.05)',
-  marginBottom: '16px',
- }}
->
- <div
-  style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '18px',
-  }}
- >
-  <div>
-    <h3
-      style={{
-       margin: 0,
-       color: NAVY,
-       fontWeight: '900',
-       fontSize: '17px',
-
-   }}
-  >
-   Your Tasks
-  </h3>
-
-  <p
-   style={{
-     margin: '3px 0 0',
-     color: '#A3AED0',
-     fontSize: '12px',
-     fontWeight: '700',
-   }}
-  >
-   Keep track of what matters most.
-  </p>
- </div>
-
- <div
-  style={{
-    padding: '7px 10px',
-    borderRadius: '999px',
-    background: '#EEF2F8',
-    color: NAVY,
-    fontSize: '11px',
-    fontWeight: '900',
-  }}
- >
-  {remainingCount} left
- </div>
-</div>
-
-{activeTasks.length === 0 ? (
- <EmptyState />
-):(
- <div
-  style={{
-    display: 'grid',
-    gridTemplateColumns:
-     'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: '14px',
-    alignItems: 'start',
-  }}
- >
-  <PriorityColumn
-    priority="high"
-    tasks={priorityGroups.high}
-    onToggle={toggleTask}
-
-    onDelete={handleDeleteTask}
-    onEdit={openEditTask}
-    onCompleteAll={completeAllInPriority}
-    onClearAll={clearAllInPriority}
+  {activeTasks.length === 0 ? (
+   <EmptyState
+    icon={CheckCircle2}
+    title="Your list is clear"
+    text="Add a task when you have something to get done."
    />
+  ) : (
+   <div
+    style={{
+     display: 'grid',
+     gridTemplateColumns:
+      'repeat(auto-fit, minmax(260px, 1fr))',
+     gap: '14px',
+     alignItems: 'start',
+     marginTop: '18px',
+    }}
+   >
+    <PriorityColumn
+     priority="high"
+     tasks={priorityGroups.high}
+     onToggle={toggleTask}
+     onDelete={handleDeleteTask}
+     onEdit={openEditTask}
+     onCompleteAll={completeAllInPriority}
+     onClearAll={clearAllInPriority}
+    />
 
-   <PriorityColumn
-    priority="medium"
-    tasks={priorityGroups.medium}
-    onToggle={toggleTask}
-    onDelete={handleDeleteTask}
-    onEdit={openEditTask}
-    onCompleteAll={completeAllInPriority}
-    onClearAll={clearAllInPriority}
-   />
+    <PriorityColumn
+     priority="medium"
+     tasks={priorityGroups.medium}
+     onToggle={toggleTask}
+     onDelete={handleDeleteTask}
+     onEdit={openEditTask}
+     onCompleteAll={completeAllInPriority}
+     onClearAll={clearAllInPriority}
+    />
 
     <PriorityColumn
      priority="low"
@@ -933,103 +842,80 @@ return (
      onCompleteAll={completeAllInPriority}
      onClearAll={clearAllInPriority}
     />
-  </div>
- )}
-</div>
+   </div>
+  )}
+ </div>
 
-{/* COMPLETED */}
+ {/* COMPLETED */}
 
-{completedTasks.length > 0 && (
- <div
-  style={{
-   background: '#FFFFFF',
-   borderRadius: '22px',
-   padding: '20px',
-   border: '1.5px solid #E9EDF7',
-   boxShadow:
-     '0 12px 30px rgba(81, 95, 160, 0.05)',
-  }}
- >
-  <div
-   style={{
+ {completedTasks.length > 0 && (
+  <div className="panel" style={{ boxShadow: 'var(--shadow-soft)' }}>
+   <div
+    style={{
      display: 'flex',
      alignItems: 'center',
      justifyContent: 'space-between',
-
-  gap: '14px',
-  marginBottom: '14px',
- }}
->
- <div
-  style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: '9px',
-  }}
- >
-  <div
-    style={{
-     width: '34px',
-     height: '34px',
-     borderRadius: '11px',
-     background: '#E1F1ED',
-     color: '#5E9A8B',
-     display: 'flex',
-     alignItems: 'center',
-     justifyContent: 'center',
-    }}
-  >
-    <CheckCircle2 size={18} />
-  </div>
-
-  <div>
-   <h3
-    style={{
-     margin: 0,
-     color: NAVY,
-     fontSize: '15px',
-     fontWeight: '900',
+     gap: '14px',
+     marginBottom: '14px',
     }}
    >
-    Completed
-   </h3>
-
-   <p
-    style={{
-     margin: '2px 0 0',
-     color: '#A3AED0',
-     fontSize: '11px',
-     fontWeight: '700',
-    }}
-   >
-    {completedTasks.length} completed{' '}
-
-       {completedTasks.length === 1 ? 'task' : 'tasks'}
-     </p>
-    </div>
-   </div>
-
-   <button
-    type="button"
-    onClick={clearCompleted}
-    style={{
-      border: 'none',
-      background: '#FFF5F6',
-      color: '#C76E7D',
-      borderRadius: '10px',
-      padding: '8px 11px',
-      fontSize: '11px',
-      fontWeight: '900',
-      cursor: 'pointer',
+    <div
+     style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '6px',
-    }}
-   >
-    <Trash2 size={13} />
-    Clear Completed
-   </button>
-  </div>
+      gap: '9px',
+     }}
+    >
+     <div
+      style={{
+       width: '34px',
+       height: '34px',
+       borderRadius: 'var(--radius-sm)',
+       background: 'var(--tone-success-soft)',
+       color: 'var(--tone-success)',
+       display: 'flex',
+       alignItems: 'center',
+       justifyContent: 'center',
+      }}
+     >
+      <CheckCircle2 size={18} />
+     </div>
+
+     <div>
+      <h3
+       style={{
+        margin: 0,
+        color: 'var(--campora-text)',
+        fontSize: '15px',
+        fontWeight: '900',
+       }}
+      >
+       Completed
+      </h3>
+
+      <p
+       style={{
+        margin: '2px 0 0',
+        color: 'var(--campora-muted)',
+        fontSize: '11px',
+        fontWeight: '700',
+       }}
+      >
+       {completedTasks.length} completed{' '}
+       {completedTasks.length === 1 ? 'task' : 'tasks'}
+      </p>
+     </div>
+    </div>
+
+    <button
+     type="button"
+     onClick={clearCompleted}
+     className="btn btn-sm btn-danger"
+    >
+     <Trash2 size={13} />
+     Clear Completed
+    </button>
+   </div>
 
    <div
     style={{
@@ -1040,274 +926,263 @@ return (
    >
     {completedTasks.map((task) => (
      <CompletedTask
-       key={task.id}
-       task={task}
-       onToggle={toggleTask}
-       onDelete={handleDeleteTask}
-       onEdit={openEditTask}
+      key={task.id}
+      task={task}
+      onToggle={toggleTask}
+      onDelete={handleDeleteTask}
+      onEdit={openEditTask}
      />
     ))}
    </div>
- </div>
-)}
+  </div>
+ )}
 
-{/* ADD / EDIT MODAL */}
+ {/* ADD / EDIT MODAL */}
 
-{showTaskModal && (
- <div
-  onMouseDown={(e) => {
-   if (e.target === e.currentTarget) {
-     closeTaskModal();
-   }
-  }}
-  style={{
-   position: 'fixed',
-   inset: 0,
-   zIndex: 9999,
-   background: 'rgba(11, 26, 63, 0.30)',
-   backdropFilter: 'blur(4px)',
-   display: 'flex',
-   alignItems: 'center',
-   justifyContent: 'center',
-   padding: '20px',
-  }}
- >
+ {showTaskModal && (
   <div
+   onMouseDown={(e) => {
+    if (e.target === e.currentTarget) {
+     closeTaskModal();
+    }
+   }}
    style={{
-     width: '100%',
-     maxWidth: '520px',
-     background: '#FFFFFF',
-     borderRadius: '24px',
-     padding: '25px',
-     border: '1px solid #E7EBF3',
-     boxShadow:
-       '0 28px 80px rgba(11, 26, 63, 0.22)',
-   }}
-  >
-   <div
-     style={{
-       display: 'flex',
-       justifyContent: 'space-between',
-       alignItems: 'flex-start',
-       gap: '15px',
-       marginBottom: '22px',
-     }}
-   >
-     <div>
-       <h2
-         style={{
-          margin: 0,
-
-    color: NAVY,
-    fontSize: '22px',
-    fontWeight: '900',
-   }}
-  >
-   {editingTask ? 'Edit Task' : 'Add Task'}
-  </h2>
-
-  <p
-   style={{
-     margin: '5px 0 0',
-     color: '#A3AED0',
-     fontSize: '13px',
-     fontWeight: '700',
-   }}
-  >
-   {editingTask
-     ? 'Update the task details or change its priority.'
-     : 'Add the details and choose its priority.'}
-  </p>
- </div>
-
- <button
-  type="button"
-  onClick={closeTaskModal}
-  disabled={saving}
-  style={{
-    width: '36px',
-    height: '36px',
-    borderRadius: '11px',
-    border: 'none',
-    background: '#F3F6FA',
-    color: NAVY,
-    cursor: saving ? 'default' : 'pointer',
+    position: 'fixed',
+    inset: 0,
+    zIndex: 9999,
+    background: 'rgba(0, 45, 98, 0.45)',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: saving ? 0.5 : 1,
-  }}
- >
-  <X size={18} />
- </button>
-</div>
+    padding: '20px',
+   }}
+  >
+   <div
+    className="panel"
+    style={{
+     width: '100%',
+     maxWidth: '520px',
+     padding: '25px',
+     boxShadow: 'var(--shadow-lift)',
+    }}
+   >
+    <div
+     style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: '15px',
+      marginBottom: '22px',
+     }}
+    >
+     <div>
+      <h2
+       style={{
+        margin: 0,
+        color: 'var(--campora-text)',
+        fontSize: '22px',
+        fontWeight: '900',
+       }}
+      >
+       {editingTask ? 'Edit Task' : 'Add Task'}
+      </h2>
 
-<FormLabel>Title</FormLabel>
+      <p
+       style={{
+        margin: '5px 0 0',
+        color: 'var(--campora-muted)',
+        fontSize: '13px',
+        fontWeight: '700',
+       }}
+      >
+       {editingTask
+         ? 'Update the task details or change its priority.'
+         : 'Add the details and choose its priority.'}
+      </p>
+     </div>
 
-<input
-
- type="text"
- autoFocus
- placeholder="What do you need to do?"
- value={newTask.title}
- onChange={(e) => {
-  setNewTask((current) => ({
-   ...current,
-   title: e.target.value,
-  }));
-
-   setFormError('');
- }}
- style={inputStyle}
-/>
-
-<FormLabel>Details</FormLabel>
-
-<textarea
- rows={4}
- placeholder="Add any notes or details..."
- value={newTask.details}
- onChange={(e) => {
-  setNewTask((current) => ({
-   ...current,
-   details: e.target.value,
-  }));
-
-   setFormError('');
- }}
- style={{
-   ...inputStyle,
-   resize: 'vertical',
-   minHeight: '100px',
- }}
-/>
-
-<FormLabel>Priority</FormLabel>
-
-<div
- style={{
-  position: 'relative',
-  marginBottom: formError ? '10px' : '22px',
- }}
->
- <Flag
-  size={16}
-  style={{
-
-   position: 'absolute',
-   left: '14px',
-   top: '50%',
-   transform: 'translateY(-50%)',
-   color: newTask.priority ? NAVY : '#A3AED0',
-   pointerEvents: 'none',
- }}
-/>
-
-<select
- value={newTask.priority}
- onChange={(e) => {
-  setNewTask((current) => ({
-   ...current,
-   priority: e.target.value,
-  }));
-
-  setFormError('');
- }}
- style={{
-  width: '100%',
-  boxSizing: 'border-box',
-  appearance: 'none',
-  padding: '13px 42px',
-  borderRadius: '13px',
-  border: formError
-    ? '1.5px solid #E8C4CB'
-    : '1.5px solid #E2E8F0',
-  background: '#FAFBFF',
-  color: newTask.priority
-    ? NAVY
-    : '#A3AED0',
-  fontWeight: '800',
-  fontFamily: 'inherit',
-  outline: 'none',
-  cursor: 'pointer',
- }}
->
- <option value="" disabled>
-  Choose priority...
- </option>
-
- <option value="high">
-  High Priority
- </option>
-
- <option value="medium">
-
-   Medium Priority
-  </option>
-
-  <option value="low">
-   Low Priority
-  </option>
- </select>
-
- <ChevronDown
-  size={16}
-  style={{
-    position: 'absolute',
-    right: '14px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: '#8F9BB3',
-    pointerEvents: 'none',
-  }}
- />
-</div>
-
-<FormLabel>Alert</FormLabel>
-
-<div
- style={{
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-  gap: '9px',
-  marginBottom: newTask.alertType ? '14px' : '22px',
- }}
->
- {[
-   {
-     value: '',
-     label: 'None',
-     icon: Circle,
-     color: '#75839A',
-     soft: '#F6F8FB',
-     border: '#E4E8EF',
-   },
-   {
-     value: 'notification',
-     label: 'Notification',
-     icon: Bell,
-     color: '#648CCB',
-     soft: '#F3F7FD',
-     border: '#DDE7F5',
-   },
-   {
-     value: 'reminder',
-     label: 'Reminder',
-     icon: AlarmClock,
-     color: '#8B78B8',
-     soft: '#F7F4FC',
-     border: '#E7E0F2',
-   },
- ].map((option) => {
-   const AlertIcon = option.icon;
-   const active = newTask.alertType === option.value;
-
-   return (
      <button
-       key={option.label}
-       type="button"
-       onClick={() => {
-         setNewTask((current) => ({
+      type="button"
+      onClick={closeTaskModal}
+      disabled={saving}
+      className="btn btn-sm btn-tinted"
+      style={{
+       width: '36px',
+       height: '36px',
+       padding: 0,
+       opacity: saving ? 0.5 : 1,
+       cursor: saving ? 'default' : 'pointer',
+      }}
+     >
+      <X size={18} />
+     </button>
+    </div>
+
+    <FormLabel>Title</FormLabel>
+
+    <input
+     type="text"
+     autoFocus
+     placeholder="What do you need to do?"
+     value={newTask.title}
+     onChange={(e) => {
+      setNewTask((current) => ({
+       ...current,
+       title: e.target.value,
+      }));
+
+      setFormError('');
+     }}
+     style={inputStyle}
+    />
+
+    <FormLabel>Details</FormLabel>
+
+    <textarea
+     rows={4}
+     placeholder="Add any notes or details..."
+     value={newTask.details}
+     onChange={(e) => {
+      setNewTask((current) => ({
+       ...current,
+       details: e.target.value,
+      }));
+
+      setFormError('');
+     }}
+     style={{
+      ...inputStyle,
+      resize: 'vertical',
+      minHeight: '100px',
+     }}
+    />
+
+    <FormLabel>Priority</FormLabel>
+
+    <div
+     style={{
+      position: 'relative',
+      marginBottom: formError ? '10px' : '22px',
+     }}
+    >
+     <Flag
+      size={16}
+      style={{
+       position: 'absolute',
+       left: '14px',
+       top: '50%',
+       transform: 'translateY(-50%)',
+       color: newTask.priority ? NAVY : 'var(--campora-muted)',
+       pointerEvents: 'none',
+      }}
+     />
+
+     <select
+      value={newTask.priority}
+      onChange={(e) => {
+       setNewTask((current) => ({
+        ...current,
+        priority: e.target.value,
+       }));
+
+       setFormError('');
+      }}
+      style={{
+       width: '100%',
+       boxSizing: 'border-box',
+       appearance: 'none',
+       padding: '13px 42px',
+       borderRadius: 'var(--radius-sm)',
+       border: formError
+         ? '1.5px solid #E8C4CB'
+         : '1.5px solid var(--divider)',
+       background: 'var(--surface-container-lowest)',
+       color: newTask.priority
+         ? NAVY
+         : 'var(--campora-muted)',
+       fontWeight: '800',
+       fontFamily: 'inherit',
+       outline: 'none',
+       cursor: 'pointer',
+      }}
+     >
+      <option value="" disabled>
+       Choose priority...
+      </option>
+
+      <option value="high">
+       High Priority
+      </option>
+
+      <option value="medium">
+       Medium Priority
+      </option>
+
+      <option value="low">
+       Low Priority
+      </option>
+     </select>
+
+     <ChevronDown
+      size={16}
+      style={{
+       position: 'absolute',
+       right: '14px',
+       top: '50%',
+       transform: 'translateY(-50%)',
+       color: 'var(--campora-muted)',
+       pointerEvents: 'none',
+      }}
+     />
+    </div>
+
+    <FormLabel>Alert</FormLabel>
+
+    <div
+     style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      gap: '9px',
+      marginBottom: newTask.alertType ? '14px' : '22px',
+     }}
+    >
+     {[
+       {
+         value: '',
+         label: 'None',
+         icon: Circle,
+         color: '#75839A',
+         soft: '#F6F8FB',
+         border: '#E4E8EF',
+       },
+       {
+         value: 'notification',
+         label: 'Notification',
+         icon: Bell,
+         color: '#648CCB',
+         soft: '#F3F7FD',
+         border: '#DDE7F5',
+       },
+       {
+         value: 'reminder',
+         label: 'Reminder',
+         icon: AlarmClock,
+         color: '#8B78B8',
+         soft: '#F7F4FC',
+         border: '#E7E0F2',
+       },
+     ].map((option) => {
+       const AlertIcon = option.icon;
+       const active = newTask.alertType === option.value;
+
+       return (
+        <button
+         key={option.label}
+         type="button"
+         onClick={() => {
+          setNewTask((current) => ({
            ...current,
            alertType: option.value,
            alertDate:
@@ -1318,203 +1193,186 @@ return (
              option.value === 'reminder'
                ? current.alertTime
                : '',
-         }));
+          }));
 
-         setFormError('');
-       }}
-       style={{
-         minHeight: '48px',
-         borderRadius: '13px',
-         border: active
-           ? `1.5px solid ${option.color}`
-           : `1px solid ${option.border}`,
-         background: active
-           ? option.color
-           : option.soft,
-         color: active
-           ? '#FFFFFF'
-           : option.color,
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-         gap: '7px',
-         cursor: 'pointer',
-         fontWeight: '900',
-         fontSize: '11px',
-       }}
+          setFormError('');
+         }}
+         style={{
+          minHeight: '48px',
+          borderRadius: 'var(--radius-sm)',
+          border: active
+            ? `1.5px solid ${option.color}`
+            : `1px solid ${option.border}`,
+          background: active
+            ? option.color
+            : option.soft,
+          color: active
+            ? '#FFFFFF'
+            : option.color,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '7px',
+          cursor: 'pointer',
+          fontWeight: '900',
+          fontSize: '11px',
+         }}
+        >
+         <AlertIcon size={15} />
+         {option.label}
+        </button>
+       );
+     })}
+    </div>
+
+    {newTask.alertType === 'notification' && (
+     <div
+      style={{
+       marginBottom: '20px',
+       padding: '10px 12px',
+       borderRadius: 'var(--radius-sm)',
+       background: '#F3F7FD',
+       border: '1px solid #DDE7F5',
+       color: '#648CCB',
+       fontSize: '11px',
+       fontWeight: '800',
+       lineHeight: 1.45,
+      }}
      >
-       <AlertIcon size={15} />
-       {option.label}
-     </button>
-   );
- })}
-</div>
+      A To-Do notification will be added to Notifications.
+     </div>
+    )}
 
-{newTask.alertType === 'notification' && (
- <div
-  style={{
-   marginBottom: '20px',
-   padding: '10px 12px',
-   borderRadius: '11px',
-   background: '#F3F7FD',
-   border: '1px solid #DDE7F5',
-   color: '#648CCB',
-   fontSize: '11px',
-   fontWeight: '800',
-   lineHeight: 1.45,
-  }}
- >
-  A To-Do notification will be added to Notifications.
- </div>
-)}
+    {newTask.alertType === 'reminder' && (
+     <>
+      <div
+       style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+        gap: '10px',
+        marginBottom: '8px',
+       }}
+      >
+       <div>
+        <FormLabel>Reminder Date</FormLabel>
 
-{newTask.alertType === 'reminder' && (
- <>
-  <div
-   style={{
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-    gap: '10px',
-    marginBottom: '8px',
-   }}
-  >
-   <div>
-    <FormLabel>Reminder Date</FormLabel>
+        <input
+         type="date"
+         value={newTask.alertDate}
+         onChange={(e) => {
+          setNewTask((current) => ({
+           ...current,
+           alertDate: e.target.value,
+          }));
 
-    <input
-     type="date"
-     value={newTask.alertDate}
-     onChange={(e) => {
-      setNewTask((current) => ({
-       ...current,
-       alertDate: e.target.value,
-      }));
+          setFormError('');
+         }}
+         style={{
+          ...inputStyle,
+          marginBottom: 0,
+         }}
+        />
+       </div>
 
-      setFormError('');
-     }}
-     style={{
-      ...inputStyle,
-      marginBottom: 0,
-     }}
-    />
-   </div>
+       <div>
+        <FormLabel>Reminder Time</FormLabel>
 
-   <div>
-    <FormLabel>Reminder Time</FormLabel>
-
-    <input
-     type="time"
-     value={newTask.alertTime}
-     onChange={(e) =>
-      setNewTask((current) => ({
-       ...current,
-       alertTime: e.target.value,
-      }))
-     }
-     style={{
-      ...inputStyle,
-      marginBottom: 0,
-     }}
-    />
-   </div>
-  </div>
-
-  <div
-   style={{
-    marginBottom: '20px',
-    color: '#8F9BB3',
-    fontSize: '10px',
-    fontWeight: '700',
-   }}
-  >
-   This will appear under Reminders in Notifications & Reminders.
-  </div>
- </>
-)}
-
-{formError && (
-  <div
-   style={{
-     marginBottom: '18px',
-     padding: '10px 12px',
-     background: '#FFF5F6',
-     border: '1px solid #F0DDE1',
-     borderRadius: '11px',
-     color: '#C76E7D',
-     fontSize: '12px',
-     fontWeight: '800',
-     lineHeight: '1.4',
-   }}
-  >
-   {formError}
-  </div>
-)}
-
-<div
- style={{
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: '10px',
- }}
->
- <button
-
- type="button"
- onClick={closeTaskModal}
- disabled={saving}
- style={{
-  background: '#FFFFFF',
-  border: '1.5px solid #E2E8F0',
-  color: NAVY,
-  borderRadius: '13px',
-  padding: '12px 18px',
-  fontWeight: '900',
-  cursor: saving ? 'default' : 'pointer',
-  opacity: saving ? 0.55 : 1,
- }}
->
- Cancel
-</button>
-
-<button
- type="button"
- onClick={handleSaveTask}
- disabled={saving}
- style={{
-  background: NAVY,
-  border: 'none',
-  color: '#FFFFFF',
-  borderRadius: '13px',
-  padding: '12px 19px',
-  fontWeight: '900',
-  cursor: saving ? 'default' : 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '7px',
-  boxShadow:
-    '0 9px 20px rgba(11, 26, 63, 0.17)',
-  opacity: saving ? 0.7 : 1,
- }}
->
- {editingTask ? (
-  <Pencil size={16} />
- ):(
-  <Plus size={17} />
- )}
-
- {saving
-  ? 'Saving...'
-  : editingTask
-    ? 'Save Changes'
-
-                : 'Add Task'}
-            </button>
-           </div>
-          </div>
-        </div>
-       )}
+        <input
+         type="time"
+         value={newTask.alertTime}
+         onChange={(e) =>
+          setNewTask((current) => ({
+           ...current,
+           alertTime: e.target.value,
+          }))
+         }
+         style={{
+          ...inputStyle,
+          marginBottom: 0,
+         }}
+        />
+       </div>
       </div>
-    );
+
+      <div
+       style={{
+        marginBottom: '20px',
+        color: 'var(--campora-muted)',
+        fontSize: '10px',
+        fontWeight: '700',
+       }}
+      >
+       This will appear under Reminders in Notifications & Reminders.
+      </div>
+     </>
+    )}
+
+    {formError && (
+     <div
+      style={{
+       marginBottom: '18px',
+       padding: '10px 12px',
+       background: 'var(--tone-error-soft)',
+       border: '1px solid var(--tone-error-soft)',
+       borderRadius: 'var(--radius-sm)',
+       color: 'var(--tone-error)',
+       fontSize: '12px',
+       fontWeight: '800',
+       lineHeight: '1.4',
+      }}
+     >
+      {formError}
+     </div>
+    )}
+
+    <div
+     style={{
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: '10px',
+     }}
+    >
+     <button
+      type="button"
+      onClick={closeTaskModal}
+      disabled={saving}
+      className="btn btn-outline"
+      style={{
+       opacity: saving ? 0.55 : 1,
+       cursor: saving ? 'default' : 'pointer',
+      }}
+     >
+      Cancel
+     </button>
+
+     <button
+      type="button"
+      onClick={handleSaveTask}
+      disabled={saving}
+      className="btn btn-primary"
+      style={{
+       opacity: saving ? 0.7 : 1,
+       cursor: saving ? 'default' : 'pointer',
+      }}
+     >
+      {editingTask ? (
+       <Pencil size={16} />
+      ) : (
+       <Plus size={17} />
+      )}
+
+      {saving
+       ? 'Saving...'
+       : editingTask
+         ? 'Save Changes'
+         : 'Add Task'}
+     </button>
+    </div>
+   </div>
+  </div>
+ )}
+ </PageShell>
+);
 }
 
 function PriorityOverviewCard({ priority, count }) {
@@ -1522,77 +1380,79 @@ function PriorityOverviewCard({ priority, count }) {
 
     return (
      <div
-       style={{
-        background: config.background,
-        border: `1px solid ${config.border}`,
-        borderRadius: '18px',
-        padding: '14px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '14px',
-       }}
+      className="panel-low"
+      style={{
+       background: config.background,
+       border: `1px solid ${config.border}`,
+       borderRadius: 'var(--radius-secondary)',
+       padding: '14px 16px',
+       display: 'flex',
+       alignItems: 'center',
+       justifyContent: 'space-between',
+       gap: '14px',
+      }}
      >
        <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '11px',
+         display: 'flex',
+         alignItems: 'center',
+         gap: '11px',
         }}
        >
         <div
-          style={{
-           width: '36px',
-           height: '36px',
-           borderRadius: '11px',
-           background: config.headerBackground,
-           color: config.color,
-           display: 'flex',
-           alignItems: 'center',
-           justifyContent: 'center',
-          }}
-        >
-          <Flag size={17} />
-        </div>
-
-       <div>
-        <p
          style={{
-          margin: 0,
-          color: '#8F9BB3',
-          fontSize: '11px',
-          fontWeight: '800',
+          width: '36px',
+          height: '36px',
+          borderRadius: 'var(--radius-sm)',
+          background: config.headerBackground,
+          color: config.color,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
          }}
         >
-         {config.label}
-        </p>
+         <Flag size={17} />
+        </div>
 
-        <h3
+        <div>
+         <p
+          style={{
+           margin: 0,
+           color: 'var(--campora-muted)',
+           fontSize: '11px',
+           fontWeight: '800',
+          }}
+         >
+          {config.label}
+         </p>
+
+         <h3
           style={{
            margin: '2px 0 0',
-           color: NAVY,
+           color: 'var(--campora-text)',
            fontSize: '19px',
            fontWeight: '900',
           }}
-        >
+         >
           {count}
-        </h3>
+         </h3>
+        </div>
        </div>
-      </div>
 
-       <span
-        style={{
+        <span
+         className="pill"
+         style={{
           fontSize: '11px',
           fontWeight: '900',
           color: config.color,
           background: config.badge,
           padding: '5px 9px',
-          borderRadius: '999px',
-        }}
-       >
-        {config.shortLabel}
-       </span>
-      </div>
+          height: 'auto',
+         }}
+        >
+         {config.shortLabel}
+        </span>
+       </div>
     );
 }
 
@@ -1601,7 +1461,6 @@ function PriorityColumn({
  tasks,
  onToggle,
  onDelete,
-
  onEdit,
  onCompleteAll,
  onClearAll,
@@ -1610,169 +1469,152 @@ function PriorityColumn({
 
  return (
   <div
-    style={{
-     background: config.background,
-     border: `1px solid ${config.border}`,
-     borderRadius: '18px',
-     overflow: 'hidden',
-     minHeight: '190px',
-    }}
+   style={{
+    background: config.background,
+    border: `1px solid ${config.border}`,
+    borderRadius: 'var(--radius-secondary)',
+    overflow: 'hidden',
+    minHeight: '190px',
+   }}
   >
+   <div
+    style={{
+     padding: '13px 14px',
+     background: config.headerBackground,
+     borderBottom: `1px solid ${config.border}`,
+    }}
+   >
     <div
      style={{
-       padding: '13px 14px',
-       background: config.headerBackground,
-       borderBottom: `1px solid ${config.border}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '10px',
      }}
     >
      <div
-       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '10px',
-       }}
+      style={{
+       display: 'flex',
+       alignItems: 'center',
+       gap: '8px',
+      }}
      >
-       <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-       >
-        <Flag size={15} color={config.color} />
+      <Flag size={15} color={config.color} />
 
-       <span
-        style={{
-         fontWeight: '900',
-         color: NAVY,
-         fontSize: '13px',
-        }}
-       >
+      <span
+       style={{
+        fontWeight: '900',
+        color: 'var(--campora-text)',
+        fontSize: '13px',
+       }}
+      >
+       {config.label}
+      </span>
+     </div>
 
-   {config.label}
-  </span>
- </div>
+     <span
+      className="pill"
+      style={{
+       minWidth: '24px',
+       height: '24px',
+       padding: '0 7px',
+       background: 'var(--surface-container-lowest)',
+       color: config.color,
+       display: 'inline-flex',
+       alignItems: 'center',
+       justifyContent: 'center',
+       fontSize: '11px',
+       fontWeight: '900',
+      }}
+     >
+      {tasks.length}
+     </span>
+    </div>
 
- <span
-  style={{
-    minWidth: '24px',
-    height: '24px',
-    padding: '0 7px',
-    borderRadius: '999px',
-    background: '#FFFFFF',
-    color: config.color,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '11px',
-    fontWeight: '900',
-  }}
- >
-  {tasks.length}
- </span>
-</div>
+    {tasks.length > 0 && (
+     <div
+      style={{
+       display: 'flex',
+       gap: '7px',
+       marginTop: '10px',
+       flexWrap: 'wrap',
+      }}
+     >
+      <button
+       type="button"
+       onClick={() => onCompleteAll(priority)}
+       className="btn btn-sm"
+       style={{
+        background: 'var(--surface-container-lowest)',
+        color: 'var(--campora-navy)',
+        padding: '0 9px',
+       }}
+      >
+       <CheckCheck size={12} />
+       Complete All
+      </button>
 
-{tasks.length > 0 && (
- <div
-   style={{
-    display: 'flex',
-    gap: '7px',
-    marginTop: '10px',
-    flexWrap: 'wrap',
-   }}
- >
-   <button
-    type="button"
-    onClick={() => onCompleteAll(priority)}
+      <button
+       type="button"
+       onClick={() => onClearAll(priority)}
+       className="btn btn-sm"
+       style={{
+        background: 'var(--surface-container-lowest)',
+        color: 'var(--campora-urgent)',
+        padding: '0 9px',
+       }}
+      >
+       <Trash2 size={12} />
+       Clear All
+      </button>
+     </div>
+    )}
+   </div>
+
+   <div
     style={{
-      border: 'none',
-      background: '#FFFFFF',
-      color: NAVY,
-      borderRadius: '9px',
-      padding: '7px 9px',
-      fontSize: '10px',
-      fontWeight: '900',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '5px',
-
+     padding: '11px',
+     display: 'flex',
+     flexDirection: 'column',
+     gap: '9px',
     }}
    >
-    <CheckCheck size={12} />
-    Complete All
-   </button>
-
-    <button
-     type="button"
-     onClick={() => onClearAll(priority)}
-     style={{
-      border: 'none',
-      background: '#FFFFFF',
-      color: '#C76E7D',
-      borderRadius: '9px',
-      padding: '7px 9px',
-      fontSize: '10px',
-      fontWeight: '900',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '5px',
-     }}
-    >
-     <Trash2 size={12} />
-     Clear All
-    </button>
+    {tasks.length === 0 ? (
+     <div
+      style={{
+       minHeight: '115px',
+       display: 'flex',
+       alignItems: 'center',
+       justifyContent: 'center',
+       textAlign: 'center',
+       padding: '12px',
+      }}
+     >
+      <p
+       style={{
+        margin: 0,
+        color: 'var(--campora-muted)',
+        fontSize: '11px',
+        fontWeight: '700',
+       }}
+      >
+       No {config.shortLabel.toLowerCase()} priority tasks
+      </p>
+     </div>
+    ) : (
+     tasks.map((task) => (
+      <TaskCard
+       key={task.id}
+       task={task}
+       onToggle={onToggle}
+       onDelete={onDelete}
+       onEdit={onEdit}
+      />
+     ))
+    )}
+   </div>
   </div>
- )}
-</div>
-
-<div
- style={{
-  padding: '11px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '9px',
- }}
->
- {tasks.length === 0 ? (
-  <div
-    style={{
-     minHeight: '115px',
-     display: 'flex',
-     alignItems: 'center',
-     justifyContent: 'center',
-     textAlign: 'center',
-     padding: '12px',
-
-           }}
-          >
-           <p
-             style={{
-              margin: 0,
-              color: '#A3AED0',
-              fontSize: '11px',
-              fontWeight: '700',
-             }}
-           >
-             No {config.shortLabel.toLowerCase()} priority tasks
-           </p>
-          </div>
-        ):(
-          tasks.map((task) => (
-           <TaskCard
-             key={task.id}
-             task={task}
-             onToggle={onToggle}
-             onDelete={onDelete}
-             onEdit={onEdit}
-           />
-          ))
-        )}
-       </div>
-      </div>
-    );
+ );
 }
 
 function TaskCard({
@@ -1782,160 +1624,156 @@ function TaskCard({
  onEdit,
 }) {
  return (
-   <div
-     style={{
-      background: '#FFFFFF',
-      border: '1px solid #E7ECF3',
-      borderRadius: '14px',
-      padding: '12px',
-      boxShadow:
-        '0 5px 14px rgba(68, 81, 125, 0.04)',
-     }}
-   >
-     <div
-
- style={{
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: '10px',
- }}
->
- <button
-  type="button"
-  onClick={() => onToggle(task.id)}
-  style={{
-    marginTop: '1px',
-    padding: 0,
-    border: 'none',
-    background: 'transparent',
-    cursor: 'pointer',
-    display: 'flex',
-    flexShrink: 0,
-  }}
- >
-  <Circle size={19} color={NAVY} />
- </button>
-
- <div
-  style={{
-   flex: 1,
-   minWidth: 0,
-  }}
- >
-  <p
-   style={{
-     margin: 0,
-     color: NAVY,
-     fontWeight: '900',
-     fontSize: '13px',
-     lineHeight: '1.35',
-     wordBreak: 'break-word',
-   }}
-  >
-   {task.title}
-  </p>
-
-  {task.details && (
-   <p
-     style={{
-      margin: '5px 0 0',
-      color: '#8995AD',
-      fontSize: '11px',
-
-     fontWeight: '700',
-     lineHeight: '1.45',
-     wordBreak: 'break-word',
-    }}
-  >
-    {task.details}
-  </p>
- )}
-
- {task._alertType && (
   <div
    style={{
-    marginTop: '7px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '5px',
-    padding: '4px 7px',
-    borderRadius: '999px',
-    background:
-      task._alertType === 'reminder'
-        ? '#F7F4FC'
-        : '#F3F7FD',
-    color:
-      task._alertType === 'reminder'
-        ? '#8B78B8'
-        : '#648CCB',
-    fontSize: '9px',
-    fontWeight: '900',
+    background: 'var(--surface-container-lowest)',
+    border: '1px solid var(--divider)',
+    borderRadius: 'var(--radius-sm)',
+    padding: '12px',
+    boxShadow: 'var(--shadow-soft)',
    }}
   >
-   {task._alertType === 'reminder' ? (
-    <AlarmClock size={10} />
-   ) : (
-    <Bell size={10} />
-   )}
+   <div
+    style={{
+     display: 'flex',
+     alignItems: 'flex-start',
+     gap: '10px',
+    }}
+   >
+    <button
+     type="button"
+     onClick={() => onToggle(task.id)}
+     style={{
+      marginTop: '1px',
+      padding: 0,
+      border: 'none',
+      background: 'transparent',
+      cursor: 'pointer',
+      display: 'flex',
+      flexShrink: 0,
+     }}
+    >
+     <Circle size={19} color="var(--campora-navy)" />
+    </button>
 
-   {task._alertType === 'reminder'
-     ? `Reminder${task._alertDate ? ` • ${task._alertDate}` : ''}`
-     : 'Notification'}
-  </div>
- )}
-</div>
+    <div
+     style={{
+      flex: 1,
+      minWidth: 0,
+     }}
+    >
+     <p
+      style={{
+       margin: 0,
+       color: 'var(--campora-text)',
+       fontWeight: '900',
+       fontSize: '13px',
+       lineHeight: '1.35',
+       wordBreak: 'break-word',
+      }}
+     >
+      {task.title}
+     </p>
 
-<div
- style={{
-  display: 'flex',
-  gap: '6px',
-  flexShrink: 0,
- }}
->
- <button
-  type="button"
-  onClick={() => onEdit(task)}
-  title="Edit task"
-  style={{
-    width: '29px',
-    height: '29px',
-    borderRadius: '9px',
-    border: 'none',
-    background: '#EEF3FA',
-    color: NAVY,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  }}
- >
-  <Pencil size={14} />
- </button>
+     {task.details && (
+      <p
+       style={{
+        margin: '5px 0 0',
+        color: 'var(--campora-muted)',
+        fontSize: '11px',
+        fontWeight: '700',
+        lineHeight: '1.45',
+        wordBreak: 'break-word',
+       }}
+      >
+       {task.details}
+      </p>
+     )}
 
- <button
-  type="button"
-  onClick={() => onDelete(task.id)}
-  title="Delete task"
-  style={{
-    width: '29px',
-    height: '29px',
-    borderRadius: '9px',
-    border: 'none',
-    background: '#FFF1F1',
+     {task._alertType && (
+      <div
+       style={{
+        marginTop: '7px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '5px',
+        padding: '4px 7px',
+        borderRadius: '999px',
+        background:
+         task._alertType === 'reminder'
+           ? '#F7F4FC'
+           : '#F3F7FD',
+        color:
+         task._alertType === 'reminder'
+           ? '#8B78B8'
+           : '#648CCB',
+        fontSize: '9px',
+        fontWeight: '900',
+       }}
+      >
+       {task._alertType === 'reminder' ? (
+        <AlarmClock size={10} />
+       ) : (
+        <Bell size={10} />
+       )}
 
-            color: '#EE5D50',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-           }}
-          >
-           <Trash2 size={14} />
-          </button>
-        </div>
-       </div>
+       {task._alertType === 'reminder'
+         ? `Reminder${task._alertDate ? ` • ${task._alertDate}` : ''}`
+         : 'Notification'}
       </div>
-    );
+     )}
+    </div>
+
+    <div
+     style={{
+      display: 'flex',
+      gap: '6px',
+      flexShrink: 0,
+     }}
+    >
+     <button
+      type="button"
+      onClick={() => onEdit(task)}
+      title="Edit task"
+      style={{
+       width: '29px',
+       height: '29px',
+       borderRadius: 'var(--radius-sm)',
+       border: 'none',
+       background: 'var(--surface-container)',
+       color: 'var(--campora-navy)',
+       cursor: 'pointer',
+       display: 'flex',
+       alignItems: 'center',
+       justifyContent: 'center',
+      }}
+     >
+      <Pencil size={14} />
+     </button>
+
+     <button
+      type="button"
+      onClick={() => onDelete(task.id)}
+      title="Delete task"
+      style={{
+       width: '29px',
+       height: '29px',
+       borderRadius: 'var(--radius-sm)',
+       border: 'none',
+       background: 'var(--tone-error-soft)',
+       color: 'var(--campora-urgent)',
+       cursor: 'pointer',
+       display: 'flex',
+       alignItems: 'center',
+       justifyContent: 'center',
+      }}
+     >
+      <Trash2 size={14} />
+     </button>
+    </div>
+   </div>
+  </div>
+ );
 }
 
 function CompletedTask({
@@ -1945,253 +1783,137 @@ function CompletedTask({
  onEdit,
 }) {
  return (
-   <div
+  <div
+   style={{
+    background: 'var(--surface-container-low)',
+    border: '1px solid var(--divider)',
+    borderRadius: 'var(--radius-sm)',
+    padding: '12px 13px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+   }}
+  >
+   <button
+    type="button"
+    onClick={() => onToggle(task.id)}
+    style={{
+     padding: 0,
+     border: 'none',
+     background: 'transparent',
+     cursor: 'pointer',
+     display: 'flex',
+    }}
+   >
+    <CheckCircle2 size={19} color="var(--tone-success)" />
+   </button>
+
+   <div style={{ flex: 1 }}>
+    <p
      style={{
-      background: '#F8FAFD',
-      border: '1px solid #EDF1F6',
-      borderRadius: '14px',
-      padding: '12px 13px',
+      margin: 0,
+      color: 'var(--campora-text)',
+      fontWeight: '800',
+      fontSize: '13px',
+      opacity: 0.45,
+      textDecoration: 'line-through',
+     }}
+    >
+     {task.title}
+    </p>
+
+    {task.details && (
+     <p
+      style={{
+       margin: '4px 0 0',
+       color: 'var(--campora-muted)',
+       fontSize: '11px',
+       fontWeight: '700',
+       textDecoration: 'line-through',
+       opacity: 0.65,
+      }}
+     >
+      {task.details}
+     </p>
+    )}
+   </div>
+
+   <div
+    style={{
+     display: 'flex',
+     gap: '6px',
+    }}
+   >
+    <button
+     type="button"
+     onClick={() => onEdit(task)}
+     title="Edit task"
+     style={{
+      width: '29px',
+      height: '29px',
+      borderRadius: 'var(--radius-sm)',
+      border: 'none',
+      background: 'var(--surface-container)',
+      color: 'var(--campora-navy)',
+      cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
+      justifyContent: 'center',
      }}
-   >
-     <button
-      type="button"
-      onClick={() => onToggle(task.id)}
-      style={{
-        padding: 0,
-        border: 'none',
-        background: 'transparent',
-        cursor: 'pointer',
-        display: 'flex',
-      }}
-     >
-      <CheckCircle2 size={19} color="#5E9A8B" />
-     </button>
+    >
+     <Pencil size={14} />
+    </button>
 
-<div style={{ flex: 1 }}>
- <p
-  style={{
-   margin: 0,
-   color: NAVY,
-   fontWeight: '800',
-   fontSize: '13px',
-   opacity: 0.45,
-   textDecoration: 'line-through',
-  }}
- >
-  {task.title}
- </p>
-
- {task.details && (
-  <p
-    style={{
-     margin: '4px 0 0',
-     color: '#A3AED0',
-     fontSize: '11px',
-     fontWeight: '700',
-     textDecoration: 'line-through',
-     opacity: 0.65,
-    }}
-  >
-    {task.details}
-  </p>
- )}
-</div>
-
-<div
- style={{
-  display: 'flex',
-  gap: '6px',
- }}
->
- <button
-  type="button"
-  onClick={() => onEdit(task)}
-  title="Edit task"
-  style={{
-    width: '29px',
-    height: '29px',
-    borderRadius: '9px',
-    border: 'none',
-    background: '#EEF3FA',
-
-         color: NAVY,
-         cursor: 'pointer',
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-        }}
-       >
-        <Pencil size={14} />
-       </button>
-
-        <button
-          type="button"
-          onClick={() => onDelete(task.id)}
-          title="Delete task"
-          style={{
-            width: '29px',
-            height: '29px',
-            borderRadius: '9px',
-            border: 'none',
-            background: '#FFF5F6',
-            color: '#C76E7D',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Trash2 size={14} />
-        </button>
-       </div>
-      </div>
-    );
-}
-
-function EmptyState() {
- return (
-  <div
-    style={{
-     minHeight: '170px',
-     display: 'flex',
-     flexDirection: 'column',
-     alignItems: 'center',
-     justifyContent: 'center',
-     textAlign: 'center',
-    }}
-  >
-    <div
-
-       style={{
-        width: '56px',
-        height: '56px',
-        borderRadius: '18px',
-        background: '#EEF2F8',
-        color: NAVY,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: '11px',
-       }}
-      >
-       <CheckCircle2 size={26} />
-      </div>
-
-      <h3
-       style={{
-        margin: '0 0 5px',
-        color: NAVY,
-        fontSize: '15px',
-        fontWeight: '900',
-       }}
-      >
-       Your list is clear
-      </h3>
-
-       <p
-        style={{
-          margin: 0,
-          color: '#A3AED0',
-          fontSize: '12px',
-          fontWeight: '700',
-        }}
-       >
-        Add a task when you have something to get done.
-       </p>
-      </div>
-    );
-}
-
-function SummaryCard({
- icon,
- label,
- value,
- background,
- iconBackground,
- iconColor,
-
-}) {
- return (
-   <div
+    <button
+     type="button"
+     onClick={() => onDelete(task.id)}
+     title="Delete task"
      style={{
-      background,
-      borderRadius: '20px',
-      padding: '16px 18px',
-      border: '1px solid #E9EDF7',
+      width: '29px',
+      height: '29px',
+      borderRadius: 'var(--radius-sm)',
+      border: 'none',
+      background: 'var(--tone-error-soft)',
+      color: 'var(--campora-urgent)',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
      }}
-   >
-     <div
-      style={{
-        width: '40px',
-        height: '40px',
-        borderRadius: '13px',
-        background: iconBackground,
-        color: iconColor,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: '11px',
-      }}
-     >
-      {icon}
-     </div>
-
-   <p
-    style={{
-      margin: '0 0 3px',
-      color: '#8F9BB3',
-      fontSize: '12px',
-      fontWeight: '800',
-    }}
-   >
-    {label}
-   </p>
-
-   <h3
-    style={{
-     margin: 0,
-     color: NAVY,
-     fontSize: '23px',
-     fontWeight: '900',
-    }}
-   >
-    {value}
-   </h3>
-
-      </div>
-    );
+    >
+     <Trash2 size={14} />
+    </button>
+   </div>
+  </div>
+ );
 }
 
 function FormLabel({ children }) {
-  return (
-    <label
-     style={{
-       display: 'block',
-       marginBottom: '7px',
-       color: NAVY,
-       fontWeight: '900',
-       fontSize: '13px',
-     }}
-    >
-     {children}
-    </label>
-  );
+ return (
+  <label
+   style={{
+    display: 'block',
+    marginBottom: '7px',
+    color: 'var(--campora-navy)',
+    fontWeight: '900',
+    fontSize: '13px',
+   }}
+  >
+   {children}
+  </label>
+ );
 }
 
 const inputStyle = {
   width: '100%',
   boxSizing: 'border-box',
   padding: '13px 14px',
-  borderRadius: '13px',
-  border: '1.5px solid #E2E8F0',
+  borderRadius: 'var(--radius-sm)',
+  border: '1.5px solid var(--divider)',
   outline: 'none',
   fontWeight: '700',
-  color: NAVY,
-  background: '#FAFBFF',
+  color: 'var(--campora-navy)',
+  background: 'var(--surface-container-lowest)',
   fontFamily: 'inherit',
   marginBottom: '17px',
 };
-

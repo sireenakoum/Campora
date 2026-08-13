@@ -25,7 +25,7 @@ export default function About() {
         minHeight: '100vh',
         background:
           'linear-gradient(135deg, #ffffff 0%, #f7faff 50%, #edf4fb 100%)',
-        color: '#0B1A3F',
+        color: '#1A1B1F',
         padding: '20px 48px 70px',
       }}
     >
@@ -42,7 +42,7 @@ export default function About() {
             alignItems: 'center',
             gap: '8px',
             textDecoration: 'none',
-            color: '#0B1A3F',
+            color: '#1A1B1F',
             fontWeight: '800',
             marginBottom: '34px',
           }}
@@ -207,7 +207,7 @@ export default function About() {
             <p
               style={{
                 margin: 0,
-                color: '#0B1A3F',
+                color: '#1A1B1F',
                 fontSize: '21px',
                 lineHeight: '1.6',
                 fontWeight: '950',
@@ -222,7 +222,7 @@ export default function About() {
         <section
           style={{
             background:
-              'linear-gradient(135deg, #F3F0FF 0%, #F8FAFF 100%)',
+              'linear-gradient(135deg, #F3F0FF 0%, #D8E2FF 100%)',
             borderRadius: '34px',
             padding: '52px',
             marginBottom: '110px',
@@ -314,7 +314,7 @@ export default function About() {
                   padding: '12px 18px',
                   borderRadius: '999px',
                   fontWeight: '900',
-                  color: '#0B1A3F',
+                  color: '#1A1B1F',
                   fontSize: '14px',
                 }}
               >
@@ -350,14 +350,14 @@ export default function About() {
           <div
             style={{
               minHeight: '330px',
-              background: '#0B1A3F',
+              background: '#002D62',
               borderRadius: '32px',
               padding: '42px',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
               color: '#FFFFFF',
-              boxShadow: '0 24px 60px rgba(11, 26, 63, 0.16)',
+              boxShadow: '0 24px 60px rgba(0, 45, 98, 0.16)',
             }}
           >
             <Heart
@@ -668,12 +668,12 @@ export default function About() {
         <section
           style={{
             background:
-              'linear-gradient(135deg, #0B1A3F 0%, #17295A 100%)',
+              'linear-gradient(135deg, #002D62 0%, #17295A 100%)',
             color: '#FFFFFF',
             borderRadius: '34px',
             padding: '52px 40px',
             textAlign: 'center',
-            boxShadow: '0 24px 60px rgba(11, 26, 63, 0.18)',
+            boxShadow: '0 24px 60px rgba(0, 45, 98, 0.18)',
           }}
         >
           <p

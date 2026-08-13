@@ -12,9 +12,9 @@ export default function ResourceCard({ resource }) {
       rel="noreferrer"
       style={{
         display:"block",
-        background:"white",
-        border:"1px solid #E5E7EB",
-        borderRadius:"12px",
+        background:"var(--surface-container-lowest)",
+        border:"1px solid var(--divider)",
+        borderRadius:"var(--radius-secondary)",
         padding:"20px",
         marginBottom:"12px",
         textDecoration:"none",
@@ -31,13 +31,13 @@ export default function ResourceCard({ resource }) {
 
         <ExternalLink
           size={18}
-          color="#1D4ED8"
+          color="var(--campora-navy)"
         />
 
 
         <h3
           style={{
-            color:"#0B1A3F",
+            color:"var(--campora-text)",
           }}
         >
           {resource.title}
@@ -49,7 +49,7 @@ export default function ResourceCard({ resource }) {
 
       <p
         style={{
-          color:"#6B7280",
+          color:"var(--campora-body)",
         }}
       >
         {resource.description}
@@ -58,7 +58,7 @@ export default function ResourceCard({ resource }) {
 
       <small
         style={{
-          color:"#1D4ED8",
+          color:"var(--campora-navy)",
         }}
       >
         {resource.category} • {resource.type}

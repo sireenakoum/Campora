@@ -19,7 +19,7 @@ import {
   Search,
 } from 'lucide-react';
 
-const NAVY = '#0B1A3F';
+const NAVY = '#002D62';
 const BORDER = '#E5EAF1';
 const MUTED = '#8B97AD';
 
@@ -337,7 +337,7 @@ export default function Features() {
             borderRadius: '30px',
             padding: '42px 36px',
             textAlign: 'center',
-            boxShadow: '0 24px 60px rgba(11, 26, 63, 0.16)',
+            boxShadow: '0 24px 60px rgba(0, 45, 98, 0.16)',
           }}
         >
           <h2
@@ -470,8 +470,8 @@ function FeatureSection({
         borderRadius: '30px',
         overflow: 'hidden',
         border: '1px solid #DDE7F5',
-        background: '#F4F7FE',
-        boxShadow: '0 18px 44px rgba(11, 26, 63, 0.08)',
+        background: '#FAF9FE',
+        boxShadow: '0 18px 44px rgba(0, 45, 98, 0.08)',
         padding: '16px',
       }}
     >
@@ -575,7 +575,7 @@ function PreviewSearch() {
         alignItems: 'center',
         gap: '7px',
         padding: '0 12px',
-        color: '#A3AED0',
+        color: '#717786',
         fontSize: '8px',
         fontWeight: '700',
       }}
@@ -586,7 +586,7 @@ function PreviewSearch() {
   );
 }
 
-function MiniStat({ label, value, accent = NAVY, soft = '#F4F7FE' }) {
+function MiniStat({ label, value, accent = NAVY, soft = '#FAF9FE' }) {
   return (
     <div
       style={{
@@ -653,7 +653,7 @@ function DashboardPreview() {
             marginTop: '12px',
             borderRadius: '16px',
             background:
-              'linear-gradient(135deg, #08152F 0%, #0B1A3F 60%, #173365 100%)',
+              'linear-gradient(135deg, #08152F 0%, #002D62 60%, #173365 100%)',
             padding: '15px',
             color: '#FFFFFF',
           }}
@@ -743,7 +743,7 @@ function CampusHubPreview() {
         style={{
           padding: '16px',
           background:
-            'linear-gradient(135deg, #08152F 0%, #0B1A3F 56%, #142B5A 100%)',
+            'linear-gradient(135deg, #08152F 0%, #002D62 56%, #142B5A 100%)',
           color: '#FFFFFF',
         }}
       >
@@ -926,8 +926,8 @@ function CampusPulsePreview() {
         </div>
 
         <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
-          <MiniPill color={NAVY} soft="#F4F7FE" active>Feed</MiniPill>
-          <MiniPill color={NAVY} soft="#F4F7FE">Direct Messages</MiniPill>
+          <MiniPill color={NAVY} soft="#FAF9FE" active>Feed</MiniPill>
+          <MiniPill color={NAVY} soft="#FAF9FE">Direct Messages</MiniPill>
         </div>
 
         <div style={{ marginTop: '9px' }}>
@@ -942,7 +942,7 @@ function CampusPulsePreview() {
             marginTop: '8px',
           }}
         >
-          <MiniPill color={NAVY} soft="#F4F7FE" active>All</MiniPill>
+          <MiniPill color={NAVY} soft="#FAF9FE" active>All</MiniPill>
           <MiniPill color="#5E9A8B" soft="#F2F9F7">Clubs & Events</MiniPill>
           <MiniPill color="#648CCB" soft="#F3F7FD">Questions</MiniPill>
         </div>
@@ -961,7 +961,7 @@ function CampusPulsePreview() {
               <MiniAvatar text="LM" color="#648CCB" />
               <div>
                 <div style={{ fontSize: '8px', fontWeight: '900' }}>Lara Mortada</div>
-                <div style={{ fontSize: '6px', color: '#A3AED0', marginTop: '2px' }}>Today</div>
+                <div style={{ fontSize: '6px', color: '#717786', marginTop: '2px' }}>Today</div>
               </div>
             </div>
             <MiniPill color="#D9896A" soft="#FFF6F2">Campus Life</MiniPill>
@@ -981,7 +981,7 @@ function CampusPulsePreview() {
               paddingTop: '7px',
               display: 'flex',
               gap: '12px',
-              color: '#94A3B8',
+              color: '#717786',
               fontSize: '7px',
               fontWeight: '800',
             }}
@@ -1065,7 +1065,7 @@ function RegistrationPreview() {
         </div>
 
         <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
-          <MiniPill color={NAVY} soft="#F4F7FE" active>Course Planner</MiniPill>
+          <MiniPill color={NAVY} soft="#FAF9FE" active>Course Planner</MiniPill>
           <MiniPill color="#648CCB" soft="#F3F7FD">Direct Messages</MiniPill>
         </div>
 
@@ -1309,8 +1309,8 @@ function StudyGroupsPreview() {
         </div>
 
         <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
-          <MiniPill color={NAVY} soft="#F4F7FE" active>Study Groups</MiniPill>
-          <MiniPill color={NAVY} soft="#F4F7FE">Direct Messages</MiniPill>
+          <MiniPill color={NAVY} soft="#FAF9FE" active>Study Groups</MiniPill>
+          <MiniPill color={NAVY} soft="#FAF9FE">Direct Messages</MiniPill>
         </div>
 
         <div
@@ -1399,7 +1399,7 @@ function StudyGroupsPreview() {
                 style={{
                   height: '26px',
                   borderRadius: '999px',
-                  background: '#F8FAFC',
+                  background: '#E9E7ED',
                   border: `1px solid ${BORDER}`,
                   flex: 1,
                 }}
@@ -1475,7 +1475,7 @@ function MiniRow({ dot, title, sub }) {
       />
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: '7px', color: NAVY, fontWeight: '900' }}>{title}</div>
-        <div style={{ fontSize: '5.5px', color: '#A3AED0', marginTop: '1px' }}>{sub}</div>
+        <div style={{ fontSize: '5.5px', color: '#717786', marginTop: '1px' }}>{sub}</div>
       </div>
     </div>
   );
@@ -1492,7 +1492,7 @@ function MiniAnnouncement({ title, category }) {
       }}
     >
       <div style={{ fontSize: '7px', fontWeight: '900' }}>{title}</div>
-      <div style={{ fontSize: '5.5px', color: '#A3AED0', marginTop: '3px' }}>{category}</div>
+      <div style={{ fontSize: '5.5px', color: '#717786', marginTop: '3px' }}>{category}</div>
     </div>
   );
 }
@@ -1655,7 +1655,7 @@ function ConversationMini({ name, color }) {
         gap: '6px',
         padding: '6px',
         borderRadius: '9px',
-        background: '#F8FAFC',
+        background: '#E9E7ED',
       }}
     >
       <MiniAvatar text={name.slice(0, 2).toUpperCase()} color={color} />

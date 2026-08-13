@@ -18,18 +18,15 @@ import {
   Eraser,
 } from 'lucide-react';
 
+import {
+  PageShell,
+  SectionHeader,
+  SegmentedControl,
+  EmptyState as LuminousEmptyState,
+} from '../components/luminous';
+
 import { supabase } from '../lib/supabase';
 import { getAnnouncements } from '../lib/campusHub';
-
-// =========================================================
-// THEME
-// =========================================================
-
-const NAVY = '#0B1A3F';
-const MUTED = '#8B97AD';
-const BORDER = '#E8ECF3';
-const PANEL = '#FFFFFF';
-const PAGE_SOFT = '#F8FAFD';
 
 const CATEGORY_STYLES = {
   Announcements: {
@@ -1396,452 +1393,173 @@ export default function Notifications() {
   // =======================================================
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '1140px',
-        margin: '0 auto',
-        paddingBottom: '44px',
-        fontFamily: 'inherit',
-      }}
-    >
-      {/* HEADER */}
+    <PageShell>
+      {/* HEADER CONTROL ZONE */}
 
       <div
         style={{
-          marginBottom: '26px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 18,
         }}
       >
         <div
           style={{
+            alignSelf: 'flex-start',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 7,
+            padding: '8px 14px',
+            borderRadius: '999px',
+            background: 'var(--campora-navy-tint-alpha)',
+            color: 'var(--campora-navy)',
+            fontSize: '11px',
+            fontWeight: '800',
+            letterSpacing: '.35px',
+          }}
+        >
+          <Sparkles size={13} color="var(--campora-navy)" />
+
+          YOUR CAMPUS HUB
+        </div>
+
+        <SectionHeader
+          title="Notifications & Reminders"
+          subtitle="Your updates and reminders, organised by where they actually come from."
+          action={
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                flexWrap: 'wrap',
+              }}
+            >
+              <span
+                className="pill"
+                style={{
+                  background:
+                    unreadCount > 0
+                      ? 'var(--campora-navy-tint)'
+                      : 'var(--surface-container-highest)',
+                  color:
+                    unreadCount > 0
+                      ? 'var(--campora-navy)'
+                      : 'var(--campora-muted)',
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: unreadCount > 0 ? '#D9896A' : '#5E9A8B',
+                  }}
+                />
+
+                {unreadCount} unread
+              </span>
+
+              <button
+                type="button"
+                onClick={toggleAllRead}
+                disabled={items.length === 0}
+                className="btn btn-primary"
+                style={{
+                  opacity: items.length === 0 ? 0.5 : 1,
+                  cursor: items.length === 0 ? 'default' : 'pointer',
+                }}
+              >
+                {allRead ? (
+                  <RotateCcw size={15} />
+                ) : (
+                  <CheckCircle2 size={15} />
+                )}
+
+                {allRead
+                  ? 'Mark all as unread'
+                  : 'Mark all as read'}
+              </button>
+            </div>
+          }
+        />
+
+        <div
+          style={{
             display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent:
-              'space-between',
-            gap: '20px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
             flexWrap: 'wrap',
           }}
         >
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '7px',
-
-                background: '#F7F9FC',
-                color: NAVY,
-
-                border: '1px solid rgba(11,26,63,0.14)',
-
-                borderRadius: '999px',
-
-                padding: '8px 14px',
-
-                marginBottom: '11px',
-
-                fontSize: '11px',
-                fontWeight: '900',
-                letterSpacing: '.35px',
-
-                boxShadow:
-                  '0 4px 12px rgba(11,26,63,.035)',
-              }}
-            >
-              <Sparkles
-                size={13}
-                color={NAVY}
-              />
-
-              YOUR CAMPUS HUB
-            </div>
-
-            <h1
-              style={{
-                margin: 0,
-
-                color: NAVY,
-
-                fontSize: '38px',
-
-                fontWeight: '950',
-
-                letterSpacing:
-                  '-1px',
-
-                lineHeight: 1.1,
-              }}
-            >
-              Notifications & Reminders
-            </h1>
-
-            <p
-              style={{
-                margin:
-                  '9px 0 0',
-
-                color: MUTED,
-
-                fontSize: '15px',
-
-                fontWeight: '650',
-
-                lineHeight: 1.55,
-              }}
-            >
-              Your updates and reminders,
-              organised by where they
-              actually come from.
-            </p>
-          </div>
+          <SegmentedControl
+            options={[
+              {
+                value: 'Notifications',
+                label: 'Notifications',
+                icon: Bell,
+              },
+              {
+                value: 'Reminders',
+                label: 'Reminders',
+                icon: AlarmClock,
+              },
+            ]}
+            value={activeSection}
+            onChange={changeSection}
+          />
 
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '9px',
+              gap: 8,
               flexWrap: 'wrap',
             }}
           >
-            <div
+            <span
+              className="muted"
               style={{
-                display:
-                  'inline-flex',
-                alignItems:
-                  'center',
-                gap: '8px',
-
-                minHeight:
-                  '42px',
-
-                padding:
-                  '0 14px',
-
-                borderRadius:
-                  '12px',
-
-                background:
-                  '#F6F8FC',
-
-                border: `1px solid ${BORDER}`,
-
-                color: NAVY,
-
-                fontSize:
-                  '12px',
-
-                fontWeight:
-                  '900',
-              }}
-            >
-              <span
-                style={{
-                  width: '7px',
-                  height: '7px',
-
-                  borderRadius:
-                    '50%',
-
-                  background:
-                    unreadCount > 0
-                      ? '#D9896A'
-                      : '#5E9A8B',
-                }}
-              />
-
-              {unreadCount} unread
-            </div>
-
-            <button
-              type="button"
-              onClick={
-                toggleAllRead
-              }
-              disabled={
-                items.length === 0
-              }
-              style={{
-                border: 'none',
-
-                minHeight:
-                  '42px',
-
-                padding:
-                  '0 15px',
-
-                borderRadius:
-                  '12px',
-
-                background:
-                  items.length ===
-                  0
-                    ? '#EDF0F5'
-                    : NAVY,
-
-                color:
-                  items.length ===
-                  0
-                    ? '#A0AABC'
-                    : '#FFFFFF',
-
-                display:
-                  'inline-flex',
-
-                alignItems:
-                  'center',
-
-                gap: '7px',
-
-                cursor:
-                  items.length ===
-                  0
-                    ? 'default'
-                    : 'pointer',
-
-                fontSize:
-                  '12px',
-
-                fontWeight:
-                  '900',
-
-                fontFamily:
-                  'inherit',
-
-                boxShadow:
-                  items.length ===
-                  0
-                    ? 'none'
-                    : '0 7px 17px rgba(11,26,63,.13)',
-              }}
-            >
-              {allRead ? (
-                <RotateCcw
-                  size={15}
-                />
-              ) : (
-                <CheckCircle2
-                  size={15}
-                />
-              )}
-
-              {allRead
-                ? 'Mark all as unread'
-                : 'Mark all as read'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* NOTIFICATIONS / REMINDERS */}
-
-      <div
-        style={{
-          display: 'grid',
-
-          gridTemplateColumns:
-            'repeat(2, minmax(0, 1fr))',
-
-          gap: '17px',
-
-          marginBottom: '23px',
-        }}
-      >
-        <SectionCard
-          active={
-            activeSection ===
-            'Notifications'
-          }
-          onClick={() =>
-            changeSection(
-              'Notifications'
-            )
-          }
-          icon={Bell}
-          title="Notifications"
-          description="Announcements, course updates and study group activity"
-          count={
-            notifications.length
-          }
-          unread={
-            notificationUnread
-          }
-          accent="#648CCB"
-          soft="#F3F7FD"
-        />
-
-        <SectionCard
-          active={
-            activeSection ===
-            'Reminders'
-          }
-          onClick={() =>
-            changeSection(
-              'Reminders'
-            )
-          }
-          icon={AlarmClock}
-          title="Reminders"
-          description="Assignments, planner events, registration and To-Do reminders"
-          count={
-            reminders.length
-          }
-          unread={
-            reminderUnread
-          }
-          accent="#8B78B8"
-          soft="#F7F4FC"
-        />
-      </div>
-
-      {/* MAIN PANEL */}
-
-      <div
-        style={{
-          background: PANEL,
-
-          border: `1px solid ${BORDER}`,
-
-          borderRadius:
-            '23px',
-
-          overflow: 'hidden',
-
-          boxShadow:
-            '0 14px 35px rgba(56,73,115,.055)',
-        }}
-      >
-        {/* PANEL TOP */}
-
-        <div
-          style={{
-            padding:
-              '19px 21px',
-
-            borderBottom: `1px solid ${BORDER}`,
-
-            display: 'flex',
-
-            alignItems:
-              'center',
-
-            justifyContent:
-              'space-between',
-
-            gap: '12px',
-
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <h3
-              style={{
-                margin: 0,
-
-                color: NAVY,
-
-                fontSize:
-                  '18px',
-
-                fontWeight:
-                  '950',
-              }}
-            >
-              {activeSection}
-            </h3>
-
-            <p
-              style={{
-                margin:
-                  '4px 0 0',
-
-                color:
-                  '#98A2B4',
-
-                fontSize:
-                  '11px',
-
-                fontWeight:
-                  '700',
+                fontSize: '13px',
+                fontWeight: '700',
+whiteSpace: 'nowrap',
               }}
             >
               {currentItems.length}{' '}
-              {currentItems.length ===
-              1
+              {currentItems.length === 1
                 ? 'item'
-                : 'items'}
-            </p>
-          </div>
+                : 'items'}{' '}
+              ·{' '}
+              {activeSection ===
+              'Notifications'
+                ? notificationUnread
+                : reminderUnread}{' '}
+              unread
+            </span>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '7px',
-              flexWrap: 'wrap',
-            }}
-          >
             <button
               type="button"
-              onClick={
-                toggleCurrentSectionRead
-              }
-              disabled={
-                currentItems.length ===
-                0
-              }
+              onClick={toggleCurrentSectionRead}
+              disabled={currentItems.length === 0}
+              className={`btn btn-sm ${
+                currentItems.length === 0
+                  ? ''
+                  : 'btn-outline'
+              }`}
               style={{
-                minHeight:
-                  '37px',
-
-                border:
-                  '1px solid #DDE2EB',
-
-                background:
-                  '#FFFFFF',
-
-                color:
-                  currentItems.length ===
-                  0
-                    ? '#A5ADBB'
-                    : NAVY,
-
-                borderRadius:
-                  '10px',
-
-                padding:
-                  '0 12px',
-
-                display:
-                  'inline-flex',
-
-                alignItems:
-                  'center',
-
-                gap: '6px',
-
+                opacity:
+                  currentItems.length === 0 ? 0.5 : 1,
                 cursor:
-                  currentItems.length ===
-                  0
+                  currentItems.length === 0
                     ? 'default'
                     : 'pointer',
-
-                fontSize:
-                  '11px',
-
-                fontWeight:
-                  '900',
-
-                fontFamily:
-                  'inherit',
               }}
             >
               {currentAllRead ? (
-                <RotateCcw
-                  size={13}
-                />
+                <RotateCcw size={13} />
               ) : (
-                <Check
-                  size={13}
-                />
+                <Check size={13} />
               )}
 
               {currentAllRead
@@ -1851,64 +1569,26 @@ export default function Notifications() {
 
             <button
               type="button"
-              onClick={
-                clearCurrentSection
-              }
+              onClick={clearCurrentSection}
               disabled={
-                currentItems.length ===
-                  0 ||
+                currentItems.length === 0 ||
                 actionLoading
               }
+              className="btn btn-sm btn-danger"
               style={{
-                minHeight:
-                  '37px',
-
-                border:
-                  '1px solid #F0DDE1',
-
-                background:
-                  '#FFF8F9',
-
-                color:
-                  currentItems.length ===
-                  0
-                    ? '#C0AEB2'
-                    : '#C75E72',
-
-                borderRadius:
-                  '10px',
-
-                padding:
-                  '0 12px',
-
-                display:
-                  'inline-flex',
-
-                alignItems:
-                  'center',
-
-                gap: '6px',
-
+                opacity:
+                  currentItems.length === 0 ||
+                  actionLoading
+                    ? 0.5
+                    : 1,
                 cursor:
-                  currentItems.length ===
-                    0 ||
+                  currentItems.length === 0 ||
                   actionLoading
                     ? 'default'
                     : 'pointer',
-
-                fontSize:
-                  '11px',
-
-                fontWeight:
-                  '900',
-
-                fontFamily:
-                  'inherit',
               }}
             >
-              <Eraser
-                size={13}
-              />
+              <Eraser size={13} />
 
               Clear{' '}
               {activeSection.toLowerCase()}
@@ -1916,483 +1596,125 @@ export default function Notifications() {
           </div>
         </div>
 
-        {/* FILTER BAR */}
+        {/* FILTER CHIPS */}
 
-        <div
-          style={{
-            background:
-              PAGE_SOFT,
+        <div className="filter-row">
+          {availableFilters.map((filter) => {
+            const active =
+              activeFilter === filter;
 
-            padding:
-              '13px 20px',
-
-            borderBottom: `1px solid ${BORDER}`,
-
-            display: 'flex',
-            alignItems:
-              'center',
-            gap: '8px',
-            flexWrap: 'wrap',
-          }}
-        >
-          {availableFilters.map(
-            (filter) => {
-              const active =
-                activeFilter ===
-                filter;
-
-              const filterStyle =
-                filter === 'All'
-                  ? {
-                      main: NAVY,
-                      soft:
-                        '#EEF1F6',
-                      border:
-                        '#DDE2EA',
-                      icon:
-                        activeSection ===
-                        'Notifications'
-                          ? Bell
-                          : AlarmClock,
-                    }
-                  : getCategoryStyle(
-                      filter
-                    );
-
-              const FilterIcon =
-                filterStyle.icon;
-
-              const count =
-                filter === 'All'
-                  ? currentItems.length
-                  : currentItems.filter(
-                      (item) =>
-                        item.category ===
-                        filter
-                    ).length;
-
-              return (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() =>
-                    setActiveFilter(
-                      filter
-                    )
+            const filterStyle =
+              filter === 'All'
+                ? {
+                    main:
+                      'var(--campora-navy)',
+                    icon:
+                      activeSection ===
+                      'Notifications'
+                        ? Bell
+                        : AlarmClock,
                   }
+                : getCategoryStyle(filter);
+
+            const FilterIcon =
+              filterStyle.icon;
+
+            const count =
+              filter === 'All'
+                ? currentItems.length
+                : currentItems.filter(
+                    (item) =>
+                      item.category ===
+                      filter
+                  ).length;
+
+            return (
+              <button
+                key={filter}
+                type="button"
+                onClick={() =>
+                  setActiveFilter(filter)
+                }
+                className={`filter-chip ${
+                  active ? 'active' : ''
+                }`}
+              >
+                <FilterIcon
+                  size={14}
+                  strokeWidth={2}
+                  color={
+                    active
+                      ? 'var(--on-primary)'
+                      : filterStyle.main
+                  }
+                />
+
+                {filter}
+
+                <span
                   style={{
-                    minHeight:
-                      '36px',
-
-                    border: active
-                      ? `1px solid ${filterStyle.main}`
-                      : `1px solid ${filterStyle.border}`,
-
-                    background:
-                      active
-                        ? filterStyle.main
-                        : '#FFFFFF',
-
+                    minWidth: 18,
+                    height: 18,
+                    borderRadius: '999px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 5px',
+                    fontSize: '10px',
+                    fontWeight: '800',
+                    background: active
+                      ? 'rgba(255,255,255,.18)'
+                      : 'var(--surface-container-high)',
                     color: active
-                      ? '#FFFFFF'
-                      : filterStyle.main,
-
-                    borderRadius:
-                      '999px',
-
-                    padding:
-                      '0 12px',
-
-                    display:
-                      'inline-flex',
-
-                    alignItems:
-                      'center',
-
-                    gap: '7px',
-
-                    cursor:
-                      'pointer',
-
-                    fontSize:
-                      '11px',
-
-                    fontWeight:
-                      '900',
-
-                    fontFamily:
-                      'inherit',
-
-                    transition:
-                      'all .18s ease',
+                      ? 'var(--on-primary)'
+                      : 'var(--campora-muted)',
                   }}
                 >
-                  <FilterIcon
-                    size={13}
-                  />
-
-                  {filter}
-
-                  <span
-                    style={{
-                      minWidth:
-                        '18px',
-
-                      height:
-                        '18px',
-
-                      borderRadius:
-                        '999px',
-
-                      display:
-                        'inline-flex',
-
-                      alignItems:
-                        'center',
-
-                      justifyContent:
-                        'center',
-
-                      padding:
-                        '0 4px',
-
-                      background:
-                        active
-                          ? 'rgba(255,255,255,.17)'
-                          : filterStyle.soft,
-
-                      fontSize:
-                        '9px',
-                    }}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            }
-          )}
-        </div>
-
-        {/* LIST */}
-
-        <div
-          style={{
-            padding: '19px',
-
-            minHeight:
-              '350px',
-          }}
-        >
-          {loading ? (
-            <div
-              style={{
-                minHeight:
-                  '280px',
-
-                display: 'flex',
-
-                alignItems:
-                  'center',
-
-                justifyContent:
-                  'center',
-
-                color: MUTED,
-
-                fontSize:
-                  '13px',
-
-                fontWeight:
-                  '800',
-              }}
-            >
-              Loading your updates...
-            </div>
-          ) : filteredItems.length ===
-            0 ? (
-            <EmptyState
-              section={
-                activeSection
-              }
-            />
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-
-                flexDirection:
-                  'column',
-
-                gap: '10px',
-              }}
-            >
-              {filteredItems.map(
-                (item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    onToggleRead={() =>
-                      toggleRead(
-                        item
-                      )
-                    }
-                    onClear={() =>
-                      clearOne(
-                        item
-                      )
-                    }
-                  />
-                )
-              )}
-            </div>
-          )}
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
-    </div>
-  );
-}
 
-// =========================================================
-// SECTION CARD
-// =========================================================
+      {/* LIST */}
 
-function SectionCard({
-  active,
-  onClick,
-  icon: Icon,
-  title,
-  description,
-  count,
-  unread,
-  accent,
-  soft,
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        width: '100%',
-        minHeight: '112px',
-
-        border: active
-          ? `1.5px solid ${accent}55`
-          : `1px solid ${BORDER}`,
-
-        background: active
-          ? `linear-gradient(135deg, #FFFFFF 0%, ${soft} 100%)`
-          : '#FFFFFF',
-
-        borderRadius:
-          '21px',
-
-        padding:
-          '20px 22px',
-
-        cursor: 'pointer',
-
-        display: 'flex',
-
-        alignItems:
-          'center',
-
-        gap: '16px',
-
-        textAlign: 'left',
-
-        fontFamily:
-          'inherit',
-
-        boxShadow: active
-          ? `0 10px 26px ${accent}14, inset 0 0 0 1px ${accent}0A`
-          : '0 5px 18px rgba(46,66,105,.035)',
-
-        transition:
-          'all .18s ease',
-      }}
-    >
-      <div
-        style={{
-          width: '58px',
-          height: '58px',
-
-          borderRadius:
-            '17px',
-
-          background: active
-            ? accent
-            : soft,
-
-          color: active
-            ? '#FFFFFF'
-            : accent,
-
-          display: 'flex',
-
-          alignItems:
-            'center',
-
-          justifyContent:
-            'center',
-
-          flexShrink: 0,
-
-          border: active
-            ? `1px solid ${accent}`
-            : `1px solid ${accent}18`,
-
-          boxShadow: active
-            ? `0 7px 16px ${accent}22`
-            : 'none',
-        }}
-      >
-        <Icon size={27} />
-      </div>
-
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-
-            alignItems:
-              'center',
-
-            gap: '9px',
-
-            marginBottom:
-              '6px',
-          }}
-        >
-          <span
+      <div style={{ minHeight: 350 }}>
+        {loading ? (
+          <div
             style={{
-              color: NAVY,
-
-              fontSize:
-                '18px',
-
-              fontWeight:
-                '950',
-
-              letterSpacing:
-                '-0.2px',
+              minHeight: 280,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--campora-muted)',
+              fontSize: '13px',
+              fontWeight: '800',
             }}
           >
-            {title}
-          </span>
-
-          {unread > 0 && (
-            <span
-              style={{
-                minWidth:
-                  '25px',
-
-                height:
-                  '25px',
-
-                borderRadius:
-                  '999px',
-
-                padding:
-                  '0 7px',
-
-                background:
-                  accent,
-
-                color:
-                  '#FFFFFF',
-
-                display:
-                  'inline-flex',
-
-                alignItems:
-                  'center',
-
-                justifyContent:
-                  'center',
-
-                fontSize:
-                  '10px',
-
-                fontWeight:
-                  '950',
-
-                boxShadow:
-                  `0 4px 10px ${accent}30`,
-              }}
-            >
-              {unread}
-            </span>
-          )}
-        </div>
-
-        <div
-          style={{
-            color:
-              '#8F9AAF',
-
-            fontSize:
-              '12px',
-
-            fontWeight:
-              '700',
-
-            lineHeight:
-              '1.5',
-
-            maxWidth:
-              '360px',
-          }}
-        >
-          {description}
-        </div>
+            Loading your updates...
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <EmptyState section={activeSection} />
+        ) : (
+          <div className="stack">
+            {filteredItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onToggleRead={() =>
+                  toggleRead(item)
+                }
+                onClear={() =>
+                  clearOne(item)
+                }
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      <div
-        style={{
-          minWidth: '42px',
-
-          height: '42px',
-
-          borderRadius:
-            '13px',
-
-          background: active
-            ? soft
-            : '#F7F9FC',
-
-          border: active
-            ? `1px solid ${accent}28`
-            : '1px solid #E8ECF2',
-
-          color: active
-            ? accent
-            : NAVY,
-
-          display: 'flex',
-
-          alignItems:
-            'center',
-
-          justifyContent:
-            'center',
-
-          fontSize:
-            '14px',
-
-          fontWeight:
-            '950',
-
-          flexShrink: 0,
-        }}
-      >
-        {count}
-      </div>
-    </button>
+    </PageShell>
   );
 }
 
@@ -2400,11 +1722,7 @@ function SectionCard({
 // ITEM CARD
 // =========================================================
 
-function ItemCard({
-  item,
-  onToggleRead,
-  onClear,
-}) {
+function ItemCard({ item, onToggleRead, onClear }) {
   const style =
     getCategoryStyle(
       item.category
@@ -2414,365 +1732,160 @@ function ItemCard({
 
   return (
     <div
+      className={`accent-row ${
+        item.read ? '' : 'tone-primary'
+      }`}
       style={{
-        position: 'relative',
-
-        overflow: 'hidden',
-
-        display: 'flex',
-
-        alignItems: 'center',
-
-        justifyContent:
-          'space-between',
-
-        gap: '14px',
-
-        padding:
-          '15px 16px',
-
-        borderRadius:
-          '16px',
-
-        background: item.read
-          ? '#FCFDFE'
-          : style.soft,
-
-        border: item.read
-          ? `1px solid ${BORDER}`
-          : `1px solid ${style.border}`,
+        opacity: item.read ? 0.45 : 1,
+        transition: 'opacity 0.2s ease',
       }}
     >
-      {!item.read && (
-        <div
-          style={{
-            position:
-              'absolute',
-
-            left: 0,
-            top: 0,
-            bottom: 0,
-
-            width: '3px',
-
-            background:
-              style.main,
-          }}
-        />
-      )}
-
-      <div
+      <span
+        className="icon-chip"
         style={{
-          display: 'flex',
-
-          alignItems:
-            'center',
-
-          gap: '12px',
-
-          flex: 1,
-
-          minWidth: 0,
+          width: 44,
+          height: 44,
+          flexShrink: 0,
+          background: item.read
+            ? 'var(--surface-variant)'
+            : style.soft,
+          color: item.read
+            ? 'var(--on-surface-variant)'
+            : style.main,
         }}
       >
+        <Icon size={18} strokeWidth={1.8} />
+      </span>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            width: '42px',
-
-            height: '42px',
-
-            borderRadius:
-              '12px',
-
-            background:
-              '#FFFFFF',
-
-            border: item.read
-              ? '1px solid #E5E9EF'
-              : `1px solid ${style.border}`,
-
-            color: item.read
-              ? '#8D98AA'
-              : style.main,
-
             display: 'flex',
-
-            alignItems:
-              'center',
-
-            justifyContent:
-              'center',
-
-            flexShrink: 0,
+            alignItems: 'center',
+            gap: 8,
+            flexWrap: 'wrap',
+            marginBottom: 6,
           }}
         >
-          <Icon size={18} />
-        </div>
-
-        <div
-          style={{
-            minWidth: 0,
-            flex: 1,
-          }}
-        >
-          <div
+          <span
             style={{
-              display: 'flex',
-
-              alignItems:
-                'center',
-
-              gap: '6px',
-
-              flexWrap:
-                'wrap',
-
-              marginBottom:
-                '5px',
+              padding: '4px 9px',
+              borderRadius: '999px',
+              background: item.read
+                ? 'var(--surface-container)'
+                : style.soft,
+              color: item.read
+                ? 'var(--campora-muted)'
+                : style.main,
+              fontSize: '10px',
+              fontWeight: '800',
+              textTransform: 'uppercase',
+              letterSpacing: '.45px',
             }}
           >
+            {item.category}
+          </span>
+
+          {!item.read && (
             <span
               style={{
-                padding:
-                  '4px 8px',
-
-                borderRadius:
-                  '6px',
-
-                background:
-                  item.read
-                    ? '#EEF1F5'
-                    : style.main,
-
-                color:
-                  item.read
-                    ? '#758196'
-                    : '#FFFFFF',
-
-                fontSize:
-                  '9px',
-
-                fontWeight:
-                  '950',
-
-                textTransform:
-                  'uppercase',
-
-                letterSpacing:
-                  '.45px',
+                color: style.main,
+                fontSize: '10px',
+                fontWeight: '800',
+                letterSpacing: '.45px',
               }}
             >
-              {item.category}
+              NEW
             </span>
-
-            <span
-              style={{
-                display:
-                  'inline-flex',
-
-                alignItems:
-                  'center',
-
-                gap: '4px',
-
-                color:
-                  '#98A2B3',
-
-                fontSize:
-                  '10px',
-
-                fontWeight:
-                  '750',
-              }}
-            >
-              <Clock size={11} />
-
-              {formatDate(
-                item.created_at
-              )}
-            </span>
-
-            {!item.read && (
-              <span
-                style={{
-                  color:
-                    style.main,
-
-                  fontSize:
-                    '9px',
-
-                  fontWeight:
-                    '950',
-
-                  letterSpacing:
-                    '.45px',
-                }}
-              >
-                NEW
-              </span>
-            )}
-          </div>
-
-          <h4
-            style={{
-              margin:
-                '0 0 3px',
-
-              color: NAVY,
-
-              fontSize:
-                '14px',
-
-              fontWeight:
-                item.read
-                  ? '800'
-                  : '950',
-
-              lineHeight:
-                1.4,
-            }}
-          >
-            {item.title}
-          </h4>
-
-          {item.message && (
-            <p
-              style={{
-                margin: 0,
-
-                color:
-                  '#718096',
-
-                fontSize:
-                  '11px',
-
-                fontWeight:
-                  '600',
-
-                lineHeight:
-                  1.45,
-
-                overflowWrap:
-                  'anywhere',
-              }}
-            >
-              {item.message}
-            </p>
           )}
+
+          <span
+            style={{
+              marginLeft: 'auto',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              color: item.read
+                ? 'var(--campora-muted)'
+                : 'var(--campora-navy)',
+              fontSize: '11px',
+              fontWeight: '700',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Clock size={12} />
+
+            {formatDate(item.created_at)}
+          </span>
         </div>
+
+        <h4
+          style={{
+            margin: '0 0 3px',
+            fontSize: '15px',
+            fontWeight: item.read ? '600' : '800',
+            color: 'var(--campora-text)',
+            lineHeight: 1.4,
+          }}
+        >
+          {item.title}
+        </h4>
+
+        {item.message && (
+          <p
+            style={{
+              margin: 0,
+              color: 'var(--campora-body)',
+              fontSize: '12px',
+              fontWeight: '500',
+              lineHeight: 1.45,
+              overflowWrap: 'anywhere',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {item.message}
+          </p>
+        )}
       </div>
 
       <div
         style={{
           display: 'flex',
-
-          alignItems:
-            'center',
-
-          gap: '6px',
-
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: 6,
           flexShrink: 0,
         }}
       >
         <button
           type="button"
-          onClick={
-            onToggleRead
-          }
+          onClick={onToggleRead}
           title={
             item.read
               ? 'Mark unread'
               : 'Mark read'
           }
-          style={{
-            minHeight:
-              '33px',
-
-            border: item.read
-              ? '1px solid #DEE3EA'
-              : `1px solid ${style.main}`,
-
-            background:
-              item.read
-                ? '#FFFFFF'
-                : style.main,
-
-            color: item.read
-              ? '#69768C'
-              : '#FFFFFF',
-
-            borderRadius:
-              '9px',
-
-            padding:
-              '0 9px',
-
-            cursor:
-              'pointer',
-
-            display:
-              'inline-flex',
-
-            alignItems:
-              'center',
-
-            gap: '4px',
-
-            fontSize:
-              '10px',
-
-            fontWeight:
-              '900',
-
-            fontFamily:
-              'inherit',
-          }}
+          className={`btn btn-sm ${
+            item.read ? 'btn-outline' : 'btn-tinted'
+          }`}
         >
           {item.read ? (
-            <RotateCcw
-              size={11}
-            />
+            <RotateCcw size={12} />
           ) : (
-            <Check size={11} />
+            <Check size={12} />
           )}
 
-          {item.read
-            ? 'Unread'
-            : 'Read'}
+          {item.read ? 'Unread' : 'Read'}
         </button>
 
         <button
           type="button"
           onClick={onClear}
           title="Clear"
-          style={{
-            width: '33px',
-
-            height: '33px',
-
-            borderRadius:
-              '9px',
-
-            border:
-              '1px solid #E6E9EF',
-
-            background:
-              '#FFFFFF',
-
-            color:
-              '#9DA6B5',
-
-            display: 'flex',
-
-            alignItems:
-              'center',
-
-            justifyContent:
-              'center',
-
-            cursor:
-              'pointer',
-          }}
+          className="btn btn-sm btn-danger"
         >
           <Trash2 size={13} />
         </button>
@@ -2796,102 +1909,18 @@ function EmptyState({
     : Bell;
 
   return (
-    <div
-      style={{
-        minHeight:
-          '280px',
-
-        display: 'flex',
-
-        flexDirection:
-          'column',
-
-        alignItems:
-          'center',
-
-        justifyContent:
-          'center',
-
-        textAlign:
-          'center',
-
-        padding: '28px',
-      }}
-    >
-      <div
-        style={{
-          width: '66px',
-
-          height: '66px',
-
-          borderRadius:
-            '20px',
-
-          background:
-            '#F2F5FA',
-
-          border:
-            '1px solid #E5E9F0',
-
-          color: NAVY,
-
-          display: 'flex',
-
-          alignItems:
-            'center',
-
-          justifyContent:
-            'center',
-
-          marginBottom:
-            '14px',
-        }}
-      >
-        <Icon size={29} />
-      </div>
-
-      <h3
-        style={{
-          margin: 0,
-
-          color: NAVY,
-
-          fontSize: '19px',
-
-          fontWeight:
-            '950',
-        }}
-      >
-        {isReminder
+    <LuminousEmptyState
+      icon={Icon}
+      title={
+        isReminder
           ? 'No reminders right now'
-          : 'You’re all caught up!'}
-      </h3>
-
-      <p
-        style={{
-          margin:
-            '7px 0 0',
-
-          color:
-            '#98A2B3',
-
-          fontSize:
-            '12px',
-
-          fontWeight:
-            '650',
-
-          maxWidth:
-            '420px',
-
-          lineHeight:
-            1.55,
-        }}
-      >
-        {isReminder
+          : 'You’re all caught up!'
+      }
+      text={
+        isReminder
           ? 'Assignment, planner, registration and To-Do reminders will appear here when you set them.'
-          : 'Campus announcements, course updates and study group activity will appear here.'}
-      </p>
-    </div>
+          : 'Campus announcements, course updates and study group activity will appear here.'
+      }
+    />
   );
 }
