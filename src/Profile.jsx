@@ -1,4 +1,4 @@
-import { useEffect, useRef, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Pencil,
@@ -70,11 +70,10 @@ const PROFILE_CSS = `
   .profile-input:focus { border-color: var(--campora-navy); }
   .profile-file { width: 100%; padding: 10px 14px; border: 1px dashed var(--divider); border-radius: var(--radius-sm); background: var(--surface-container-lowest); color: var(--campora-muted); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; }
   .profile-save { align-self: flex-start; min-width: 160px; }
-`;
 
-const s = {
-  signOut: { display: 'flex', justifyContent: 'center' },
-};
+  .profile-signout-wrap { display: flex; justify-content: center; margin-top: 24px; }
+  .profile-loading { display: flex; justify-content: center; align-items: center; min-height: 200px; font-size: 16px; font-weight: 600; color: var(--campora-muted); }
+`;
 
 function DetailField({ label, value, icon: Icon }) {
   return (
@@ -89,8 +88,13 @@ function DetailField({ label, value, icon: Icon }) {
 }
 
 export default function Profile() {
+  const navigate = useNavigate();
+  const avatarInputRef = useRef(null);
+  const previewUrlRef = useRef(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -102,6 +106,7 @@ export default function Profile() {
   const [year, setYear] = useState('');
   const [guestTitle, setGuestTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [coursesTaken, setCoursesTaken] = useState([]);
 
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
@@ -133,6 +138,7 @@ export default function Profile() {
           setYear(data.year || '');
           setGuestTitle(data.guest_title || '');
           setDescription(data.description || '');
+          setCoursesTaken(data.courses_taken || []);
         }
       } catch (err) {
         console.error('Profile loading error:', err);
@@ -179,7 +185,6 @@ export default function Profile() {
     }
 
     const previewUrl = URL.createObjectURL(file);
-
     previewUrlRef.current = previewUrl;
 
     setAvatarFile(file);
@@ -196,7 +201,6 @@ export default function Profile() {
       if (markerIndex === -1) return null;
 
       const path = url.substring(markerIndex + marker.length);
-
       return decodeURIComponent(path.split('?')[0]);
     } catch (err) {
       console.error('Avatar path parsing error:', err);
@@ -240,20 +244,14 @@ export default function Profile() {
     ];
   };
 
-  const handleDescriptionChange = (e) => {
-    const value = e.target.value;
-    const words = value.trim()
-      ? value.trim().split(/\s+/)
-      : [];
-
-    if (words.length <= 200) {
-      setDescription(value);
-      setError(null);
-    } else {
-      setError('Your description cannot exceed 200 words.');
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (err) {
+      console.error('Sign out error:', err);
+      setError('Failed to sign out. Please try again.');
     }
-
-    setMessage(null);
   };
 
   const handleUpdate = async (e) => {
@@ -287,16 +285,6 @@ export default function Profile() {
         throw new Error('Please select your year.');
       }
 
-      const wordCount = cleanedDescription
-        ? cleanedDescription.split(/\s+/).length
-        : 0;
-
-      if (wordCount > 200) {
-        throw new Error(
-          'Your description must be 200 words or less.'
-        );
-      }
-
       let newAvatarUrl = savedAvatarUrl;
 
       if (avatarFile) {
@@ -304,13 +292,9 @@ export default function Profile() {
           avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg';
 
         const safeExtension =
-          originalExtension === 'jpeg'
-            ? 'jpg'
-            : originalExtension;
+          originalExtension === 'jpeg' ? 'jpg' : originalExtension;
 
-        const fileName =
-          `${user.id}/${Date.now()}.${safeExtension}`;
-
+        const fileName = `${user.id}/${Date.now()}.${safeExtension}`;
         uploadedAvatarPath = fileName;
 
         const { error: uploadError } = await supabase.storage
@@ -355,13 +339,9 @@ export default function Profile() {
         savedAvatarUrl &&
         newAvatarUrl !== savedAvatarUrl
       ) {
-        const oldAvatarPath =
-          getAvatarPathFromUrl(savedAvatarUrl);
+        const oldAvatarPath = getAvatarPathFromUrl(savedAvatarUrl);
 
-        if (
-          oldAvatarPath &&
-          oldAvatarPath.startsWith(`${user.id}/`)
-        ) {
+        if (oldAvatarPath && oldAvatarPath.startsWith(`${user.id}/`)) {
           await supabase.storage
             .from('avatars')
             .remove([oldAvatarPath]);
@@ -384,6 +364,7 @@ export default function Profile() {
         setYear(updatedProfile.year || '');
         setGuestTitle(updatedProfile.guest_title || '');
         setDescription(updatedProfile.description || '');
+        setCoursesTaken(updatedProfile.courses_taken || []);
       }
 
       if (previewUrlRef.current) {
@@ -393,6 +374,7 @@ export default function Profile() {
 
       setAvatarFile(null);
       setMessage('Profile updated successfully!');
+      setIsEditing(false);
     } catch (err) {
       console.error('Profile update error:', err);
 
@@ -413,76 +395,100 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div style={styles.loading}>
-        Loading profile...
-      </div>
+      <PageShell className="profile-page">
+        <style>{PROFILE_CSS}</style>
+        <div className="profile-loading">Loading profile...</div>
+      </PageShell>
     );
   }
+
+  const onboardingSteps = [
+    {
+      title: 'Account Type',
+      desc: accountType,
+    },
+    {
+      title: 'Major',
+      desc: major || 'Not specified',
+    },
+  ];
 
   return (
     <PageShell className="profile-page">
       <style>{PROFILE_CSS}</style>
 
-      <h1 className="profile-title">Student Profile</h1>
+      {error && (
+        <div className="profile-alert profile-alert-error">{error}</div>
+      )}
+      {message && (
+        <div className="profile-alert profile-alert-success">{message}</div>
+      )}
 
-      {error && <p style={styles.errorText}>{error}</p>}
-      {message && <p style={styles.successText}>{message}</p>}
-
-      <div style={styles.card}>
-        <div style={styles.profileHeader}>
-          <div style={styles.avatarContainer}>
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Profile"
-                style={styles.avatar}
-              />
-            ) : (
-              <div style={styles.avatarPlaceholder}>
-                {fullName
-                  ? fullName.charAt(0).toUpperCase()
-                  : '?'}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h2 style={styles.profileName}>
-              {fullName || 'Student'}
-            </h2>
-
-            <p style={styles.profileMajor}>
-              {major || 'Student'}
-            </p>
-          </div>
+      {/* Identity Section */}
+      <section className="profile-section profile-identity">
+        <div className="profile-avatar-wrap">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={fullName}
+              className="profile-avatar"
+            />
+          ) : (
+            <div className="profile-avatar profile-avatar-placeholder">
+              {fullName ? fullName.charAt(0).toUpperCase() : '?'}
+            </div>
+          )}
+          <button
+            type="button"
+            className="profile-avatar-edit"
+            onClick={() => avatarInputRef.current?.click()}
+            title="Change Profile Picture"
+          >
+            <Pencil size={18} />
+          </button>
+          <input
+            type="file"
+            ref={avatarInputRef}
+            onChange={handleAvatarChange}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
         </div>
 
-        <div style={styles.section}>
-          <p style={styles.sectionLabel}>
-            Onboarding Information
-          </p>
+        <h1 className="profile-name">{fullName || 'Student'}</h1>
+        <p className="profile-degree">
+          {accountType === 'Guest'
+            ? guestTitle || 'Guest'
+            : `${major || 'Undeclared'} • ${year || 'Student'}`}
+        </p>
 
-          <div style={styles.infoGrid}>
-            <div style={styles.infoItem}>
-              <span style={styles.infoKey}>
-                Account Type
-              </span>
+        <div className="profile-chip-row">
+          <span className="pill profile-chip-neutral">
+            <User size={13} />
+            {accountType}
+          </span>
+          <span className="pill profile-chip-active">
+            <BadgeCheck size={13} />
+            Verified Student
+          </span>
+        </div>
+      </section>
 
-              <span style={styles.infoValue}>
-                {accountType}
-              </span>
-            </div>
-
-            <div style={styles.infoItem}>
-              <span style={styles.infoKey}>
-                Major
-              </span>
+      {/* Onboarding Summary Card */}
+      <section className="profile-section">
+        <div className="profile-onboard-card">
+          {onboardingSteps.map((step) => (
+            <div key={step.title} className="profile-onboard-row">
+              <div className="profile-onboard-text">
+                <span className="profile-onboard-title">{step.title}</span>
+                <span className="profile-onboard-desc">{step.desc}</span>
+              </div>
               <span className="pill profile-pill-done">
                 <CheckCircle2 size={13} />
                 Completed
               </span>
               <ChevronRight size={18} className="profile-onboard-chevron" />
-            </button>
+            </div>
           ))}
 
           <div className="profile-courses">
@@ -499,70 +505,81 @@ export default function Profile() {
               </div>
             )}
           </div>
+        </div>
+      </section>
 
-          <div style={styles.infoItem}>
-            <span style={styles.infoKey}>
-              Courses Taken
-            </span>
+      {/* Details & Edit Form Section */}
+      <section className="profile-section">
+        <div className="profile-details-card">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span className="label-caps">Academic Details</span>
+            <button
+              type="button"
+              className="profile-edit-btn"
+              onClick={() => setIsEditing(!isEditing)}
+            >
+              <Pencil size={14} />
+              {isEditing ? 'Cancel Edit' : 'Edit Profile'}
+            </button>
+          </div>
 
-            <div style={styles.tagWrap}>
-              {coursesTaken.length === 0 ? (
-                <span style={styles.infoValue}>—</span>
-              ) : (
-                coursesTaken.map((course) => (
-                  <span
-                    key={course}
-                    style={styles.tag}
-                  >
-                    {course}
-                  </span>
-                ))
+          {!isEditing ? (
+            <div className="profile-details-grid">
+              <DetailField
+                label="Full Name"
+                value={fullName}
+                icon={BadgeCheck}
+              />
+              {accountType !== 'Guest' && (
+                <DetailField
+                  label="Academic Year"
+                  value={year}
+                  icon={GraduationCap}
+                />
               )}
             </div>
-          </div>
-        </div>
+          ) : (
+            <form onSubmit={handleUpdate} className="profile-form">
+              <div className="profile-form-group">
+                <label className="label-caps" htmlFor="fullName">
+                  Full Name
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  className="profile-input"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
+                />
+              </div>
 
-        <div style={styles.divider} />
-
-        <form
-          onSubmit={handleUpdate}
-          style={styles.form}
-        >
-          <p style={styles.sectionLabel}>
-            Personal Details
-          </p>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>
-              Profile Picture
-            </label>
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              style={styles.fileInput}
-            />
-
-            <span style={styles.hint}>
-              JPG, PNG, or other image files up to 5MB.
-            </span>
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>
-              Full Name
-            </label>
-
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) =>
-                setFullName(e.target.value)
-              }
-              style={styles.input}
-            />
-          </div>
+              {accountType !== 'Guest' && (
+                <div className="profile-form-group">
+                  <label className="label-caps" htmlFor="academicYear">
+                    Academic Year
+                  </label>
+                  <select
+                    id="academicYear"
+                    className="profile-input"
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                  >
+                    <option value="">Select Year</option>
+                    {getYearOptions().map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -576,222 +593,17 @@ export default function Profile() {
         </div>
       </section>
 
-      <div style={s.signOut}>
-        <button type="button" className="btn btn-error" onClick={handleSignOut}>
+      {/* Sign Out Button */}
+      <div className="profile-signout-wrap">
+        <button
+          type="button"
+          className="btn btn-error"
+          onClick={handleSignOut}
+        >
           <LogOut size={16} />
           Sign Out
         </button>
       </div>
-    </div>
+    </PageShell>
   );
 }
-
-const styles = {
-  wrapper: {
-    width: '100%',
-    maxWidth: '720px',
-  },
-
-  title: {
-    fontSize: '42px',
-    fontWeight: '900',
-    color: '#0B1A3F',
-    margin: '0 0 30px 0',
-  },
-
-  card: {
-    background: '#fff',
-    borderRadius: '24px',
-    padding: '35px',
-    boxShadow: '0 15px 30px rgba(0,0,0,0.04)',
-    border: '1px solid #F1F5F9',
-  },
-
-  profileHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px',
-    marginBottom: '35px',
-  },
-
-  avatarContainer: {
-    width: '90px',
-    height: '90px',
-    borderRadius: '50%',
-    overflow: 'hidden',
-    flexShrink: 0,
-  },
-
-  avatar: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    display: 'block',
-  },
-
-  avatarPlaceholder: {
-    width: '100%',
-    height: '100%',
-    background: '#F1F3FF',
-    color: '#6366F1',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '32px',
-    fontWeight: '900',
-  },
-
-  profileName: {
-    margin: '0 0 5px 0',
-    color: '#0B1A3F',
-    fontSize: '24px',
-    fontWeight: '900',
-  },
-
-  profileMajor: {
-    margin: 0,
-    color: '#667085',
-    fontSize: '15px',
-    fontWeight: '600',
-  },
-
-  section: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '18px',
-  },
-
-  sectionLabel: {
-    fontSize: '12px',
-    fontWeight: '900',
-    color: '#A3AED0',
-    textTransform: 'uppercase',
-    letterSpacing: '1.5px',
-    margin: 0,
-  },
-
-  infoGrid: {
-    display: 'grid',
-    gridTemplateColumns:
-      'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '16px',
-  },
-
-  infoItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-
-  infoKey: {
-    fontSize: '11px',
-    fontWeight: '800',
-    color: '#A3AED0',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-
-  infoValue: {
-    fontSize: '16px',
-    fontWeight: '800',
-    color: '#0B1A3F',
-  },
-
-  tagWrap: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-    marginTop: '4px',
-  },
-
-  tag: {
-    padding: '6px 14px',
-    borderRadius: '20px',
-    backgroundColor: '#F4F7FE',
-    color: '#0B1A3F',
-    fontSize: '13px',
-    fontWeight: '800',
-  },
-
-  divider: {
-    height: '1px',
-    background: '#F1F5F9',
-    margin: '30px 0',
-  },
-
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-
-  label: {
-    fontSize: '0.9rem',
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-
-  input: {
-    padding: '0.9rem 1.25rem',
-    borderRadius: '10px',
-    border: '1px solid #D1D5DB',
-    fontSize: '1rem',
-    color: '#111827',
-    outline: 'none',
-    backgroundColor: '#fff',
-  },
-
-  fileInput: {
-    padding: '0.75rem',
-    borderRadius: '10px',
-    border: '1px solid #D1D5DB',
-    fontSize: '0.95rem',
-    color: '#111827',
-    backgroundColor: '#fff',
-    cursor: 'pointer',
-  },
-
-  button: {
-    backgroundColor: '#0B1A3F',
-    color: '#FFFFFF',
-    padding: '1rem',
-    borderRadius: '12px',
-    border: 'none',
-    fontSize: '1rem',
-    fontWeight: '700',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s ease',
-    alignSelf: 'flex-start',
-    paddingLeft: '2rem',
-    paddingRight: '2rem',
-  },
-
-  buttonDisabled: {
-    backgroundColor: '#9CA3AF',
-    cursor: 'not-allowed',
-  },
-
-  errorText: {
-    color: '#DC2626',
-    fontWeight: '700',
-    marginBottom: '15px',
-  },
-
-  successText: {
-    color: '#16A34A',
-    fontWeight: '700',
-    marginBottom: '15px',
-  },
-
-  hint: {
-    color: '#A3AED0',
-    fontWeight: '700',
-    fontSize: '12px',
-  },
-};
