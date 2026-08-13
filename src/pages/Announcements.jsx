@@ -1,11 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
-  Bell,
   Search,
-  Calendar,
+  CalendarDays,
   BookOpen,
   Megaphone,
   ExternalLink,
+  Landmark,
+  Pin,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -16,13 +24,11 @@ import {
 } from "../lib/campusHub";
 
 import AnnouncementCard from "../components/AnnouncementsCard";
-import NewsCard from "../components//NewsCard";
+import NewsCard from "../components/NewsCard";
 import EventCard from "../components/EventCard";
 import ResourceCard from "../components/ResourceCard";
 
-
 export default function Announcements() {
-
   const [announcements, setAnnouncements] = useState([]);
   const [news, setNews] = useState([]);
   const [events, setEvents] = useState([]);
@@ -32,563 +38,1452 @@ export default function Announcements() {
   const [error, setError] = useState(null);
 
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("announcements");
+  const [activeTab, setActiveTab] =
+    useState("announcements");
+
   const [category, setCategory] = useState("");
 
-
   useEffect(() => {
-
     async function loadData() {
-
       try {
+        setLoading(true);
+        setError(null);
 
         const [
           announcementsData,
           newsData,
           eventsData,
-          resourcesData
+          resourcesData,
         ] = await Promise.all([
-
           getAnnouncements(),
           getCampusNews(),
-          getEvents({ upcoming:true }),
-          getResources()
-
+          getEvents({
+            upcoming: true,
+          }),
+          getResources(),
         ]);
-
 
         setAnnouncements(announcementsData || []);
         setNews(newsData || []);
         setEvents(eventsData || []);
         setResources(resourcesData || []);
-
-
-      } catch(err){
-
-        setError(err.message);
-
+      } catch (err) {
+        setError(
+          err?.message ||
+            "Something went wrong while loading Campus Hub."
+        );
       } finally {
-
         setLoading(false);
-
       }
-
     }
 
-
     loadData();
-
   }, []);
 
-
-
-  async function handleSearch(value){
-
+  async function handleSearch(value) {
     setSearch(value);
+    setError(null);
 
-    try{
-
-      if(activeTab === "announcements"){
-
+    try {
+      if (activeTab === "announcements") {
         const data = await getAnnouncements({
-          search:value,
-          category
+          search: value,
+          category,
         });
 
         setAnnouncements(data || []);
-
       }
 
-
-      if(activeTab === "news"){
-
+      if (activeTab === "news") {
         const data = await getCampusNews({
-          search:value
+          search: value,
         });
 
         setNews(data || []);
-
       }
 
-
-      if(activeTab === "events"){
-
+      if (activeTab === "events") {
         const data = await getEvents({
-          search:value,
-          category
+          search: value,
+          category,
+          upcoming: true,
         });
 
         setEvents(data || []);
-
       }
 
-
-      if(activeTab === "resources"){
-
+      if (activeTab === "resources") {
         const data = await getResources({
-          search:value,
-          category
+          search: value,
+          category,
         });
 
         setResources(data || []);
-
       }
-
-
-    }catch(err){
-
-      setError(err.message);
-
+    } catch (err) {
+      setError(
+        err?.message || "Search failed."
+      );
     }
-
   }
 
-
-
-  async function handleCategory(value){
-
+  async function handleCategory(value) {
     setCategory(value);
+    setError(null);
 
-
-    try{
-
-
-      if(activeTab === "announcements"){
-
+    try {
+      if (activeTab === "announcements") {
         const data = await getAnnouncements({
           search,
-          category:value
+          category: value,
         });
 
         setAnnouncements(data || []);
-
       }
 
-
-
-      if(activeTab === "events"){
-
+      if (activeTab === "events") {
         const data = await getEvents({
           search,
-          category:value
+          category: value,
+          upcoming: true,
         });
 
         setEvents(data || []);
-
       }
 
-
-
-      if(activeTab === "resources"){
-
+      if (activeTab === "resources") {
         const data = await getResources({
           search,
-          category:value
+          category: value,
         });
 
         setResources(data || []);
+      }
+    } catch (err) {
+      setError(
+        err?.message ||
+          "Could not update category."
+      );
+    }
+  }
 
+  async function handleTabChange(tabKey) {
+    setActiveTab(tabKey);
+    setSearch("");
+    setCategory("");
+    setError(null);
+
+    try {
+      if (tabKey === "announcements") {
+        const data =
+          await getAnnouncements();
+
+        setAnnouncements(data || []);
       }
 
+      if (tabKey === "news") {
+        const data =
+          await getCampusNews();
 
-    }catch(err){
+        setNews(data || []);
+      }
 
-      setError(err.message);
+      if (tabKey === "events") {
+        const data = await getEvents({
+          upcoming: true,
+        });
 
+        setEvents(data || []);
+      }
+
+      if (tabKey === "resources") {
+        const data =
+          await getResources();
+
+        setResources(data || []);
+      }
+    } catch (err) {
+      setError(
+        err?.message ||
+          "Could not load this section."
+      );
     }
-
   }
-
-
-
 
   const tabs = [
+  {
+    key: "announcements",
+    label: "Announcements",
+    icon: Megaphone,
+    color: "#D9896A",
+    softColor: "#FFF6F2",
+    borderColor: "#F3DDD4",
+    description:
+      "Important notices and updates from your university.",
+  },
+  {
+    key: "news",
+    label: "Campus News",
+    icon: BookOpen,
+    color: "#648CCB",
+    softColor: "#F3F7FD",
+    borderColor: "#DDE7F5",
+    description:
+      "The latest stories and updates from around campus.",
+  },
+  {
+    key: "events",
+    label: "Events",
+    icon: CalendarDays,
+    color: "#5E9A8B",
+    softColor: "#F2F9F7",
+    borderColor: "#D9EBE6",
+    description:
+      "Upcoming activities, sessions, and campus events.",
+  },
+  {
+    key: "resources",
+    label: "Resources",
+    icon: ExternalLink,
+    color: "#8B78B8",
+    softColor: "#F7F4FC",
+    borderColor: "#E7E0F2",
+    description:
+      "Helpful links and resources available to students.",
+  },
+];
 
-    {
-      key:"announcements",
-      label:"Announcements",
-      icon:<Megaphone size={16}/>
-    },
-
-    {
-      key:"news",
-      label:"Campus News",
-      icon:<BookOpen size={16}/>
-    },
-
-    {
-      key:"events",
-      label:"Events",
-      icon:<Calendar size={16}/>
-    },
-
-    {
-      key:"resources",
-      label:"Resources",
-      icon:<ExternalLink size={16}/>
-    }
-
-  ];
-
-
-
-  const pinned = announcements.filter(
-    item => item.is_pinned
+  const pinned = useMemo(
+    () =>
+      announcements.filter(
+        (item) => item.is_pinned
+      ),
+    [announcements]
   );
 
+  const activeTabData =
+    tabs.find(
+      (tab) => tab.key === activeTab
+    ) || tabs[0];
 
+  const ActiveIcon =
+    activeTabData.icon;
 
-  if(loading){
+  const resultCount =
+    activeTab === "announcements"
+      ? announcements.length
+      : activeTab === "news"
+      ? news.length
+      : activeTab === "events"
+      ? events.length
+      : resources.length;
 
+  const showCategory =
+    activeTab !== "news";
+
+  if (loading) {
     return (
-      <div>
-        Loading Campus Hub...
-      </div>
-    );
-
-  }
-
-
-
-  if(error){
-
-    return (
-      <div>
-        Error: {error}
-      </div>
-    );
-
-  }
-
-
-
-  return (
-
-    <div
-      style={{
-        width:"100%",
-        padding:"30px 0"
-      }}
-    >
-
-
-      <h1
-        style={{
-          fontSize:"36px",
-          fontWeight:"900",
-          color:"#0B1A3F"
-        }}
-      >
-        Campus Hub
-      </h1>
-
-
-      <p
-        style={{
-          color:"#6B7280",
-          marginBottom:"30px"
-        }}
-      >
-        Stay updated with announcements, news, events, and resources.
-      </p>
-
-
-
-      {pinned.length > 0 && (
-
-        <div
-          style={{
-            background:"#FEE2E2",
-            padding:"20px",
-            borderRadius:"12px",
-            display:"flex",
-            gap:"12px",
-            marginBottom:"25px"
-          }}
-        >
-
-          <Bell color="#991B1B"/>
-
-
-          <div>
-
-            <strong
-              style={{
-                color:"#991B1B"
-              }}
-            >
-              PINNED ANNOUNCEMENT
-            </strong>
-
-
-            <h3>
-              {pinned[0].title}
-            </h3>
-
-
-            <p>
-              {pinned[0].content}
-            </p>
-
-
+      <div style={styles.page}>
+        <div style={styles.loadingCard}>
+          <div style={styles.loadingIcon}>
+            <Landmark size={24} />
           </div>
 
+          <div>
+            <div style={styles.loadingTitle}>
+              Loading Campus Hub
+            </div>
 
+            <div style={styles.loadingText}>
+              Getting the latest campus updates...
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-      )}
+  if (
+    error &&
+    !announcements.length &&
+    !news.length &&
+    !events.length &&
+    !resources.length
+  ) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.errorCard}>
+          <div style={styles.errorIcon}>
+            !
+          </div>
 
+          <div>
+            <div style={styles.errorTitle}>
+              Unable to load Campus Hub
+            </div>
 
+            <div style={styles.errorText}>
+              {error}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  return (
+    <div style={styles.page}>
+      {/* =========================
+          NAVY CAMPUS HUB HEADER
+      ========================= */}
 
-      <div
-        style={{
-          display:"flex",
-          gap:"10px",
-          marginBottom:"20px",
-          flexWrap:"wrap"
-        }}
-      >
+      <div style={styles.hero}>
+        <div
+          style={styles.heroGlowOne}
+        />
 
-        {tabs.map(tab=>(
+        <div
+          style={styles.heroGlowTwo}
+        />
 
-          <button
+        <div style={styles.heroContent}>
+          <div style={styles.heroLeft}>
+            <div style={styles.heroIcon}>
+              <Landmark
+                size={28}
+                strokeWidth={2.1}
+              />
+            </div>
 
-            key={tab.key}
+            <div>
+              <div
+                style={styles.heroEyebrow}
+              >
+                YOUR CAMPUS HUB
+              </div>
 
-            onClick={()=>{
+              <h1 style={styles.heroTitle}>
+                Campus Hub
+              </h1>
 
-              setActiveTab(tab.key);
-              setSearch("");
-              setCategory("");
+              <p
+                style={styles.heroSubtitle}
+              >
+                Everything happening around
+                campus, all in one place.
+              </p>
+            </div>
+          </div>
 
-            }}
-
-            style={{
-
-              display:"flex",
-              alignItems:"center",
-              gap:"6px",
-              padding:"10px 15px",
-              borderRadius:"20px",
-              border:"none",
-              cursor:"pointer",
-
-              background:
-              activeTab===tab.key
-              ? "#0B1A3F"
-              : "#E5E7EB",
-
-              color:
-              activeTab===tab.key
-              ? "white"
-              : "#111827"
-
-            }}
-
-          >
-
-            {tab.icon}
-
-            {tab.label}
-
-          </button>
-
-        ))}
-
+          <div style={styles.heroBadge}>
+            <Sparkles size={15} />
+            <span>Stay connected</span>
+          </div>
+        </div>
       </div>
 
+      {/* =========================
+          PINNED ANNOUNCEMENT
+      ========================= */}
 
+      {activeTab === "announcements" &&
+        pinned.length > 0 && (
+          <div style={styles.pinnedCard}>
+            <div
+              style={styles.pinnedIconWrap}
+            >
+              <Pin
+                size={18}
+                fill="currentColor"
+              />
+            </div>
 
+            <div
+              style={styles.pinnedContent}
+            >
+              <div
+                style={styles.pinnedLabel}
+              >
+                PINNED ANNOUNCEMENT
+              </div>
 
-      <div
-        style={{
-          display:"flex",
-          gap:"10px",
-          marginBottom:"25px"
-        }}
-      >
+              <h3
+                style={styles.pinnedTitle}
+              >
+                {pinned[0].title}
+              </h3>
 
+              <p
+                style={styles.pinnedText}
+              >
+                {pinned[0].content}
+              </p>
+            </div>
+          </div>
+        )}
+
+      {/* =========================
+          MAIN CARD
+      ========================= */}
+
+      <div style={styles.mainCard}>
+        {/* COLORFUL TOP TABS */}
+
+        <div style={styles.tabsContainer}>
+          {tabs.map((tab) => {
+            const TabIcon = tab.icon;
+
+            const isActive =
+              activeTab === tab.key;
+
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() =>
+                  handleTabChange(tab.key)
+                }
+                style={{
+                  ...styles.tabButton,
+
+                  background: isActive
+                    ? tab.color
+                    : tab.softColor,
+
+                  color: isActive
+                    ? "#FFFFFF"
+                    : tab.color,
+
+                  border: `1px solid ${
+                    isActive
+                      ? tab.color
+                      : tab.borderColor
+                  }`,
+
+                  boxShadow: isActive
+                    ? `0 6px 16px ${tab.color}30`
+                    : "none",
+                }}
+              >
+                <TabIcon
+                  size={17}
+                  strokeWidth={2.2}
+                />
+
+                <span>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* =========================
+            SECTION HEADER
+        ========================= */}
+
+        <div
+          style={
+            styles.sectionHeadingRow
+          }
+        >
+          <div>
+            <div
+              style={styles.sectionTitleRow}
+            >
+              <div
+                style={{
+                  ...styles.sectionIcon,
+                  color:
+                    activeTabData.color,
+                  background:
+                    activeTabData.softColor,
+                  border: `1px solid ${activeTabData.borderColor}`,
+                }}
+              >
+                <ActiveIcon
+                  size={18}
+                  strokeWidth={2.2}
+                />
+              </div>
+
+              <h2
+                style={styles.sectionTitle}
+              >
+                {activeTabData.label}
+              </h2>
+            </div>
+
+            <p
+              style={
+                styles.sectionSubtitle
+              }
+            >
+              {activeTabData.description}
+            </p>
+          </div>
+
+          <div
+            style={{
+              ...styles.countBadge,
+
+              color:
+                activeTabData.color,
+
+              background:
+                activeTabData.softColor,
+
+              border: `1px solid ${activeTabData.borderColor}`,
+            }}
+          >
+            {resultCount}{" "}
+            {resultCount === 1
+              ? "item"
+              : "items"}
+          </div>
+        </div>
+
+        {/* =========================
+            SEARCH + FILTER
+        ========================= */}
 
         <div
           style={{
-            position:"relative",
-            flex:1
+            ...styles.controls,
+
+            gridTemplateColumns:
+              showCategory
+                ? "minmax(0, 1fr) 190px"
+                : "minmax(0, 1fr)",
           }}
         >
+          <div style={styles.searchWrap}>
+            <Search
+              size={18}
+              strokeWidth={2}
+              style={styles.searchIcon}
+            />
 
-          <Search
+            <input
+              value={search}
+              onChange={(e) =>
+                handleSearch(
+                  e.target.value
+                )
+              }
+              placeholder={`Search ${activeTabData.label.toLowerCase()}...`}
+              style={styles.searchInput}
+            />
+          </div>
 
-            size={18}
+          {showCategory && (
+            <div
+              style={styles.selectWrap}
+            >
+              <select
+                value={category}
+                onChange={(e) =>
+                  handleCategory(
+                    e.target.value
+                  )
+                }
+                style={styles.select}
+              >
+                <option value="">
+                  All Categories
+                </option>
 
-            style={{
+                <option value="Academic">
+                  Academic
+                </option>
 
-              position:"absolute",
-              left:"12px",
-              top:"12px",
-              color:"#9CA3AF"
+                <option value="IT">
+                  IT
+                </option>
 
-            }}
+                <option value="Social">
+                  Social
+                </option>
+              </select>
 
-          />
-
-
-          <input
-
-            value={search}
-
-            onChange={(e)=>handleSearch(e.target.value)}
-
-            placeholder="Search..."
-
-            style={{
-
-              width:"100%",
-              padding:"12px 12px 12px 40px",
-              borderRadius:"10px",
-              border:"1px solid #ddd"
-
-            }}
-
-          />
-
+              <ChevronDown
+                size={17}
+                style={styles.selectIcon}
+              />
+            </div>
+          )}
         </div>
 
+        {error && (
+          <div
+            style={styles.inlineError}
+          >
+            {error}
+          </div>
+        )}
 
+        {/* =========================
+            CONTENT
+        ========================= */}
 
-        <select
+        <div style={styles.content}>
+          {activeTab ===
+            "announcements" &&
+            (announcements.length > 0 ? (
+              announcements.map(
+                (item) => (
+                  <AnnouncementCard
+                    key={item.id}
+                    announcement={item}
+                  />
+                )
+              )
+            ) : (
+              <EmptyState
+                icon={Megaphone}
+                title="No announcements found"
+                text="There aren't any announcements matching your search right now."
+                color={
+                  activeTabData.color
+                }
+                softColor={
+                  activeTabData.softColor
+                }
+              />
+            ))}
 
-          value={category}
+          {activeTab === "news" &&
+            (news.length > 0 ? (
+              news.map((item) => (
+                <NewsCard
+                  key={item.id}
+                  news={item}
+                />
+              ))
+            ) : (
+              <EmptyState
+                icon={BookOpen}
+                title="No campus news found"
+                text="There aren't any news posts matching your search right now."
+                color={
+                  activeTabData.color
+                }
+                softColor={
+                  activeTabData.softColor
+                }
+              />
+            ))}
 
-          onChange={(e)=>handleCategory(e.target.value)}
+          {activeTab === "events" &&
+            (events.length > 0 ? (
+              events.map((item) => (
+                <EventCard
+                  key={item.id}
+                  event={item}
+                />
+              ))
+            ) : (
+              <EmptyState
+                icon={CalendarDays}
+                title="No events found"
+                text="There aren't any upcoming events matching your search."
+                color={
+                  activeTabData.color
+                }
+                softColor={
+                  activeTabData.softColor
+                }
+              />
+            ))}
 
-        >
+          {activeTab === "resources" &&
+            (resources.length > 0 ? (
+              resources.map(
+                (item) => (
+                  <ResourceCard
+                    key={item.id}
+                    resource={item}
+                  />
+                )
+              )
+            ) : (
+              <EmptyState
+                icon={ExternalLink}
+                title="No resources found"
+                text="There aren't any resources matching your search right now."
+                color={
+                  activeTabData.color
+                }
+                softColor={
+                  activeTabData.softColor
+                }
+              />
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          <option value="">
-            All
-          </option>
-
-
-          <option value="Academic">
-            Academic
-          </option>
-
-
-          <option value="IT">
-            IT
-          </option>
-
-
-          <option value="Social">
-            Social
-          </option>
-
-
-        </select>
-
-
+function EmptyState({
+  icon: Icon,
+  title,
+  text,
+  color,
+  softColor,
+}) {
+  return (
+    <div style={styles.emptyState}>
+      <div
+        style={{
+          ...styles.emptyIcon,
+          color,
+          background: softColor,
+        }}
+      >
+        <Icon
+          size={25}
+          strokeWidth={1.9}
+        />
       </div>
 
+      <h3 style={styles.emptyTitle}>
+        {title}
+      </h3>
 
-
-
-
-      {activeTab==="announcements" && (
-
-        <>
-
-        {announcements.map(item=>(
-
-          <AnnouncementCard
-
-            key={item.id}
-
-            announcement={item}
-
-          />
-
-        ))}
-
-        </>
-
-      )}
-
-
-
-
-
-      {activeTab==="news" && (
-
-        <>
-
-        {news.map(item=>(
-
-          <NewsCard
-
-            key={item.id}
-
-            news={item}
-
-          />
-
-        ))}
-
-        </>
-
-      )}
-
-
-
-
-
-      {activeTab==="events" && (
-
-        <>
-
-        {events.map(item=>(
-
-          <EventCard
-
-            key={item.id}
-
-            event={item}
-
-          />
-
-        ))}
-
-        </>
-
-      )}
-
-
-
-
-
-      {activeTab==="resources" && (
-
-        <>
-
-        {resources.map(item=>(
-
-          <ResourceCard
-
-            key={item.id}
-
-            resource={item}
-
-          />
-
-        ))}
-
-        </>
-
-      )}
-
-
-
+      <p style={styles.emptyText}>
+        {text}
+      </p>
     </div>
-
   );
-
 }
+
+const styles = {
+  page: {
+    width: "100%",
+    padding: "8px 0 40px",
+    boxSizing: "border-box",
+  },
+
+  /* =========================
+     CAMPUS HUB - NAVY ONLY
+  ========================= */
+
+  hero: {
+    position: "relative",
+    overflow: "hidden",
+
+    width: "100%",
+    minHeight: "150px",
+
+    borderRadius: "22px",
+
+    padding: "26px 29px",
+    marginBottom: "22px",
+
+    boxSizing: "border-box",
+
+    background:
+      "linear-gradient(135deg, #08152F 0%, #0B1A3F 52%, #142B5A 100%)",
+
+    boxShadow:
+      "0 15px 35px rgba(11, 26, 63, 0.16)",
+  },
+
+  heroGlowOne: {
+    position: "absolute",
+
+    width: "260px",
+    height: "260px",
+
+    borderRadius: "50%",
+
+    background:
+      "radial-gradient(circle, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0) 70%)",
+
+    right: "90px",
+    top: "-165px",
+
+    pointerEvents: "none",
+  },
+
+  heroGlowTwo: {
+    position: "absolute",
+
+    width: "210px",
+    height: "210px",
+
+    borderRadius: "50%",
+
+    background:
+      "radial-gradient(circle, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 70%)",
+
+    right: "-45px",
+    bottom: "-125px",
+
+    pointerEvents: "none",
+  },
+
+  heroContent: {
+    position: "relative",
+    zIndex: 2,
+
+    minHeight: "98px",
+
+    display: "flex",
+    justifyContent:
+      "space-between",
+    alignItems: "center",
+
+    gap: "20px",
+  },
+
+  heroLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "17px",
+    minWidth: 0,
+  },
+
+  heroIcon: {
+    width: "58px",
+    height: "58px",
+
+    flexShrink: 0,
+
+    borderRadius: "17px",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    color: "#FFFFFF",
+
+    background:
+      "rgba(255,255,255,0.11)",
+
+    border:
+      "1px solid rgba(255,255,255,0.18)",
+
+    boxShadow:
+      "0 8px 22px rgba(0,0,0,0.12)",
+
+    backdropFilter:
+      "blur(10px)",
+
+    WebkitBackdropFilter:
+      "blur(10px)",
+  },
+
+  heroEyebrow: {
+    color: "#AFC6F2",
+
+    fontSize: "10.5px",
+    fontWeight: "800",
+
+    letterSpacing: "1.6px",
+
+    marginBottom: "5px",
+  },
+
+  heroTitle: {
+    margin: 0,
+
+    color: "#FFFFFF",
+
+    fontSize: "31px",
+    lineHeight: 1.1,
+
+    fontWeight: "900",
+
+    letterSpacing: "-0.7px",
+  },
+
+  heroSubtitle: {
+    margin: "7px 0 0",
+
+    color:
+      "rgba(255,255,255,0.76)",
+
+    fontSize: "14px",
+    lineHeight: 1.5,
+
+    fontWeight: "500",
+  },
+
+  heroBadge: {
+    display: "flex",
+
+    alignItems: "center",
+
+    gap: "7px",
+
+    padding: "9px 14px",
+
+    borderRadius: "999px",
+
+    color: "#FFFFFF",
+
+    background:
+      "rgba(255,255,255,0.10)",
+
+    border:
+      "1px solid rgba(255,255,255,0.16)",
+
+    fontSize: "12px",
+    fontWeight: "700",
+
+    whiteSpace: "nowrap",
+  },
+
+  /* =========================
+     PINNED
+  ========================= */
+
+  pinnedCard: {
+    display: "flex",
+
+    gap: "14px",
+
+    alignItems: "flex-start",
+
+    padding: "18px 20px",
+
+    borderRadius: "17px",
+
+    background:
+      "linear-gradient(135deg, #FFF7ED, #FFFBF5)",
+
+    border:
+      "1px solid #FED7AA",
+
+    boxShadow:
+      "0 6px 18px rgba(124,45,18,0.05)",
+
+    marginBottom: "20px",
+  },
+
+  pinnedIconWrap: {
+    width: "38px",
+    height: "38px",
+
+    flexShrink: 0,
+
+    borderRadius: "11px",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    background: "#FFEDD5",
+    color: "#C2410C",
+  },
+
+  pinnedContent: {
+    minWidth: 0,
+  },
+
+  pinnedLabel: {
+    color: "#C2410C",
+
+    fontSize: "10px",
+    fontWeight: "900",
+
+    letterSpacing: "1.2px",
+
+    marginBottom: "4px",
+  },
+
+  pinnedTitle: {
+    color: "#431407",
+
+    fontSize: "16px",
+    fontWeight: "800",
+
+    margin: "0 0 5px",
+  },
+
+  pinnedText: {
+    color: "#7C2D12",
+
+    fontSize: "13px",
+    lineHeight: 1.55,
+
+    margin: 0,
+  },
+
+  /* =========================
+     MAIN CARD
+  ========================= */
+
+  mainCard: {
+    width: "100%",
+
+    background: "#FFFFFF",
+
+    border:
+      "1px solid #E5E7EB",
+
+    borderRadius: "22px",
+
+    boxShadow:
+      "0 10px 30px rgba(15,23,42,0.06)",
+
+    overflow: "hidden",
+
+    boxSizing: "border-box",
+  },
+
+  /* =========================
+     COLORFUL TABS
+  ========================= */
+
+  tabsContainer: {
+    display: "flex",
+
+    alignItems: "center",
+
+    gap: "9px",
+
+    padding: "14px",
+
+    overflowX: "auto",
+
+    background: "#F8FAFC",
+
+    borderBottom:
+      "1px solid #E8EDF4",
+  },
+
+  tabButton: {
+    border: "none",
+    outline: "none",
+
+    padding: "10px 15px",
+
+    borderRadius: "12px",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    gap: "7px",
+
+    fontFamily: "inherit",
+
+    fontSize: "13px",
+    fontWeight: "750",
+
+    cursor: "pointer",
+
+    whiteSpace: "nowrap",
+
+    transition:
+      "all 0.18s ease",
+  },
+
+  /* =========================
+     SECTION HEADER
+  ========================= */
+
+  sectionHeadingRow: {
+    display: "flex",
+
+    justifyContent:
+      "space-between",
+
+    alignItems: "flex-start",
+
+    gap: "20px",
+
+    padding:
+      "24px 25px 18px",
+  },
+
+  sectionTitleRow: {
+    display: "flex",
+
+    alignItems: "center",
+
+    gap: "10px",
+  },
+
+  sectionIcon: {
+    width: "35px",
+    height: "35px",
+
+    borderRadius: "10px",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sectionTitle: {
+    margin: 0,
+
+    color: "#0B1A3F",
+
+    fontSize: "19px",
+
+    fontWeight: "850",
+
+    letterSpacing:
+      "-0.25px",
+  },
+
+  sectionSubtitle: {
+    color: "#8490A3",
+
+    fontSize: "12.5px",
+
+    lineHeight: 1.5,
+
+    margin:
+      "8px 0 0 45px",
+  },
+
+  countBadge: {
+    padding: "7px 11px",
+
+    borderRadius: "999px",
+
+    fontSize: "11px",
+
+    fontWeight: "750",
+
+    whiteSpace: "nowrap",
+  },
+
+  /* =========================
+     SEARCH
+  ========================= */
+
+  controls: {
+    display: "grid",
+
+    gap: "11px",
+
+    alignItems: "center",
+
+    padding:
+      "0 25px 22px",
+  },
+
+  searchWrap: {
+    height: "44px",
+
+    position: "relative",
+
+    display: "flex",
+
+    alignItems: "center",
+
+    background: "#FFFFFF",
+
+    border:
+      "1px solid #E2E8F0",
+
+    borderRadius: "12px",
+
+    boxSizing: "border-box",
+  },
+
+  searchIcon: {
+    position: "absolute",
+
+    left: "13px",
+
+    color: "#94A3B8",
+
+    pointerEvents: "none",
+  },
+
+  searchInput: {
+    width: "100%",
+    height: "100%",
+
+    border: "none",
+
+    outline: "none",
+
+    background: "transparent",
+
+    padding:
+      "0 14px 0 41px",
+
+    color: "#0F172A",
+
+    fontFamily: "inherit",
+
+    fontSize: "13px",
+
+    fontWeight: "500",
+
+    boxSizing: "border-box",
+  },
+
+  selectWrap: {
+    height: "44px",
+
+    position: "relative",
+
+    background: "#FFFFFF",
+
+    border:
+      "1px solid #E2E8F0",
+
+    borderRadius: "12px",
+  },
+
+  select: {
+    width: "100%",
+    height: "100%",
+
+    appearance: "none",
+    WebkitAppearance: "none",
+
+    border: "none",
+    outline: "none",
+
+    background: "transparent",
+
+    color: "#334155",
+
+    padding:
+      "0 38px 0 13px",
+
+    fontFamily: "inherit",
+
+    fontSize: "13px",
+
+    fontWeight: "600",
+
+    cursor: "pointer",
+  },
+
+  selectIcon: {
+    position: "absolute",
+
+    right: "12px",
+
+    top: "50%",
+
+    transform:
+      "translateY(-50%)",
+
+    color: "#94A3B8",
+
+    pointerEvents: "none",
+  },
+
+  /* =========================
+     CONTENT
+  ========================= */
+
+  content: {
+    padding:
+      "0 25px 26px",
+  },
+
+  inlineError: {
+    margin:
+      "0 25px 20px",
+
+    padding:
+      "10px 12px",
+
+    borderRadius: "10px",
+
+    background: "#FEF2F2",
+
+    color: "#B91C1C",
+
+    border:
+      "1px solid #FECACA",
+
+    fontSize: "12px",
+
+    fontWeight: "600",
+  },
+
+  /* =========================
+     EMPTY STATE
+  ========================= */
+
+  emptyState: {
+    minHeight: "220px",
+
+    borderRadius: "16px",
+
+    border:
+      "1px dashed #CBD5E1",
+
+    background: "#FAFCFF",
+
+    display: "flex",
+
+    flexDirection: "column",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    padding: "30px",
+
+    textAlign: "center",
+  },
+
+  emptyIcon: {
+    width: "50px",
+    height: "50px",
+
+    borderRadius: "15px",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    marginBottom: "12px",
+  },
+
+  emptyTitle: {
+    margin: 0,
+
+    color: "#172554",
+
+    fontSize: "15px",
+
+    fontWeight: "800",
+  },
+
+  emptyText: {
+    maxWidth: "370px",
+
+    margin:
+      "6px 0 0",
+
+    color: "#94A3B8",
+
+    fontSize: "12px",
+
+    lineHeight: 1.55,
+  },
+
+  /* =========================
+     LOADING
+  ========================= */
+
+  loadingCard: {
+    minHeight: "130px",
+
+    display: "flex",
+
+    alignItems: "center",
+
+    gap: "14px",
+
+    padding: "24px",
+
+    borderRadius: "18px",
+
+    background: "#FFFFFF",
+
+    border:
+      "1px solid #E5E7EB",
+
+    boxShadow:
+      "0 8px 25px rgba(15,23,42,0.06)",
+  },
+
+  loadingIcon: {
+    width: "46px",
+    height: "46px",
+
+    borderRadius: "14px",
+
+    background: "#EEF3FB",
+
+    color: "#0B1A3F",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  loadingTitle: {
+    color: "#0B1A3F",
+
+    fontSize: "15px",
+
+    fontWeight: "800",
+  },
+
+  loadingText: {
+    color: "#94A3B8",
+
+    fontSize: "12px",
+
+    marginTop: "4px",
+  },
+
+  /* =========================
+     ERROR
+  ========================= */
+
+  errorCard: {
+    display: "flex",
+
+    gap: "13px",
+
+    padding: "20px",
+
+    borderRadius: "16px",
+
+    background: "#FFF7F7",
+
+    border:
+      "1px solid #FECACA",
+  },
+
+  errorIcon: {
+    width: "34px",
+    height: "34px",
+
+    flexShrink: 0,
+
+    borderRadius: "10px",
+
+    background: "#FEE2E2",
+
+    color: "#B91C1C",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    fontWeight: "900",
+  },
+
+  errorTitle: {
+    color: "#991B1B",
+
+    fontWeight: "800",
+
+    fontSize: "14px",
+  },
+
+  errorText: {
+    color: "#B91C1C",
+
+    fontSize: "12px",
+
+    marginTop: "3px",
+  },
+};
