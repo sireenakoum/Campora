@@ -3219,11 +3219,9 @@ const styles = {
     maxWidth: '1200px',
     margin: '0 auto',
 
-    height: 'calc(100vh - 122px)',
-    overflowY: 'auto',
-    overflowX: 'hidden',
+    minHeight: 'calc(100vh - 100px)',
 
-    padding: '4px 10px 60px 0',
+    padding: '4px 10px 0 0',
 
     boxSizing: 'border-box',
     fontFamily: 'inherit',
