@@ -12,7 +12,7 @@ import {
 
 export default function About() {
   const team = [
-    { name: 'Lara Murtada', major: 'Mechanical Engineering' },
+    { name: 'Lara Mortada', major: 'Mechanical Engineering' },
     { name: 'Nourhan Adas', major: 'Chemical Engineering' },
     { name: 'Yasmin Bilal', major: 'Electrical Engineering' },
     { name: 'Sireen Akoum', major: 'Computer Science' },
@@ -24,7 +24,7 @@ export default function About() {
       style={{
         minHeight: '100vh',
         background:
-          'linear-gradient(135deg, #ffffff 0%, #f8f9ff 50%, #eef1ff 100%)',
+          'linear-gradient(135deg, #ffffff 0%, #f7faff 50%, #edf4fb 100%)',
         color: '#0B1A3F',
         padding: '20px 48px 70px',
       }}
@@ -65,8 +65,8 @@ export default function About() {
               gap: '9px',
               padding: '10px 16px',
               borderRadius: '999px',
-              background: '#F1F3FF',
-              color: '#6366F1',
+              background: '#EEF3FB',
+              color: '#648CCB',
               fontWeight: '800',
               marginBottom: '20px',
             }}
@@ -86,7 +86,7 @@ export default function About() {
           >
             More than a platform.
             <br />
-            <span style={{ color: '#6366F1' }}>
+            <span style={{ color: '#648CCB' }}>
               Built from the student experience.
             </span>
           </h1>
@@ -120,8 +120,8 @@ export default function About() {
               width: '56px',
               height: '56px',
               borderRadius: '17px',
-              background: '#F1F2FF',
-              color: '#6366F1',
+              background: '#EEF3FB',
+              color: '#648CCB',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -133,7 +133,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#6366F1',
+              color: '#648CCB',
               fontWeight: '900',
               fontSize: '13px',
               letterSpacing: '1.4px',
@@ -199,7 +199,7 @@ export default function About() {
           <div
             style={{
               background: '#F3F2FF',
-              border: '1px solid #E2E6FF',
+              border: '1px solid #DDE7F5',
               borderRadius: '24px',
               padding: '26px 28px',
             }}
@@ -232,13 +232,13 @@ export default function About() {
         >
           <Rocket
             size={36}
-            color="#6366F1"
+            color="#648CCB"
             style={{ marginBottom: '16px' }}
           />
 
           <p
             style={{
-              color: '#6366F1',
+              color: '#648CCB',
               fontWeight: '900',
               fontSize: '13px',
               letterSpacing: '1.4px',
@@ -327,7 +327,7 @@ export default function About() {
             style={{
               margin: '32px auto 0',
               maxWidth: '760px',
-              color: '#6366F1',
+              color: '#648CCB',
               fontSize: '22px',
               lineHeight: '1.6',
               fontWeight: '950',
@@ -435,10 +435,10 @@ export default function About() {
 
             <div
               style={{
-                background: '#F1F3FF',
+                background: '#EEF3FB',
                 borderRadius: '26px',
                 padding: '30px',
-                border: '1px solid #E2E6FF',
+                border: '1px solid #DDE7F5',
               }}
             >
               <p
@@ -447,7 +447,7 @@ export default function About() {
                   fontSize: '27px',
                   lineHeight: '1.35',
                   fontWeight: '950',
-                  color: '#6366F1',
+                  color: '#648CCB',
                 }}
               >
                 “This is where my campus life comes together.”
@@ -468,8 +468,8 @@ export default function About() {
               width: '58px',
               height: '58px',
               borderRadius: '18px',
-              background: '#F1F2FF',
-              color: '#6366F1',
+              background: '#EEF3FB',
+              color: '#648CCB',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -481,7 +481,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#6366F1',
+              color: '#648CCB',
               fontWeight: '900',
               fontSize: '13px',
               letterSpacing: '1.4px',
@@ -553,7 +553,7 @@ export default function About() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 15px',
-                    color: '#6366F1',
+                    color: '#648CCB',
                     fontWeight: '950',
                     fontSize: '18px',
                   }}
@@ -590,7 +590,7 @@ export default function About() {
               fontSize: '24px',
               fontWeight: '950',
               marginTop: '34px',
-              color: '#6366F1',
+              color: '#648CCB',
             }}
           >
             Five students. Different disciplines. One shared idea.
@@ -607,13 +607,13 @@ export default function About() {
         >
           <Sparkles
             size={34}
-            color="#6366F1"
+            color="#648CCB"
             style={{ marginBottom: '16px' }}
           />
 
           <p
             style={{
-              color: '#6366F1',
+              color: '#648CCB',
               fontWeight: '900',
               fontSize: '13px',
               letterSpacing: '1.4px',

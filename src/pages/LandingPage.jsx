@@ -19,7 +19,7 @@ export default function LandingPage() {
     minHeight: '100vh',
     height: '100vh',
     background:
-      'linear-gradient(135deg, #ffffff 0%, #f8f9ff 45%, #eef1ff 100%)',
+      'linear-gradient(135deg, #ffffff 0%, #f7faff 45%, #edf4fb 100%)',
     color: '#0B1A3F',
     overflow: 'hidden',
     position: 'relative',
@@ -129,8 +129,8 @@ export default function LandingPage() {
               gap: '8px',
               padding: '10px 16px',
               borderRadius: '999px',
-              background: '#F1F3FF',
-              color: '#4F46E5',
+              background: '#EEF3FB',
+              color: '#648CCB',
               fontWeight: '800',
               fontSize: '14px',
               marginBottom: '28px',
@@ -155,7 +155,7 @@ export default function LandingPage() {
             made for{' '}
             <span
               style={{
-                background: 'linear-gradient(90deg, #5B6CFF, #8B5CF6)',
+                background: 'linear-gradient(90deg, #648CCB, #0B1A3F)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
@@ -200,43 +200,6 @@ Created by Engineering and Computer Science students, Campora is designed to mak
           
           </div>
 
-          <div
-            id="students"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              color: '#334155',
-              fontWeight: '700',
-            }}
-          >
-            <div style={{ display: 'flex' }}>
-              {['N', 'S', 'M', 'A'].map((letter, index) => (
-                <div
-                  key={letter}
-                  style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '50%',
-                    background: ['#DDE7FF', '#FDE2F3', '#DFF7EF', '#FFE8C7'][index],
-                    border: '3px solid white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginLeft: index === 0 ? 0 : '-10px',
-                    fontWeight: '900',
-                    color: '#0B1A3F',
-                  }}
-                >
-                  {letter}
-                </div>
-              ))}
-            </div>
-
-            <div>
-              Join students making campus life easier ✨
-            </div>
-          </div>
         </section>
 
         {/* Right */}
@@ -257,7 +220,7 @@ Created by Engineering and Computer Science students, Campora is designed to mak
               height: '520px',
               borderRadius: '50%',
               background:
-                'radial-gradient(circle at center, rgba(144, 155, 255, 0.22), rgba(209, 214, 255, 0.08) 65%, transparent 70%)',
+                'radial-gradient(circle at center, rgba(100, 140, 203, 0.20), rgba(207, 222, 242, 0.10) 65%, transparent 70%)',
               filter: 'blur(2px)',
             }}
           />
@@ -271,7 +234,7 @@ Created by Engineering and Computer Science students, Campora is designed to mak
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 30px 70px rgba(92, 105, 190, 0.2)',
+              boxShadow: '0 24px 55px rgba(11, 26, 63, 0.13)',
               transform: 'rotate(0deg)',
               position: 'relative',
               zIndex: 3,
@@ -318,20 +281,6 @@ Created by Engineering and Computer Science students, Campora is designed to mak
         </section>
       </main>
 
-      <div
-        style={{
-          textAlign: 'center',
-          paddingBottom: '18px',
-          color: '#5966B3',
-          fontWeight: '800',
-          fontSize: '18px',
-          fontStyle: 'italic',
-          letterSpacing: '0.3px',
-        }}
-      >
-        More time for what matters. ♡
-      </div>
-
       {/* Decorative shapes */}
       <div
         style={{
@@ -339,7 +288,7 @@ Created by Engineering and Computer Science students, Campora is designed to mak
           width: '420px',
           height: '220px',
           borderRadius: '50%',
-          background: 'rgba(118, 129, 255, 0.16)',
+          background: 'rgba(100, 140, 203, 0.13)',
           right: '-140px',
           bottom: '-80px',
           transform: 'rotate(-18deg)',
@@ -352,7 +301,7 @@ Created by Engineering and Computer Science students, Campora is designed to mak
           width: '360px',
           height: '160px',
           borderRadius: '50%',
-          background: 'rgba(204, 211, 255, 0.3)',
+          background: 'rgba(208, 222, 241, 0.32)',
           left: '-140px',
           bottom: '-90px',
           transform: 'rotate(12deg)',
@@ -371,8 +320,8 @@ function FeatureCard({ icon, title, text, style }) {
         padding: '22px',
         borderRadius: '24px',
         background: 'rgba(255,255,255,0.96)',
-        boxShadow: '0 18px 45px rgba(91, 108, 180, 0.14)',
-        border: '1px solid rgba(225, 229, 255, 0.9)',
+        boxShadow: '0 14px 32px rgba(11, 26, 63, 0.09)',
+        border: '1px solid rgba(221, 231, 245, 0.95)',
         zIndex: 4,
         ...style,
       }}
@@ -385,8 +334,8 @@ function FeatureCard({ icon, title, text, style }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#F1F2FF',
-          color: '#6366F1',
+          background: '#EEF3FB',
+          color: '#648CCB',
           marginBottom: '14px',
         }}
       >
