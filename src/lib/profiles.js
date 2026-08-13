@@ -17,7 +17,9 @@ export async function updateProfile(userId, updates) {
       ...updates,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', userId);
+    .eq('id', userId)
+    .select()
+    .single();
 
   return { data, error };
 }

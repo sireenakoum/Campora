@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { getProfile, updateProfile } from './lib/profiles';
 
@@ -8,6 +8,7 @@ export default function Profile() {
 
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [savedAvatarUrl, setSavedAvatarUrl] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
 
   const [accountType, setAccountType] = useState('Student');
@@ -19,43 +20,78 @@ export default function Profile() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
+  const previewUrlRef = useRef(null);
+
+  // ======================================================
+  // Load profile
+  // ======================================================
+
   useEffect(() => {
     async function loadProfileData() {
       try {
         setLoading(true);
+        setError(null);
 
         const {
           data: { user },
+          error: userError,
         } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
 
         if (!user) {
           throw new Error('User is not logged in.');
         }
 
-        const { data, error } = await getProfile(user.id);
+        const { data, error: profileError } = await getProfile(user.id);
 
-        if (error) {
-          throw error;
+        if (profileError) {
+          throw profileError;
         }
 
         if (data) {
           setFullName(data.name || '');
+
           setAvatarUrl(data.avatar_url || '');
+          setSavedAvatarUrl(data.avatar_url || '');
+
           setAccountType(data.account_type || 'Student');
           setMajor(data.major || '');
           setYear(data.year || '');
           setGuestTitle(data.guest_title || '');
-          setCoursesTaken(data.courses_taken || []);
+
+          setCoursesTaken(
+            Array.isArray(data.courses_taken)
+              ? data.courses_taken
+              : []
+          );
         }
       } catch (err) {
-        setError(err.message);
+        console.error('Profile loading error:', err);
+
+        setError(
+          err?.message ||
+            'Something went wrong while loading your profile.'
+        );
       } finally {
         setLoading(false);
       }
     }
 
     loadProfileData();
+
+    return () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
   }, []);
+
+  // ======================================================
+  // Select avatar
+  // ======================================================
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
@@ -64,76 +100,231 @@ export default function Profile() {
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be smaller than 5MB.');
-      return;
-    }
-
     setError(null);
     setMessage(null);
-    setAvatarFile(file);
+
+    // Only images
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file.');
+
+      e.target.value = '';
+
+      return;
+    }
+
+    // Maximum 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be smaller than 5MB.');
+
+      e.target.value = '';
+
+      return;
+    }
+
+    // Remove previous temporary preview
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+    }
 
     const previewUrl = URL.createObjectURL(file);
+
+    previewUrlRef.current = previewUrl;
+
+    setAvatarFile(file);
     setAvatarUrl(previewUrl);
   };
 
+  // ======================================================
+  // Extract avatar storage path from public URL
+  // ======================================================
+
+  const getAvatarPathFromUrl = (url) => {
+    if (!url) {
+      return null;
+    }
+
+    try {
+      const marker = '/storage/v1/object/public/avatars/';
+
+      const markerIndex = url.indexOf(marker);
+
+      if (markerIndex === -1) {
+        return null;
+      }
+
+      const path = url.substring(
+        markerIndex + marker.length
+      );
+
+      return decodeURIComponent(path);
+    } catch (err) {
+      console.error('Avatar path parsing error:', err);
+
+      return null;
+    }
+  };
+
+  // ======================================================
+  // Update profile
+  // ======================================================
+
   const handleUpdate = async (e) => {
     e.preventDefault();
+
+    if (saving) {
+      return;
+    }
 
     setSaving(true);
     setError(null);
     setMessage(null);
 
+    let uploadedAvatarPath = null;
+
     try {
+      // --------------------------------------------------
+      // Get current user
+      // --------------------------------------------------
+
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw userError;
+      }
 
       if (!user) {
         throw new Error('User is not logged in.');
       }
 
-      let newAvatarUrl = avatarUrl;
+      // --------------------------------------------------
+      // Validate full name
+      // --------------------------------------------------
 
-      if (avatarFile) {
-        const fileExtension =
-          avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const cleanedName = fullName.trim();
 
-        const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile, {
-            upsert: false,
-            contentType: avatarFile.type,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
-
-        newAvatarUrl = publicUrl;
+      if (!cleanedName) {
+        throw new Error('Please enter your full name.');
       }
 
-      const { error: updateError } = await updateProfile(user.id, {
-        name: fullName,
-        avatar_url: newAvatarUrl,
-      });
+      let newAvatarUrl = savedAvatarUrl;
+
+      // --------------------------------------------------
+      // Upload new avatar if selected
+      // --------------------------------------------------
+
+      if (avatarFile) {
+        const originalExtension =
+          avatarFile.name
+            .split('.')
+            .pop()
+            ?.toLowerCase() || 'jpg';
+
+        const safeExtension =
+          originalExtension === 'jpeg'
+            ? 'jpg'
+            : originalExtension;
+
+        const fileName = `${user.id}/${Date.now()}.${safeExtension}`;
+
+        uploadedAvatarPath = fileName;
+
+        const { error: uploadError } =
+          await supabase.storage
+            .from('avatars')
+            .upload(fileName, avatarFile, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: avatarFile.type,
+            });
+
+        if (uploadError) {
+          console.error(
+            'Avatar upload error:',
+            uploadError
+          );
+
+          throw new Error(
+            uploadError.message ||
+              'Could not upload your profile picture.'
+          );
+        }
+
+        // ------------------------------------------------
+        // Get public URL
+        // ------------------------------------------------
+
+        const { data: publicUrlData } =
+          supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+
+        if (!publicUrlData?.publicUrl) {
+          throw new Error(
+            'The profile picture uploaded, but its URL could not be created.'
+          );
+        }
+
+        newAvatarUrl = publicUrlData.publicUrl;
+      }
+
+      // --------------------------------------------------
+      // Update profile database row
+      // --------------------------------------------------
+
+      const { error: updateError } =
+        await updateProfile(user.id, {
+          name: cleanedName,
+          avatar_url: newAvatarUrl,
+        });
 
       if (updateError) {
         throw updateError;
       }
+
+      // --------------------------------------------------
+      // Delete OLD avatar
+      //
+      // We do this AFTER the profile database update.
+      // This avoids deleting the old image if the DB
+      // update fails.
+      // --------------------------------------------------
+
+      if (
+        avatarFile &&
+        savedAvatarUrl &&
+        newAvatarUrl !== savedAvatarUrl
+      ) {
+        const oldAvatarPath =
+          getAvatarPathFromUrl(savedAvatarUrl);
+
+        if (
+          oldAvatarPath &&
+          oldAvatarPath.startsWith(`${user.id}/`)
+        ) {
+          const { error: deleteError } =
+            await supabase.storage
+              .from('avatars')
+              .remove([oldAvatarPath]);
+
+          if (deleteError) {
+            console.warn(
+              'Old avatar could not be deleted:',
+              deleteError
+            );
+
+            // We intentionally DO NOT fail the whole
+            // profile update here because the new avatar
+            // was already saved successfully.
+          }
+        }
+      }
+
+      // --------------------------------------------------
+      // Reload updated profile
+      // --------------------------------------------------
 
       const {
         data: updatedProfile,
@@ -146,35 +337,141 @@ export default function Profile() {
 
       if (updatedProfile) {
         setFullName(updatedProfile.name || '');
+
         setAvatarUrl(updatedProfile.avatar_url || '');
-        setAccountType(updatedProfile.account_type || 'Student');
+        setSavedAvatarUrl(
+          updatedProfile.avatar_url || ''
+        );
+
+        setAccountType(
+          updatedProfile.account_type || 'Student'
+        );
+
         setMajor(updatedProfile.major || '');
+
         setYear(updatedProfile.year || '');
-        setGuestTitle(updatedProfile.guest_title || '');
-        setCoursesTaken(updatedProfile.courses_taken || []);
+
+        setGuestTitle(
+          updatedProfile.guest_title || ''
+        );
+
+        setCoursesTaken(
+          Array.isArray(updatedProfile.courses_taken)
+            ? updatedProfile.courses_taken
+            : []
+        );
+      } else {
+        setAvatarUrl(newAvatarUrl);
+        setSavedAvatarUrl(newAvatarUrl);
+        setFullName(cleanedName);
+      }
+
+      // --------------------------------------------------
+      // Clean temporary preview
+      // --------------------------------------------------
+
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(
+          previewUrlRef.current
+        );
+
+        previewUrlRef.current = null;
       }
 
       setAvatarFile(null);
-      setMessage('Profile updated successfully!');
+
+      setMessage(
+        'Profile updated successfully!'
+      );
     } catch (err) {
-      setError(err.message);
+      console.error('Profile update error:', err);
+
+      // --------------------------------------------------
+      // If a NEW image uploaded but something afterward
+      // failed, try removing the unused upload.
+      // --------------------------------------------------
+
+      if (uploadedAvatarPath) {
+        try {
+          await supabase.storage
+            .from('avatars')
+            .remove([uploadedAvatarPath]);
+        } catch (cleanupError) {
+          console.warn(
+            'Unused avatar cleanup failed:',
+            cleanupError
+          );
+        }
+      }
+
+      setError(
+        err?.message ||
+          'Something went wrong while updating your profile.'
+      );
     } finally {
       setSaving(false);
     }
   };
 
+  // ======================================================
+  // Cancel selected avatar
+  // ======================================================
+
+  const handleCancelAvatar = () => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(
+        previewUrlRef.current
+      );
+
+      previewUrlRef.current = null;
+    }
+
+    setAvatarFile(null);
+    setAvatarUrl(savedAvatarUrl);
+
+    setError(null);
+    setMessage(null);
+  };
+
+  // ======================================================
+  // Loading
+  // ======================================================
+
   if (loading) {
-    return <div>Loading profile...</div>;
+    return (
+      <div style={styles.loading}>
+        Loading profile...
+      </div>
+    );
   }
+
+  // ======================================================
+  // UI
+  // ======================================================
 
   return (
     <div style={styles.wrapper}>
-      <h1 style={styles.title}>Student Profile</h1>
+      <h1 style={styles.title}>
+        Student Profile
+      </h1>
 
-      {error && <p style={styles.errorText}>{error}</p>}
-      {message && <p style={styles.successText}>{message}</p>}
+      {error && (
+        <div style={styles.errorBox}>
+          {error}
+        </div>
+      )}
+
+      {message && (
+        <div style={styles.successBox}>
+          {message}
+        </div>
+      )}
 
       <div style={styles.card}>
+        {/* =============================================
+            PROFILE HEADER
+        ============================================= */}
+
         <div style={styles.profileHeader}>
           <div style={styles.avatarContainer}>
             {avatarUrl ? (
@@ -184,24 +481,32 @@ export default function Profile() {
                 style={styles.avatar}
               />
             ) : (
-              <div style={styles.avatarPlaceholder}>
+              <div
+                style={styles.avatarPlaceholder}
+              >
                 {fullName
-                  ? fullName.charAt(0).toUpperCase()
+                  ? fullName
+                      .charAt(0)
+                      .toUpperCase()
                   : '?'}
               </div>
             )}
           </div>
 
-          <div>
+          <div style={styles.headerText}>
             <h2 style={styles.profileName}>
               {fullName || 'Student'}
             </h2>
 
             <p style={styles.profileMajor}>
-              {major || 'Student'}
+              {major || accountType || 'Student'}
             </p>
           </div>
         </div>
+
+        {/* =============================================
+            ONBOARDING INFORMATION
+        ============================================= */}
 
         <div style={styles.section}>
           <p style={styles.sectionLabel}>
@@ -259,22 +564,30 @@ export default function Profile() {
 
             <div style={styles.tagWrap}>
               {coursesTaken.length === 0 ? (
-                <span style={styles.infoValue}>—</span>
+                <span style={styles.infoValue}>
+                  —
+                </span>
               ) : (
-                coursesTaken.map((course) => (
-                  <span
-                    key={course}
-                    style={styles.tag}
-                  >
-                    {course}
-                  </span>
-                ))
+                coursesTaken.map(
+                  (course, index) => (
+                    <span
+                      key={`${course}-${index}`}
+                      style={styles.tag}
+                    >
+                      {course}
+                    </span>
+                  )
+                )
               )}
             </div>
           </div>
         </div>
 
         <div style={styles.divider} />
+
+        {/* =============================================
+            PERSONAL DETAILS
+        ============================================= */}
 
         <form
           onSubmit={handleUpdate}
@@ -284,6 +597,10 @@ export default function Profile() {
             Personal Details
           </p>
 
+          {/* ------------------------------------------
+              PROFILE PICTURE
+          ------------------------------------------ */}
+
           <div style={styles.inputGroup}>
             <label style={styles.label}>
               Profile Picture
@@ -291,15 +608,39 @@ export default function Profile() {
 
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               onChange={handleAvatarChange}
+              disabled={saving}
               style={styles.fileInput}
             />
 
             <span style={styles.hint}>
-              JPG, PNG, or other image files up to 5MB.
+              JPG, PNG, WEBP or GIF up to 5MB.
             </span>
+
+            {avatarFile && (
+              <div style={styles.selectedFileRow}>
+                <span
+                  style={styles.selectedFileText}
+                >
+                  Selected: {avatarFile.name}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={handleCancelAvatar}
+                  disabled={saving}
+                  style={styles.removeSelectionButton}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* ------------------------------------------
+              FULL NAME
+          ------------------------------------------ */}
 
           <div style={styles.inputGroup}>
             <label style={styles.label}>
@@ -312,9 +653,15 @@ export default function Profile() {
               onChange={(e) =>
                 setFullName(e.target.value)
               }
+              disabled={saving}
+              placeholder="Enter your full name"
               style={styles.input}
             />
           </div>
+
+          {/* ------------------------------------------
+              SAVE BUTTON
+          ------------------------------------------ */}
 
           <button
             type="submit"
@@ -328,7 +675,9 @@ export default function Profile() {
                 : styles.button
             }
           >
-            {saving ? 'Saving...' : 'Save Profile'}
+            {saving
+              ? 'Saving...'
+              : 'Save Profile'}
           </button>
         </form>
       </div>
@@ -336,10 +685,20 @@ export default function Profile() {
   );
 }
 
+// ========================================================
+// STYLES
+// ========================================================
+
 const styles = {
   wrapper: {
     width: '100%',
     maxWidth: '720px',
+  },
+
+  loading: {
+    color: '#0B1A3F',
+    fontSize: '16px',
+    fontWeight: '700',
   },
 
   title: {
@@ -353,7 +712,8 @@ const styles = {
     background: '#fff',
     borderRadius: '24px',
     padding: '35px',
-    boxShadow: '0 15px 30px rgba(0,0,0,0.04)',
+    boxShadow:
+      '0 15px 30px rgba(0,0,0,0.04)',
     border: '1px solid #F1F5F9',
   },
 
@@ -364,12 +724,18 @@ const styles = {
     marginBottom: '35px',
   },
 
+  headerText: {
+    minWidth: 0,
+  },
+
   avatarContainer: {
     width: '90px',
     height: '90px',
     borderRadius: '50%',
     overflow: 'hidden',
     flexShrink: 0,
+    border: '3px solid #F1F5F9',
+    backgroundColor: '#F8FAFC',
   },
 
   avatar: {
@@ -396,6 +762,7 @@ const styles = {
     color: '#0B1A3F',
     fontSize: '24px',
     fontWeight: '900',
+    wordBreak: 'break-word',
   },
 
   profileMajor: {
@@ -495,6 +862,8 @@ const styles = {
     color: '#111827',
     outline: 'none',
     backgroundColor: '#fff',
+    boxSizing: 'border-box',
+    width: '100%',
   },
 
   fileInput: {
@@ -505,21 +874,52 @@ const styles = {
     color: '#111827',
     backgroundColor: '#fff',
     cursor: 'pointer',
+    boxSizing: 'border-box',
+    width: '100%',
+  },
+
+  hint: {
+    color: '#A3AED0',
+    fontWeight: '700',
+    fontSize: '12px',
+  },
+
+  selectedFileRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '10px',
+    marginTop: '4px',
+  },
+
+  selectedFileText: {
+    color: '#667085',
+    fontSize: '12px',
+    fontWeight: '700',
+  },
+
+  removeSelectionButton: {
+    border: 'none',
+    background: 'transparent',
+    padding: 0,
+    color: '#DC2626',
+    fontSize: '12px',
+    fontWeight: '800',
+    cursor: 'pointer',
   },
 
   button: {
     backgroundColor: '#0B1A3F',
     color: '#FFFFFF',
-    padding: '1rem',
+    padding: '1rem 2rem',
     borderRadius: '12px',
     border: 'none',
     fontSize: '1rem',
     fontWeight: '700',
     cursor: 'pointer',
-    transition: 'background-color 0.2s ease',
+    transition:
+      'background-color 0.2s ease',
     alignSelf: 'flex-start',
-    paddingLeft: '2rem',
-    paddingRight: '2rem',
   },
 
   buttonDisabled: {
@@ -527,21 +927,25 @@ const styles = {
     cursor: 'not-allowed',
   },
 
-  errorText: {
-    color: '#DC2626',
+  errorBox: {
+    color: '#B42318',
     fontWeight: '700',
     marginBottom: '15px',
+    padding: '12px 15px',
+    borderRadius: '10px',
+    backgroundColor: '#FEF3F2',
+    border: '1px solid #FECDCA',
+    fontSize: '14px',
   },
 
-  successText: {
-    color: '#16A34A',
+  successBox: {
+    color: '#067647',
     fontWeight: '700',
     marginBottom: '15px',
-  },
-
-  hint: {
-    color: '#A3AED0',
-    fontWeight: '700',
-    fontSize: '12px',
+    padding: '12px 15px',
+    borderRadius: '10px',
+    backgroundColor: '#ECFDF3',
+    border: '1px solid #ABEFC6',
+    fontSize: '14px',
   },
 };
