@@ -143,36 +143,68 @@ create table if not exists reminders (
 
 -- -----------------------------------------------------------------------
 -- NOTIFICATIONS
--- Stores alerts generated from reminders for each student.
+-- Stores in-app alerts (courses, campus pulse, direct messages, etc.).
+-- The live app reads/writes these via `user_id`, `read` and `category`;
+-- `sender_id` is set for direct-message alerts so read-state can be
+-- cleared reliably when a conversation is opened.
 -- -----------------------------------------------------------------------
 create table if not exists notifications (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references profiles(id) on delete cascade,
-  reminder_id uuid references reminders(id) on delete cascade,
-
+  user_id uuid not null references profiles(id) on delete cascade,
   title text not null,
-  message text not null,
-
-  status text not null default 'unread'
-    check (status in ('unread', 'read')),
-
-  sent_at timestamptz not null default now(),
-  read_at timestamptz,
+  message text,
+  category text,
+  read boolean not null default false,
+  sender_id uuid references profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
--- Indexes improve notification and reminder lookups for each student.
+-- Upgrade guards so re-runs are safe on every database shape.
+alter table notifications add column if not exists user_id uuid references profiles(id) on delete cascade;
+alter table notifications add column if not exists title text;
+alter table notifications add column if not exists message text;
+alter table notifications add column if not exists category text;
+alter table notifications add column if not exists read boolean not null default false;
+alter table notifications add column if not exists sender_id uuid references profiles(id) on delete set null;
+
+-- Migrate away from the legacy profile_id/status/read_at design: point any
+-- old rows at user_id, then remove the unused columns and indexes.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'notifications' and column_name = 'profile_id'
+  ) then
+    update notifications set user_id = profile_id
+    where user_id is null and profile_id is not null;
+  end if;
+end
+$$;
+alter table notifications drop column if exists profile_id;
+alter table notifications drop column if exists reminder_id;
+alter table notifications drop column if exists status;
+alter table notifications drop column if exists sent_at;
+alter table notifications drop column if exists read_at;
+drop index if exists notifications_profile_id_idx;
+drop index if exists notifications_status_idx;
+-- Every notification belongs to exactly one user.
+alter table notifications alter column user_id set not null;
+
+-- Indexes improve notification lookups for each student.
 create index if not exists reminders_profile_id_idx
   on reminders(profile_id);
 
 create index if not exists reminders_remind_at_idx
   on reminders(remind_at);
 
-create index if not exists notifications_profile_id_idx
-  on notifications(profile_id);
+create index if not exists notifications_user_id_idx
+  on notifications(user_id);
 
-create index if not exists notifications_status_idx
-  on notifications(status);
+create index if not exists notifications_read_idx
+  on notifications(read);
+
+create index if not exists notifications_sender_id_idx
+  on notifications(sender_id);
 -- Row Level Security: the frontend reads directly with the anon key, so
 -- RLS is on with a public read policy on every table it queries.
 alter table profiles enable row level security;
@@ -255,29 +287,94 @@ create policy "Users can read own notifications"
 on notifications
 for select
 to authenticated
-using (auth.uid() = profile_id);
+using (auth.uid() = user_id);
 
 drop policy if exists "Users can create own notifications" on notifications;
 create policy "Users can create own notifications"
 on notifications
 for insert
 to authenticated
-with check (auth.uid() = profile_id);
+with check (auth.uid() = user_id);
 
 drop policy if exists "Users can update own notifications" on notifications;
 create policy "Users can update own notifications"
 on notifications
 for update
 to authenticated
-using (auth.uid() = profile_id)
-with check (auth.uid() = profile_id);
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
 
 drop policy if exists "Users can delete own notifications" on notifications;
 create policy "Users can delete own notifications"
 on notifications
 for delete
 to authenticated
-using (auth.uid() = profile_id);
+using (auth.uid() = user_id);
+-- -----------------------------------------------------------------------
+-- DIRECT MESSAGES: READ RECEIPTS
+-- The direct_messages table itself is created in the Supabase dashboard.
+-- This adds read-receipt tracking so the sender can see when the
+-- recipient has opened the conversation.
+-- -----------------------------------------------------------------------
+alter table direct_messages add column if not exists read_at timestamptz;
+create index if not exists direct_messages_read_at_idx
+  on direct_messages(read_at);
+
+-- RLS policies for direct_messages (inert unless RLS is enabled on the
+-- table, drop+create keeps re-runs idempotent). These mirror the read,
+-- insert and delete operations the app already performs.
+drop policy if exists "Users can read their DM conversations" on direct_messages;
+create policy "Users can read their DM conversations"
+  on direct_messages
+  for select
+  to authenticated
+  using (auth.uid() = sender_id or auth.uid() = receiver_id);
+
+drop policy if exists "Users can send DMs" on direct_messages;
+create policy "Users can send DMs"
+  on direct_messages
+  for insert
+  to authenticated
+  with check (auth.uid() = sender_id);
+
+drop policy if exists "Recipient can mark DMs read" on direct_messages;
+create policy "Recipient can mark DMs read"
+  on direct_messages
+  for update
+  to authenticated
+  using (auth.uid() = receiver_id)
+  with check (auth.uid() = receiver_id);
+
+drop policy if exists "Users can delete own DMs" on direct_messages;
+create policy "Users can delete own DMs"
+  on direct_messages
+  for delete
+  to authenticated
+  using (auth.uid() = sender_id);
+
+-- -----------------------------------------------------------------------
+-- REALTIME PUBLICATION
+-- The app streams rows for messaging and notifications. Add them to the
+-- realtime publication (idempotent) so fresh setups work without manual
+-- dashboard steps.
+-- -----------------------------------------------------------------------
+do $$
+declare t text;
+begin
+  foreach t in array array['direct_messages', 'group_messages', 'notifications']
+  loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table %I', t);
+    end if;
+  end loop;
+end
+$$;
+
 -- -----------------------------------------------------------------------
 -- TRIGGER: Automatically create a profile row when a user signs up.
 -- Reads `full_name` from raw_user_meta_data (matches what SignUp.jsx sends).

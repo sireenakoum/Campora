@@ -14,7 +14,6 @@ import {
   Bell,
   GraduationCap,
   Calendar,
-  Search,
   User,
   Users,
   ChevronsLeft,
@@ -49,6 +48,72 @@ import Profile from './Profile';
 import ForgotPassword from './ForgotPassword';
 
 import { supabase } from './lib/supabase';
+import {
+  catchUpUnreadDmNotifications,
+  dmViewStatus,
+  ensureDmNotification,
+} from './lib/dmNotifications';
+
+// Watches for incoming study-group direct messages and creates an unread
+// notification (with timestamp) for the recipient whenever they are not
+// currently reading that conversation.
+function DmNotificationsListener() {
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setUserId(data.user?.id || null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    catchUpUnreadDmNotifications(userId);
+
+    const channel = supabase
+      .channel(`study_group_dm_notifications_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${userId}`,
+        },
+        async (payload) => {
+          const message = payload.new;
+          if (!message || message.sender_id === userId) return;
+
+          // The user is reading this conversation right now, so the message
+          // is already seen and no notification is needed.
+          if (dmViewStatus.viewingPartnerId === message.sender_id) return;
+
+          await ensureDmNotification({ userId, message });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  return null;
+}
 
 function EmailVerified() {
   const navigate = useNavigate();
@@ -161,6 +226,7 @@ function DashboardLayout() {
 
   return (
     <div className="layout">
+      <DmNotificationsListener />
       <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
         {/* COLLAPSE BUTTON */}
         <button
@@ -512,45 +578,6 @@ function DashboardLayout() {
       </aside>
 
       <main className="main-content">
-        <header
-          style={{
-            marginBottom: '40px',
-            width: '100%',
-          }}
-        >
-          <div
-            style={{
-              position: 'relative',
-              width: '100%',
-              maxWidth: '600px',
-            }}
-          >
-            <Search
-              style={{
-                position: 'absolute',
-                left: '20px',
-                top: '15px',
-                color: '#A3AED0',
-              }}
-              size={20}
-            />
-
-            <input
-              type="text"
-              placeholder="Search..."
-              style={{
-                width: '100%',
-                padding: '15px 15px 15px 55px',
-                borderRadius: '50px',
-                border: 'none',
-                background: 'white',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.02)',
-                fontWeight: '700',
-              }}
-            />
-          </div>
-        </header>
-
         <Outlet />
       </main>
     </div>

@@ -343,17 +343,8 @@ export async function getNotificationsForCurrentUser() {
 
   const { data, error } = await supabase
     .from('notifications')
-    .select(`
-      *,
-      reminders (
-        id,
-        title,
-        reminder_type,
-        remind_at,
-        status
-      )
-    `)
-    .eq('profile_id', user.id)
+    .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -373,8 +364,8 @@ export async function getUnreadNotificationsForCurrentUser() {
   const { data, error } = await supabase
     .from('notifications')
     .select('*')
-    .eq('profile_id', user.id)
-    .eq('status', 'unread')
+    .eq('user_id', user.id)
+    .eq('read', false)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -382,14 +373,9 @@ export async function getUnreadNotificationsForCurrentUser() {
 }
 
 export async function markNotificationAsRead(notificationId) {
-  const readAt = new Date().toISOString();
-
   const { data, error } = await supabase
     .from('notifications')
-    .update({
-      status: 'read',
-      read_at: readAt,
-    })
+    .update({ read: true })
     .eq('id', notificationId)
     .select();
 
@@ -402,14 +388,9 @@ export async function updateNotificationStatus(notificationId, status) {
     throw new Error('Invalid notification status');
   }
 
-  const updates = {
-    status,
-    read_at: status === 'read' ? new Date().toISOString() : null,
-  };
-
   const { data, error } = await supabase
     .from('notifications')
-    .update(updates)
+    .update({ read: status === 'read' })
     .eq('id', notificationId)
     .select();
 

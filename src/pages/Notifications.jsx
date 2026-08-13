@@ -225,6 +225,32 @@ export default function Notifications() {
     loadEverything();
   }, []);
 
+  // Live-refresh so newly created notifications (e.g. an unread direct
+  // message in Study Groups) show up immediately without reloading the page.
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`notifications_live_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          loadEverything();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   async function loadEverything() {
     setLoading(true);
 

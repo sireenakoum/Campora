@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 import {
   Plus,
@@ -29,10 +30,20 @@ import {
   Mail,
   Pin,
   Reply,
-  LogOut
+  LogOut,
+  CheckCheck,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+
+const DmShellPortal = ({ active, children }) =>
+  active ? createPortal(children, document.body) : children;
+import {
+  dmViewStatus,
+  markDmNotificationsRead
+} from '../lib/dmNotifications';
 
 
 
@@ -270,9 +281,6 @@ const [loading, setLoading] =
 const [actionLoading, setActionLoading] =
  useState(false);
 
-const [searchQuery, setSearchQuery] =
- useState('');
-
 
 
 
@@ -434,7 +442,12 @@ const [
 
 const dmChatBottomRef = useRef(null);
 const dmChatHistoryRef = useRef(null);
+const dmTypingChannelRef = useRef(null);
+const dmTypingTimeoutRef = useRef(null);
+const partnerTypingTimeoutRef = useRef(null);
 
+const [dmFullscreen, setDmFullscreen] = useState(false);
+const [partnerTyping, setPartnerTyping] = useState(false);
 
 const [dmReplyingTo, setDmReplyingTo] = useState(null);
 const [activeDmMessageMenu, setActiveDmMessageMenu] = useState(null);
@@ -1010,15 +1023,43 @@ partnerId
    academic_year: fallbackMember?.profiles?.academic_year || 'Not specified',
 
     lastMessage: lastMessage?.content || '',
-    lastMessageTime: lastMessage?.created_at || null
- };
+    lastMessageTime: lastMessage?.created_at || null,
+    unreadCount: messagesList.filter(
+     (message) =>
+      message.sender_id === partnerId &&
+      message.receiver_id === currentUser.id &&
+      !message.read_at
+    ).length
+  };
 });
 
   setDmConversations(conversationList);
 };
 
 useEffect(() => {
-  if (view === 'dms') fetchDirectMessageConversations();
+  if (view !== 'dms') return;
+  fetchDirectMessageConversations();
+
+  // Keep the conversation list (last message + unread badges) fresh in real
+  // time whenever any direct message for this user changes.
+  const channel = supabase
+   .channel(`study_dm_inbox_${currentUser?.id || 'guest'}`)
+   .on(
+    'postgres_changes',
+    {
+     event: '*',
+     schema: 'public',
+     table: 'direct_messages'
+    },
+    () => {
+     fetchDirectMessageConversations();
+    }
+   )
+   .subscribe();
+
+  return () => {
+   supabase.removeChannel(channel);
+  };
 }, [view, currentUser]);
 
 // =====================================================
@@ -1058,6 +1099,125 @@ fetchDmMessages();
 
   return () => supabase.removeChannel(channel);
 }, [selectedDmUser?.partnerId, currentUser?.id]);
+
+// =====================================================
+// DM TYPING INDICATOR (REALTIME BROADCAST)
+// =====================================================
+
+ useEffect(() => {
+  if (!selectedDmUser?.partnerId || !currentUser?.id) return;
+  const memberIds = [currentUser.id, selectedDmUser.partnerId].sort();
+  const channelName = `dm_typing_${memberIds[0]}_${memberIds[1]}`;
+  setPartnerTyping(false);
+  const channel = supabase
+   .channel(channelName, { config: { broadcast: { self: false } } })
+   .on('broadcast', { event: 'typing' }, ({ payload }) => {
+    if (payload?.userId && payload.userId !== currentUser.id) {
+     setPartnerTyping(Boolean(payload.isTyping));
+     clearTimeout(partnerTypingTimeoutRef.current);
+     if (payload.isTyping) {
+      partnerTypingTimeoutRef.current = setTimeout(
+       () => setPartnerTyping(false),
+       5000
+      );
+     }
+    }
+   })
+   .subscribe();
+  dmTypingChannelRef.current = channel;
+  return () => {
+   clearTimeout(dmTypingTimeoutRef.current);
+   clearTimeout(partnerTypingTimeoutRef.current);
+   supabase.removeChannel(channel);
+   dmTypingChannelRef.current = null;
+   setPartnerTyping(false);
+  };
+ }, [selectedDmUser?.partnerId, currentUser?.id]);
+
+const stopTypingBroadcast = () => {
+ clearTimeout(dmTypingTimeoutRef.current);
+ const channel = dmTypingChannelRef.current;
+ if (!channel) return;
+ channel
+  .send({
+   type: 'broadcast',
+   event: 'typing',
+   payload: { userId: currentUser?.id, isTyping: false }
+  })
+  .catch(() => {});
+};
+
+const handleDmComposerChange = (value) => {
+ setNewDmMessageText(value);
+ const channel = dmTypingChannelRef.current;
+ if (!channel || !currentUser?.id) return;
+ if (!value.trim()) {
+  stopTypingBroadcast();
+  return;
+ }
+ channel
+  .send({
+   type: 'broadcast',
+   event: 'typing',
+   payload: { userId: currentUser.id, isTyping: true }
+  })
+  .catch(() => {});
+ clearTimeout(dmTypingTimeoutRef.current);
+ dmTypingTimeoutRef.current = setTimeout(stopTypingBroadcast, 2500);
+};
+
+// =====================================================
+// MARK INCOMING DMS AS READ
+// =====================================================
+
+useEffect(() => {
+ if (!currentUser?.id || !selectedDmUser?.partnerId) return;
+ const hasUnread = dmMessages.some(
+  (message) =>
+   message.sender_id === selectedDmUser.partnerId &&
+   message.receiver_id === currentUser.id &&
+   !message.read_at
+ );
+  if (!hasUnread) return;
+  const timeout = setTimeout(async () => {
+   await supabase
+    .from('direct_messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('sender_id', selectedDmUser.partnerId)
+    .eq('receiver_id', currentUser.id)
+    .is('read_at', null);
+
+   await markDmNotificationsRead({
+    userId: currentUser.id,
+    senderId: selectedDmUser.partnerId,
+    senderName: selectedDmUser.name
+   });
+
+   fetchDirectMessageConversations();
+  }, 250);
+  return () => clearTimeout(timeout);
+}, [dmMessages, currentUser?.id, selectedDmUser?.partnerId, selectedDmUser?.name]);
+
+// When a conversation is opened or new messages arrive, show the most
+// recent messages at the bottom of the chat history.
+useEffect(() => {
+  const history = dmChatHistoryRef.current;
+  if (!history || !selectedDmUser?.partnerId || dmMessages.length === 0) return;
+  history.scrollTop = history.scrollHeight;
+}, [dmMessages, selectedDmUser?.partnerId]);
+
+// Keep the global DM listener aware of which conversation is open so it can
+// skip creating notifications for messages the user is already reading.
+useEffect(() => {
+ if (view === 'dms' && selectedDmUser?.partnerId) {
+  dmViewStatus.viewingPartnerId = selectedDmUser.partnerId;
+ } else {
+  dmViewStatus.viewingPartnerId = null;
+ }
+ return () => {
+  dmViewStatus.viewingPartnerId = null;
+ };
+}, [view, selectedDmUser?.partnerId]);
 
 // =====================================================
 // SEARCH STUDENTS FOR DM
@@ -2094,6 +2254,7 @@ if (error) {
 setNewDmMessageText('');
 setDmReplyingTo(null);
 setActiveDmMessageMenu(null);
+stopTypingBroadcast();
 
 window.requestAnimationFrame(() => {
  window.requestAnimationFrame(() => {
@@ -2885,42 +3046,9 @@ const discoverGroups =
       'approved';
 
 
-      const query =
-       searchQuery
-        .toLowerCase();
-
-
-      const matchesSearch =
-       (
-         group.name ||
-         ''
-       )
-         .toLowerCase()
-         .includes(
-              query
-            ) ||
-        (
-            group.subject ||
-            ''
-        )
-         .toLowerCase()
-         .includes(
-           query
-            ) ||
-        (
-            group.major ||
-            ''
-        )
-            .toLowerCase()
-            .includes(
-              query
-            );
-
-
 
        return (
-         isApproved &&
-         matchesSearch
+         isApproved
        );
   }
 );
@@ -3233,55 +3361,6 @@ gap:
  '8px',
  boxShadow:
   '0 8px 16px rgba(11,26,63,0.2)'
-};
-
-
-const searchBarContainer = {
-
-display:
-'flex',
-
-alignItems:
- 'center',
-
-gap:
-'12px',
-
-background:
-'white',
-
-padding:
-'12px 20px',
-
-borderRadius:
-'18px',
-
-border:
-
-'1.5px solid #E9EDF7',
-
-  marginBottom:
-   '30px'
-};
-
-
-const searchField = {
-
-border:
-'none',
-
-outline:
-'none',
-
-width:
-'100%',
-
-fontWeight:
- '700',
-fontSize:
- '14px',
-  color:
-   '#0B1A3F'
 };
 
 
@@ -4946,67 +5025,9 @@ Discover.
  {/* =================================================
    DISCOVER
  ================================================= */}
-{view === 'browse' && (
+ {view === 'browse' && (
 
 <div>
-
-<div
-style={
-  searchBarContainer
-}
->
-
-<Search
- size={20}
- color="#A3AED0"
-/>
-
-<input
-type="text"
-placeholder="Search by topic, class name, or major..."
-style={
-  searchField
-}
-value={
-  searchQuery
-}
-onChange={(event) =>
-  setSearchQuery(
-    event.target.value
-  )
- }
-/>
-{searchQuery && (
-
-<button
-onClick={() =>
-  setSearchQuery(
-    ''
-  )
-}
-style={{
-  background:
-    'none',
-
-    border:
-    'none',
- cursor:
-   'pointer'
-}}
->
-
-<X
- size={18}
- color="#A3AED0"
-/>
-
- </button>
-)}
-
-</div>
-
-
-
 
 {loading ? (
 
@@ -5159,14 +5180,12 @@ fontSize:
  }}
  >
 
- {searchQuery
-  ? 'No approved study circles match your search yet.'
-  : 'There are no approved circles available yet. Create one and submit it for Campora review.'}
+ {'There are no approved circles available yet. Create one and submit it for Campora review.'}
 
  </p>
 
 
- {!searchQuery && (
+ {(
 
  <button
   onClick={() =>
@@ -5448,7 +5467,25 @@ one place.
   </p>
   </div>
 
- <div style={instagramDmShell}>
+  <DmShellPortal active={dmFullscreen}>
+ <div style={{ ...instagramDmShell, ...(dmFullscreen ? {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  width: '100vw',
+  height: '100vh',
+  minHeight: '100vh',
+  maxHeight: '100vh',
+  maxWidth: '100vw',
+  gridTemplateColumns: '1fr',
+  borderRadius: 0,
+  border: 'none',
+  zIndex: 9990,
+  boxShadow: '0 0 60px rgba(11,26,57,0.35)'
+ } : {}) }}>
+ {!dmFullscreen && (
  <aside style={instagramDmSidebar}>
   <div style={instagramDmSidebarHeader}>
   <div>
@@ -5544,10 +5581,32 @@ color={PIN_COLORS.icon} />}
              <span style={instagramThreadDate}>{new
 Date(conversation.lastMessageTime).toLocaleDateString()}</span>
            )}
+           {(conversation.unreadCount || 0) > 0 && (
+            <span style={{
+             background: '#EF4444',
+             color: '#FFFFFF',
+             borderRadius: '999px',
+             minWidth: '18px',
+             height: '18px',
+             padding: '0 6px',
+             display: 'inline-flex',
+             alignItems: 'center',
+             justifyContent: 'center',
+             fontSize: '10px',
+             fontWeight: '900',
+             flexShrink: 0,
+             lineHeight: 1
+            }}>
+             {conversation.unreadCount > 99 ? '99+' :
+conversation.unreadCount}
+            </span>
+           )}
           </div>
           {conversation.email && <p style={instagramPersonMeta}
 >{conversation.email}</p>}
-          <p style={instagramMessagePreview}
+          <p style={{ ...instagramMessagePreview,
+...(conversation.unreadCount > 0 ? { color: '#0B1A3F', fontWeight: '800' } :
+{}) }}
 >{parseStudyDm(conversation.lastMessage).text || 'Click to view conversation'}
 </p>
          </div>
@@ -5566,8 +5625,9 @@ color={isPinned ? PIN_COLORS.icon : '#A3AED0'} />
       );
     })
    )}
-   </div>
- </aside>
+</div>
+  </aside>
+ )}
 
    <section style={instagramChatPanel}>
    {!selectedDmUser ? (
@@ -5588,27 +5648,55 @@ getAvatarColor(selectedDmUser.name) }}>
         </div>
        <div style={{ minWidth: 0 }}>
         <h4 style={instagramChatName}>{selectedDmUser.name}</h4>
-        <p style={instagramChatEmail}>{selectedDmUser.email || 'Campora Student'}</p>
+        {partnerTyping ? (
+         <p style={{ ...instagramChatEmail, color: '#0B1A3F', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{
+           width: '6px',
+           height: '6px',
+           borderRadius: '50%',
+           background: '#22C55E',
+           display: 'inline-block',
+           animation: 'camporaTypingPulse 1s ease-in-out infinite'
+          }} />
+          {selectedDmUser.name} is typing...
+         </p>
+        ) : (
+         <p style={instagramChatEmail}>{selectedDmUser.email || 'Campora Student'}</p>
+        )}
        </div>
      </div>
+     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
      <button
        type="button"
        onClick={() => togglePinDm(selectedDmUser.partnerId)}
        style={{
         ...instagramHeaderPin,
         ...(pinnedChats.dms.includes(selectedDmUser.partnerId) ?
-instagramHeaderPinActive : {})
+ instagramHeaderPinActive : {})
        }}
      >
        <Pin
         size={16}
         color={pinnedChats.dms.includes(selectedDmUser.partnerId) ?
-PIN_COLORS.icon : '#64748B'}
+ PIN_COLORS.icon : '#64748B'}
         fill={pinnedChats.dms.includes(selectedDmUser.partnerId) ?
-PIN_COLORS.icon : 'none'}
+ PIN_COLORS.icon : 'none'}
 
      />
     </button>
+    <button
+     type="button"
+     onClick={() => setDmFullscreen((previous) => !previous)}
+     title={dmFullscreen ? 'Exit fullscreen' : 'View fullscreen'}
+     style={{ ...instagramHeaderPin, ...(dmFullscreen ? instagramHeaderPinActive : {}) }}
+    >
+     {dmFullscreen ? (
+      <Minimize2 size={16} color="#64748B" />
+     ) : (
+      <Maximize2 size={16} color="#64748B" />
+     )}
+    </button>
+    </div>
     </div>
 
      {(pinnedDmMessages[selectedDmUser.partnerId] || []).length > 0 && (
@@ -5743,11 +5831,18 @@ instagramReplyQuoteMine : {}) }}>
               )}
               <p style={instagramBubbleText}>{parsed.text}</p>
               <div style={instagramBubbleFooter}>
-               <span>
+               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                  {message.created_at
                   ? new Date(message.created_at).toLocaleTimeString([],
 { hour: '2-digit', minute: '2-digit' })
                   : ''}
+                 {isMe && (
+                  message.read_at ? (
+                   <CheckCheck size={13} color="#8AB4F8" strokeWidth={2.5} />
+                  ) : (
+                   <Check size={13} color="currentColor" strokeWidth={2.5} />
+                  )
+                 )}
                </span>
 
            </div>
@@ -5819,7 +5914,7 @@ style={instagramReplyClose}><X size={15} /></button>
          type="text"
          placeholder={`Message ${selectedDmUser.name}...`}
          value={newDmMessageText}
-         onChange={(event) => setNewDmMessageText(event.target.value)}
+         onChange={(event) => handleDmComposerChange(event.target.value)}
          style={instagramComposerInput}
            />
            <button
@@ -5835,6 +5930,7 @@ style={instagramReplyClose}><X size={15} /></button>
      )}
    </section>
    </div>
+  </DmShellPortal>
   </div>
 )}
 {/* =================================================
