@@ -78,6 +78,25 @@ const CAMPUS_PULSE_CATEGORIES = [
   'Opportunities',
 ];
 
+const campusPulseTone = (category) => {
+  switch (category) {
+    case 'Clubs & Events':
+      return { accent: TEAL, soft: TEAL_SOFT, border: TEAL_BORDER };
+    case 'Questions':
+      return { accent: PURPLE, soft: PURPLE_SOFT, border: PURPLE_BORDER };
+    case 'Campus Life':
+      return { accent: BLUE, soft: BLUE_SOFT, border: BLUE_BORDER };
+    case 'Complaints':
+      return { accent: ROSE, soft: ROSE_SOFT, border: ROSE_BORDER };
+    case 'Lost & Found':
+      return { accent: GOLD, soft: GOLD_SOFT, border: GOLD_BORDER };
+    case 'Opportunities':
+      return { accent: TERRACOTTA, soft: TERRACOTTA_SOFT, border: TERRACOTTA_BORDER };
+    default:
+      return { accent: BLUE, soft: BLUE_SOFT, border: BLUE_BORDER };
+  }
+};
+
 const TODO_PRIORITIES = [
   {
     key: 'high',
@@ -1445,49 +1464,6 @@ export default function Dashboard() {
       </div>
 
       {/* ===================================================
-          CAMPUS MAP
-      =================================================== */}
-
-      <section>
-        <SectionHeader
-          title="Campus Map"
-          subtitle="Find your way around campus and jump to your next class."
-        />
-
-        <div style={s.mapFrame}>
-          <iframe
-            title="American University of Beirut campus map"
-            src="https://www.google.com/maps?q=American%20University%20of%20Beirut%2C%20Beirut%2C%20Lebanon&z=17&output=embed"
-            style={s.mapImg}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-
-          <a
-            href="https://www.google.com/maps/dir/?api=1&destination=American+University+of+Beirut"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pill"
-            style={s.mapPill}
-          >
-            <Compass size={14} />
-            Navigate to AUB
-          </a>
-          <a
-            href="https://maps.aub.edu.lb/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pill"
-            style={s.mapAubPill}
-          >
-            <Landmark size={14} />
-            View AUB interactive map
-          </a>
-        </div>
-      </section>
-
-      {/* ===================================================
           QUICK ACCESS
       =================================================== */}
 
@@ -1697,89 +1673,6 @@ export default function Dashboard() {
         </div>
       </Panel>
 
-      <Panel
-        title="Academic Summary"
-        subtitle="Your courses, credits and workload at a glance."
-        icon={BookOpen}
-        accent={PURPLE}
-        soft={PURPLE_SOFT}
-        border={PURPLE_BORDER}
-        action="Open Courses"
-        onAction={() =>
-          navigate('/courses')
-        }
-      >
-        <div style={s.academicGrid}>
-          <AcademicMetric
-            label="Courses"
-            value={courses.length}
-            accent={PURPLE}
-            soft={PURPLE_SOFT}
-            border={PURPLE_BORDER}
-            icon={BookOpen}
-          />
-
-          <AcademicMetric
-            label="Credits"
-            value={totalCredits}
-            accent={GOLD}
-            soft={GOLD_SOFT}
-            border={GOLD_BORDER}
-            icon={GraduationCap}
-          />
-
-          <AcademicMetric
-            label="Assignments"
-            value={activeAssignments.length}
-            accent={BLUE}
-            soft={BLUE_SOFT}
-            border={BLUE_BORDER}
-            icon={ClipboardCheck}
-          />
-
-          <AcademicMetric
-            label="Upcoming"
-            value={upcomingCourseEvents.length}
-            accent={TERRACOTTA}
-            soft={TERRACOTTA_SOFT}
-            border={TERRACOTTA_BORDER}
-            icon={Clock3}
-          />
-
-          <AcademicMetric
-            label="Resources"
-            value={courseResources.length}
-            accent={TEAL}
-            soft={TEAL_SOFT}
-            border={TEAL_BORDER}
-            icon={FolderOpen}
-          />
-        </div>
-
-        <button
-          type="button"
-          className="btn btn-tinted btn-sm"
-          style={s.coursesFooter}
-          onClick={() => navigate('/courses')}
-        >
-          <span>
-            {totalCredits}{' '}
-            {totalCredits === 1
-              ? 'credit'
-              : 'credits'}{' '}
-            across{' '}
-            {courses.length}{' '}
-            {courses.length === 1
-              ? 'course'
-              : 'courses'}
-          </span>
-
-          <ChevronRight
-            size={17}
-          />
-        </button>
-      </Panel>
-
       {/* ===================================================
           UPCOMING + TO-DO
       =================================================== */}
@@ -1891,31 +1784,31 @@ export default function Dashboard() {
               />
             ) : (
               <div className="stack">
-                {filteredCampusPulse.map(
-                  post => (
+                {filteredCampusPulse.map(post => {
+                  const tone = campusPulseTone(post.category);
+
+                  return (
                     <button
                       key={post.id}
                       type="button"
-                      onClick={() =>
-                        navigate(
-                          '/campus-pulse'
-                        )
-                      }
-                      className="accent-row tone-error"
-                      style={s.previewRow}
+                      onClick={() => navigate('/campus-pulse')}
+                      style={{
+                        ...s.previewRow,
+                        background: `linear-gradient(180deg, ${tone.soft} 0%, var(--surface-container-lowest) 48%)`,
+                        border: `1px solid ${tone.border}`,
+                        boxShadow: `inset 0 4px 0 ${tone.accent}55, 0 8px 22px rgba(0,45,98,0.05)`,
+                      }}
                     >
                       <span
                         className="icon-chip"
                         style={{
                           ...s.previewIcon,
-                          background:
-                            ROSE_SOFT,
-                          color: ROSE,
+                          background: tone.soft,
+                          color: tone.accent,
+                          border: `1px solid ${tone.border}`,
                         }}
                       >
-                        <MessageSquare
-                          size={16}
-                        />
+                        <MessageSquare size={16} />
                       </span>
 
                       <span style={s.previewMain}>
@@ -1924,37 +1817,30 @@ export default function Dashboard() {
                             className="stat-tile-title"
                             style={s.previewTitle}
                           >
-                            {post.title ||
-                              post.category ||
-                              'Campus Pulse post'}
+                            {post.title || post.category || 'Campus Pulse post'}
                           </strong>
 
                           <span
                             className="pill"
                             style={{
-                              background:
-                                ROSE_SOFT,
-                              color: ROSE,
+                              background: tone.soft,
+                              color: tone.accent,
+                              border: `1px solid ${tone.border}`,
                             }}
                           >
-                            {post.category ||
-                              'Post'}
+                            {post.category || 'Post'}
                           </span>
                         </span>
 
                         <span className="stat-tile-desc" style={s.previewText}>
-                          {post.content ||
-                            'Open Campus Pulse to view this post.'}
+                          {post.content || 'Open Campus Pulse to view this post.'}
                         </span>
                       </span>
 
-                      <ChevronRight
-                        size={16}
-                        className="dimmed"
-                      />
+                      <ChevronRight size={16} className="dimmed" />
                     </button>
-                  )
-                )}
+                  );
+                })}
               </div>
             )}
           </Panel>
@@ -2637,6 +2523,50 @@ export default function Dashboard() {
           </Panel>
         </div>
       </section>
+
+      {/* ===================================================
+          CAMPUS MAP — LAST SECTION
+      =================================================== */}
+
+      <section>
+        <SectionHeader
+          title="Campus Map"
+          subtitle="Find your way around campus and jump to your next class."
+        />
+
+        <div style={s.mapFrame}>
+          <iframe
+            title="American University of Beirut campus map"
+            src="https://www.google.com/maps?q=American%20University%20of%20Beirut%2C%20Beirut%2C%20Lebanon&z=17&output=embed"
+            style={s.mapImg}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+
+          <a
+            href="https://www.google.com/maps/dir/?api=1&destination=American+University+of+Beirut"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pill"
+            style={s.mapPill}
+          >
+            <Compass size={14} />
+            Navigate to AUB
+          </a>
+          <a
+            href="https://maps.aub.edu.lb/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pill"
+            style={s.mapAubPill}
+          >
+            <Landmark size={14} />
+            View AUB interactive map
+          </a>
+        </div>
+      </section>
+
     </PageShell>
   );
 }
@@ -2674,8 +2604,11 @@ function QuickAccessCard({
   return (
     <button
       type="button"
-      className="accent-row tone-primary"
-      style={s.quickAccessCard}
+      style={{
+        ...s.quickAccessCard,
+        border: `1px solid ${border}`,
+        boxShadow: `inset 0 3px 0 ${accent}33, 0 8px 22px rgba(0,45,98,0.06)`
+      }}
       onClick={onClick}
     >
       <span
@@ -2720,7 +2653,14 @@ function Panel({
   children,
 }) {
   return (
-    <section className="panel-low" style={s.panel}>
+    <section
+      className="panel-low"
+      style={{
+        ...s.panel,
+        background: `linear-gradient(135deg, ${soft} 0%, var(--surface-container-lowest) 44%)`,
+        border: `1px solid ${border}`,
+      }}
+    >
       <div style={s.panelHeader}>
         <span
           className="icon-chip"
@@ -3105,26 +3045,30 @@ const s = {
   quickGrid: {
     display: 'grid',
     gridTemplateColumns:
-      'repeat(auto-fit, minmax(230px, 1fr))',
-    gap: '12px',
+      'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '16px',
+    marginTop: '6px',
   },
 
   quickAccessCard: {
     width: '100%',
-    minHeight: '80px',
-    padding: '16px',
+    minHeight: '104px',
+    padding: '18px',
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
+    gap: '15px',
     textAlign: 'left',
     cursor: 'pointer',
     fontFamily: 'inherit',
+    background: 'var(--surface-container-lowest)',
+    borderRadius: '20px',
+    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
   },
 
   quickAccessIcon: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '14px',
+    width: '50px',
+    height: '50px',
+    borderRadius: '16px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3138,7 +3082,7 @@ const s = {
 
   quickAccessLabel: {
     display: 'block',
-    fontSize: '15px',
+    fontSize: '16px',
     fontWeight: '800',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -3147,11 +3091,11 @@ const s = {
 
   quickAccessDescription: {
     display: 'block',
-    fontSize: '13px',
-    marginTop: '3px',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    fontSize: '12.5px',
+    marginTop: '5px',
+    lineHeight: 1.35,
+    whiteSpace: 'normal',
+    color: 'var(--campora-muted)',
   },
 
   todoCard: {
@@ -3235,8 +3179,9 @@ const s = {
   },
 
   panel: {
-    padding: '20px',
-    borderRadius: 'var(--radius-secondary)',
+    padding: '24px',
+    borderRadius: '22px',
+    boxShadow: '0 8px 24px rgba(0,45,98,0.055)',
   },
 
   panelHeader: {
@@ -3274,7 +3219,7 @@ const s = {
   panelBody: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px',
+    gap: '18px',
   },
 
   academicGrid: {
@@ -3432,7 +3377,11 @@ const s = {
   announcementCard: {
     width: '100%',
     minHeight: '96px',
-    padding: '16px',
+    padding: '16px 18px',
+    borderRadius: '18px',
+    border: '1px solid var(--hairline)',
+    background: 'var(--surface-container-lowest)',
+    boxShadow: '0 5px 16px rgba(0,45,98,0.04)',
     display: 'flex',
     alignItems: 'center',
     gap: '14px',
@@ -3474,8 +3423,12 @@ const s = {
 
   previewRow: {
     width: '100%',
-    minHeight: '62px',
-    padding: '12px 14px',
+    minHeight: '78px',
+    padding: '15px 17px',
+    borderRadius: '18px',
+    border: '1px solid var(--hairline)',
+    background: 'var(--surface-container-lowest)',
+    boxShadow: '0 5px 16px rgba(0,45,98,0.035)',
     display: 'flex',
     alignItems: 'center',
     gap: '12px',

@@ -523,6 +523,10 @@ export default function Planner() {
   };
 
   const { startPadding, dateArray } = getDatesToDisplay();
+  const endPadding =
+    viewType === 'Month'
+      ? (7 - ((startPadding + dateArray.length) % 7)) % 7
+      : 0;
 
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -696,8 +700,68 @@ export default function Planner() {
   };
 
 
+  const insertPlannerEntries = async (entries) => {
+    let result = await supabase
+      .from('planner_courses')
+      .insert(entries)
+      .select();
+
+    const missingGroupId =
+      result.error &&
+      /group_id/i.test(result.error.message || '') &&
+      /(column|schema|does not exist|not found)/i.test(result.error.message || '');
+
+    if (missingGroupId) {
+      const compatibleEntries = entries.map(({ group_id, ...entry }) => entry);
+      result = await supabase
+        .from('planner_courses')
+        .insert(compatibleEntries)
+        .select();
+    }
+
+    return result;
+  };
+
+  const confirmDuplicatePlannerEntries = async (entries = []) => {
+    if (!user || !entries.length) return true;
+
+    const dates = [...new Set(entries.map((entry) => entry.date).filter(Boolean))];
+    if (!dates.length) return true;
+
+    const { data: existing, error } = await supabase
+      .from('planner_courses')
+      .select('id, name, date, start_time, end_time')
+      .eq('user_id', user.id)
+      .in('date', dates);
+
+    if (error) {
+      console.warn('Duplicate check skipped:', error);
+      return true;
+    }
+
+    const normalizedName = newEntry.name.trim().toLowerCase();
+    const hasExactDuplicate = (existing || []).some((item) =>
+      String(item.name || '').trim().toLowerCase() === normalizedName &&
+      entries.some((entry) =>
+        entry.date === item.date &&
+        entry.start_time === item.start_time &&
+        entry.end_time === item.end_time
+      )
+    );
+
+    if (!hasExactDuplicate) return true;
+
+    return window.confirm(
+      'You already have an entry with the same title, date, and time. Add it anyway?'
+    );
+  };
+
   const createEntryOrSeries = async () => {
-    const groupId = crypto.randomUUID();
+    const groupId =
+      newEntry.repeat === 'none'
+        ? null
+        : (globalThis.crypto?.randomUUID?.() ||
+          `planner-${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
     const entriesToSave = buildSeriesEntries({
       entryData: newEntry,
@@ -716,10 +780,8 @@ export default function Planner() {
       return false;
     }
 
-    const { data: savedEntries, error } = await supabase
-      .from('planner_courses')
-      .insert(entriesToSave)
-      .select();
+    const { data: savedEntries, error } =
+      await insertPlannerEntries(entriesToSave);
 
     if (error) {
       console.error('Create entry error:', error);
@@ -826,10 +888,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       return false;
     }
 
-    const { data: savedEntries, error: insertError } = await supabase
-      .from('planner_courses')
-      .insert(entriesToSave)
-      .select();
+    const { data: savedEntries, error: insertError } =
+      await insertPlannerEntries(entriesToSave);
 
     if (insertError) {
       console.error('Create series error:', insertError);
@@ -932,7 +992,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         }
 
         if (newEntry.alertType === 'notification') {
-          await saveNotificationsForEntries([data]);
+          savePlannerAlertChoice([data], 'notification');
         }
       }
 
@@ -1048,7 +1108,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     } catch (error) {
       console.error('Planner save error:', error);
       alert(
-        'Something went wrong while saving. Please try again.'
+        `Something went wrong while saving: ${error?.message || 'Unknown error'}`
       );
     } finally {
       setSaving(false);
@@ -1317,7 +1377,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             padding: '7px 11px',
             borderRadius: '9px',
             fontWeight: '900',
-            fontSize: '11px',
+            fontSize: '12px',
             color: '#1A1B1F',
             cursor: 'pointer'
           }}
@@ -1402,7 +1462,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '16px',
-              flexWrap: 'wrap'
+              flexWrap: 'nowrap',
+              minHeight: '72px'
             }}
           >
             <div
@@ -1448,6 +1509,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               <h2
                 style={{
                   margin: '0 0 0 8px',
+                  minWidth: '190px',
                   fontSize: '20px',
                   fontWeight: '800',
                   color: 'var(--campora-text)',
@@ -1465,15 +1527,27 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               </h2>
             </div>
 
-            <SegmentedControl
-              options={[
-                { value: 'Month', label: 'Month' },
-                { value: 'Week', label: 'Week' },
-                { value: 'Day', label: 'Day' }
-              ]}
-              value={viewType}
-              onChange={(nextView) => setViewType(nextView)}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', flexShrink: 0 }}>
+              <SegmentedControl
+                options={[
+                  { value: 'Month', label: 'Month' },
+                  { value: 'Week', label: 'Week' },
+                  { value: 'Day', label: 'Day' }
+                ]}
+                value={viewType}
+                onChange={(nextView) => setViewType(nextView)}
+              />
+
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => handleOpenModal(selectedDateStr)}
+                style={{ height: '38px', paddingInline: '14px' }}
+              >
+                <Plus size={15} />
+                Add Entry
+              </button>
+            </div>
           </div>
 
         <div
@@ -1557,7 +1631,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 return (
                   <div
                     key={index}
-                    onClick={() => setSelectedDate(dateObj)}
+                    onClick={() => {
+                      setSelectedDate(dateObj);
+                      setViewDate(dateObj);
+                    }}
                     style={{
                       minHeight:
                         viewType === 'Month' ? '120px' : '480px',
@@ -1651,10 +1728,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                         const eventColor =
                           event.color || '#E1F2FF';
 
-                        const eventFg =
-                          getContrastText(eventColor) === '#FFFFFF'
-                            ? 'var(--campora-navy)'
-                            : getContrastText(eventColor);
+                        const eventFg = getContrastText(eventColor);
 
                         return (
                           <div
@@ -1667,7 +1741,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             style={{
                               background: event.is_completed
                                 ? 'var(--surface-container-low)'
-                                : `${eventColor}1A`,
+                                : eventColor,
                               color: event.is_completed
                                 ? 'var(--campora-muted)'
                                 : eventFg,
@@ -1682,7 +1756,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                                 ? 'line-through'
                                 : 'none',
                               wordBreak: 'break-word',
-                              border: `1px solid ${eventColor}33`,
+                              border: event.is_completed
+                                ? '1px solid var(--hairline)'
+                                : `1px solid ${eventColor}`,
+                              boxShadow: event.is_completed
+                                ? 'none'
+                                : `0 2px 8px ${eventColor}33`,
                               cursor: 'pointer'
                             }}
                           >
@@ -1729,28 +1808,6 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             >
                               {event.name}
                             </div>
-
-                            {viewType !== 'Month' &&
-                              visiblePlannerDescription(
-                                event.description || ''
-                              ) && (
-                                <div
-                                  style={{
-                                    fontSize: '10px',
-                                    opacity: 0.85,
-                                    marginTop: '4px',
-                                    borderTop:
-                                      '1px solid rgba(0,45,98,0.1)',
-                                    paddingTop: '4px',
-                                    fontWeight: '500',
-                                    lineHeight: '1.3'
-                                  }}
-                                >
-                                  {visiblePlannerDescription(
-                                    event.description || ''
-                                  )}
-                                </div>
-                              )}
                           </div>
                         );
                       })}
@@ -1758,70 +1815,22 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   </div>
                 );
               })}
-            </div>
-          </div>
 
-          <div
-            style={{
-              borderRadius: 'var(--radius)',
-              padding: '20px 24px',
-              background:
-                'linear-gradient(120deg, var(--campora-active) 0%, var(--campora-navy) 55%, var(--primary-container) 100%)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '16px'
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div
-                className="label-caps"
-                style={{
-                  color: 'rgba(255,255,255,0.75)',
-                  marginBottom: '2px'
-                }}
-              >
-                {selectedDate.toLocaleString('default', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </div>
-              <div
-                style={{
-                  fontSize: '20px',
-                  fontWeight: '800',
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                {selectedDayEvents.length}{' '}
-                {selectedDayEvents.length === 1
-                  ? 'event'
-                  : 'events'}{' '}
-                planned
-              </div>
-            </div>
-
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '22px',
-                fontWeight: '800'
-              }}
-            >
-              {selectedDayEvents.length}
+              {viewType === 'Month' &&
+                [...Array(endPadding)].map((_, index) => (
+                  <div
+                    key={`end-pad-${index}`}
+                    style={{
+                      minHeight: '120px',
+                      background: 'var(--surface-container-lowest)'
+                    }}
+                  />
+                ))}
             </div>
           </div>
         </div>
 
-      <div
+        <div
           style={{
             flex: '1 1 320px',
             minWidth: 0,
@@ -1951,7 +1960,13 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
           <div
             className="panel"
-            style={{ display: 'flex', flexDirection: 'column' }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '470px',
+              minHeight: '470px',
+              overflow: 'hidden'
+            }}
           >
             <div
               style={{
@@ -1959,7 +1974,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: '14px',
-                gap: '10px'
+                gap: '10px',
+                flexShrink: 0
               }}
             >
               <div
@@ -2010,7 +2026,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   onClick={eraseAll}
                   className="btn btn-sm btn-ghost"
                   style={{
-                    color: 'var(--campora-urgent)',
+                    color: 'var(--campora-navy)',
+                    background: 'var(--campora-navy-tint-alpha)',
+                    border: '1px solid var(--outline-variant)',
                     height: '32px'
                   }}
                 >
@@ -2031,9 +2049,21 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
             <div
               style={{
+                flex: 1,
+                minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px'
+                gap: '14px',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                overscrollBehaviorY: 'contain',
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y',
+                paddingRight: '10px',
+                paddingBottom: '12px',
+                scrollbarGutter: 'stable',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#AAB4C4 #F4F3F8'
               }}
             >
               {upNextEvents.length > 0 ? (
@@ -2049,131 +2079,298 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   return (
                     <div
                       key={event.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleOpenEditModal(event)}
+                      onKeyDown={(eventKey) => {
+                        if (eventKey.key === 'Enter' || eventKey.key === ' ') {
+                          eventKey.preventDefault();
+                          handleOpenEditModal(event);
+                        }
+                      }}
                       style={{
                         position: 'relative',
                         overflow: 'hidden',
-                        borderRadius: '14px',
-                        padding: '12px 14px 12px 18px',
-                        background: 'var(--surface-container-low)',
+                        borderRadius: '16px',
+                        padding: '20px 18px 18px',
+                        background: event.is_completed
+                          ? 'var(--surface-container-low)'
+                          : `${barColor}18`,
+                        border: '1px solid var(--hairline)',
+                        boxShadow: '0 6px 18px rgba(0, 45, 98, 0.05)',
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
+                        flexDirection: 'column',
+                        alignItems: 'stretch',
+                        gap: '14px',
+                        height: '220px',
+                        minHeight: '220px',
+                        maxHeight: '220px',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition:
+                          'box-shadow 0.18s ease, border-color 0.18s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow =
+                          '0 10px 24px rgba(0, 45, 98, 0.10)';
+                        e.currentTarget.style.borderColor =
+                          'rgba(0,45,98,0.16)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow =
+                          '0 6px 18px rgba(0, 45, 98, 0.05)';
+                        e.currentTarget.style.borderColor =
+                          'var(--hairline)';
                       }}
                     >
                       <div
                         style={{
                           position: 'absolute',
                           left: 0,
+                          right: 0,
                           top: 0,
-                          bottom: 0,
-                          width: '4px',
+                          height: '5px',
                           background: barColor
                         }}
                       />
 
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ width: '100%', minWidth: 0 }}>
                         <div
                           style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: '10px'
                           }}
                         >
-                          <span
-                            style={{
-                              fontSize: '13px',
-                              fontWeight: '800',
-                              color: event.is_completed
-                                ? 'var(--campora-muted)'
-                                : 'var(--campora-text)',
-                              textDecoration: event.is_completed
-                                ? 'line-through'
-                                : 'none',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {event.name}
-                          </span>
-
-                          {event.is_completed && (
-                            <span
-                              className="label-caps"
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div
                               style={{
-                                fontSize: '9px',
-                                color: 'var(--campora-muted)',
-                                flexShrink: 0
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                flexWrap: 'wrap'
                               }}
                             >
-                              Completed
-                            </span>
-                          )}
+                              <span
+                                style={{
+                                  width: '11px',
+                                  height: '11px',
+                                  borderRadius: '50%',
+                                  background: event.is_completed
+                                    ? 'var(--surface-container-highest)'
+                                    : event.color || '#E1F2FF',
+                                  border: '1px solid rgba(0,45,98,0.10)',
+                                  flexShrink: 0
+                                }}
+                              />
+
+                              <span
+                                style={{
+                                  fontSize: '16px',
+                                  fontWeight: '900',
+                                  color: event.is_completed
+                                    ? 'var(--campora-muted)'
+                                    : 'var(--campora-text)',
+                                  textDecoration: event.is_completed
+                                    ? 'line-through'
+                                    : 'none',
+                                  lineHeight: '1.3',
+                                  wordBreak: 'break-word'
+                                }}
+                              >
+                                {event.name}
+                              </span>
+
+                              {event.is_completed && (
+                                <span
+                                  className="label-caps"
+                                  style={{
+                                    fontSize: '9px',
+                                    color: 'var(--campora-muted)'
+                                  }}
+                                >
+                                  Completed
+                                </span>
+                              )}
+                            </div>
+
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                flexWrap: 'wrap',
+                                marginTop: '6px'
+                              }}
+                            >
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  height: '24px',
+                                  padding: '0 8px',
+                                  borderRadius: '999px',
+                                  background: 'rgba(255,255,255,0.72)',
+                                  border: '1px solid rgba(0,45,98,0.08)',
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  color: 'var(--campora-navy)'
+                                }}
+                              >
+                                {event.type || 'Entry'}
+                              </span>
+
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  color: 'var(--campora-muted)'
+                                }}
+                              >
+                                <CalIcon size={11} />
+                                {eventDate.toLocaleDateString('default', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </span>
+
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  color: 'var(--campora-muted)'
+                                }}
+                              >
+                                {event.start_time?.substring(0, 5) || ''}
+                                {event.end_time
+                                  ? ` – ${event.end_time.substring(0, 5)}`
+                                  : ''}
+                              </span>
+
+                              {event.reminder && <Bell size={11} />}
+                            </div>
+                          </div>
                         </div>
 
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            color: 'var(--campora-muted)',
-                            marginTop: '2px'
-                          }}
-                        >
-                          <CalIcon size={11} />
+                        {visiblePlannerDescription(event.description || '') && (
+                          <div
+                            style={{
+                              marginTop: '10px',
+                              padding: '12px 13px',
+                              borderRadius: '12px',
+                              background: 'rgba(255,255,255,0.62)',
+                              border: '1px solid rgba(0,45,98,0.06)'
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: '900',
+                                letterSpacing: '0.06em',
+                                textTransform: 'uppercase',
+                                color: 'var(--campora-muted)',
+                                marginBottom: '4px'
+                              }}
+                            >
+                              Details
+                            </div>
 
-                          <span>
-                            {eventDate.toLocaleDateString('default', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                          </span>
-
-                          <span>·</span>
-
-                          <span>
-                            {event.start_time?.substring(0, 5) || ''}
-                          </span>
-
-                          {event.reminder && <Bell size={11} />}
-                        </div>
+                            <div
+                              style={{
+                                fontSize: '13px',
+                                lineHeight: '1.55',
+                                fontWeight: '600',
+                                color: 'var(--campora-body)',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                maxHeight: '62px',
+                                overflowY: 'auto',
+                                paddingRight: '4px',
+                                scrollbarWidth: 'thin'
+                              }}
+                            >
+                              {visiblePlannerDescription(event.description || '')}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div
                         style={{
+                          width: '100%',
                           display: 'flex',
-                          gap: '10px',
+                          gap: '8px',
                           alignItems: 'center',
-                          flexShrink: 0
+                          justifyContent: 'flex-end',
+                          flexShrink: 0,
+                          paddingTop: '8px',
+                          borderTop: '1px solid rgba(0,45,98,0.08)'
                         }}
                       >
-                        <Edit3
-                          size={15}
-                          onClick={() => handleOpenEditModal(event)}
-                          style={{
-                            cursor: 'pointer',
-                            color: 'var(--campora-muted)'
+                        <button
+                          type="button"
+                          title="Edit entry"
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            handleOpenEditModal(event);
                           }}
-                        />
-
-                        <CheckCircle2
-                          size={16}
-                          onClick={() => toggleCompleted(event)}
                           style={{
-                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                            height: '30px',
+                            padding: '0 10px',
+                            borderRadius: '999px',
+                            border: '1px solid rgba(0,45,98,0.10)',
+                            background: 'rgba(255,255,255,0.78)',
+                            color: 'var(--campora-navy)',
+                            fontSize: '10px',
+                            fontWeight: '800',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Edit3 size={12} />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          title={event.is_completed ? 'Mark incomplete' : 'Mark complete'}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            toggleCompleted(event);
+                          }}
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '999px',
+                            border: '1px solid rgba(0,45,98,0.08)',
+                            background: event.is_completed
+                              ? 'var(--campora-navy-tint-alpha)'
+                              : 'rgba(255,255,255,0.72)',
                             color: event.is_completed
                               ? 'var(--campora-navy)'
                               : 'var(--campora-muted)',
-                            opacity: event.is_completed ? 1 : 0.7
+                            cursor: 'pointer'
                           }}
-                        />
+                        >
+                          <CheckCircle2 size={15} />
+                        </button>
 
-                        <Trash2
-                          size={15}
-                          onClick={() => {
+                        <button
+                          type="button"
+                          title="Delete entry"
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
                             if (event.group_id) {
                               setDeleteConfirmation(event);
                             } else {
@@ -2187,10 +2384,20 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             }
                           }}
                           style={{
+                            width: '30px',
+                            height: '30px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '999px',
+                            border: '1px solid rgba(186,26,26,0.08)',
+                            background: 'rgba(255,255,255,0.72)',
                             color: 'var(--campora-urgent)',
                             cursor: 'pointer'
                           }}
-                        />
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
                   );
@@ -2619,22 +2826,36 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 }
               />
 
-              <textarea
-                placeholder="Add small notes..."
-                style={{
-                  ...modalInput,
-                  resize: 'none',
-                  height: '55px',
-                  fontFamily: 'inherit'
-                }}
-                value={newEntry.description}
-                onChange={(event) =>
-                  setNewEntry({
-                    ...newEntry,
-                    description: event.target.value
-                  })
-                }
-              />
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '7px',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    color: 'var(--campora-muted)'
+                  }}
+                >
+                  Details
+                </label>
+                <textarea
+                  placeholder="Add details, notes, room, instructions..."
+                  style={{
+                    ...modalInput,
+                    resize: 'vertical',
+                    minHeight: '92px',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.45'
+                  }}
+                  value={newEntry.description}
+                  onChange={(event) =>
+                    setNewEntry({
+                      ...newEntry,
+                      description: event.target.value
+                    })
+                  }
+                />
+              </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <select
@@ -2955,5 +3176,6 @@ const modalInput = {
   fontSize: '12px',
   flex: 1,
   color: 'var(--campora-text)',
+  background: 'var(--surface-container-lowest)',
   boxSizing: 'border-box'
 };

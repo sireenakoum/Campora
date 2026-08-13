@@ -24,7 +24,7 @@ export default function About() {
       style={{
         minHeight: '100vh',
         background:
-          'linear-gradient(135deg, #ffffff 0%, #f7faff 50%, #edf4fb 100%)',
+          'linear-gradient(180deg, #FAF9FE 0%, #F4F7FC 100%)',
         color: '#1A1B1F',
         padding: '20px 48px 70px',
       }}
@@ -66,7 +66,7 @@ export default function About() {
               padding: '10px 16px',
               borderRadius: '999px',
               background: '#EEF3FB',
-              color: '#648CCB',
+              color: '#002D62',
               fontWeight: '800',
               marginBottom: '20px',
             }}
@@ -86,7 +86,7 @@ export default function About() {
           >
             More than a platform.
             <br />
-            <span style={{ color: '#648CCB' }}>
+            <span style={{ color: '#002D62' }}>
               Built from the student experience.
             </span>
           </h1>
@@ -121,7 +121,7 @@ export default function About() {
               height: '56px',
               borderRadius: '17px',
               background: '#EEF3FB',
-              color: '#648CCB',
+              color: '#002D62',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -133,7 +133,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#648CCB',
+              color: '#002D62',
               fontWeight: '900',
               fontSize: '13px',
               letterSpacing: '1.4px',
@@ -238,7 +238,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#648CCB',
+              color: '#002D62',
               fontWeight: '900',
               fontSize: '13px',
               letterSpacing: '1.4px',
@@ -327,7 +327,7 @@ export default function About() {
             style={{
               margin: '32px auto 0',
               maxWidth: '760px',
-              color: '#648CCB',
+              color: '#002D62',
               fontSize: '22px',
               lineHeight: '1.6',
               fontWeight: '950',
@@ -447,7 +447,7 @@ export default function About() {
                   fontSize: '27px',
                   lineHeight: '1.35',
                   fontWeight: '950',
-                  color: '#648CCB',
+                  color: '#002D62',
                 }}
               >
                 “This is where my campus life comes together.”
@@ -469,7 +469,7 @@ export default function About() {
               height: '58px',
               borderRadius: '18px',
               background: '#EEF3FB',
-              color: '#648CCB',
+              color: '#002D62',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -481,7 +481,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#648CCB',
+              color: '#002D62',
               fontWeight: '900',
               fontSize: '13px',
               letterSpacing: '1.4px',
@@ -553,7 +553,7 @@ export default function About() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 15px',
-                    color: '#648CCB',
+                    color: '#002D62',
                     fontWeight: '950',
                     fontSize: '18px',
                   }}
@@ -590,7 +590,7 @@ export default function About() {
               fontSize: '24px',
               fontWeight: '950',
               marginTop: '34px',
-              color: '#648CCB',
+              color: '#002D62',
             }}
           >
             Five students. Different disciplines. One shared idea.
@@ -613,7 +613,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#648CCB',
+              color: '#002D62',
               fontWeight: '900',
               fontSize: '13px',
               letterSpacing: '1.4px',

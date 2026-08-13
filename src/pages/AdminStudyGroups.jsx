@@ -82,16 +82,25 @@ export default function AdminStudyGroups() {
     setActionLoading(groupId);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('study_groups')
         .update({
           approval_status: 'approved',
         })
-        .eq('id', groupId);
+        .eq('id', groupId)
+        .select('id, approval_status')
+        .maybeSingle();
 
       if (error) {
-        console.error(error);
-        alert('Could not approve this study circle.');
+        console.error('Approve group error:', error);
+        alert(`Could not approve this study circle: ${error.message}`);
+        return;
+      }
+
+      if (!data) {
+        alert(
+          'The approval was blocked by database permissions. Run the study_groups admin RLS SQL fix in Supabase.'
+        );
         return;
       }
 
@@ -113,16 +122,25 @@ export default function AdminStudyGroups() {
     setActionLoading(groupId);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('study_groups')
         .update({
           approval_status: 'rejected',
         })
-        .eq('id', groupId);
+        .eq('id', groupId)
+        .select('id, approval_status')
+        .maybeSingle();
 
       if (error) {
-        console.error(error);
-        alert('Could not decline this study circle.');
+        console.error('Decline group error:', error);
+        alert(`Could not decline this study circle: ${error.message}`);
+        return;
+      }
+
+      if (!data) {
+        alert(
+          'The decline was blocked by database permissions. Run the study_groups admin RLS SQL fix in Supabase.'
+        );
         return;
       }
 
@@ -167,7 +185,7 @@ export default function AdminStudyGroups() {
             width: '100%',
             textAlign: 'center',
             background: '#FFFFFF',
-            border: '1.5px solid #E8ECF4',
+            border: '1.5px solid #E3E7EE',
             borderRadius: '28px',
             padding: '48px 36px',
             boxShadow: '0 18px 50px rgba(0, 45, 98, 0.07)',
@@ -178,8 +196,8 @@ export default function AdminStudyGroups() {
               width: '70px',
               height: '70px',
               borderRadius: '22px',
-              background: '#F1EFFF',
-              color: '#6366F1',
+              background: '#D8E2FF',
+              color: '#002D62',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -238,8 +256,8 @@ export default function AdminStudyGroups() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              background: '#F1EFFF',
-              color: '#6366F1',
+              background: '#D8E2FF',
+              color: '#002D62',
               padding: '8px 13px',
               borderRadius: '999px',
               fontWeight: '900',
@@ -298,8 +316,8 @@ export default function AdminStudyGroups() {
       <div
         style={{
           background:
-            'linear-gradient(135deg, #F3F1FF 0%, #F7FBFF 100%)',
-          border: '1.5px solid #E2E5FF',
+            'linear-gradient(135deg, #F4F7FC 0%, #F7FBFF 100%)',
+          border: '1.5px solid #DDE7F5',
           borderRadius: '20px',
           padding: '18px 20px',
           display: 'flex',
@@ -313,8 +331,8 @@ export default function AdminStudyGroups() {
             width: '46px',
             height: '46px',
             borderRadius: '14px',
-            background: '#E7E3FF',
-            color: '#6366F1',
+            background: '#D8E2FF',
+            color: '#002D62',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -340,7 +358,7 @@ export default function AdminStudyGroups() {
           <p
             style={{
               margin: '3px 0 0',
-              color: '#8F9BB3',
+              color: '#717786',
               fontWeight: '700',
               fontSize: '13px',
             }}
@@ -356,7 +374,7 @@ export default function AdminStudyGroups() {
           style={{
             minHeight: '360px',
             background: '#FFFFFF',
-            border: '1.5px solid #E8ECF4',
+            border: '1.5px solid #E3E7EE',
             borderRadius: '28px',
             display: 'flex',
             alignItems: 'center',
@@ -418,7 +436,7 @@ export default function AdminStudyGroups() {
               key={group.id}
               style={{
                 background: '#FFFFFF',
-                border: '1.5px solid #E8ECF4',
+                border: '1.5px solid #E3E7EE',
                 borderRadius: '26px',
                 padding: '26px',
                 boxShadow:

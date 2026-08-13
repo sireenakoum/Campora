@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import './App.css';
+import camporaLogo from './assets/camporanavylogo.png';
 
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
@@ -494,8 +495,15 @@ function DashboardLayout() {
       >
         {/* BRAND */}
         <div className="sidebar-brand">
-          <School size={30} color="#002D62" strokeWidth={1.5} />
-          <span className="sidebar-wordmark">Campora</span>
+          <img
+            src={camporaLogo}
+            alt="Campora logo"
+            className="sidebar-brand-logo"
+          />
+          <span className="sidebar-wordmark">
+            <span className="sidebar-wordmark-main">Campora</span>
+            <span className="sidebar-wordmark-sub">Academic Portal</span>
+          </span>
         </div>
 
         {/* NAVIGATION */}

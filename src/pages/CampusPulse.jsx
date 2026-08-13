@@ -52,9 +52,9 @@ const CATEGORIES = [
 
 const CATEGORY_STYLES = {
   All: {
-    bg: '#FAF9FE',
-    text: '#002D62',
-    border: '#DDE3EE',
+    bg: '#002D62',
+    text: '#FFFFFF',
+    border: '#002D62',
     accent: '#002D62'
   },
 
@@ -108,7 +108,7 @@ const CATEGORY_STYLES = {
   }
 };
 
-const DM_REACTIONS = ['ًں‘چ', 'â‌¤ï¸ڈ', 'ًںک‚', 'ًںک®', 'ًںک¢', 'ًں”¥'];
+const DM_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 // =========================================================
 // SHARED CAMPORA PROFILE COLORS
@@ -1598,18 +1598,20 @@ export default function CampusPulse() {
           />
         </div>
 
-        <SegmentedControl
-          options={[
-            { value: 'feed', label: 'Feed', icon: Sparkles },
-            { value: 'messages', label: 'Direct Messages', icon: MessageSquare }
-          ]}
-          value={activeView}
-          onChange={setActiveView}
-        />
+        <div style={{ marginTop: '22px' }}>
+          <SegmentedControl
+            options={[
+              { value: 'feed', label: 'Feed', icon: Sparkles },
+              { value: 'messages', label: 'Direct Messages', icon: MessageSquare }
+            ]}
+            value={activeView}
+            onChange={setActiveView}
+          />
+        </div>
 
       {activeView === 'feed' && (
         <>
-          <div className="stack">
+          <div className="stack" style={{ gap: '22px', marginTop: '22px', marginBottom: '26px' }}>
             <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Search size={20} className="text-primary" />
 
@@ -1655,6 +1657,37 @@ export default function CampusPulse() {
                       setActiveCategory(category)
                     }
                     className={`filter-chip ${isActive ? 'active' : ''}`}
+                    style={
+                      isActive
+                        ? {
+                            background:
+                              category === 'All'
+                                ? '#002D62'
+                                : CATEGORY_STYLES[category]?.accent,
+                            color: '#FFFFFF',
+                            borderColor:
+                              category === 'All'
+                                ? '#002D62'
+                                : CATEGORY_STYLES[category]?.accent,
+                            boxShadow: `0 5px 16px ${CATEGORY_STYLES[category]?.accent}30`,
+                            transform: 'translateY(-1px)'
+                          }
+                        : {
+                            background:
+                              category === 'All'
+                                ? '#EEF3FB'
+                                : CATEGORY_STYLES[category]?.bg,
+                            color:
+                              category === 'All'
+                                ? '#002D62'
+                                : CATEGORY_STYLES[category]?.text,
+                            borderColor:
+                              category === 'All'
+                                ? '#D8E2FF'
+                                : CATEGORY_STYLES[category]?.border,
+                            boxShadow: 'none'
+                          }
+                    }
                   >
                     {category}
                   </button>
@@ -1663,7 +1696,7 @@ export default function CampusPulse() {
             </div>
           </div>
 
-          <div className="stack">
+          <div className="stack" style={{ gap: '18px', marginTop: '8px' }}>
             {loading ? (
               <div className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '40px 20px' }}>
                 <RefreshCw
@@ -1748,9 +1781,10 @@ export default function CampusPulse() {
                     key={post.id}
                     className="panel"
                     style={{
-                      borderColor: categoryBadge.accent,
-                      borderTop:
-                        `10px solid ${categoryBadge.accent}`
+                      borderColor: categoryBadge.border,
+                      borderTop: `10px solid ${categoryBadge.accent}`,
+                      boxShadow: `0 12px 30px ${categoryBadge.accent}14`,
+                      marginBottom: '22px'
                     }}
                   >
                     <div style={postHeaderStyle}>
@@ -2818,7 +2852,7 @@ export default function CampusPulse() {
                                     : { left: '100%' })
                                 }}
                               >
-                                â€¢â€¢â€¢
+                                <MoreHorizontal size={16} />
                               </button>
 
                               {activeDmMessageMenu === message.id && (

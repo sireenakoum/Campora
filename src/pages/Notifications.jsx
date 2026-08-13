@@ -1635,9 +1635,38 @@ whiteSpace: 'nowrap',
                 onClick={() =>
                   setActiveFilter(filter)
                 }
-                className={`filter-chip ${
-                  active ? 'active' : ''
-                }`}
+                className="filter-chip"
+                style={{
+                  background:
+                    filter === 'All'
+                      ? active
+                        ? 'var(--campora-navy)'
+                        : 'var(--campora-navy-tint-alpha)'
+                      : active
+                      ? filterStyle.main
+                      : filterStyle.soft,
+                  color:
+                    active
+                      ? 'var(--on-primary)'
+                      : filter === 'All'
+                      ? 'var(--campora-navy)'
+                      : filterStyle.main,
+                  borderColor:
+                    filter === 'All'
+                      ? active
+                        ? 'var(--campora-navy)'
+                        : 'var(--campora-navy-tint)'
+                      : active
+                      ? filterStyle.main
+                      : filterStyle.border,
+                  boxShadow: active
+                    ? `0 5px 15px ${
+                        filter === 'All'
+                          ? 'rgba(0,45,98,.18)'
+                          : `${filterStyle.main}2E`
+                      }`
+                    : 'none',
+                }}
               >
                 <FilterIcon
                   size={14}
@@ -1645,6 +1674,8 @@ whiteSpace: 'nowrap',
                   color={
                     active
                       ? 'var(--on-primary)'
+                      : filter === 'All'
+                      ? 'var(--campora-navy)'
                       : filterStyle.main
                   }
                 />
@@ -1664,10 +1695,12 @@ whiteSpace: 'nowrap',
                     fontWeight: '800',
                     background: active
                       ? 'rgba(255,255,255,.18)'
-                      : 'var(--surface-container-high)',
+                      : 'rgba(255,255,255,.72)',
                     color: active
                       ? 'var(--on-primary)'
-                      : 'var(--campora-muted)',
+                      : filter === 'All'
+                      ? 'var(--campora-navy)'
+                      : filterStyle.main,
                   }}
                 >
                   {count}

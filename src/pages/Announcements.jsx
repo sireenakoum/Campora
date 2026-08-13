@@ -352,51 +352,71 @@ export default function Announcements() {
   return (
     <PageShell>
       {/* =========================
-          NAVY CAMPUS HUB HEADER
+          CAMPUS HUB HEADER
       ========================= */}
 
-      <div style={styles.hero}>
-        <div
-          style={styles.heroGlowOne}
-        />
+      <div style={styles.pageHeader}>
+        <div style={styles.pageHeaderMain}>
+          <div style={styles.pageHeaderIcon}>
+            <Landmark size={22} strokeWidth={2} />
+          </div>
 
-        <div
-          style={styles.heroGlowTwo}
-        />
+          <div style={{ minWidth: 0 }}>
+            <div style={styles.pageEyebrow}>CAMPUS HUB</div>
+            <h1 style={styles.pageTitle}>Stay connected to campus</h1>
+            <p style={styles.pageSubtitle}>
+              Announcements, news, events, and useful resources in one place.
+            </p>
+          </div>
+        </div>
 
-        <div style={styles.heroContent}>
-          <div style={styles.heroLeft}>
-            <div style={styles.heroIcon}>
-              <Landmark
-                size={28}
-                strokeWidth={2.1}
+        <div style={styles.overviewStats}>
+          {[
+            {
+              label: "Announcements",
+              value: announcements.length,
+              color: "#D9896A",
+              soft: "#FFF6F2"
+            },
+            {
+              label: "News",
+              value: news.length,
+              color: "#648CCB",
+              soft: "#F3F7FD"
+            },
+            {
+              label: "Events",
+              value: events.length,
+              color: "#5E9A8B",
+              soft: "#F2F9F7"
+            },
+            {
+              label: "Resources",
+              value: resources.length,
+              color: "#8B78B8",
+              soft: "#F7F4FC"
+            }
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                ...styles.overviewStat,
+                background: item.soft,
+                borderColor: `${item.color}22`
+              }}
+            >
+              <span
+                style={{
+                  ...styles.overviewDot,
+                  background: item.color
+                }}
               />
-            </div>
-
-            <div>
-              <div
-                style={styles.heroEyebrow}
-              >
-                YOUR CAMPUS HUB
+              <div>
+                <div style={styles.overviewValue}>{item.value}</div>
+                <div style={styles.overviewLabel}>{item.label}</div>
               </div>
-
-              <h1 style={styles.heroTitle}>
-                Campus Hub
-              </h1>
-
-              <p
-                style={styles.heroSubtitle}
-              >
-                Everything happening around
-                campus, all in one place.
-              </p>
             </div>
-          </div>
-
-          <div style={styles.heroBadge}>
-            <Sparkles size={15} />
-            <span>Stay connected</span>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -447,56 +467,70 @@ export default function Announcements() {
       <div style={styles.mainCard}>
         {/* COLORFUL TOP TABS */}
 
-        <div
-          className="filter-row"
-          style={styles.tabsContainer}
-        >
+        <div style={styles.tabsContainer}>
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
-
-            const isActive =
-              activeTab === tab.key;
+            const isActive = activeTab === tab.key;
 
             return (
               <button
                 key={tab.key}
                 type="button"
-                onClick={() =>
-                  handleTabChange(tab.key)
-                }
-                className={
-                  isActive
-                    ? "filter-chip active"
-                    : "filter-chip"
-                }
+                onClick={() => handleTabChange(tab.key)}
                 style={{
-                  background: isActive
-                    ? tab.color
-                    : tab.softColor,
-
-                  color: isActive
-                    ? "#FFFFFF"
-                    : tab.color,
-
-                  border: `1px solid ${
-                    isActive
-                      ? tab.color
-                      : tab.borderColor
-                  }`,
-
+                  ...styles.tabCard,
+                  background: tab.softColor,
+                  borderColor: isActive ? tab.color : tab.borderColor,
                   boxShadow: isActive
-                    ? `0 6px 16px ${tab.color}30`
-                    : "none",
+                    ? `0 10px 24px ${tab.color}24`
+                    : "0 5px 16px rgba(0,45,98,0.04)",
+                  transform: isActive ? "translateY(-1px)" : "none"
                 }}
               >
-                <TabIcon
-                  size={17}
-                  strokeWidth={2.2}
+                <div
+                  style={{
+                    ...styles.tabAccent,
+                    background: tab.color,
+                    opacity: isActive ? 1 : 0.72
+                  }}
                 />
 
-                <span>
-                  {tab.label}
-                </span>
+                {isActive && (
+                  <div
+                    style={{
+                      ...styles.activePill,
+                      color: tab.color,
+                      borderColor: `${tab.color}26`
+                    }}
+                  >
+                    Active
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    ...styles.tabIcon,
+                    color: tab.color,
+                    background: "#FFFFFF"
+                  }}
+                >
+                  <TabIcon size={18} strokeWidth={2.2} />
+                </div>
+
+                <div style={{ minWidth: 0, textAlign: "left" }}>
+                  <div
+                    style={{
+                      ...styles.tabLabel,
+                      color: tab.color
+                    }}
+                  >
+                    {tab.label}
+                  </div>
+
+                  <div style={styles.tabDescription}>
+                    {tab.description}
+                  </div>
+                </div>
               </button>
             );
           })}
@@ -728,172 +762,106 @@ export default function Announcements() {
 
 const styles = {
   /* =========================
-     CAMPUS HUB - NAVY ONLY
+     CAMPUS HUB HEADER
   ========================= */
 
-  hero: {
-    position: "relative",
-    overflow: "hidden",
-
+  pageHeader: {
     width: "100%",
-    minHeight: "150px",
-
-    borderRadius: "var(--radius)",
-
-    padding: "26px 29px",
-
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px",
+    padding: "22px",
     boxSizing: "border-box",
-
+    borderRadius: "var(--radius-secondary)",
     background:
-      "linear-gradient(135deg, var(--campora-active) 0%, var(--campora-navy) 52%, var(--primary-container) 100%)",
-
-    boxShadow: "var(--shadow-lift)",
+      "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(244,247,252,0.94))",
+    border: "1px solid rgba(0,45,98,0.08)",
+    boxShadow: "0 10px 28px rgba(0,45,98,0.06)",
   },
 
-  heroGlowOne: {
-    position: "absolute",
-
-    width: "260px",
-    height: "260px",
-
-    borderRadius: "50%",
-
-    background:
-      "radial-gradient(circle, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0) 70%)",
-
-    right: "90px",
-    top: "-165px",
-
-    pointerEvents: "none",
-  },
-
-  heroGlowTwo: {
-    position: "absolute",
-
-    width: "210px",
-    height: "210px",
-
-    borderRadius: "50%",
-
-    background:
-      "radial-gradient(circle, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 70%)",
-
-    right: "-45px",
-    bottom: "-125px",
-
-    pointerEvents: "none",
-  },
-
-  heroContent: {
-    position: "relative",
-    zIndex: 2,
-
-    minHeight: "98px",
-
-    display: "flex",
-    justifyContent:
-      "space-between",
-    alignItems: "center",
-
-    gap: "20px",
-  },
-
-  heroLeft: {
+  pageHeaderMain: {
     display: "flex",
     alignItems: "center",
-    gap: "17px",
-    minWidth: 0,
+    gap: "14px",
   },
 
-  heroIcon: {
-    width: "58px",
-    height: "58px",
-
+  pageHeaderIcon: {
+    width: "46px",
+    height: "46px",
     flexShrink: 0,
-
-    borderRadius: "17px",
-
+    borderRadius: "15px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-
-    color: "#FFFFFF",
-
-    background:
-      "rgba(255,255,255,0.11)",
-
-    border:
-      "1px solid rgba(255,255,255,0.18)",
-
-    boxShadow:
-      "0 8px 22px rgba(0,0,0,0.12)",
-
-    backdropFilter:
-      "blur(10px)",
-
-    WebkitBackdropFilter:
-      "blur(10px)",
+    color: "var(--campora-navy)",
+    background: "rgba(216,226,255,0.62)",
+    border: "1px solid rgba(0,45,98,0.08)",
+    boxShadow: "0 6px 16px rgba(0,45,98,0.06)",
   },
 
-  heroEyebrow: {
-    color: "#AFC6F2",
-
-    fontSize: "10.5px",
-    fontWeight: "800",
-
-    letterSpacing: "1.6px",
-
-    marginBottom: "5px",
-  },
-
-  heroTitle: {
-    margin: 0,
-
-    color: "#FFFFFF",
-
-    fontSize: "31px",
-    lineHeight: 1.1,
-
+  pageEyebrow: {
+    marginBottom: "3px",
+    color: "var(--campora-navy)",
+    fontSize: "10px",
     fontWeight: "900",
-
-    letterSpacing: "-0.7px",
+    letterSpacing: "0.12em",
   },
 
-  heroSubtitle: {
-    margin: "7px 0 0",
+  pageTitle: {
+    margin: 0,
+    color: "var(--campora-text)",
+    fontSize: "24px",
+    lineHeight: 1.15,
+    fontWeight: "800",
+    letterSpacing: "-0.4px",
+  },
 
-    color:
-      "rgba(255,255,255,0.76)",
-
-    fontSize: "14px",
+  pageSubtitle: {
+    margin: "5px 0 0",
+    color: "var(--campora-muted)",
+    fontSize: "13px",
     lineHeight: 1.5,
-
     fontWeight: "500",
   },
 
-  heroBadge: {
+  overviewStats: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: "10px",
+  },
+
+  overviewStat: {
+    minWidth: 0,
     display: "flex",
-
     alignItems: "center",
+    gap: "9px",
+    padding: "11px 12px",
+    borderRadius: "14px",
+    border: "1px solid",
+  },
 
-    gap: "7px",
+  overviewDot: {
+    width: "9px",
+    height: "9px",
+    flexShrink: 0,
+    borderRadius: "50%",
+  },
 
-    padding: "9px 14px",
+  overviewValue: {
+    color: "var(--campora-text)",
+    fontSize: "14px",
+    fontWeight: "900",
+    lineHeight: 1.1,
+  },
 
-    borderRadius: "999px",
-
-    color: "#FFFFFF",
-
-    background:
-      "rgba(255,255,255,0.10)",
-
-    border:
-      "1px solid rgba(255,255,255,0.16)",
-
-    fontSize: "12px",
+  overviewLabel: {
+    marginTop: "2px",
+    color: "var(--campora-muted)",
+    fontSize: "10px",
     fontWeight: "700",
-
     whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
 
   /* =========================
@@ -992,18 +960,79 @@ const styles = {
   },
 
   /* =========================
-     COLORFUL TABS
+     CAMPUS HUB CATEGORY CARDS
   ========================= */
 
   tabsContainer: {
-    padding: "14px",
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: "12px",
+    padding: "18px 18px 20px",
+    background: "transparent",
+    borderBottom: "1px solid var(--divider)",
+  },
 
-    gap: "9px",
+  tabCard: {
+    position: "relative",
+    minHeight: "126px",
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "11px",
+    padding: "20px 16px 16px",
+    border: "1px solid",
+    borderRadius: "18px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition:
+      "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+  },
 
-    background: "var(--surface-container-high)",
+  tabAccent: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    height: "5px",
+  },
 
-    borderBottom:
-      "1px solid var(--divider)",
+  activePill: {
+    position: "absolute",
+    right: "10px",
+    top: "11px",
+    padding: "3px 7px",
+    borderRadius: "999px",
+    background: "rgba(255,255,255,0.82)",
+    border: "1px solid",
+    fontSize: "8.5px",
+    fontWeight: "900",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+  },
+
+  tabIcon: {
+    width: "34px",
+    height: "34px",
+    flexShrink: 0,
+    borderRadius: "11px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px solid rgba(0,0,0,0.04)",
+  },
+
+  tabLabel: {
+    fontSize: "13px",
+    fontWeight: "850",
+    lineHeight: 1.25,
+    marginBottom: "4px",
+  },
+
+  tabDescription: {
+    color: "var(--campora-muted)",
+    fontSize: "10.5px",
+    fontWeight: "600",
+    lineHeight: 1.4,
   },
 
   /* =========================
