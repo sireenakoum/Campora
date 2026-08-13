@@ -838,6 +838,17 @@ return () => {
 useEffect(() => {
 if (!selectedGroup?.id) return;
 
+const isMember =
+ joinedGroupIds.includes(selectedGroup.id) ||
+ selectedGroup.creator_id === currentUser?.id;
+
+// Member identities are private until the user actually joins the circle.
+if (!isMember) {
+  setGroupMembers([]);
+  setShowMembersDrawer(false);
+  return;
+}
+
 const fetchMembers = async () => {
  const { data: dbMembers, error: memberError } = await supabase
   .from('group_members')
@@ -907,11 +918,40 @@ const resolvedMembers = userIdsArray.map((userId) => {
  return {
     user_id: userId,
     profiles: {
+      ...(directoryProfile || {}),
       name: resolvedName,
-      full_name: resolvedName,
+      full_name:
+        directoryProfile?.full_name ||
+        directoryProfile?.name ||
+        resolvedName,
       email: resolvedEmail,
-      major: isSelf ? myPrefs.major : 'Not specified',
-      academic_year: 'Not specified'
+      major:
+        directoryProfile?.major ||
+        (isSelf ? currentUser?.user_metadata?.major : '') ||
+        'Not specified',
+      academic_year:
+        directoryProfile?.academic_year ||
+        directoryProfile?.year ||
+        (isSelf ? currentUser?.user_metadata?.academic_year : '') ||
+        'Not specified',
+      account_type:
+        directoryProfile?.account_type ||
+        (isSelf ? currentUser?.user_metadata?.account_type : '') ||
+        '',
+      guest_title:
+        directoryProfile?.guest_title ||
+        (isSelf ? currentUser?.user_metadata?.guest_title : '') ||
+        '',
+      avatar_url:
+        directoryProfile?.avatar_url ||
+        directoryProfile?.avatar ||
+        (isSelf ? currentUser?.user_metadata?.avatar_url : '') ||
+        '',
+      courses_taken:
+        directoryProfile?.courses_taken ||
+        directoryProfile?.courses ||
+        (isSelf ? currentUser?.user_metadata?.courses_taken : []) ||
+        []
     },
     isOnline: Boolean(isSelf)
  };
@@ -922,11 +962,7 @@ const resolvedMembers = userIdsArray.map((userId) => {
 
 fetchMembers();
 
-const isMember =
- joinedGroupIds.includes(selectedGroup.id) ||
- selectedGroup.creator_id === currentUser?.id;
-
-if (isMember && (view === 'details' || view === 'chat')) {
+if (view === 'details' || view === 'chat') {
   const fetchMessages = async () => {
      const { data, error } = await supabase
       .from('group_messages')
@@ -1298,6 +1334,41 @@ existingConversation.name : profileName,
 
   setDmSearchQuery('');
   setDmSearchResults([]);
+};
+
+
+const openMemberProfile = async (member) => {
+  if (!member || member.user_id === currentUser?.id) return;
+
+  let fullProfile = member.profiles || {};
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', member.user_id)
+      .maybeSingle();
+
+    if (!error && data) {
+      fullProfile = {
+        ...fullProfile,
+        ...data,
+        major: data.major || fullProfile.major || 'Not specified',
+        academic_year:
+          data.academic_year ||
+          data.year ||
+          fullProfile.academic_year ||
+          'Not specified'
+      };
+    }
+  } catch (profileError) {
+    console.error('Could not load full member profile:', profileError);
+  }
+
+  setSelectedMember({
+    ...member,
+    profiles: fullProfile
+  });
 };
 
 const openMemberChat = (member) => {
@@ -3404,7 +3475,7 @@ outline:
 'none',
 
 background:
-'#E9E7ED',
+'#FAFBFC',
 
   boxSizing:
    'border-box'
@@ -5662,7 +5733,7 @@ borderRadius:
 border:
  '1px solid #E3E2E7',
 padding:
-'40px',
+'30px 34px',
 
  boxShadow:
    '0 10px 25px 5px rgba(0,0,0,0.05)'
@@ -6863,7 +6934,10 @@ actionLoading
 <div
 style={{
  maxWidth:
- '850px',
+ '1180px',
+
+width:
+'100%',
 
 margin:
 '0 auto',
@@ -6878,7 +6952,7 @@ border:
 '1px solid #E3E2E7',
 
 padding:
-'40px',
+'30px 34px',
 
    boxShadow:
      '0 20px 30px -10px rgba(0,0,0,0.05)'
@@ -6979,10 +7053,7 @@ isDarkColor(
     ? '1px solid rgba(255,255,255,0.22)'
     : 'none',
  color:
-   getContrastColor(
-     selectedGroup.color ||
-      '#E0F2FE'
-   )
+   '#1A1B1F'
 }}
 >
 {selectedGroup.major ||
@@ -7175,9 +7246,11 @@ fontWeight:
 
 
 {/* =================================================
-  CIRCLE MEMBERS
+  CIRCLE MEMBERS — ONLY VISIBLE AFTER JOINING
 ================================================= */}
 
+{(joinedGroupIds.includes(selectedGroup.id) ||
+  selectedGroup.creator_id === currentUser?.id) && (
 <div
 style={{
  marginBottom:
@@ -7239,9 +7312,7 @@ if (
   currentUser?.id
 ){
 
-  setSelectedMember(
-    member
-  );
+  openMemberProfile(member);
  }
 }}
 style={{
@@ -7459,9 +7530,7 @@ onClick={(event) => {
 
     event.stopPropagation();
 
- setSelectedMember(
-   member
- );
+ openMemberProfile(member);
 }}
 style={{
  border:
@@ -7536,7 +7605,7 @@ Member information is loading...
 )}
 
 </div>
-
+)}
 
 
 
@@ -7740,7 +7809,10 @@ Leave
 <div
 style={{
  maxWidth:
- '900px',
+ '1220px',
+
+width:
+'100%',
 
 margin:
 '0 auto',
@@ -7755,7 +7827,7 @@ border:
 '1px solid #E3E2E7',
 
 height:
-'80vh',
+'clamp(540px, 66vh, 680px)',
 
 display:
 'flex',
@@ -7777,17 +7849,14 @@ overflow:
 <div
 style={{
  padding:
- '20px 28px',
+ '16px 24px',
 
 background:
-selectedGroup.color ||
-'#E0F2FE',
+'#FFFFFF',
 borderBottom:
-
-`1px solid ${getContrastBorder(
- selectedGroup.color ||
-  '#E0F2FE'
-)}`,
+'1px solid #E3E2E7',
+borderTop:
+`5px solid ${selectedGroup.color || '#E0F2FE'}`,
 
 display:
 'flex',
@@ -7825,18 +7894,9 @@ alignItems:
 }
 style={{
   border:
-   `1px solid ${getContrastBorder(
-    selectedGroup.color ||
-     '#E0F2FE'
-   )}`,
+   `1px solid ${selectedGroup.color || '#E0F2FE'}`,
 background:
-isDarkColor(
-
-    selectedGroup.color ||
-     '#E0F2FE'
-)
-    ? 'rgba(255,255,255,0.15)'
-    : 'rgba(255,255,255,0.6)',
+'#FFFFFF',
 
 padding:
 '8px',
@@ -7860,12 +7920,7 @@ alignItems:
 
 <ArrowLeft
 size={18}
-color={
-  getContrastColor(
-    selectedGroup.color ||
-     '#E0F2FE'
-  )
- }
+color="#1A1B1F"
 />
 
 </button>
@@ -7933,10 +7988,7 @@ fontWeight:
  '800',
 
  color:
-   getMutedContrastColor(
-     selectedGroup.color ||
-      '#E0F2FE'
-   )
+   '#717786'
 }}
 >
 {getActiveOnlineCount()}{' '}
@@ -7982,12 +8034,7 @@ pinnedChats.groups.includes(
   selectedGroup.id
 )
   ? PIN_COLORS.bg
-  : isDarkColor(
-      selectedGroup.color ||
-        '#E0F2FE'
-    )
-    ? 'rgba(255,255,255,0.16)'
-    : 'rgba(255,255,255,0.7)',
+  : '#FFFFFF',
 
  border:
    pinnedChats.groups.includes(
@@ -8008,10 +8055,7 @@ pinnedChats.groups.includes(
      selectedGroup.id
    )
      ? PIN_COLORS.icon
-     : getContrastColor(
-       selectedGroup.color ||
-        '#E0F2FE'
-   )
+     : '#1A1B1F'
 }
 fill={
   pinnedChats.groups.includes(
@@ -8038,12 +8082,7 @@ style={{
   ...iconBtnStyle,
 
 background:
-isDarkColor(
-  selectedGroup.color ||
-    '#E0F2FE'
-)
-  ? 'rgba(255,255,255,0.16)'
-  : 'rgba(255,255,255,0.7)',
+'#FFFFFF',
 
  border:
    `1px solid ${getContrastBorder(
@@ -8055,12 +8094,7 @@ isDarkColor(
 
 <BarChart2
  size={18}
- color={
-  getContrastColor(
-   selectedGroup.color ||
-    '#E0F2FE'
-    )
- }
+ color="#1A1B1F"
 />
 
 </button>
@@ -8077,12 +8111,7 @@ style={{
   ...iconBtnStyle,
 
 background:
-isDarkColor(
-  selectedGroup.color ||
-    '#E0F2FE'
-)
-  ? 'rgba(255,255,255,0.16)'
-  : 'rgba(255,255,255,0.7)',
+'#FFFFFF',
 
  border:
    `1px solid ${getContrastBorder(
@@ -8094,12 +8123,7 @@ isDarkColor(
 
 <Users
 size={18}
-color={
- getContrastColor(
-   selectedGroup.color ||
-    '#E0F2FE'
-  )
- }
+color="#1A1B1F"
 />
 
 </button>
@@ -8115,13 +8139,7 @@ style={{
   ...iconBtnStyle,
 
 background:
-isDarkColor(
-
-    selectedGroup.color ||
-     '#E0F2FE'
-)
-    ? 'rgba(255,255,255,0.16)'
-    : 'rgba(255,255,255,0.7)',
+'#FFFFFF',
 
  border:
    `1px solid ${getContrastBorder(
@@ -8144,12 +8162,7 @@ isDarkColor(
 
  <Bell
  size={18}
- color={
-    getContrastColor(
-      selectedGroup.color ||
-       '#E0F2FE'
-    )
-  }
+ color="#1A1B1F"
  />
 )}
 
@@ -8461,7 +8474,7 @@ gap:
 '16px',
 
  background:
-   '#E9E7ED'
+   '#FFFFFF'
 }}
 >
 
@@ -8815,13 +8828,13 @@ fontSize:
 
     background:
     isMe
-? '#002D62'
-: '#FFFFFF',
+      ? (selectedGroup.color || '#002D62')
+      : '#F1F5F9',
 
 color:
  isMe
-   ? '#FFFFFF'
-   : '#002D62',
+   ? getContrastColor(selectedGroup.color || '#002D62')
+   : '#1A1B1F',
 
 fontWeight:
  '700',
@@ -8831,7 +8844,7 @@ fontSize:
 
 border:
 isMe
-  ? 'none'
+  ? `1px solid ${getContrastBorder(selectedGroup.color || '#002D62')}`
   : '1px solid #E3E2E7',
  boxShadow:
    '0 2px 8px rgba(0,0,0,0.03)'
@@ -8852,19 +8865,19 @@ fontWeight:
 
 color:
  isMe
-   ? 'rgba(255,255,255,0.85)'
+   ? getMutedContrastColor(selectedGroup.color || '#002D62')
    : '#717786',
 
 background:
 isMe
-  ? 'rgba(255,255,255,0.15)'
-  : '#F1F5F9',
+  ? getSoftContrastColor(selectedGroup.color || '#002D62')
+  : '#FFFFFF',
 
 borderLeft:
   `3px solid ${
    isMe
-     ? 'rgba(255,255,255,0.6)'
-     : '#002D62'
+     ? getContrastColor(selectedGroup.color || '#002D62')
+     : (selectedGroup.color || '#002D62')
   }`,
 
        padding:
@@ -9338,7 +9351,7 @@ style={{
   padding:
   '10px 24px',
  background:
- '#EEF2FF',
+ '#FFFFFF',
 
 borderTop:
 '1px solid #E3E2E7',
@@ -9359,7 +9372,7 @@ alignItems:
 <div
 style={{
  borderLeft:
- '3px solid #002D62',
+ `3px solid ${selectedGroup.color || '#002D62'}`,
 
 paddingLeft:
 '10px',
@@ -9504,7 +9517,9 @@ flex:
   1,
 
   background:
-    '#E9E7ED'
+    '#F7F8FA',
+  border:
+    `1.5px solid ${selectedGroup.color || '#E3E2E7'}`
  }}
 />
 
@@ -9516,8 +9531,11 @@ type="submit"
 disabled={
   !newMessage.trim()
 }
-  className="btn btn-primary"
+  className="btn"
   style={{
+   background: selectedGroup.color || '#002D62',
+   color: getContrastColor(selectedGroup.color || '#002D62'),
+   border: 'none',
    opacity:
     newMessage.trim()
     ?1
@@ -10484,7 +10502,9 @@ Post Poll to Chat
   MEMBERS MODAL
 ================================================= */}
 
-{showMembersDrawer && (
+{showMembersDrawer && selectedGroup &&
+ (joinedGroupIds.includes(selectedGroup.id) ||
+  selectedGroup.creator_id === currentUser?.id) && (
 
 <div
 
@@ -10638,17 +10658,8 @@ if (
   member.user_id !==
   currentUser?.id
 ){
-
-openMemberChat(
-  member
-);
-
-
-
-
-  setShowMembersDrawer(
-    false
-  );
+  openMemberProfile(member);
+  setShowMembersDrawer(false);
  }
 }}
 style={{
@@ -10864,9 +10875,7 @@ onClick={(event) => {
 
   event.stopPropagation();
 
- setSelectedMember(
-   member
- );
+ openMemberProfile(member);
      setShowMembersDrawer(
        false
      );
@@ -10892,10 +10901,27 @@ onClick={(event) => {
      />
 
      </button>
-      <MessageSquare
-       size={18}
-       color="#002D62"
-      />
+      <button
+       type="button"
+       onClick={(event) => {
+        event.stopPropagation();
+        openMemberChat(member);
+        setShowMembersDrawer(false);
+       }}
+       title="Message member"
+       style={{
+        border: 'none',
+        background: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        padding: 0
+       }}
+      >
+       <MessageSquare
+        size={18}
+        color="#002D62"
+       />
+      </button>
 
       </div>
      )}
@@ -10976,10 +11002,7 @@ selectedGroup?.color ||
 }}
 >
 
-{selectedMember.user_id ===
-selectedGroup?.creator_id
- ? 'Circle Leader'
- : 'Member'}
+{selectedMember.profiles?.account_type || 'Student Profile'}
 
 </span>
 <button
@@ -11078,14 +11101,23 @@ fontWeight:
    '24px'
 }}
 >
-{getInitials(
- selectedMember
-   .profiles
-   ?.full_name ||
- selectedMember
-   .profiles
-   ?.email ||
- 'Student'
+{selectedMember.profiles?.avatar_url ? (
+ <img
+  src={selectedMember.profiles.avatar_url}
+  alt={selectedMember.profiles?.full_name || 'Student'}
+  style={{
+   width: '100%',
+   height: '100%',
+   borderRadius: '50%',
+   objectFit: 'cover'
+  }}
+ />
+) : (
+ getInitials(
+  selectedMember.profiles?.full_name ||
+  selectedMember.profiles?.email ||
+  'Student'
+ )
 )}
 </div>
 
@@ -11142,149 +11174,97 @@ color:
 
 
 
-{/* INFO */}
-
-<div
-
-style={{
- marginTop:
- '16px',
-
-display:
-'flex',
-
-flexDirection:
-  'column',
-
- gap:
-   '8px'
-}}
->
-
-{/* MAJOR */}
+{/* ACTUAL CAMPORA PROFILE INFO */}
 
 <div
 style={{
- background:
- '#E9E7ED',
-
-padding:
-'10px 14px',
-borderRadius:
-'12px',
-
-textAlign:
- 'left',
-
- border:
-   '1px solid #E3E2E7'
+ marginTop: '16px',
+ display: 'flex',
+ flexDirection: 'column',
+ gap: '8px'
 }}
 >
- <span
- style={{
-  fontSize:
-   '10px',
+{[
+  ['MAJOR', selectedMember.profiles?.major],
+  ['ACADEMIC LEVEL', selectedMember.profiles?.academic_year],
+  ['TITLE', selectedMember.profiles?.guest_title]
+]
+ .filter(([, value]) => value && value !== 'Not specified')
+ .map(([label, value]) => (
+  <div
+   key={label}
+   style={{
+    background: '#F7F8FA',
+    padding: '10px 14px',
+    borderRadius: '12px',
+    textAlign: 'left',
+    border: '1px solid #E3E2E7'
+   }}
+  >
+   <span style={{
+    fontSize: '10px',
+    fontWeight: '900',
+    color: '#717786',
+    display: 'block'
+   }}>
+    {label}
+   </span>
+   <span style={{
+    fontSize: '13px',
+    fontWeight: '800',
+    color: '#1A1B1F'
+   }}>
+    {value}
+   </span>
+  </div>
+ ))}
 
-fontWeight:
- '900',
+{Array.isArray(selectedMember.profiles?.courses_taken) &&
+ selectedMember.profiles.courses_taken.length > 0 && (
+  <div style={{
+   background: '#F7F8FA',
+   padding: '10px 14px',
+   borderRadius: '12px',
+   textAlign: 'left',
+   border: '1px solid #E3E2E7'
+  }}>
+   <span style={{
+    fontSize: '10px',
+    fontWeight: '900',
+    color: '#717786',
+    display: 'block',
+    marginBottom: '6px'
+   }}>
+    COURSES
+   </span>
+   <span style={{
+    fontSize: '13px',
+    fontWeight: '800',
+    color: '#1A1B1F',
+    lineHeight: 1.5
+   }}>
+    {selectedMember.profiles.courses_taken.join(' · ')}
+   </span>
+  </div>
+ )}
 
-   color:
-    '#717786',
- display:
-   'block'
-}}
-
->
-MAJOR
-</span>
-
-
-
-
-<span
-style={{
- fontSize:
-  '13px',
-
-fontWeight:
- '800',
-
- color:
-   '#1A1B1F'
-}}
->
-{selectedMember
- .profiles
- ?.major ||
- 'Not specified'}
-</span>
-</div>
-
-
-
-
-{/* ACADEMIC LEVEL */}
-
-<div
-style={{
- background:
- '#E9E7ED',
-padding:
-'10px 14px',
-
-borderRadius:
-'12px',
-
-textAlign:
- 'left',
-
-border:
-   '1px solid #E3E2E7'
-}}
-
->
-
-<span
-style={{
- fontSize:
-  '10px',
-
-fontWeight:
- '900',
-
-color:
- '#717786',
-
- display:
-   'block'
-}}
->
-ACADEMIC LEVEL
-</span>
-
-
-
-
-<span
-style={{
- fontSize:
-  '13px',
-
- fontWeight:
-  '800',
-
- color:
-   '#1A1B1F'
-}}
->
-{selectedMember
-  .profiles
-  ?.academic_year ||
-  'Not specified'}
- </span>
-
-</div>
-
+{!selectedMember.profiles?.major &&
+ !selectedMember.profiles?.academic_year &&
+ !selectedMember.profiles?.guest_title &&
+ !(Array.isArray(selectedMember.profiles?.courses_taken) &&
+   selectedMember.profiles.courses_taken.length > 0) && (
+  <div style={{
+   background: '#F7F8FA',
+   padding: '12px 14px',
+   borderRadius: '12px',
+   color: '#717786',
+   fontSize: '12px',
+   fontWeight: '700',
+   border: '1px solid #E3E2E7'
+  }}>
+   This student has not added more public profile details yet.
+  </div>
+ )}
 </div>
 
 </div>

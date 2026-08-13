@@ -1,7 +1,7 @@
 /* =========================================================
-   CAMPORA â€” APP.CSS
-   LUMINOUS iOS (NAVY EDITION) â€” TECHNICAL SPEC v2
-   INTER TYPE SCALE Â· LAYERED SURFACES Â· GLASS SIDEBAR
+   CAMPORA Ã¢â‚¬â€ APP.CSS
+   LUMINOUS iOS (NAVY EDITION) Ã¢â‚¬â€ TECHNICAL SPEC v2
+   INTER TYPE SCALE Ã‚Â· LAYERED SURFACES Ã‚Â· GLASS SIDEBAR
    FIXED SIDEBAR + SCROLLABLE APP CONTENT
 ========================================================= */
 
@@ -158,8 +158,8 @@ body {
 
 
 /* =========================================================
-   SIDEBAR â€” DESKTOP iOS CHROME
-   blur(40px) Â· rgba(244,243,248,0.6) Â· border-right
+   SIDEBAR Ã¢â‚¬â€ DESKTOP iOS CHROME
+   blur(40px) Ã‚Â· rgba(244,243,248,0.6) Ã‚Â· border-right
 ========================================================= */
 
 .sidebar {
@@ -316,9 +316,9 @@ body {
 
 
 /* =========================================================
-   NAVIGATION ITEMS â€” LIGHT NAVY PILLS
+   NAVIGATION ITEMS Ã¢â‚¬â€ LIGHT NAVY PILLS
    Inactive: #414755 on transparent
-   Active:   #001A41 text Â· #D8E2FF bg Â· soft shadow
+   Active:   #001A41 text Ã‚Â· #D8E2FF bg Ã‚Â· soft shadow
 ========================================================= */
 
 .nav-item {
@@ -709,7 +709,7 @@ body {
 
 
 /* =========================================================
-   COLLAPSED SIDEBAR â†’ EXPAND PAGE
+   COLLAPSED SIDEBAR Ã¢â€ â€™ EXPAND PAGE
 ========================================================= */
 
 .sidebar.collapsed + .main-content {
@@ -756,7 +756,7 @@ body {
 
 
 /* =========================================================
-   TOP GLASS BAR â€” iOS CHROME
+   TOP GLASS BAR Ã¢â‚¬â€ iOS CHROME
    Sticky, translucent, blurs content scrolling beneath it.
 ========================================================= */
 
@@ -828,7 +828,7 @@ body {
   flex-shrink: 0;
 }
 
-/* Search pill â€” opens the âŒ˜K command palette */
+/* Search pill Ã¢â‚¬â€ opens the Ã¢Å’ËœK command palette */
 .topbar-search {
   display: flex;
   align-items: center;
@@ -843,7 +843,9 @@ body {
   border: none;
   outline: none;
 
-  background: #E9E7ED;
+  background: #FFFFFF;
+
+  border: 1px solid #EEF0F3;
 
   border-radius: 9999px;
 
@@ -860,7 +862,8 @@ body {
 }
 
 .topbar-search:hover {
-  background: #E3E2E7;
+  background: #FAFBFC;
+  border-color: #E5E9EF;
 }
 
 .topbar-search:focus-visible {
@@ -896,9 +899,9 @@ body {
 
   border-radius: 6px;
 
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.94);
 
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid #E3E7ED;
 
   color: #717786;
 
@@ -986,9 +989,9 @@ body {
 
 
 /* =========================================================
-   TYPOGRAPHY â€” INTER TYPE SCALE
-   Display 34/700/-0.04em Â· H2 22/600/-0.03em
-   H3 20/600/-0.02em Â· H4 17/600/-0.02em
+   TYPOGRAPHY Ã¢â‚¬â€ INTER TYPE SCALE
+   Display 34/700/-0.04em Ã‚Â· H2 22/600/-0.03em
+   H3 20/600/-0.02em Ã‚Â· H4 17/600/-0.02em
 ========================================================= */
 
 h1 {
@@ -1021,7 +1024,7 @@ h4 {
 
 
 /* =========================================================
-   SURFACES â€” SQUIRCLE GEOMETRY
+   SURFACES Ã¢â‚¬â€ SQUIRCLE GEOMETRY
 ========================================================= */
 
 .card {
@@ -1049,7 +1052,7 @@ h4 {
 
 
 /* =========================================================
-   ICONS â€” 1.5px OUTLINED STROKE
+   ICONS Ã¢â‚¬â€ 1.5px OUTLINED STROKE
 ========================================================= */
 
 .lucide {
@@ -1070,7 +1073,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE â€” MEDIUM SCREENS
+   RESPONSIVE Ã¢â‚¬â€ MEDIUM SCREENS
 ========================================================= */
 
 @media (max-width: 1100px) {
@@ -1083,7 +1086,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE â€” SMALLER SCREENS
+   RESPONSIVE Ã¢â‚¬â€ SMALLER SCREENS
 ========================================================= */
 
 @media (max-width: 850px) {
@@ -1104,7 +1107,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE â€” VERY SMALL SCREENS
+   RESPONSIVE Ã¢â‚¬â€ VERY SMALL SCREENS
 ========================================================= */
 
 @media (max-width: 650px) {
@@ -1193,7 +1196,7 @@ button {
 
 
 /* =========================================================
-   COMMAND PALETTE (âŒ˜K)
+   COMMAND PALETTE (Ã¢Å’ËœK)
 ========================================================= */
 
 .palette-backdrop {
@@ -1442,7 +1445,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE â€” [data-theme='dark']
+   DARK MODE Ã¢â‚¬â€ [data-theme='dark']
 ========================================================= */
 
 :root[data-theme='dark'] {

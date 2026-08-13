@@ -29,9 +29,7 @@ import { supabase } from '../lib/supabase';
 import {
 PageShell,
 IconChip,
-ProgressRing,
-EmptyState,
-BentoActionCard
+EmptyState
 } from '../components/luminous';
 const MAJORS = [
 'Computer Science',
@@ -73,10 +71,7 @@ const REGISTRATION_TOOLS = [
 { label: 'Requirements', icon: BookOpen, tab: 'curriculum' }
 ];
 
-const FALL_STATUS_BREAKDOWN = [
-{ label: 'Enrolled', count: '4 COURSES', tone: 'success' },
-{ label: 'Waitlisted', count: '1 COURSE', tone: 'tertiary' }
-];
+
 
 const getInitials = name =>
 (name || 'S')
@@ -1166,89 +1161,63 @@ label="Direct Messages"
 </div>
 {activeTab === 'match' && (
 <div className="stack" style={{ gap: 26 }}>
-<div className="grid-12">
-<div className="col-span-8 stack">
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px' }}>
-<BentoActionCard
-tone="primary"
-icon={GraduationCap}
-title="Course Registration"
-copy="Enter the course you currently have and the course you want. Campora shows exact matches, similar reciprocal swaps, and possible alternatives even when section, CRN, professor or schedule is different."
-cta="START REGISTRATION"
-onClick={() => { setEditingPostId(null); setSearchPref(EMPTY_SWAP); setMatchResult(null); setMatchFilter('all'); setIsMatchModalOpen(true); }}
-/>
-<BentoActionCard
-tone="secondary"
-icon={ArrowLeftRight}
-title="Swap Hub"
-copy="Browse open swap requests from other students and run the match engine to surface reciprocal swaps instantly."
-badge={`${swapPosts.filter(post => (post.status || 'available') !== 'taken').length} MATCHES FOUND`}
-cta="START SWAP HUB"
-onClick={() => { setEditingPostId(null); setSearchPref(EMPTY_SWAP); setMatchResult(null); setMatchFilter('all'); setIsMatchModalOpen(true); }}
-/>
-</div>
-<div className="panel">
-<div className="label-caps" style={{ margin: '0 0 18px', fontSize: 12 }}>Registration Tools</div>
-<div className="grid-3" style={{ gap: '10px' }}>
-{REGISTRATION_TOOLS.map(tool => (
-<button key={tool.label} type="button" onClick={() => setActiveTab(tool.tab)} style={{ border: 'none', background: 'transparent', padding: '4px 0', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-<IconChip lg icon={tool.icon} tone="primary" size={26} />
-<span className="label-caps" style={{ fontSize: 11 }}>{tool.label}</span>
+<div style={{ width: '100%' }}>
+<div className="stack" style={{ width: '100%' }}>
+<button
+  type="button"
+  onClick={() => {
+    setEditingPostId(null);
+    setSearchPref(EMPTY_SWAP);
+    setMatchResult(null);
+    setMatchFilter('all');
+    setIsMatchModalOpen(true);
+  }}
+  style={{
+    width: '100%',
+    minHeight: '180px',
+    background: 'var(--campora-navy)',
+    border: '1.5px solid var(--campora-navy)',
+    borderRadius: '24px',
+    padding: '30px 32px',
+    boxShadow: '0 10px 24px rgba(10, 48, 91, 0.14)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '22px',
+    fontFamily: 'inherit',
+    textAlign: 'left',
+    color: '#FFFFFF'
+  }}
+>
+  <div style={{
+    ...heroIconWrap,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    background: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.20)',
+    color: '#FFFFFF'
+  }}>
+    <ArrowLeftRight size={28} />
+  </div>
+  <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+      <h2 style={{ ...heroCardTitle, fontSize: 26, color: '#FFFFFF' }}>Register &amp; Swap</h2>
+      <span style={{ ...heroCardPill, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}>COURSE MATCH &amp; SWAP</span>
+    </div>
+    <p style={{
+      ...heroCardCopy,
+      maxWidth: 900,
+      margin: 0,
+      color: 'rgba(255,255,255,0.82)',
+      fontFamily: 'inherit'
+    }}>
+      Enter the course you currently have and the course you want. Campora helps you register, compare available options, find reciprocal swap matches, and browse useful alternatives all in one place.
+    </p>
+  </div>
+  <ArrowRight size={24} color="#FFFFFF" style={{ flexShrink: 0 }} />
 </button>
-))}
-</div>
-</div>
-</div>
-<div className="col-span-4 stack">
-<div className="panel" style={{ position: 'relative', overflow: 'hidden' }}>
-<div style={{ position: 'absolute', top: -44, right: -44, width: 150, height: 150, borderRadius: '50%', background: 'var(--tone-primary-soft)' }} />
-<div className="stack" style={{ position: 'relative' }}>
-<div className="label-caps" style={{ fontSize: 12 }}>Fall Status</div>
-<div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-<ProgressRing value={67} size={96} stroke={9}>
-<span style={{ fontSize: 15, fontWeight: 900, color: 'var(--campora-text)' }}>12 / 18</span>
-</ProgressRing>
-<div className="stack" style={{ gap: 6 }}>
-<span className="label-caps" style={{ fontSize: 11 }}>Credits Enrolled</span>
-<span style={{ fontSize: 15, fontWeight: 800, color: 'var(--campora-text)' }}>Full-Time Status</span>
-</div>
-</div>
-<div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px', borderRadius: 'var(--radius-sm)', background: 'var(--surface-container-low)' }}>
-{FALL_STATUS_BREAKDOWN.map(row => (
-<div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-<span style={{ width: 10, height: 10, borderRadius: '50%', background: row.tone === 'success' ? 'var(--tone-success)' : 'var(--tone-tertiary)', flexShrink: 0 }} />
-<span style={{ fontSize: 12, fontWeight: 800, color: 'var(--campora-text)' }}>{row.label}</span>
-</div>
-<span style={{ fontSize: 11, fontWeight: 700, color: 'var(--campora-muted)' }}>{row.count}</span>
-</div>
-))}
-</div>
-</div>
-</div>
-<div className="panel">
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
-<h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: 'var(--campora-text)' }}>Recent Swaps</h3>
-<button type="button" onClick={() => { setEditingPostId(null); setSearchPref(EMPTY_SWAP); setMatchResult(null); setMatchFilter('all'); setIsMatchModalOpen(true); }} title="Post a swap" style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', background: 'var(--campora-navy-tint-alpha)', color: 'var(--campora-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Plus size={18} /></button>
-</div>
-{swapPosts.length === 0 ? (
-<div style={{ border: '1.5px dashed var(--outline)', borderRadius: 'var(--radius-secondary)' }}>
-<EmptyState icon={ArrowLeftRight} title="No Active Requests" text="Open swap requests from other students will appear here. Post your own to start matching." action={<button type="button" className="btn btn-tinted btn-sm" onClick={() => { setEditingPostId(null); setSearchPref(EMPTY_SWAP); setMatchResult(null); setMatchFilter('all'); setIsMatchModalOpen(true); }}><Plus size={14} /> POST A SWAP</button>} />
-</div>
-) : (
-<div className="stack" style={{ gap: 10 }}>
-{swapPosts.slice(0, 3).map(post => (
-<div key={post.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--surface-container-low)' }}>
-<div style={{ minWidth: 0 }}>
-<div style={{ fontSize: 12, fontWeight: 900, color: 'var(--campora-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.have_course || 'Course'} → {post.want_course || 'Course'}</div>
-<div style={{ fontSize: 10, fontWeight: 700, color: 'var(--campora-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{buildSwapSourceLabel(post)}</div>
-</div>
-<span style={post.status === 'taken' ? takenStatusBadge : availableStatusBadge}>{post.status === 'taken' ? 'TAKEN' : 'OPEN'}</span>
-</div>
-))}
-</div>
-)}
-</div>
+
 </div>
 </div>
 <div className="stack" style={{ gap: 16 }}>
@@ -1256,8 +1225,47 @@ onClick={() => { setEditingPostId(null); setSearchPref(EMPTY_SWAP); setMatchResu
 {loading ? (
 <div style={loadingBox}><RefreshCw size={20} /> Loading...</div>
 ) : swapPosts.length === 0 ? (
-<div style={{ border: '1.5px dashed var(--outline)', borderRadius: 'var(--radius-secondary)' }}>
-<EmptyState icon={ArrowLeftRight} title="No swap requests posted yet." />
+<div
+  style={{
+    minHeight: '220px',
+    background: '#FAFBFC',
+    border: '1.5px dashed #DCE3EC',
+    borderRadius: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '14px',
+    textAlign: 'center',
+    fontFamily: 'inherit'
+  }}
+>
+  <div
+    style={{
+      width: 68,
+      height: 68,
+      borderRadius: '50%',
+      background: '#F4F7FA',
+      border: '1px solid #E7ECF2',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#8B96A6'
+    }}
+  >
+    <ArrowLeftRight size={30} />
+  </div>
+  <p
+    style={{
+      margin: 0,
+      color: 'var(--campora-text)',
+      fontSize: 16,
+      fontWeight: 800,
+      fontFamily: 'inherit'
+    }}
+  >
+    No swap requests posted yet.
+  </p>
 </div>
 ):(
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
@@ -1772,7 +1780,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     alignItems: 'center',
     gap: '9px',
     padding: '0 13px',
-    background: 'var(--surface-container)',
+    background: '#FAFBFC',
     border: '1.5px solid var(--divider)',
     borderRadius: '15px'
    }}
@@ -1959,7 +1967,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
       padding: '4px 6px',
       borderRadius: '16px',
       background: selected
-        ? 'var(--surface-container-low)'
+        ? '#FBFCFE'
         : 'transparent',
       boxSizing: 'border-box'
      }}
@@ -2445,7 +2453,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     minHeight: 0,
     overflowY: 'auto',
     padding: '18px 20px',
-    background: 'var(--surface-container-low)'
+    background: '#FBFCFE'
   }}
 >
   {dmLoading ? (
@@ -2546,7 +2554,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     borderRadius: '8px',
     background: mine
       ? 'rgba(255,255,255,0.12)'
-      : 'var(--surface-container)',
+      : '#FAFBFC',
     borderLeft: mine
       ? '3px solid rgba(255,255,255,0.65)'
       : '3px solid var(--campora-navy)',
@@ -2661,7 +2669,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
             : '1px solid var(--divider)',
           background:
            (users || []).includes(currentUserId)
-            ? 'var(--surface-container-low)'
+            ? '#FBFCFE'
             : 'var(--surface-container-lowest)',
           borderRadius: '999px',
           padding: '4px 8px',
@@ -2756,7 +2764,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
  }}
  style={{
   border: 'none',
-  background: 'var(--surface-container)',
+  background: '#FAFBFC',
   color: 'var(--campora-text)',
   borderRadius: '8px',
   padding: '6px 8px',
@@ -2776,7 +2784,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
  onClick={() => togglePinDmMessage(message.id)}
  style={{
   border: 'none',
-  background: isPinnedMessage ? '#FFF9F1' : 'var(--surface-container)',
+  background: isPinnedMessage ? '#FFF9F1' : '#FAFBFC',
   color: isPinnedMessage ? '#C99758' : 'var(--campora-text)',
   borderRadius: '8px',
   padding: '6px 8px',
@@ -2811,7 +2819,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
   <div
    style={{
     padding: '9px 18px',
-    background: 'var(--surface-container)',
+    background: '#FAFBFC',
     borderTop: '1px solid var(--divider)',
     display: 'flex',
     justifyContent: 'space-between',
@@ -2897,7 +2905,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
      maxHeight: '120px',
      resize: 'none',
      border: '1.5px solid var(--divider)',
-     background: 'var(--surface-container)',
+     background: '#FAFBFC',
      borderRadius: '15px',
      padding: '12px 13px',
      color: 'var(--campora-text)',
@@ -3177,8 +3185,17 @@ return (
 onClick={onClick}
 className={`filter-chip ${active ? 'active' : ''}`}
 style={active
-? { background: tone.text, color: 'var(--surface-container-lowest)', border: `2px solid ${tone.text}`, boxShadow: `0 6px 16px ${tone.text}28` }
-: { background: tone.bg, color: tone.text, border: `1.5px solid ${tone.border}` }}
+? {
+    background: tone.bg,
+    color: tone.text,
+    border: `2px solid ${tone.text}`,
+    boxShadow: `0 4px 12px ${tone.text}18`
+  }
+: {
+    background: tone.bg,
+    color: tone.text,
+    border: `1.5px solid ${tone.border}`
+  }}
 >
 {icon}
 {normalizedLabel}
@@ -3381,6 +3398,77 @@ fontWeight: '600', lineHeight: 1.5 }}>{reply.content}</p>
 </div>
 );
 }
+const registrationHeroCard = {
+  width: '100%',
+  minWidth: 0,
+  minHeight: '190px',
+  background: '#FFFFFF',
+  border: 'none',
+  borderRadius: 0,
+  padding: '28px 30px',
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '20px',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  boxShadow: 'none',
+  color: 'var(--campora-text)',
+  transition: 'background 0.2s ease'
+};
+const swapHeroCard = {
+  ...registrationHeroCard,
+  background: '#FBFCFE',
+  borderLeft: '1.5px solid #E6EBF2'
+};
+const heroIconWrap = {
+  width: '54px',
+  height: '54px',
+  borderRadius: '16px',
+  background: '#F5F8FC',
+  border: '1px solid #E4EAF2',
+  color: 'var(--campora-navy)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0
+};
+const heroCardTitle = {
+  margin: 0,
+  fontSize: '24px',
+  fontWeight: '900',
+  color: 'var(--campora-text)',
+  letterSpacing: '-0.3px'
+};
+const heroCardCopy = {
+  margin: '14px 0 20px',
+  fontSize: '14px',
+  lineHeight: 1.65,
+  color: 'var(--campora-muted)',
+  fontWeight: '600',
+  maxWidth: '560px',
+  wordBreak: 'normal',
+  overflowWrap: 'break-word'
+};
+const heroCardPill = {
+  background: '#F5F8FC',
+  color: 'var(--campora-navy)',
+  border: '1px solid #E0E7F0',
+  borderRadius: '999px',
+  padding: '6px 10px',
+  fontSize: '9px',
+  fontWeight: '900',
+  letterSpacing: '0.6px'
+};
+const heroCardCta = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  color: 'var(--campora-navy)',
+  fontSize: '12px',
+  fontWeight: '900',
+  letterSpacing: '0.4px',
+  paddingTop: '3px'
+};
 const primaryActionBtn = { background: 'var(--campora-navy)', color: 'var(--surface-container-lowest)', border:
 'none', padding: '10px 16px', borderRadius: '12px', fontWeight: '800', fontSize:
 '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent:
@@ -3401,17 +3489,17 @@ const sectionTopRow = { display: 'flex', alignItems: 'center', justifyContent:
 const swapCard = { background: 'var(--surface-container-lowest)', padding: '20px', borderRadius:
 '20px', border: '1.5px solid var(--divider)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
 transition: 'all 0.2s ease' };
-const takenSwapCard = { background: 'var(--surface-container-low)', border: '1.5px solid var(--outline)' }; const reviewCard = { background: 'var(--surface-container-lowest)', padding: '22px', borderRadius:
+const takenSwapCard = { background: '#FBFCFE', border: '1.5px solid var(--outline)' }; const reviewCard = { background: 'var(--surface-container-lowest)', padding: '22px', borderRadius:
 '20px', border: '1.5px solid var(--divider)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }; const emptyCard = { background: 'var(--surface-container-lowest)', border: '1.5px dashed var(--outline)',
 padding: '30px', borderRadius: '20px', textAlign: 'center', color: 'var(--campora-muted)',
 fontWeight: '700', fontSize: '14px' };
 const loadingBox = { display: 'flex', alignItems: 'center', justifyContent: 'center',
 gap: '8px', padding: '35px', color: 'var(--campora-muted)', fontWeight: '700' };
 const avatarCircle = { width: '38px', height: '38px', borderRadius: '50%',
-background: 'var(--surface-container)', border: '1.5px solid var(--divider)', color: 'var(--campora-text)',
+background: '#FAFBFC', border: '1.5px solid var(--divider)', color: 'var(--campora-text)',
 fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center',
 fontSize: '14px', flexShrink: 0 };
-const swapCourseBlock = { background: 'var(--surface-container)', border: '1px solid #E9EDF5', borderRadius: '15px', padding: '15px' }; const swapCourseHeader = { display: 'flex', justifyContent: 'space-between',
+const swapCourseBlock = { background: '#FAFBFC', border: '1px solid #E9EDF5', borderRadius: '15px', padding: '15px' }; const swapCourseHeader = { display: 'flex', justifyContent: 'space-between',
 alignItems: 'center', gap: '8px' };
 
 const swapCourseName = { margin: '0 0 12px', color: 'var(--campora-muted)', fontSize:
@@ -3427,10 +3515,10 @@ const smallCrnBadge = { background: 'var(--surface-container-lowest)', color: 'v
 const availableStatusBadge = { background: '#F2F9F7', color: '#5E9A8B',
 border: '1px solid #D9EBE6', padding: '5px 9px', borderRadius: '9px', fontSize:
 '9px', fontWeight: '900', letterSpacing: '0.4px' };
-const takenStatusBadge = { background: 'var(--surface-container-low)', color: 'var(--campora-muted)', border:
+const takenStatusBadge = { background: '#FBFCFE', color: 'var(--campora-muted)', border:
 '1px solid var(--outline)', padding: '5px 9px', borderRadius: '9px', fontSize: '9px',
 fontWeight: '900', letterSpacing: '0.4px' };
-const takenNotice = { marginTop: '15px', background: 'var(--surface-container-low)', color:
+const takenNotice = { marginTop: '15px', background: '#FBFCFE', color:
 'var(--campora-muted)', border: '1px solid var(--divider)', padding: '10px 12px', borderRadius:
 '11px', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center',
 justifyContent: 'center', gap: '6px' };
@@ -3439,14 +3527,14 @@ const markTakenButton = { width: '100%', background: 'var(--surface-container-lo
 '11px', fontWeight: '800', fontSize: '11px', cursor: 'pointer', display: 'flex',
 alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '10px' };
 const reopenSwapButton = { ...markTakenButton, color: 'var(--campora-body)' };
-const swapFormSection = { background: 'var(--surface-container)', border: '1px solid var(--divider)', borderRadius: '16px', padding: '17px', display: 'flex', flexDirection: 'column', gap: '12px' };
+const swapFormSection = { background: '#FAFBFC', border: '1px solid var(--divider)', borderRadius: '16px', padding: '17px', display: 'flex', flexDirection: 'column', gap: '12px' };
 const swapFormSectionHeader = { display: 'flex', alignItems: 'center', gap:
 '10px', marginBottom: '2px' };
 const swapFormTitle = { margin: 0, color: 'var(--campora-text)', fontSize: '14px',
 fontWeight: '900' };
 const swapFormSubtitle = { margin: '2px 0 0', color: 'var(--campora-muted)', fontSize:
 '10px', fontWeight: '700' };
-const badgeRed = { background: '#FFF6F2', color: '#D9896A', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900' }; const badgeGreen = { background: '#F2F9F7', color: '#5E9A8B', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const badgeGray = { background: 'var(--surface-container-low)', color: 'var(--campora-muted)', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const reviewTag = { background: '#FFF9F1', color: '#D97706', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '800' }; const dmBtnStyle = { width: '100%', background: 'var(--surface-container-lowest)', border: '1.5px solid var(--divider)', color: 'var(--campora-text)', padding: '10px', borderRadius: '12px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' };
+const badgeRed = { background: '#FFF6F2', color: '#D9896A', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900' }; const badgeGreen = { background: '#F2F9F7', color: '#5E9A8B', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const badgeGray = { background: '#FBFCFE', color: 'var(--campora-muted)', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const reviewTag = { background: '#FFF9F1', color: '#D97706', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '800' }; const dmBtnStyle = { width: '100%', background: 'var(--surface-container-lowest)', border: '1.5px solid var(--divider)', color: 'var(--campora-text)', padding: '10px', borderRadius: '12px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' };
 
 const modalInput = { width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: '12px', border: '1.5px solid var(--divider)', fontSize: '13px', fontWeight: '700', color: 'var(--campora-text)', outline: 'none', background: 'var(--surface-container-lowest)' };
 const selectInputStyle = { width: '100%', boxSizing: 'border-box', padding:
@@ -3477,7 +3565,7 @@ padding: '7px', borderRadius: '8px', cursor: 'pointer', color: 'var(--campora-mu
 const closeModalBtn = { background: 'transparent', border: 'none', color:
 'var(--campora-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent:
 'center', padding: '4px' };
-const courseInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', padding: '15px', margin: '15px 0', background: 'var(--surface-container)', borderRadius: '14px', border: '1px solid var(--divider)' };
+const courseInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', padding: '15px', margin: '15px 0', background: '#FAFBFC', borderRadius: '14px', border: '1px solid var(--divider)' };
 const infoLabel = { display: 'block', color: 'var(--campora-muted)', fontSize: '9px',
 fontWeight: '900', letterSpacing: '0.6px', marginBottom: '3px' };
 const infoValue = { margin: 0, color: 'var(--campora-text)', fontSize: '12px', fontWeight:
@@ -3486,7 +3574,7 @@ const bodyText = { margin: 0, fontSize: '13px', color: 'var(--campora-body)', fo
 '600', lineHeight: 1.6 };
 const replySection = { display: 'flex', flexDirection: 'column', gap: '9px',
 marginTop: '15px', paddingLeft: '14px', borderLeft: '2px solid var(--divider)' };
-const replyCard = { background: 'var(--surface-container)', padding: '11px 13px', borderRadius:
+const replyCard = { background: '#FAFBFC', padding: '11px 13px', borderRadius:
 '12px', border: '1px solid var(--divider)' };
 const replyButton = { background: 'none', border: 'none', padding: 0, color:
 'var(--campora-text)', fontWeight: '800', fontSize: '12px', cursor: 'pointer', display: 'flex',
@@ -3494,13 +3582,13 @@ alignItems: 'center', gap: '5px' };
 const reminderFormGrid = { display: 'grid', gridTemplateColumns:
 'repeat(autofit, minmax(180px, 1fr))', gap: '10px' };
 const bellCircle = { width: '38px', height: '38px', borderRadius: '12px',
-background: 'var(--surface-container)', color: 'var(--campora-text)', display: 'flex', alignItems: 'center',
+background: '#FAFBFC', color: 'var(--campora-text)', display: 'flex', alignItems: 'center',
 justifyContent: 'center', border: '1px solid var(--divider)' };
 const smallOutlineBtn = { background: 'var(--surface-container-lowest)', border: '1px solid var(--divider)',
 borderRadius: '9px', color: 'var(--campora-text)', padding: '7px 10px', cursor: 'pointer',
 fontSize: '11px', fontWeight: '800' };
 const infoNotice = { display: 'flex', alignItems: 'flex-start', gap: '10px', padding:
-'15px', background: 'var(--surface-container)', border: '1px solid var(--divider)', borderRadius:
+'15px', background: '#FAFBFC', border: '1px solid var(--divider)', borderRadius:
 '14px', color: 'var(--campora-text)', fontSize: '12px', fontWeight: '600' };
 const successNotice = { background: '#F2F9F7', color: '#5E9A8B', padding:
 '15px', borderRadius: '15px', marginBottom: '18px', fontWeight: '900' };
@@ -3518,11 +3606,11 @@ fontWeight: '900', whiteSpace: 'nowrap' };
 const similarMatchBadge = { background: '#FFF9F1', color: '#C99758', border:
 '1px solid #F0E2CB', padding: '5px 9px', borderRadius: '9px', fontSize: '9px',
 fontWeight: '900', whiteSpace: 'nowrap' };
-const possibleMatchBadge = { background: 'var(--surface-container-low)', color: 'var(--campora-muted)',
+const possibleMatchBadge = { background: '#FBFCFE', color: 'var(--campora-muted)',
 border: '1px solid var(--outline)', padding: '5px 9px', borderRadius: '9px', fontSize:
 '9px', fontWeight: '900', whiteSpace: 'nowrap' };
 const matchDetailNotice = { marginTop: '12px', padding: '10px 12px',
-borderRadius: '11px', background: 'var(--surface-container)', border: '1px solid var(--divider)',
+borderRadius: '11px', background: '#FAFBFC', border: '1px solid var(--divider)',
 fontSize: '11px', color: 'var(--campora-muted)', fontWeight: '700' };
 const differentDetailsText = { marginTop: '8px', fontSize: '10px', color:
 'var(--campora-muted)', fontWeight: '700' };
@@ -3531,7 +3619,7 @@ const myPostCard = { ...reviewCard, width: '100%', textAlign: 'left', cursor:
 const myPostSourceBadge = { background: '#EEF2FF', color: 'var(--campora-text)',
 border: '1px solid #DDE5F4', padding: '5px 9px', borderRadius: '8px', fontSize:
 '9px', fontWeight: '900' };
-const myPostTypeBadge = { background: 'var(--surface-container)', color: 'var(--campora-muted)', border:
+const myPostTypeBadge = { background: '#FAFBFC', color: 'var(--campora-muted)', border:
 '1px solid var(--divider)', padding: '5px 9px', borderRadius: '8px', fontSize: '9px',
 fontWeight: '900' };
 const myPostSubtitle = { margin: '6px 0 0', color: 'var(--campora-muted)', fontSize: '12px',

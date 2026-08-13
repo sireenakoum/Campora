@@ -36,7 +36,6 @@ import {
 import {
   PageShell,
   SectionHeader,
-  StatTile,
   ProgressRing,
 } from '../components/luminous';
 
@@ -95,6 +94,30 @@ const campusPulseTone = (category) => {
     default:
       return { accent: BLUE, soft: BLUE_SOFT, border: BLUE_BORDER };
   }
+};
+
+const dashboardNotificationTone = item => {
+  const text = `${item?.category || ''} ${item?.title || ''} ${item?.message || item?.content || ''}`.toLowerCase();
+
+  if (text.includes('study group') || text.includes('group') || text.includes('circle')) {
+    return { accent: TEAL, soft: TEAL_SOFT, border: TEAL_BORDER, icon: Users };
+  }
+  if (text.includes('planner') || text.includes('calendar') || text.includes('schedule')) {
+    return { accent: BLUE, soft: BLUE_SOFT, border: BLUE_BORDER, icon: CalendarDays };
+  }
+  if (text.includes('assignment') || text.includes('course') || text.includes('quiz') || text.includes('exam')) {
+    return { accent: PURPLE, soft: PURPLE_SOFT, border: PURPLE_BORDER, icon: BookOpen };
+  }
+  if (text.includes('registration') || text.includes('swap') || text.includes('seat') || text.includes('crn')) {
+    return { accent: TERRACOTTA, soft: TERRACOTTA_SOFT, border: TERRACOTTA_BORDER, icon: Compass };
+  }
+  if (text.includes('todo') || text.includes('to-do') || text.includes('task')) {
+    return { accent: GOLD, soft: GOLD_SOFT, border: GOLD_BORDER, icon: CheckCircle2 };
+  }
+  if (text.includes('announcement') || text.includes('campus')) {
+    return { accent: ROSE, soft: ROSE_SOFT, border: ROSE_BORDER, icon: Megaphone };
+  }
+  return { accent: PURPLE, soft: PURPLE_SOFT, border: PURPLE_BORDER, icon: Bell };
 };
 
 const TODO_PRIORITIES = [
@@ -1327,32 +1350,40 @@ export default function Dashboard() {
       =================================================== */}
 
       <div className="grid-4">
-        <StatTile
+        <DashboardStatTile
           icon={BookOpen}
           title={String(courses.length)}
           desc="Courses"
-          tone="primary"
+          accent="#0B3A70"
+          soft="#F1F5FA"
+          border="#E2E8F1"
         />
 
-        <StatTile
+        <DashboardStatTile
           icon={ClipboardCheck}
           title={String(activeAssignments.length)}
           desc="Assignments"
-          tone="secondary"
+          accent={PURPLE}
+          soft="#F5F2FA"
+          border="#E9E3F2"
         />
 
-        <StatTile
+        <DashboardStatTile
           icon={CalendarDays}
           title={String(todaysSchedule.length)}
           desc="Schedule"
-          tone="tertiary"
+          accent={TERRACOTTA}
+          soft="#FCF4F0"
+          border="#F1E3DB"
         />
 
-        <StatTile
+        <DashboardStatTile
           icon={Megaphone}
           title={String(campusHubAnnouncements.length)}
           desc="Announcements"
-          tone="error"
+          accent={ROSE}
+          soft="#FCF2F4"
+          border="#F0E2E5"
         />
       </div>
 
@@ -1431,7 +1462,15 @@ export default function Dashboard() {
             }
           />
 
-          <div className="panel-low" style={s.todoCard}>
+          <div
+            className="panel-low"
+            style={{
+              ...s.todoCard,
+              background: '#FAFBFD',
+              border: '1px solid #EEF1F5',
+              boxShadow: 'none',
+            }}
+          >
             <ProgressRing
               value={todoProgress}
               size={190}
@@ -1572,8 +1611,8 @@ export default function Dashboard() {
           navigate('/announcements')
         }
       >
-        <div className="grid-12">
-          <div className="col-span-8">
+        <div style={{ width: '100%' }}>
+          <div style={{ width: '100%' }}>
             {announcement ? (
               <button
                 type="button"
@@ -1622,54 +1661,31 @@ export default function Dashboard() {
                 />
               </button>
             ) : (
-              <div className="empty-state" style={{ padding: '20px' }}>
-                <p>No campus announcements right now.</p>
+              <div
+                style={{
+                  width: '100%',
+                  minHeight: '150px',
+                  padding: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  color: 'var(--campora-muted)',
+                }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    width: '100%',
+                    textAlign: 'center',
+                  }}
+                >
+                  No campus announcements right now.
+                </p>
               </div>
             )}
           </div>
 
-          <div className="col-span-4">
-            <button
-              type="button"
-              onClick={() =>
-                navigate('/notifications')
-              }
-              className="accent-row tone-secondary"
-              style={s.announcementCard}
-            >
-              <span
-                className="icon-chip"
-                style={{
-                  ...s.previewIcon,
-                  background: PURPLE_SOFT,
-                  color: PURPLE,
-                }}
-              >
-                <Bell size={18} />
-              </span>
-
-              <span style={s.previewMain}>
-                <span className="stat-tile-title" style={s.notificationTitle}>
-                  Notifications
-                </span>
-
-                <span className="stat-tile-desc" style={s.notificationText}>
-                  {unreadCount === 0
-                    ? 'You’re all caught up.'
-                    : `${unreadCount} unread ${
-                        unreadCount === 1
-                          ? 'update'
-                          : 'updates'
-                      }`}
-                </span>
-              </span>
-
-              <ChevronRight
-                size={18}
-                className="dimmed"
-              />
-            </button>
-          </div>
         </div>
       </Panel>
 
@@ -1897,7 +1913,15 @@ export default function Dashboard() {
                     })}
                 </div>
 
-                <div className="panel" style={s.chatShell}>
+                <div
+                  style={{
+                    ...s.chatShell,
+                    background: `linear-gradient(180deg, ${TEAL_SOFT} 0%, var(--surface-container-lowest) 45%)`,
+                    border: `1px solid ${TEAL_BORDER}`,
+                    boxShadow: `inset 0 4px 0 ${TEAL}55, 0 8px 22px rgba(0,45,98,0.05)`,
+                    borderRadius: '18px',
+                  }}
+                >
                   <div style={s.chatPreviewHeader}>
                     <div>
                       <strong className="stat-tile-title" style={s.chatPreviewTitle}>
@@ -1931,16 +1955,21 @@ export default function Dashboard() {
                         message => (
                           <div
                             key={message.id}
-                            className="accent-row tone-success"
-                            style={s.chatMessageRow}
+                            style={{
+                              ...s.chatMessageRow,
+                              background: `linear-gradient(180deg, ${TEAL_SOFT} 0%, #FFFFFF 58%)`,
+                              border: `1px solid ${TEAL_BORDER}`,
+                              boxShadow: `inset 0 3px 0 ${TEAL}45`,
+                              borderRadius: '16px',
+                            }}
                           >
                             <span
                               className="icon-chip"
                               style={{
                                 ...s.chatAvatar,
-                                background:
-                                  TEAL_SOFT,
+                                background: TEAL_SOFT,
                                 color: TEAL,
+                                border: `1px solid ${TEAL_BORDER}`,
                               }}
                             >
                               {String(
@@ -2338,61 +2367,80 @@ export default function Dashboard() {
               <div className="stack">
                 {visibleNotificationItems
                   .slice(0, 4)
-                  .map(item => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          '/notifications'
-                        )
-                      }
-                      className="accent-row tone-secondary"
-                      style={s.previewRow}
-                    >
-                      <span
-                        className="icon-chip"
+                  .map(item => {
+                    const tone = {
+                      accent: PURPLE,
+                      soft: PURPLE_SOFT,
+                      border: PURPLE_BORDER,
+                      icon: Bell,
+                    };
+                    const NotificationIcon = tone.icon;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            '/notifications'
+                          )
+                        }
                         style={{
-                          ...s.previewIcon,
-                          background:
-                            PURPLE_SOFT,
-                          color: PURPLE,
+                          ...s.previewRow,
+                          background: `linear-gradient(180deg, ${tone.soft} 0%, var(--surface-container-lowest) 48%)`,
+                          border: `1px solid ${tone.border}`,
+                          boxShadow: `inset 0 4px 0 ${tone.accent}55, 0 8px 22px rgba(0,45,98,0.05)`,
                         }}
                       >
-                        <Bell size={16} />
-                      </span>
-
-                      <span style={s.previewMain}>
-                        <span style={s.previewTopLine}>
-                          <strong className="stat-tile-title" style={s.previewTitle}>
-                            {item.title ||
-                              'Campora update'}
-                          </strong>
-
-                          {activeNotificationMode ===
-                            'Notifications' &&
-                            item.read === false && (
-                              <span
-                                className="pill"
-                                style={{
-                                  background:
-                                    ROSE_SOFT,
-                                  color: ROSE,
-                                }}
-                              >
-                                NEW
-                              </span>
-                            )}
+                        <span
+                          className="icon-chip"
+                          style={{
+                            ...s.previewIcon,
+                            background: tone.soft,
+                            color: tone.accent,
+                            border: `1px solid ${tone.border}`,
+                          }}
+                        >
+                          <NotificationIcon size={16} />
                         </span>
 
-                        <span className="stat-tile-desc" style={s.previewText}>
-                          {item.message ||
-                            item.content ||
-                            'Open Notifications to view this update.'}
+                        <span style={s.previewMain}>
+                          <span style={s.previewTopLine}>
+                            <strong className="stat-tile-title" style={s.previewTitle}>
+                              {item.title ||
+                                'Campora update'}
+                            </strong>
+
+                            {activeNotificationMode ===
+                              'Notifications' &&
+                              item.read === false && (
+                                <span
+                                  className="pill"
+                                  style={{
+                                    background: tone.soft,
+                                    color: tone.accent,
+                                    border: `1px solid ${tone.border}`,
+                                  }}
+                                >
+                                  NEW
+                                </span>
+                              )}
+                          </span>
+
+                          <span className="stat-tile-desc" style={s.previewText}>
+                            {item.message ||
+                              item.content ||
+                              'Open Notifications to view this update.'}
+                          </span>
                         </span>
-                      </span>
-                    </button>
-                  ))}
+
+                        <ChevronRight
+                          size={16}
+                          style={{ color: tone.accent, opacity: 0.7 }}
+                        />
+                      </button>
+                    );
+                  })}
               </div>
             )}
           </Panel>
@@ -2411,7 +2459,7 @@ export default function Dashboard() {
               navigate('/announcements')
             }
           >
-            <div className="filter-row">
+            <div className="filter-row" style={{ justifyContent: 'center', textAlign: 'center' }}>
               {HUB_TABS.map(tab => {
                 const active =
                   hubTab === tab;
@@ -2461,7 +2509,11 @@ export default function Dashboard() {
                         )
                       }
                       className="accent-row tone-primary"
-                      style={s.previewRow}
+                      style={{
+                        ...s.previewRow,
+                        textAlign: 'center',
+                        justifyContent: 'center',
+                      }}
                     >
                       <span
                         className="icon-chip"
@@ -2494,7 +2546,13 @@ export default function Dashboard() {
                         )}
                       </span>
 
-                      <span style={s.previewMain}>
+                      <span
+                        style={{
+                          ...s.previewMain,
+                          alignItems: 'center',
+                          textAlign: 'center',
+                        }}
+                      >
                         <strong className="stat-tile-title" style={s.previewTitle}>
                           {item.title ||
                             item.name ||
@@ -2641,6 +2699,72 @@ function QuickAccessCard({
   );
 }
 
+
+function DashboardStatTile({
+  icon: Icon,
+  title,
+  desc,
+  accent,
+  soft,
+  border,
+}) {
+  return (
+    <div
+      style={{
+        minHeight: '150px',
+        padding: '20px 22px',
+        background: `linear-gradient(180deg, ${soft} 0%, #FCFDFE 58%)`,
+        border: `1px solid ${border}`,
+        borderRadius: '22px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        gap: '12px',
+        boxShadow: '0 6px 18px rgba(0,45,98,0.035)',
+      }}
+    >
+      <span
+        style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '15px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: accent,
+          background: '#FFFFFF',
+          border: `1px solid ${border}`,
+        }}
+      >
+        <Icon size={20} strokeWidth={1.7} />
+      </span>
+
+      <div
+        style={{
+          fontSize: '25px',
+          lineHeight: 1,
+          fontWeight: '900',
+          color: 'var(--campora-text)',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize: '14px',
+          fontWeight: '600',
+          color: 'var(--campora-muted)',
+        }}
+      >
+        {desc}
+      </div>
+    </div>
+  );
+}
+
 function Panel({
   title,
   subtitle,
@@ -2730,7 +2854,7 @@ function AcademicMetric({
           width: '40px',
           height: '40px',
           color: accent,
-          background: 'var(--surface-container-lowest)',
+          background: '#FAFBFD',
           border: `1px solid ${border}`,
         }}
       >
@@ -2786,19 +2910,20 @@ function ScheduleRow({
     <button
       type="button"
       onClick={onClick}
-      className={`accent-row ${past ? 'dimmed' : ''}`}
-      style={s.scheduleRow}
+      className={past ? 'dimmed' : ''}
+      style={{
+        ...s.scheduleRow,
+        background: `linear-gradient(180deg, ${withAlpha(color, '24')} 0%, #FFFFFF 50%)`,
+        border: `1px solid ${withAlpha(color, '36')}`,
+        boxShadow: `inset 0 4px 0 ${withAlpha(color, '82')}, 0 8px 22px rgba(0,45,98,0.045)`,
+      }}
     >
-      <span
-        style={{
-          ...s.scheduleBar,
-          background: color,
-        }}
-      />
-
       <div
         style={{
           ...s.scheduleTimeBlock,
+          background: withAlpha(color, '16'),
+          border: `1px solid ${withAlpha(color, '3A')}`,
+          color: 'var(--campora-text)',
         }}
       >
         <div
@@ -2828,18 +2953,27 @@ function ScheduleRow({
           className="stat-tile-desc"
           style={s.scheduleMeta}
         >
-          <Icon size={13} />
-          <span>{item.type ||
-            'Schedule'}</span>
-          <span style={s.scheduleDot}>
-            •
+          <span
+            style={{
+              ...s.scheduleTypeChip,
+              color,
+              background: withAlpha(color, '24'),
+              border: `1px solid ${withAlpha(color, '48')}`,
+              color: 'var(--campora-text)',
+            }}
+          >
+            <Icon size={12} />
+            <span>{item.type || 'Schedule'}</span>
           </span>
-          <Clock3 size={13} />
-          <span>
-            {formatTimeRange(
-              item.start_time,
-              item.end_time
-            )}
+
+          <span style={s.scheduleTimeMeta}>
+            <Clock3 size={13} />
+            <span>
+              {formatTimeRange(
+                item.start_time,
+                item.end_time
+              )}
+            </span>
           </span>
         </span>
       </span>
@@ -3256,33 +3390,32 @@ const s = {
 
   scheduleRow: {
     width: '100%',
-    minHeight: '80px',
-    padding: '16px 18px',
+    minHeight: '92px',
+    padding: '17px 20px',
     display: 'flex',
     alignItems: 'center',
-    gap: '18px',
+    gap: '16px',
     textAlign: 'left',
     cursor: 'pointer',
     fontFamily: 'inherit',
+    borderRadius: '18px',
+    position: 'relative',
+    overflow: 'hidden',
+    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
   },
 
-  scheduleBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: '4px',
-  },
 
   scheduleTimeBlock: {
-    minWidth: '66px',
+    minWidth: '78px',
     textAlign: 'center',
     flexShrink: 0,
+    padding: '10px 12px',
+    borderRadius: '16px',
   },
 
   scheduleTimeHour: {
-    fontSize: '22px',
-    fontWeight: '800',
+    fontSize: '21px',
+    fontWeight: '900',
     letterSpacing: '-0.02em',
     lineHeight: 1.1,
     color: 'var(--campora-text)',
@@ -3314,16 +3447,36 @@ const s = {
   scheduleMeta: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    fontSize: '13px',
-    marginTop: '4px',
+    gap: '9px',
+    fontSize: '12px',
+    marginTop: '7px',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    color: 'var(--campora-body)',
+  },
+
+  scheduleTypeChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '5px 9px',
+    borderRadius: '999px',
+    fontSize: '11px',
+    fontWeight: '800',
+    flexShrink: 0,
+  },
+
+  scheduleTimeMeta: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    color: 'var(--campora-text)',
+    fontWeight: '650',
   },
 
   scheduleDot: {
-    opacity: 0.6,
+    opacity: 0.35,
     marginLeft: '2px',
     marginRight: '2px',
   },
@@ -3502,7 +3655,7 @@ const s = {
     gap: '12px',
     padding: '14px 16px',
     borderBottom: '1px solid var(--divider)',
-    background: 'var(--surface-container-low)',
+    background: '#FBFCFD',
   },
 
   chatPreviewTitle: {

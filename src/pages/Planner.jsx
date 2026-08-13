@@ -20,7 +20,6 @@ import { supabase } from '../lib/supabase';
 
 import {
   PageShell,
-  SegmentedControl,
   IconChip,
   ProgressRing,
   EmptyState
@@ -1528,15 +1527,41 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', flexShrink: 0 }}>
-              <SegmentedControl
-                options={[
-                  { value: 'Month', label: 'Month' },
-                  { value: 'Week', label: 'Week' },
-                  { value: 'Day', label: 'Day' }
-                ]}
-                value={viewType}
-                onChange={(nextView) => setViewType(nextView)}
-              />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '3px',
+                  borderRadius: '12px',
+                  background: '#FCFDFE',
+                  border: '1px solid #F0F2F5'
+                }}
+              >
+                {['Month', 'Week', 'Day'].map((option) => {
+                  const active = viewType === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setViewType(option)}
+                      style={{
+                        border: 'none',
+                        borderRadius: '9px',
+                        padding: '7px 11px',
+                        background: active ? '#FFFFFF' : 'transparent',
+                        color: active ? 'var(--campora-navy)' : 'var(--campora-muted)',
+                        fontSize: '12px',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        boxShadow: active ? '0 1px 3px rgba(0,45,98,0.08)' : 'none'
+                      }}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
 
               <button
                 type="button"
@@ -1576,9 +1601,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, 1fr)',
-                  gap: '1px',
-                  background: 'var(--hairline)',
-                  borderBottom: '1px solid var(--hairline)'
+                  gap: '6px',
+                  background: '#FFFFFF',
+                  borderBottom: '1px solid #F1F3F5',
+                  padding: '8px 8px 6px'
                 }}
               >
                 {days.map((day) => (
@@ -1588,7 +1614,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     style={{
                       padding: '10px 8px',
                       textAlign: 'center',
-                      background: 'var(--surface-container-lowest)'
+                      background: '#FCFDFE',
+                      borderRadius: '10px'
                     }}
                   >
                     {day.toUpperCase()}
@@ -1604,9 +1631,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   viewType === 'Day'
                     ? '1fr'
                     : 'repeat(7, minmax(0, 1fr))',
-                gap: '1px',
-                background: 'var(--hairline)',
-                alignItems: 'stretch'
+                gap: '6px',
+                background: '#FFFFFF',
+                alignItems: 'stretch',
+                padding: '8px'
               }}
             >
               {viewType === 'Month' &&
@@ -1615,7 +1643,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     key={`pad-${index}`}
                     style={{
                       minHeight: '120px',
-                      background: 'var(--surface-container-lowest)'
+                      background: '#FCFDFE',
+                      borderRadius: '14px'
                     }}
                   />
                 ))}
@@ -1641,12 +1670,19 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       padding: '8px',
                       cursor: 'pointer',
                       background: isSelected
-                        ? 'var(--campora-navy-tint)'
-                        : 'var(--surface-container-lowest)',
+                        ? '#EAF4FC'
+                        : '#FCFDFE',
+                      border: isSelected
+                        ? '1px solid rgba(0,45,98,0.18)'
+                        : '1px solid #F1F3F5',
+                      borderRadius: '14px',
                       display: 'flex',
                       flexDirection: 'column',
                       boxSizing: 'border-box',
-                      transition: 'background 0.2s ease'
+                      transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
+                      boxShadow: isSelected
+                        ? '0 4px 12px rgba(0,45,98,0.06)'
+                        : 'none'
                     }}
                   >
                     <div
@@ -1706,7 +1742,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             : 'var(--campora-text)',
                           boxShadow:
                             isSelected && !isToday
-                              ? '0 0 0 1.5px var(--campora-navy)'
+                              ? '0 0 0 1px rgba(0,45,98,0.16)'
                               : 'none'
                         }}
                       >
@@ -1822,7 +1858,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     key={`end-pad-${index}`}
                     style={{
                       minHeight: '120px',
-                      background: 'var(--surface-container-lowest)'
+                      background: '#FCFDFE',
+                      borderRadius: '14px'
                     }}
                   />
                 ))}
@@ -1938,6 +1975,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                           dayIsToday || dayIsSelected ? 800 : 600,
                         background: dayIsToday
                           ? 'var(--campora-navy)'
+                          : dayIsSelected
+                          ? '#EAF4FC'
                           : 'transparent',
                         color: dayIsToday
                           ? '#ffffff'
@@ -1946,7 +1985,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                           : 'var(--campora-body)',
                         boxShadow:
                           dayIsSelected && !dayIsToday
-                            ? '0 0 0 1.5px var(--campora-navy)'
+                            ? '0 0 0 1px rgba(0,45,98,0.22), 0 2px 6px rgba(0,45,98,0.06)'
                             : 'none'
                       }}
                     >
@@ -2403,11 +2442,25 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   );
                 })
               ) : (
-                <EmptyState
-                  icon={CalIcon}
-                  title="Free Day"
-                  text="Nothing on the horizon yet. Use the button above to plan something."
-                />
+                <div
+                  style={{
+                    flex: 1,
+                    minHeight: '250px',
+                    borderRadius: '18px',
+                    background: '#FCFDFE',
+                    border: '1px solid #F2F4F6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '18px'
+                  }}
+                >
+                  <EmptyState
+                    icon={CalIcon}
+                    title="Free Day"
+                    text="Nothing on the horizon yet. Use the button above to plan something."
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -2537,7 +2590,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       top: '30px',
                       right: 0,
                       zIndex: 30,
-                      background: 'var(--surface-container-lowest)',
+                      background: '#FAFBFC',
                       padding: '8px',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--divider)',
@@ -2608,7 +2661,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             style={{
               width: '380px',
               maxWidth: '100%',
-              padding: '28px',
+              padding: '24px',
               textAlign: 'center'
             }}
           >
@@ -2682,7 +2735,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             style={{
               width: '390px',
               maxWidth: '100%',
-              padding: '28px',
+              padding: '24px',
               textAlign: 'center'
             }}
           >
@@ -2758,12 +2811,15 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           <div
             className="panel"
             style={{
-              width: '430px',
-              maxWidth: '100%',
-              maxHeight: '88vh',
+              width: '610px',
+              maxWidth: '94vw',
+              maxHeight: '90vh',
               overflowY: 'auto',
-              padding: '26px',
-              boxShadow: 'var(--shadow-lift)'
+              padding: '26px 28px 24px',
+              background: '#FFFFFF',
+              border: '1px solid #EEF1F4',
+              boxShadow: '0 20px 60px rgba(0,45,98,0.16)',
+              borderRadius: '26px'
             }}
           >
             <div
@@ -2771,19 +2827,30 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '18px'
+                marginBottom: '18px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #F0F2F5'
               }}
             >
-              <h2
-                style={{
-                  margin: 0,
-                  fontWeight: '900',
-                  color: 'var(--campora-text)',
-                  fontSize: '20px'
-                }}
-              >
-                {editingEntry ? 'Edit Entry' : 'New Entry'}
-              </h2>
+              <div>
+                <h2
+                  style={{
+                    margin: 0,
+                    fontWeight: '900',
+                    color: 'var(--campora-text)',
+                    fontSize: '22px',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  {editingEntry ? 'Edit Entry' : 'New Entry'}
+                </h2>
+                <div
+                  className="muted"
+                  style={{ marginTop: '4px', fontSize: '11px', fontWeight: '700' }}
+                >
+                  Keep it simple — add what you need and save.
+                </div>
+              </div>
 
               {editingEntry && (
                 <button
@@ -2809,41 +2876,34 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px'
+                gap: '16px'
               }}
             >
-              <input
-                type="text"
-                placeholder="Title"
-                required
-                style={modalInput}
-                value={newEntry.name}
-                onChange={(event) =>
-                  setNewEntry({
-                    ...newEntry,
-                    name: event.target.value
-                  })
-                }
-              />
+              <div>
+                <label style={modalLabel}>Title</label>
+                <input
+                  type="text"
+                  placeholder="Title"
+                  required
+                  style={modalInput}
+                  value={newEntry.name}
+                  onChange={(event) =>
+                    setNewEntry({
+                      ...newEntry,
+                      name: event.target.value
+                    })
+                  }
+                />
+              </div>
 
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '12px',
-                    fontWeight: '800',
-                    color: 'var(--campora-muted)'
-                  }}
-                >
-                  Details
-                </label>
+                <label style={modalLabel}>Details</label>
                 <textarea
                   placeholder="Add details, notes, room, instructions..."
                   style={{
                     ...modalInput,
                     resize: 'vertical',
-                    minHeight: '92px',
+                    minHeight: '88px',
                     fontFamily: 'inherit',
                     lineHeight: '1.45'
                   }}
@@ -2857,13 +2917,26 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div
+                className="label-caps"
+                style={{
+                  marginTop: '2px',
+                  marginBottom: '-5px',
+                  color: 'var(--campora-navy)',
+                  fontSize: '10px',
+                  letterSpacing: '0.08em'
+                }}
+              >
+                SCHEDULE
+              </div>
+
+              <div>
+                <label style={modalLabel}>Type</label>
                 <select
                   style={modalInput}
                   value={newEntry.type}
                   onChange={(event) => {
                     const type = event.target.value;
-
                     setNewEntry({
                       ...newEntry,
                       type,
@@ -2879,7 +2952,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   <option value="Task">Task</option>
                   <option value="Exam">Exam</option>
                 </select>
+              </div>
 
+              <div>
+                <label style={modalLabel}>Date</label>
                 <input
                   type="date"
                   style={modalInput}
@@ -2893,17 +2969,45 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 />
               </div>
 
+              <div>
+                <label style={modalLabel}>Start time</label>
+                <input
+                  type="time"
+                  style={modalInput}
+                  value={newEntry.start_time}
+                  onChange={(event) =>
+                    setNewEntry({
+                      ...newEntry,
+                      start_time: event.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <label style={modalLabel}>End time</label>
+                <input
+                  type="time"
+                  style={modalInput}
+                  value={newEntry.end_time}
+                  onChange={(event) =>
+                    setNewEntry({
+                      ...newEntry,
+                      end_time: event.target.value
+                    })
+                  }
+                />
+              </div>
+
               {isRepeatableType(newEntry.type) && (
                 <div
-                  className="panel-low"
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px',
-                    padding: '14px'
+                    gap: '9px'
                   }}
                 >
-                  <div className="label-caps">REPEAT</div>
+                  <label style={modalLabel}>Repeat</label>
 
                   <div
                     style={{
@@ -2939,28 +3043,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   </div>
 
                   {newEntry.repeat !== 'none' && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      <span
-                        className="label-caps"
-                        style={{ minWidth: '42px' }}
-                      >
-                        UNTIL
-                      </span>
-
+                    <div style={{ marginTop: '2px' }}>
+                      <label style={modalLabel}>Repeat until</label>
                       <input
                         type="date"
                         min={newEntry.date}
-                        style={{
-                          ...modalInput,
-                          padding: '6px 8px',
-                          fontSize: '11px'
-                        }}
+                        style={modalInput}
                         value={newEntry.until_date}
                         onChange={(event) =>
                           setNewEntry({
@@ -2974,67 +3062,36 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <input
-                  type="time"
-                  style={modalInput}
-                  value={newEntry.start_time}
-                  onChange={(event) =>
-                    setNewEntry({
-                      ...newEntry,
-                      start_time: event.target.value
-                    })
-                  }
-                />
-
-                <input
-                  type="time"
-                  style={modalInput}
-                  value={newEntry.end_time}
-                  onChange={(event) =>
-                    setNewEntry({
-                      ...newEntry,
-                      end_time: event.target.value
-                    })
-                  }
-                />
+              <div
+                className="label-caps"
+                style={{
+                  marginTop: '2px',
+                  marginBottom: '-5px',
+                  color: 'var(--campora-navy)',
+                  fontSize: '10px',
+                  letterSpacing: '0.08em'
+                }}
+              >
+                OPTIONS
               </div>
 
-              <div className="panel-low" style={{ padding: '14px' }}>
-                <div
-                  className="label-caps"
-                  style={{ marginBottom: '9px' }}
-                >
-                  ALERT
-                </div>
+              <div>
+                <label style={modalLabel}>Alert</label>
 
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    display: 'flex',
+                    flexWrap: 'wrap',
                     gap: '8px'
                   }}
                 >
                   {[
-                    {
-                      value: 'none',
-                      label: 'None',
-                      icon: BellOff
-                    },
-                    {
-                      value: 'notification',
-                      label: 'Notification',
-                      icon: Bell
-                    },
-                    {
-                      value: 'reminder',
-                      label: 'Reminder',
-                      icon: AlarmClock
-                    }
+                    { value: 'none', label: 'None', icon: BellOff },
+                    { value: 'notification', label: 'Notification', icon: Bell },
+                    { value: 'reminder', label: 'Reminder', icon: AlarmClock }
                   ].map((option) => {
                     const AlertIcon = option.icon;
-                    const active =
-                      newEntry.alertType === option.value;
+                    const active = newEntry.alertType === option.value;
 
                     return (
                       <button
@@ -3047,11 +3104,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             reminder: option.value === 'reminder'
                           })
                         }
-                        className={
-                          active
-                            ? 'filter-chip active'
-                            : 'filter-chip'
-                        }
+                        className={active ? 'filter-chip active' : 'filter-chip'}
                       >
                         <AlertIcon size={14} />
                         {option.label}
@@ -3064,7 +3117,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   <div
                     className="muted"
                     style={{
-                      marginTop: '9px',
+                      marginTop: '7px',
                       fontSize: '10px',
                       fontWeight: '800',
                       lineHeight: 1.45
@@ -3077,14 +3130,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 )}
               </div>
 
-              <div style={{ paddingTop: '4px' }}>
-                <div
-                  className="label-caps"
-                  style={{ marginBottom: '8px' }}
-                >
+              <div>
+                <div className="label-caps" style={{ marginBottom: '8px' }}>
                   COLOR
                 </div>
-
                 <ColorPalette
                   selectedColor={newEntry.color}
                   onChange={(color) =>
@@ -3098,54 +3147,68 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="btn btn-primary"
+              <div
                 style={{
-                  opacity: saving ? 0.65 : 1,
-                  cursor: saving ? 'not-allowed' : 'pointer'
+                  display: 'flex',
+                  gap: '10px',
+                  justifyContent: 'flex-end',
+                  flexWrap: 'wrap',
+                  paddingTop: '16px',
+                  marginTop: '2px',
+                  borderTop: '1px solid #F0F2F5'
                 }}
               >
-                {saving
-                  ? 'Saving...'
-                  : editingEntry
-                  ? 'Save Changes'
-                  : 'Confirm'}
-              </button>
-
-              {editingEntry && (
                 <button
                   type="button"
                   disabled={saving}
-                  onClick={handleDeleteFromEdit}
-                  className="btn btn-danger"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingEntry(null);
+                  }}
+                  className="btn btn-ghost"
                   style={{
+                    color: 'var(--campora-muted)',
                     opacity: saving ? 0.5 : 1,
-                    cursor: saving ? 'not-allowed' : 'pointer'
+                    minWidth: '110px'
                   }}
                 >
-                  <Trash2 size={14} />
-                  Delete Entry
+                  Cancel
                 </button>
-              )}
 
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setEditingEntry(null);
-                }}
-                className="btn btn-ghost"
-                style={{
-                  marginTop: '4px',
-                  color: 'var(--campora-muted)',
-                  opacity: saving ? 0.5 : 1
-                }}
-              >
-                Cancel
-              </button>
+                {editingEntry && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={handleDeleteFromEdit}
+                    className="btn btn-danger"
+                    style={{
+                      opacity: saving ? 0.5 : 1,
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      minWidth: '130px'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Delete Entry
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn btn-primary"
+                  style={{
+                    opacity: saving ? 0.65 : 1,
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    minWidth: '140px'
+                  }}
+                >
+                  {saving
+                    ? 'Saving...'
+                    : editingEntry
+                    ? 'Save Changes'
+                    : 'Confirm'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -3157,9 +3220,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 const overlay = {
   position: 'fixed',
   inset: 0,
-  background: 'rgba(0, 45, 98, 0.45)',
-  backdropFilter: 'blur(6px)',
-  WebkitBackdropFilter: 'blur(6px)',
+  background: 'rgba(0, 45, 98, 0.24)',
+  backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
@@ -3167,15 +3230,24 @@ const overlay = {
   padding: '20px'
 };
 
-const modalInput = {
-  padding: '10px',
-  borderRadius: 'var(--radius-sm)',
-  border: '1.5px solid var(--divider)',
+const modalLabel = {
+  display: 'block',
+  marginBottom: '7px',
+  fontSize: '11px',
   fontWeight: '800',
+  color: 'var(--campora-muted)'
+};
+
+const modalInput = {
+  width: '100%',
+  padding: '12px 13px',
+  borderRadius: '14px',
+  border: '1px solid #E9EDF1',
+  fontWeight: '700',
   outline: 'none',
-  fontSize: '12px',
+  fontSize: '13px',
   flex: 1,
   color: 'var(--campora-text)',
-  background: 'var(--surface-container-lowest)',
+  background: '#FCFDFE',
   boxSizing: 'border-box'
 };

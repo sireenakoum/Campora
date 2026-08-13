@@ -1765,12 +1765,22 @@ function ItemCard({ item, onToggleRead, onClear }) {
 
   return (
     <div
-      className={`accent-row ${
-        item.read ? '' : 'tone-primary'
-      }`}
       style={{
-        opacity: item.read ? 0.45 : 1,
-        transition: 'opacity 0.2s ease',
+        opacity: item.read ? 0.62 : 1,
+        transition: 'opacity 0.2s ease, transform 0.18s ease, box-shadow 0.18s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        width: '100%',
+        padding: '16px 18px',
+        borderRadius: '18px',
+        background: item.read
+          ? 'linear-gradient(180deg, #FAFBFC 0%, #FFFFFF 58%)'
+          : `linear-gradient(180deg, ${style.soft} 0%, #FFFFFF 48%)`,
+        border: `1px solid ${item.read ? '#E9EDF2' : style.border}`,
+        boxShadow: item.read
+          ? '0 5px 16px rgba(0,45,98,0.025)'
+          : `inset 0 4px 0 ${style.main}55, 0 8px 22px rgba(0,45,98,0.045)`,
       }}
     >
       <span
@@ -1780,11 +1790,13 @@ function ItemCard({ item, onToggleRead, onClear }) {
           height: 44,
           flexShrink: 0,
           background: item.read
-            ? 'var(--surface-variant)'
+            ? '#F7F9FC'
             : style.soft,
           color: item.read
-            ? 'var(--on-surface-variant)'
+            ? '#8792A2'
             : style.main,
+          border: `1px solid ${item.read ? '#E7EBF0' : style.border}`,
+          borderRadius: '14px',
         }}
       >
         <Icon size={18} strokeWidth={1.8} />
@@ -1805,11 +1817,12 @@ function ItemCard({ item, onToggleRead, onClear }) {
               padding: '4px 9px',
               borderRadius: '999px',
               background: item.read
-                ? 'var(--surface-container)'
+                ? '#F7F9FC'
                 : style.soft,
               color: item.read
-                ? 'var(--campora-muted)'
+                ? '#8792A2'
                 : style.main,
+              border: `1px solid ${item.read ? '#E7EBF0' : style.border}`,
               fontSize: '10px',
               fontWeight: '800',
               textTransform: 'uppercase',
@@ -1823,8 +1836,12 @@ function ItemCard({ item, onToggleRead, onClear }) {
             <span
               style={{
                 color: style.main,
-                fontSize: '10px',
-                fontWeight: '800',
+                background: style.soft,
+                border: `1px solid ${style.border}`,
+                borderRadius: '999px',
+                padding: '4px 8px',
+                fontSize: '9px',
+                fontWeight: '900',
                 letterSpacing: '.45px',
               }}
             >
@@ -1901,9 +1918,12 @@ function ItemCard({ item, onToggleRead, onClear }) {
               ? 'Mark unread'
               : 'Mark read'
           }
-          className={`btn btn-sm ${
-            item.read ? 'btn-outline' : 'btn-tinted'
-          }`}
+          className="btn btn-sm"
+          style={{
+            background: item.read ? '#F8FAFC' : style.soft,
+            color: item.read ? '#7D8796' : style.main,
+            border: `1px solid ${item.read ? '#E7EBF0' : style.border}`,
+          }}
         >
           {item.read ? (
             <RotateCcw size={12} />
@@ -1918,7 +1938,12 @@ function ItemCard({ item, onToggleRead, onClear }) {
           type="button"
           onClick={onClear}
           title="Clear"
-          className="btn btn-sm btn-danger"
+          className="btn btn-sm"
+          style={{
+            background: '#FAFBFC',
+            color: '#8A94A3',
+            border: '1px solid #E8ECF1',
+          }}
         >
           <Trash2 size={13} />
         </button>
