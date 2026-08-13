@@ -5,20 +5,17 @@ import { getProfile, updateProfile } from './lib/profiles';
 export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [savedAvatarUrl, setSavedAvatarUrl] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
-
   const [accountType, setAccountType] = useState('Student');
   const [major, setMajor] = useState('');
   const [year, setYear] = useState('');
   const [guestTitle, setGuestTitle] = useState('');
-
+  const [description, setDescription] = useState('');
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
-
   const previewUrlRef = useRef(null);
 
   useEffect(() => {
@@ -32,19 +29,12 @@ export default function Profile() {
           error: userError,
         } = await supabase.auth.getUser();
 
-        if (userError) {
-          throw userError;
-        }
-
-        if (!user) {
-          throw new Error('User is not logged in.');
-        }
+        if (userError) throw userError;
+        if (!user) throw new Error('User is not logged in.');
 
         const { data, error: profileError } = await getProfile(user.id);
 
-        if (profileError) {
-          throw profileError;
-        }
+        if (profileError) throw profileError;
 
         if (data) {
           setFullName(data.name || '');
@@ -54,6 +44,7 @@ export default function Profile() {
           setMajor(data.major || '');
           setYear(data.year || '');
           setGuestTitle(data.guest_title || '');
+          setDescription(data.description || '');
         }
       } catch (err) {
         console.error('Profile loading error:', err);
@@ -114,9 +105,7 @@ export default function Profile() {
       const marker = '/storage/v1/object/public/avatars/';
       const markerIndex = url.indexOf(marker);
 
-      if (markerIndex === -1) {
-        return null;
-      }
+      if (markerIndex === -1) return null;
 
       const path = url.substring(markerIndex + marker.length);
 
@@ -125,6 +114,56 @@ export default function Profile() {
       console.error('Avatar path parsing error:', err);
       return null;
     }
+  };
+
+  const getYearOptions = () => {
+    if (major.toLowerCase().includes('engineering')) {
+      return [
+        'Freshman',
+        'Sophomore',
+        'Junior',
+        'E3 - Senior',
+        'E4 - Senior',
+        'Masters',
+        'Ph.D',
+      ];
+    }
+
+    if (major.toLowerCase().includes('medicine')) {
+      return [
+        'Freshman',
+        'Sophomore',
+        'Junior',
+        'Senior',
+        'M1',
+        'M2',
+        'M3',
+        'M4',
+      ];
+    }
+
+    return [
+      'Freshman',
+      'Sophomore',
+      'Junior',
+      'Senior',
+      'Masters',
+      'Ph.D',
+    ];
+  };
+
+  const handleDescriptionChange = (e) => {
+    const value = e.target.value;
+    const words = value.trim() ? value.trim().split(/\s+/) : [];
+
+    if (words.length <= 200) {
+      setDescription(value);
+      setError(null);
+    } else {
+      setError('Your description cannot exceed 200 words.');
+    }
+
+    setMessage(null);
   };
 
   const handleUpdate = async (e) => {
@@ -144,15 +183,11 @@ export default function Profile() {
         error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError) {
-        throw userError;
-      }
-
-      if (!user) {
-        throw new Error('User is not logged in.');
-      }
+      if (userError) throw userError;
+      if (!user) throw new Error('User is not logged in.');
 
       const cleanedName = fullName.trim();
+      const cleanedDescription = description.trim();
 
       if (!cleanedName) {
         throw new Error('Please enter your full name.');
@@ -160,6 +195,16 @@ export default function Profile() {
 
       if (accountType !== 'Guest' && !year) {
         throw new Error('Please select your year.');
+      }
+
+      const wordCount = cleanedDescription
+        ? cleanedDescription.split(/\s+/).length
+        : 0;
+
+      if (wordCount > 200) {
+        throw new Error(
+          'Your description must be 200 words or less.'
+        );
       }
 
       let newAvatarUrl = savedAvatarUrl;
@@ -173,7 +218,8 @@ export default function Profile() {
             ? 'jpg'
             : originalExtension;
 
-        const fileName = `${user.id}/${Date.now()}.${safeExtension}`;
+        const fileName =
+          `${user.id}/${Date.now()}.${safeExtension}`;
 
         uploadedAvatarPath = fileName;
 
@@ -209,11 +255,10 @@ export default function Profile() {
         name: cleanedName,
         avatar_url: newAvatarUrl,
         year: accountType === 'Guest' ? null : year,
+        description: cleanedDescription,
       });
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
       if (
         avatarFile &&
@@ -238,20 +283,17 @@ export default function Profile() {
         error: profileError,
       } = await getProfile(user.id);
 
-      if (profileError) {
-        throw profileError;
-      }
+      if (profileError) throw profileError;
 
       if (updatedProfile) {
         setFullName(updatedProfile.name || '');
         setAvatarUrl(updatedProfile.avatar_url || '');
         setSavedAvatarUrl(updatedProfile.avatar_url || '');
-        setAccountType(
-          updatedProfile.account_type || 'Student'
-        );
+        setAccountType(updatedProfile.account_type || 'Student');
         setMajor(updatedProfile.major || '');
         setYear(updatedProfile.year || '');
         setGuestTitle(updatedProfile.guest_title || '');
+        setDescription(updatedProfile.description || '');
       }
 
       if (previewUrlRef.current) {
@@ -299,14 +341,13 @@ export default function Profile() {
     );
   }
 
-  const isEngineering =
-    major?.toLowerCase().includes('engineering');
+  const descriptionWordCount = description.trim()
+    ? description.trim().split(/\s+/).length
+    : 0;
 
   return (
     <div style={styles.wrapper}>
-      <h1 style={styles.title}>
-        Student Profile
-      </h1>
+      <h1 style={styles.title}>Student Profile</h1>
 
       {error && (
         <div style={styles.errorBox}>
@@ -328,7 +369,6 @@ export default function Profile() {
                 src={avatarUrl}
                 alt="Profile"
                 style={styles.avatar}
-                onError={() => setAvatarUrl('')}
               />
             ) : (
               <div style={styles.avatarPlaceholder}>
@@ -480,38 +520,47 @@ export default function Profile() {
                   Select your year
                 </option>
 
-                {isEngineering ? (
-                  <>
-                    <option value="E3">
-                      E3
-                    </option>
-
-                    <option value="E4">
-                      E4
-                    </option>
-                  </>
-                ) : (
-                  <>
-                    <option value="Freshman">
-                      Freshman
-                    </option>
-
-                    <option value="Sophomore">
-                      Sophomore
-                    </option>
-
-                    <option value="Junior">
-                      Junior
-                    </option>
-
-                    <option value="Senior">
-                      Senior
-                    </option>
-                  </>
-                )}
+                {getYearOptions().map((option) => (
+                  <option
+                    key={option}
+                    value={option}
+                  >
+                    {option}
+                  </option>
+                ))}
               </select>
             </div>
           )}
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>
+              About Me
+            </label>
+
+            <textarea
+              value={description}
+              onChange={handleDescriptionChange}
+              disabled={saving}
+              placeholder="Tell others a little about yourself..."
+              style={styles.textarea}
+            />
+
+            <div style={styles.descriptionFooter}>
+              <span style={styles.hint}>
+                Maximum 200 words.
+              </span>
+
+              <span
+                style={
+                  descriptionWordCount >= 200
+                    ? styles.wordCountLimit
+                    : styles.wordCount
+                }
+              >
+                {descriptionWordCount}/200 words
+              </span>
+            </div>
+          </div>
 
           <button
             type="submit"
@@ -525,9 +574,7 @@ export default function Profile() {
                 : styles.button
             }
           >
-            {saving
-              ? 'Saving...'
-              : 'Save Profile'}
+            {saving ? 'Saving...' : 'Save Profile'}
           </button>
         </form>
       </div>
@@ -540,40 +587,33 @@ const styles = {
     width: '100%',
     maxWidth: '720px',
   },
-
   loading: {
     color: '#0B1A3F',
     fontSize: '16px',
     fontWeight: '700',
   },
-
   title: {
     fontSize: '42px',
     fontWeight: '900',
     color: '#0B1A3F',
     margin: '0 0 30px 0',
   },
-
   card: {
     background: '#fff',
     borderRadius: '24px',
     padding: '35px',
-    boxShadow:
-      '0 15px 30px rgba(0,0,0,0.04)',
+    boxShadow: '0 15px 30px rgba(0,0,0,0.04)',
     border: '1px solid #F1F5F9',
   },
-
   profileHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: '20px',
     marginBottom: '35px',
   },
-
   headerText: {
     minWidth: 0,
   },
-
   avatarContainer: {
     width: '90px',
     height: '90px',
@@ -583,14 +623,12 @@ const styles = {
     border: '3px solid #F1F5F9',
     backgroundColor: '#F8FAFC',
   },
-
   avatar: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
     display: 'block',
   },
-
   avatarPlaceholder: {
     width: '100%',
     height: '100%',
@@ -602,7 +640,6 @@ const styles = {
     fontSize: '32px',
     fontWeight: '900',
   },
-
   profileName: {
     margin: '0 0 5px 0',
     color: '#0B1A3F',
@@ -610,20 +647,17 @@ const styles = {
     fontWeight: '900',
     wordBreak: 'break-word',
   },
-
   profileMajor: {
     margin: 0,
     color: '#667085',
     fontSize: '15px',
     fontWeight: '600',
   },
-
   section: {
     display: 'flex',
     flexDirection: 'column',
     gap: '18px',
   },
-
   sectionLabel: {
     fontSize: '12px',
     fontWeight: '900',
@@ -632,20 +666,17 @@ const styles = {
     letterSpacing: '1.5px',
     margin: 0,
   },
-
   infoGrid: {
     display: 'grid',
     gridTemplateColumns:
       'repeat(auto-fit, minmax(180px, 1fr))',
     gap: '16px',
   },
-
   infoItem: {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
   },
-
   infoKey: {
     fontSize: '11px',
     fontWeight: '800',
@@ -653,37 +684,31 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
-
   infoValue: {
     fontSize: '16px',
     fontWeight: '800',
     color: '#0B1A3F',
   },
-
   divider: {
     height: '1px',
     background: '#F1F5F9',
     margin: '30px 0',
   },
-
   form: {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
   },
-
   inputGroup: {
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
   },
-
   label: {
     fontSize: '0.9rem',
     fontWeight: '600',
     color: '#1F2937',
   },
-
   input: {
     padding: '0.9rem 1.25rem',
     borderRadius: '10px',
@@ -695,7 +720,21 @@ const styles = {
     boxSizing: 'border-box',
     width: '100%',
   },
-
+  textarea: {
+    padding: '0.9rem 1.25rem',
+    borderRadius: '10px',
+    border: '1px solid #D1D5DB',
+    fontSize: '1rem',
+    color: '#111827',
+    outline: 'none',
+    backgroundColor: '#fff',
+    boxSizing: 'border-box',
+    width: '100%',
+    minHeight: '130px',
+    resize: 'vertical',
+    fontFamily: 'inherit',
+    lineHeight: '1.5',
+  },
   fileInput: {
     padding: '0.75rem',
     borderRadius: '10px',
@@ -707,13 +746,27 @@ const styles = {
     boxSizing: 'border-box',
     width: '100%',
   },
-
   hint: {
     color: '#A3AED0',
     fontWeight: '700',
     fontSize: '12px',
   },
-
+  descriptionFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  wordCount: {
+    color: '#667085',
+    fontSize: '12px',
+    fontWeight: '700',
+  },
+  wordCountLimit: {
+    color: '#DC2626',
+    fontSize: '12px',
+    fontWeight: '800',
+  },
   selectedFileRow: {
     display: 'flex',
     alignItems: 'center',
@@ -721,13 +774,11 @@ const styles = {
     gap: '10px',
     marginTop: '4px',
   },
-
   selectedFileText: {
     color: '#667085',
     fontSize: '12px',
     fontWeight: '700',
   },
-
   removeSelectionButton: {
     border: 'none',
     background: 'transparent',
@@ -737,7 +788,6 @@ const styles = {
     fontWeight: '800',
     cursor: 'pointer',
   },
-
   button: {
     backgroundColor: '#0B1A3F',
     color: '#FFFFFF',
@@ -750,12 +800,10 @@ const styles = {
     transition: 'background-color 0.2s ease',
     alignSelf: 'flex-start',
   },
-
   buttonDisabled: {
     backgroundColor: '#9CA3AF',
     cursor: 'not-allowed',
   },
-
   errorBox: {
     color: '#B42318',
     fontWeight: '700',
@@ -766,7 +814,6 @@ const styles = {
     border: '1px solid #FECDCA',
     fontSize: '14px',
   },
-
   successBox: {
     color: '#067647',
     fontWeight: '700',
