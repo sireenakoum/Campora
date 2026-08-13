@@ -5,17 +5,21 @@ import { getProfile, updateProfile } from './lib/profiles';
 export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [savedAvatarUrl, setSavedAvatarUrl] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
+
   const [accountType, setAccountType] = useState('Student');
   const [major, setMajor] = useState('');
   const [year, setYear] = useState('');
   const [guestTitle, setGuestTitle] = useState('');
   const [description, setDescription] = useState('');
+
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+
   const previewUrlRef = useRef(null);
 
   useEffect(() => {
@@ -154,7 +158,9 @@ export default function Profile() {
 
   const handleDescriptionChange = (e) => {
     const value = e.target.value;
-    const words = value.trim() ? value.trim().split(/\s+/) : [];
+    const words = value.trim()
+      ? value.trim().split(/\s+/)
+      : [];
 
     if (words.length <= 200) {
       setDescription(value);
@@ -362,6 +368,7 @@ export default function Profile() {
       )}
 
       <div style={styles.card}>
+        {/* PROFILE HEADER */}
         <div style={styles.profileHeader}>
           <div style={styles.avatarContainer}>
             {avatarUrl ? (
@@ -387,9 +394,17 @@ export default function Profile() {
             <p style={styles.profileMajor}>
               {major || accountType || 'Student'}
             </p>
+
+            {/* ABOUT ME DISPLAY */}
+            {description && (
+              <p style={styles.aboutMe}>
+                {description}
+              </p>
+            )}
           </div>
         </div>
 
+        {/* ONBOARDING INFORMATION */}
         <div style={styles.section}>
           <p style={styles.sectionLabel}>
             Onboarding Information
@@ -442,6 +457,7 @@ export default function Profile() {
 
         <div style={styles.divider} />
 
+        {/* EDIT FORM */}
         <form
           onSubmit={handleUpdate}
           style={styles.form}
@@ -587,17 +603,20 @@ const styles = {
     width: '100%',
     maxWidth: '720px',
   },
+
   loading: {
     color: '#0B1A3F',
     fontSize: '16px',
     fontWeight: '700',
   },
+
   title: {
     fontSize: '42px',
     fontWeight: '900',
     color: '#0B1A3F',
     margin: '0 0 30px 0',
   },
+
   card: {
     background: '#fff',
     borderRadius: '24px',
@@ -605,15 +624,19 @@ const styles = {
     boxShadow: '0 15px 30px rgba(0,0,0,0.04)',
     border: '1px solid #F1F5F9',
   },
+
   profileHeader: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '20px',
     marginBottom: '35px',
   },
+
   headerText: {
     minWidth: 0,
+    flex: 1,
   },
+
   avatarContainer: {
     width: '90px',
     height: '90px',
@@ -623,12 +646,14 @@ const styles = {
     border: '3px solid #F1F5F9',
     backgroundColor: '#F8FAFC',
   },
+
   avatar: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
     display: 'block',
   },
+
   avatarPlaceholder: {
     width: '100%',
     height: '100%',
@@ -640,6 +665,7 @@ const styles = {
     fontSize: '32px',
     fontWeight: '900',
   },
+
   profileName: {
     margin: '0 0 5px 0',
     color: '#0B1A3F',
@@ -647,17 +673,31 @@ const styles = {
     fontWeight: '900',
     wordBreak: 'break-word',
   },
+
   profileMajor: {
     margin: 0,
     color: '#667085',
     fontSize: '15px',
     fontWeight: '600',
   },
+
+  /* NEW */
+  aboutMe: {
+    margin: '10px 0 0 0',
+    color: '#98A2B3',
+    fontSize: '14px',
+    fontWeight: '500',
+    lineHeight: '1.5',
+    maxWidth: '500px',
+    wordBreak: 'break-word',
+  },
+
   section: {
     display: 'flex',
     flexDirection: 'column',
     gap: '18px',
   },
+
   sectionLabel: {
     fontSize: '12px',
     fontWeight: '900',
@@ -666,17 +706,20 @@ const styles = {
     letterSpacing: '1.5px',
     margin: 0,
   },
+
   infoGrid: {
     display: 'grid',
     gridTemplateColumns:
       'repeat(auto-fit, minmax(180px, 1fr))',
     gap: '16px',
   },
+
   infoItem: {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
   },
+
   infoKey: {
     fontSize: '11px',
     fontWeight: '800',
@@ -684,31 +727,37 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
+
   infoValue: {
     fontSize: '16px',
     fontWeight: '800',
     color: '#0B1A3F',
   },
+
   divider: {
     height: '1px',
     background: '#F1F5F9',
     margin: '30px 0',
   },
+
   form: {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
   },
+
   inputGroup: {
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
   },
+
   label: {
     fontSize: '0.9rem',
     fontWeight: '600',
     color: '#1F2937',
   },
+
   input: {
     padding: '0.9rem 1.25rem',
     borderRadius: '10px',
@@ -720,6 +769,7 @@ const styles = {
     boxSizing: 'border-box',
     width: '100%',
   },
+
   textarea: {
     padding: '0.9rem 1.25rem',
     borderRadius: '10px',
@@ -735,6 +785,7 @@ const styles = {
     fontFamily: 'inherit',
     lineHeight: '1.5',
   },
+
   fileInput: {
     padding: '0.75rem',
     borderRadius: '10px',
@@ -746,27 +797,32 @@ const styles = {
     boxSizing: 'border-box',
     width: '100%',
   },
+
   hint: {
     color: '#A3AED0',
     fontWeight: '700',
     fontSize: '12px',
   },
+
   descriptionFooter: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: '10px',
   },
+
   wordCount: {
     color: '#667085',
     fontSize: '12px',
     fontWeight: '700',
   },
+
   wordCountLimit: {
     color: '#DC2626',
     fontSize: '12px',
     fontWeight: '800',
   },
+
   selectedFileRow: {
     display: 'flex',
     alignItems: 'center',
@@ -774,11 +830,13 @@ const styles = {
     gap: '10px',
     marginTop: '4px',
   },
+
   selectedFileText: {
     color: '#667085',
     fontSize: '12px',
     fontWeight: '700',
   },
+
   removeSelectionButton: {
     border: 'none',
     background: 'transparent',
@@ -788,6 +846,7 @@ const styles = {
     fontWeight: '800',
     cursor: 'pointer',
   },
+
   button: {
     backgroundColor: '#0B1A3F',
     color: '#FFFFFF',
@@ -800,10 +859,12 @@ const styles = {
     transition: 'background-color 0.2s ease',
     alignSelf: 'flex-start',
   },
+
   buttonDisabled: {
     backgroundColor: '#9CA3AF',
     cursor: 'not-allowed',
   },
+
   errorBox: {
     color: '#B42318',
     fontWeight: '700',
@@ -814,6 +875,7 @@ const styles = {
     border: '1px solid #FECDCA',
     fontSize: '14px',
   },
+
   successBox: {
     color: '#067647',
     fontWeight: '700',
