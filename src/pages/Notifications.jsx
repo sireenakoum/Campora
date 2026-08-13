@@ -1236,7 +1236,7 @@ export default function Notifications() {
                 background: '#F7F9FC',
                 color: NAVY,
 
-                border: `1.5px solid ${NAVY}`,
+                border: '1px solid rgba(11,26,63,0.14)',
 
                 borderRadius: '999px',
 
@@ -1249,7 +1249,7 @@ export default function Notifications() {
                 letterSpacing: '.35px',
 
                 boxShadow:
-                  '0 4px 12px rgba(11,26,63,.06)',
+                  '0 4px 12px rgba(11,26,63,.035)',
               }}
             >
               <Sparkles
@@ -1980,11 +1980,12 @@ function SectionCard({
         minHeight: '112px',
 
         border: active
-          ? `2px solid ${NAVY}`
+          ? `1.5px solid ${accent}55`
           : `1px solid ${BORDER}`,
 
-        background:
-          '#FFFFFF',
+        background: active
+          ? `linear-gradient(135deg, #FFFFFF 0%, ${soft} 100%)`
+          : '#FFFFFF',
 
         borderRadius:
           '21px',
@@ -2007,8 +2008,8 @@ function SectionCard({
           'inherit',
 
         boxShadow: active
-          ? '0 10px 28px rgba(11,26,63,.09)'
-          : '0 5px 18px rgba(46,66,105,.04)',
+          ? `0 10px 26px ${accent}14, inset 0 0 0 1px ${accent}0A`
+          : '0 5px 18px rgba(46,66,105,.035)',
 
         transition:
           'all .18s ease',
@@ -2022,9 +2023,13 @@ function SectionCard({
           borderRadius:
             '17px',
 
-          background: soft,
+          background: active
+            ? accent
+            : soft,
 
-          color: accent,
+          color: active
+            ? '#FFFFFF'
+            : accent,
 
           display: 'flex',
 
@@ -2036,7 +2041,13 @@ function SectionCard({
 
           flexShrink: 0,
 
-          border: `1px solid ${accent}15`,
+          border: active
+            ? `1px solid ${accent}`
+            : `1px solid ${accent}18`,
+
+          boxShadow: active
+            ? `0 7px 16px ${accent}22`
+            : 'none',
         }}
       >
         <Icon size={27} />
@@ -2155,13 +2166,16 @@ function SectionCard({
             '13px',
 
           background: active
-            ? '#F1F4F9'
+            ? soft
             : '#F7F9FC',
 
-          border:
-            '1px solid #E8ECF2',
+          border: active
+            ? `1px solid ${accent}28`
+            : '1px solid #E8ECF2',
 
-          color: NAVY,
+          color: active
+            ? accent
+            : NAVY,
 
           display: 'flex',
 

@@ -254,6 +254,7 @@ const [newCourse, setNewCourse] = useState({
   days: 'MWF',
   semester: '',
   color: DEFAULT_COURSE_COLOR,
+  credits: '3',
   class_start_date: '',
   class_end_date: '',
   class_start_time: '09:00',
@@ -266,6 +267,8 @@ const [customSemesters, setCustomSemesters] = useState([]);
 const [courseAssignments, setCourseAssignments] = useState([]);
 const [courseEvents, setCourseEvents] = useState([]);
 const [coursePlannerSchedules, setCoursePlannerSchedules] = useState({});
+const [courseCredits, setCourseCredits] = useState({});
+const [creditsHydrated, setCreditsHydrated] = useState(false);
 
 // Course workspace tabs
 const [workspaceTab, setWorkspaceTab] = useState('notes');
@@ -321,6 +324,8 @@ useEffect(() => {
 useEffect(() => {
  if (!userId) return;
 
+ setCreditsHydrated(false);
+
  setCourseSemesters(
    safeParse(localStorage.getItem(localKey(userId, 'semestersByCourse')), {})
  );
@@ -338,8 +343,14 @@ useEffect(() => {
      localStorage.getItem(localKey(userId, 'plannerSchedules')),
      {}
    )
-
  );
+ setCourseCredits(
+   safeParse(
+     localStorage.getItem(localKey(userId, 'creditsByCourse')),
+     {}
+   )
+ );
+ setCreditsHydrated(true);
 
   fetchCourses();
   fetchAllResources();
@@ -384,6 +395,14 @@ useEffect(() => {
     JSON.stringify(coursePlannerSchedules)
   );
 }, [coursePlannerSchedules, userId]);
+
+useEffect(() => {
+  if (!userId || !creditsHydrated) return;
+  localStorage.setItem(
+    localKey(userId, 'creditsByCourse'),
+    JSON.stringify(courseCredits)
+  );
+}, [courseCredits, userId, creditsHydrated]);
 
 // ---------------------------------------------------------
 
@@ -454,6 +473,12 @@ const upcomingEventsCount = courseEvents.filter((event) => {
  const eventDay = new Date(`${event.date}T00:00:00`);
  return eventDay >= todayStart();
 }).length;
+
+const totalCredits = courses.reduce(
+ (sum, course) =>
+  sum + Math.max(0, Number(courseCredits[course.id]) || 0),
+ 0
+);
 
 // ---------------------------------------------------------
 // SUPABASE FETCH
@@ -537,6 +562,7 @@ const resetCourseForm = () => {
    days: 'MWF',
    semester: semesterOptions[0] || '',
    color: DEFAULT_COURSE_COLOR,
+   credits: '3',
    class_start_date: '',
    class_end_date: '',
    class_start_time: '09:00',
@@ -568,6 +594,7 @@ const openEditCourseModal = () => {
   days: selectedCourse.days || 'MWF',
   semester,
   color: selectedCourse.color || DEFAULT_COURSE_COLOR,
+  credits: String(courseCredits[selectedCourse.id] ?? 3),
   class_start_date: schedule.startDate || '',
   class_end_date: schedule.endDate || '',
   class_start_time: schedule.startTime || '09:00',
@@ -753,6 +780,14 @@ try {
   [editingCourse.id]: finalSemester
  }));
 
+ setCourseCredits((prev) => ({
+  ...prev,
+  [editingCourse.id]: Math.max(
+    0,
+    Number(newCourse.credits) || 0
+  )
+ }));
+
  if (
    semesterMode === 'new' &&
    !customSemesters.includes(finalSemester)
@@ -835,7 +870,15 @@ const handleAddCourse = async (e) => {
       [data.id]: finalSemester
     }));
 
-      await createCourseScheduleInPlanner(data);
+    setCourseCredits((prev) => ({
+      ...prev,
+      [data.id]: Math.max(
+        0,
+        Number(newCourse.credits) || 0
+      )
+    }));
+
+    await createCourseScheduleInPlanner(data);
   }
 
   if (
@@ -1115,6 +1158,12 @@ const handleDeleteCourse = async () => {
     prev.filter((e) => e.courseId !== selectedCourse.id)
   );
   setCourseSemesters((prev) => {
+    const next = { ...prev };
+    delete next[selectedCourse.id];
+    return next;
+  });
+
+  setCourseCredits((prev) => {
     const next = { ...prev };
     delete next[selectedCourse.id];
     return next;
@@ -2058,6 +2107,12 @@ if (selectedSemester && !selectedCourse) {
    semesterCourseIds.has(resource.course_id)
  );
 
+ const semesterCredits = semesterCourses.reduce(
+  (sum, course) =>
+   sum + Math.max(0, Number(courseCredits[course.id]) || 0),
+  0
+ );
+
 const semesterSearch = searchTerm.trim().toLowerCase();
 
 const visibleSemesterCourses = semesterCourses.filter((course) => {
@@ -2128,6 +2183,8 @@ return (
  >
   {semesterCourses.length}{' '}
   {semesterCourses.length === 1 ? 'course' : 'courses'} in this semester
+  {' • '}
+  {semesterCredits} {semesterCredits === 1 ? 'credit' : 'credits'}
  </p>
 </div>
 
@@ -2168,7 +2225,12 @@ return (
        professor: '',
        days: 'MWF',
        semester: selectedSemester,
-       color: DEFAULT_COURSE_COLOR
+       color: DEFAULT_COURSE_COLOR,
+       credits: '3',
+       class_start_date: '',
+       class_end_date: '',
+       class_start_time: '09:00',
+       class_end_time: '10:00'
      });
      setIsModalOpen(true);
     }}
@@ -2203,16 +2265,24 @@ return (
 
   label="Upcoming"
   value={semesterUpcoming.length}
-  bg="#FFE8DE"
-  iconColor="#C2410C"
+  bg="#FFF6F2"
+  iconColor="#D9896A"
  />
 
  <StatCard
   icon={<FolderOpen size={24} />}
   label="Resources"
   value={semesterResources.length}
-  bg="#E8F0FF"
-  iconColor="#4661C7"
+  bg="#F2F9F7"
+  iconColor="#5E9A8B"
+ />
+
+ <StatCard
+  icon={<GraduationCap size={24} />}
+  label="Credits"
+  value={semesterCredits}
+  bg="#FFF9F1"
+  iconColor="#C99758"
  />
 </div>
 
@@ -2286,6 +2356,11 @@ return (
      (resource) => resource.course_id === course.id
    ).length;
 
+   const creditCount = Math.max(
+     0,
+     Number(courseCredits[course.id]) || 0
+   );
+
    const courseColor =
     course.color || DEFAULT_COURSE_COLOR;
 
@@ -2334,30 +2409,41 @@ return (
      {course.days}
    </span>
   )}
+
+  <span style={courseMetaPill}>
+   {creditCount} {creditCount === 1 ? 'credit' : 'credits'}
+  </span>
  </div>
 
  <div style={courseCountsRow}>
   <CourseCount
    label="Assignments"
    value={assignmentCount}
-   color="#15803D"
-   muted="#15803D"
-   bg="#E7F8F0"
+   color="#648CCB"
+   muted="#648CCB"
+   bg="#F3F7FD"
   />
 
       <CourseCount
        label="Upcoming"
        value={eventCount}
-       color="#F4A300"
-       muted="#B77900"
-       bg="#FFF4DA"
+       color="#D9896A"
+       muted="#D9896A"
+       bg="#FFF6F2"
       />
       <CourseCount
        label="Resources"
        value={resourceCount}
-       color="#3B82F6"
-       muted="#3B82F6"
-       bg="#E8F2FF"
+       color="#5E9A8B"
+       muted="#5E9A8B"
+       bg="#F2F9F7"
+      />
+      <CourseCount
+       label="Credits"
+       value={creditCount}
+       color="#C99758"
+       muted="#C99758"
+       bg="#FFF9F1"
       />
      </div>
 
@@ -4017,6 +4103,23 @@ if (dashboardView === 'upcoming') {
      });
  }
 
+ if (dashboardView === 'credits') {
+   return courses.map((course) => ({
+     id: course.id,
+     type: 'credit',
+     title: course.name,
+     subtitle: [
+       courseSemester(course),
+       `${Math.max(0, Number(courseCredits[course.id]) || 0)} ${
+         Math.max(0, Number(courseCredits[course.id]) || 0) === 1
+           ? 'credit'
+           : 'credits'
+       }`
+     ].join(' • '),
+     course
+   }));
+ }
+
  return [];
 })();
 
@@ -4025,30 +4128,37 @@ const dashboardViewMeta = {
    title: 'All Courses',
    subtitle: 'Every course across all semesters.',
    icon: <BookOpen size={21} />,
-   accent: '#6C63FF',
-   bg: '#F0ECFF'
+   accent: '#8B78B8',
+   bg: '#F7F4FC'
  },
  assignments: {
    title: 'All Assignments',
    subtitle: 'Every active assignment across your courses.',
    icon: <ClipboardCheck size={21} />,
-   accent: '#15803D',
-   bg: '#E7F8F0'
+   accent: '#648CCB',
+   bg: '#F3F7FD'
  },
  upcoming: {
    title: 'All Upcoming',
    subtitle: 'Every upcoming exam, quiz, project, and event.',
    icon: <Clock3 size={21} />,
-   accent: '#F4A300',
-   bg: '#FFF4DA'
+   accent: '#D9896A',
+   bg: '#FFF6F2'
 
   },
   resources: {
     title: 'All Resources',
     subtitle: 'Every uploaded course resource.',
     icon: <FolderOpen size={21} />,
-    accent: '#3B82F6',
-    bg: '#E8F2FF'
+    accent: '#5E9A8B',
+    bg: '#F2F9F7'
+  },
+  credits: {
+    title: 'Credits',
+    subtitle: 'Credits added across all of your courses.',
+    icon: <GraduationCap size={21} />,
+    accent: '#C99758',
+    bg: '#FFF9F1'
   }
 };
 
@@ -4152,8 +4262,8 @@ return (
   icon={<Clock3 size={24} />}
   label="Upcoming"
   value={upcomingEventsCount}
-  bg="#FFE8DE"
-  iconColor="#C2410C"
+  bg="#FFF6F2"
+  iconColor="#D9896A"
   active={dashboardView === 'upcoming'}
   onClick={() =>
     setDashboardView((current) =>
@@ -4166,12 +4276,26 @@ return (
   icon={<FolderOpen size={24} />}
   label="Resources"
   value={allResources.length}
-  bg="#E8F0FF"
-  iconColor="#4661C7"
+  bg="#F2F9F7"
+  iconColor="#5E9A8B"
   active={dashboardView === 'resources'}
   onClick={() =>
     setDashboardView((current) =>
       current === 'resources' ? null : 'resources'
+    )
+  }
+ />
+
+ <StatCard
+  icon={<GraduationCap size={24} />}
+  label="Credits"
+  value={totalCredits}
+  bg="#FFF9F1"
+  iconColor="#C99758"
+  active={dashboardView === 'credits'}
+  onClick={() =>
+    setDashboardView((current) =>
+      current === 'credits' ? null : 'credits'
     )
   }
  />
@@ -4448,6 +4572,12 @@ const resourceCount = allResources.filter(
   (resource) => ids.has(resource.course_id)
 ).length;
 
+const creditCount = semesterCourses.reduce(
+  (sum, course) =>
+   sum + Math.max(0, Number(courseCredits[course.id]) || 0),
+  0
+);
+
 return (
  <button
    key={semester}
@@ -4530,20 +4660,26 @@ return (
          <SemesterMiniCount
           label="Assignments"
           value={assignmentCount}
-          color="#15803D"
-          bg="#E7F8F0"
+          color="#648CCB"
+          bg="#F3F7FD"
          />
          <SemesterMiniCount
           label="Upcoming"
           value={upcomingCount}
-          color="#F4A300"
-          bg="#FFF4DA"
+          color="#D9896A"
+          bg="#FFF6F2"
          />
          <SemesterMiniCount
           label="Resources"
           value={resourceCount}
-          color="#3B82F6"
-          bg="#E8F2FF"
+          color="#5E9A8B"
+          bg="#F2F9F7"
+         />
+         <SemesterMiniCount
+          label="Credits"
+          value={creditCount}
+          color="#C99758"
+          bg="#FFF9F1"
          />
         </div>
        </button>
@@ -4885,6 +5021,36 @@ function CourseModal({
     })
   }
  />
+</div>
+
+<div>
+ <label style={fieldLabel}>
+  Credits
+ </label>
+ <input
+  type="number"
+  min="0"
+  step="0.5"
+  placeholder="e.g. 3"
+  style={modalInput}
+  value={newCourse.credits ?? ''}
+  onChange={(e) =>
+    setNewCourse({
+     ...newCourse,
+     credits: e.target.value
+    })
+  }
+ />
+ <div
+  style={{
+   marginTop: '5px',
+   color: '#8A98B8',
+   fontSize: '10px',
+   fontWeight: '700'
+  }}
+ >
+  These credits are added to your semester and overall total automatically.
+ </div>
 </div>
 
 <div>
@@ -5494,7 +5660,7 @@ const addBtnStyle = {
 
 const statsGridStyle = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
   gap: '18px',
   marginBottom: '24px'
 };
@@ -5867,7 +6033,7 @@ const courseMetaPill = {
 
 const courseCountsRow = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
   gap: '10px',
   marginTop: 'auto',
   paddingTop: '16px',
@@ -5956,7 +6122,7 @@ const semesterFolderSubtitleStyle = {
 const semesterFolderStatsStyle = {
   width: '100%',
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
   gap: '10px',
   paddingTop: '16px',
   borderTop: '1px solid #EDF1F7',

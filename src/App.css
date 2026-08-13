@@ -1,114 +1,528 @@
-/* --- THE LIGHT MODE & BOLD NAVY RESET --- */
+/* =========================================================
+   CAMPORA — APP.CSS
+   LIGHT MODE + BOLD NAVY THEME
+   FIXED SIDEBAR + SCROLLABLE PAGE CONTENT
+========================================================= */
+
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800;900&display=swap');
 
+
+/* =========================================================
+   ROOT VARIABLES
+========================================================= */
+
 :root {
-  --campora-navy: #0B1A3F;   
-  --campora-blue: #0B1A3F;   /* Changed to Navy */
-  --campora-bg: #F4F7FE;     
-  --campora-text: #0B1A3F;   
+  --campora-navy: #0B1A3F;
+  --campora-blue: #0B1A3F;
+  --campora-bg: #F4F7FE;
+  --campora-text: #0B1A3F;
   --campora-muted: #A3AED0;
   --campora-urgent: #DC2626;
+
   --radius: 30px;
+
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 88px;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
 
-body, html, #root {
+/* =========================================================
+   GLOBAL RESET
+========================================================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
   width: 100%;
+  height: 100%;
   min-height: 100%;
+
   background-color: #F4F7FE !important;
+
   font-family: 'Plus Jakarta Sans', sans-serif;
-  overflow-x: hidden;
-  overflow-y: auto;
+
+  /*
+    IMPORTANT:
+    The browser/body itself should NOT scroll.
+
+    Only .main-content will scroll.
+  */
+  overflow: hidden;
 }
+
+body {
+  color: var(--campora-text);
+}
+
+
+/* =========================================================
+   APP LAYOUT
+========================================================= */
 
 .layout {
-  display: flex;
-  width: 100vw;
-  min-height: 100vh;
+  position: relative;
+
+  width: 100%;
+  height: 100vh;
+
   background-color: #F4F7FE;
+
+  overflow: hidden;
 }
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
 
 .sidebar {
-  width: 280px;
-  background: white;
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: var(--sidebar-width);
+  height: 100vh;
+
+  background: #FFFFFF;
+
   border-right: 1px solid #E9EDF7;
+
   display: flex;
   flex-direction: column;
+
   flex-shrink: 0;
-  position: relative;
-  transition: width 0.3s ease;
+
+  z-index: 100;
+
+  /*
+    The sidebar itself does NOT scroll with the page.
+  */
+  overflow: visible;
+
+  transition:
+    width 0.3s ease;
+
+  box-shadow:
+    4px 0 20px rgba(11, 26, 63, 0.02);
 }
 
-/* --- COLLAPSED SIDEBAR (icon rail) --- */
-.sidebar.collapsed { width: 88px; }
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+========================================================= */
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+
+/* =========================================================
+   LOGO
+========================================================= */
+
+.logo-section {
+  flex-shrink: 0;
+}
 
 .logo-caption {
   display: flex;
   flex-direction: column;
 }
 
-.sidebar.collapsed .logo-caption { display: none; }
+.sidebar.collapsed .logo-caption {
+  display: none;
+}
+
+
+/* =========================================================
+   SIDEBAR NAVIGATION
+========================================================= */
+
+.sidebar nav {
+  flex: 1;
+
+  min-height: 0;
+
+  /*
+    The navigation itself can scroll ONLY if the user's
+    screen is too short to display all navigation items.
+
+    This does NOT make it scroll with the main page.
+  */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding-bottom: 12px;
+
+  scrollbar-width: thin;
+  scrollbar-color: #DDE3EE transparent;
+}
+
+
+/* =========================================================
+   NAVIGATION ITEMS
+========================================================= */
+
+.nav-item {
+  display: flex;
+
+  align-items: center;
+
+  gap: 15px;
+
+  padding: 16px 30px;
+
+  text-decoration: none;
+
+  color: var(--campora-muted);
+
+  font-weight: 700;
+
+  font-size: 15px;
+
+  border-right: 4px solid transparent;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.nav-item:hover {
+  color: #0B1A3F;
+
+  background: #F8FAFF;
+}
+
+.nav-item.active {
+  color: #0B1A3F !important;
+
+  background: #F8FAFF;
+
+  border-right: 4px solid #0B1A3F;
+}
+
+
+/* =========================================================
+   COLLAPSED NAVIGATION ITEMS
+========================================================= */
 
 .sidebar.collapsed .nav-item {
   justify-content: center;
+
   gap: 0;
+
   padding: 16px 0;
 }
 
 .sidebar.collapsed .nav-item.active {
   border-right: none;
+
   border-left: 4px solid #0B1A3F;
 }
 
-.sidebar.collapsed .nav-item span { display: none; }
+.sidebar.collapsed .nav-item span {
+  display: none;
+}
 
-.sidebar.collapsed .profile-inner { justify-content: center; }
 
-.sidebar.collapsed .profile-text { display: none; }
+/* =========================================================
+   SIDEBAR PROFILE
+========================================================= */
 
-.sidebar.collapsed .logo-caption { display: none; }
+.sidebar-profile {
+  flex-shrink: 0;
+
+  background: #FFFFFF;
+}
+
+.sidebar.collapsed .profile-inner {
+  justify-content: center;
+}
+
+.sidebar.collapsed .profile-text {
+  display: none;
+}
+
+
+/* =========================================================
+   SIDEBAR SCROLLBAR
+========================================================= */
+
+.sidebar nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar nav::-webkit-scrollbar-thumb {
+  background: #DDE3EE;
+
+  border-radius: 999px;
+}
+
+.sidebar nav::-webkit-scrollbar-thumb:hover {
+  background: #CBD3E1;
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+/*
+  THIS is the important part.
+
+  The sidebar stays fixed on the left.
+
+  Dashboard
+  Announcements
+  Notifications
+  Campus Pulse
+  Courses
+  Registration
+  Planner
+  To-Do
+  Study Groups
+  Profile
+
+  all scroll inside THIS container.
+*/
 
 .main-content {
-  flex: 1;
-  padding: 40px 60px;
-  overflow-y: auto;
+  position: fixed;
+
+  top: 0;
+  right: 0;
+  bottom: 0;
+
+  left: var(--sidebar-width);
+
+  height: 100vh;
+
+  padding: 40px 60px 60px;
+
+  background-color: #F4F7FE;
+
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  background-color: #F4F7FE;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  overscroll-behavior: contain;
+
+  -webkit-overflow-scrolling: touch;
+
+  scroll-behavior: smooth;
+
+  scrollbar-width: thin;
+  scrollbar-color: #D9DFEB transparent;
+
+  transition:
+    left 0.3s ease;
 }
 
-/* Default headings to Bold Navy Blue; inline color (e.g. white text on navy cards) still wins */
-h1, h2, h3, h4 {
+
+/* =========================================================
+   COLLAPSED SIDEBAR → EXPAND PAGE
+========================================================= */
+
+.sidebar.collapsed + .main-content {
+  left: var(--sidebar-collapsed-width);
+}
+
+
+/* =========================================================
+   MAIN CONTENT SCROLLBAR
+========================================================= */
+
+.main-content::-webkit-scrollbar {
+  width: 7px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: #D9DFEB;
+
+  border-radius: 999px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #C5CEDD;
+}
+
+
+/* =========================================================
+   MAIN CONTENT CHILDREN
+========================================================= */
+
+/*
+  Prevent pages from accidentally shrinking inside
+  the main content flex container.
+*/
+
+.main-content > * {
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MAIN HEADER / SEARCH AREA
+========================================================= */
+
+.main-content > header {
+  width: 100%;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   HEADINGS
+========================================================= */
+
+/*
+  Default Campora heading style.
+
+  Inline styles still override these when you intentionally
+  use white or another color inside cards.
+*/
+
+h1,
+h2,
+h3,
+h4 {
   color: #0B1A3F;
+
   font-weight: 900 !important;
 }
 
-.nav-item {
-  display: flex;
-  align-items: center; gap: 15px;
-  padding: 16px 30px;
-  text-decoration: none;
-  color: var(--campora-muted);
-  font-weight: 700; font-size: 15px;
-}
 
-.nav-item.active {
-  color: #0B1A3F !important;
-  background: #F8FAFF;
-  border-right: 4px solid #0B1A3F;
-}
+/* =========================================================
+   CARDS
+========================================================= */
 
 .card {
-  background: white;
+  background: #FFFFFF;
+
   border-radius: var(--radius);
+
   padding: 35px;
-  box-shadow: 0px 20px 40px rgba(11, 26, 63, 0.06);
+
+  box-shadow:
+    0 20px 40px rgba(11, 26, 63, 0.06);
 }
+
+
+/* =========================================================
+   GRID
+========================================================= */
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 25px; width: 100%;
+
+  grid-template-columns:
+    repeat(12, 1fr);
+
+  gap: 25px;
+
+  width: 100%;
+}
+
+
+/* =========================================================
+   INPUT FONT CONSISTENCY
+========================================================= */
+
+input,
+textarea,
+select,
+button {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+
+/* =========================================================
+   RESPONSIVE — MEDIUM SCREENS
+========================================================= */
+
+@media (max-width: 1100px) {
+
+  .main-content {
+    padding:
+      32px 36px 50px;
+  }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — SMALLER SCREENS
+========================================================= */
+
+@media (max-width: 850px) {
+
+  :root {
+    --sidebar-width: 220px;
+  }
+
+  .nav-item {
+    padding:
+      14px 20px;
+
+    font-size: 13px;
+  }
+
+  .main-content {
+    padding:
+      28px 26px 45px;
+  }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — VERY SMALL SCREENS
+========================================================= */
+
+@media (max-width: 650px) {
+
+  :root {
+    --sidebar-width: 190px;
+    --sidebar-collapsed-width: 76px;
+  }
+
+  .nav-item {
+    padding:
+      13px 16px;
+
+    gap: 10px;
+
+    font-size: 12px;
+  }
+
+  .sidebar.collapsed .nav-item {
+    padding:
+      14px 0;
+  }
+
+  .main-content {
+    padding:
+      24px 18px 40px;
+  }
+
 }

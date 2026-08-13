@@ -106,6 +106,55 @@ const CATEGORY_STYLES = {
 const DM_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 // =========================================================
+// SHARED CAMPORA PROFILE COLORS
+// SAME PALETTE / LOGIC AS STUDY GROUPS + REGISTRATION
+// =========================================================
+
+const AVATAR_PALETTE = [
+  '#E0F2FE',
+  '#FCE7F3',
+  '#F3E8FF',
+  '#DCFCE7',
+  '#FFEDD5',
+  '#CFFAFE',
+  '#E0E7FF',
+  '#D1FAE5'
+];
+
+const getAvatarColor = (name) => {
+  const string = name || 'S';
+
+  let hash = 0;
+
+  for (let i = 0; i < string.length; i++) {
+    hash =
+      string.charCodeAt(i) +
+      ((hash << 5) - hash);
+  }
+
+  return AVATAR_PALETTE[
+    Math.abs(hash) % AVATAR_PALETTE.length
+  ];
+};
+
+const getAvatarTextColor = (backgroundColor) => {
+  const hex = String(backgroundColor || '')
+    .replace('#', '')
+    .trim();
+
+  if (hex.length !== 6) return '#0B1A3F';
+
+  const red = parseInt(hex.substring(0, 2), 16);
+  const green = parseInt(hex.substring(2, 4), 16);
+  const blue = parseInt(hex.substring(4, 6), 16);
+
+  const luminance =
+    (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+
+  return luminance < 0.58 ? '#FFFFFF' : '#0B1A3F';
+};
+
+// =========================================================
 // HELPERS
 // =========================================================
 
@@ -533,10 +582,12 @@ export default function CampusPulse() {
     });
   }, [activeView]);
 
-  const fetchDmInbox = async () => {
+  const fetchDmInbox = async ({ silent = false } = {}) => {
     if (!currentUserId) return;
 
-    setDmInboxLoading(true);
+    if (!silent) {
+      setDmInboxLoading(true);
+    }
 
     try {
       const { data, error } = await supabase
@@ -565,7 +616,9 @@ export default function CampusPulse() {
       ];
 
       if (!partnerIds.length) {
-        setDmInboxProfiles({});
+        if (!silent) {
+          setDmInboxProfiles({});
+        }
         return;
       }
 
@@ -623,9 +676,16 @@ export default function CampusPulse() {
       }
     } catch (error) {
       console.error('Campus Pulse DM inbox error:', error);
-      setDmInboxMessages([]);
+
+      // Keep the currently visible conversation list during silent realtime
+      // refresh failures instead of making the sidebar appear to reset.
+      if (!silent) {
+        setDmInboxMessages([]);
+      }
     } finally {
-      setDmInboxLoading(false);
+      if (!silent) {
+        setDmInboxLoading(false);
+      }
     }
   };
 
@@ -644,7 +704,7 @@ export default function CampusPulse() {
           table: 'direct_messages'
         },
         () => {
-          fetchDmInbox();
+          fetchDmInbox({ silent: true });
         }
       )
       .subscribe();
@@ -715,10 +775,12 @@ export default function CampusPulse() {
     setDmSearchResults([]);
   };
 
-  const fetchConversation = async () => {
+  const fetchConversation = async ({ silent = false } = {}) => {
     if (!activeDmUser || !currentUserId) return;
 
-    setDmLoading(true);
+    if (!silent) {
+      setDmLoading(true);
+    }
 
     try {
       const { data, error } = await supabase
@@ -736,7 +798,9 @@ export default function CampusPulse() {
       console.error('Campus Pulse conversation error:', error);
       setDmMessages([]);
     } finally {
-      setDmLoading(false);
+      if (!silent) {
+        setDmLoading(false);
+      }
     }
   };
 
@@ -760,8 +824,8 @@ export default function CampusPulse() {
           table: 'direct_messages'
         },
         () => {
-          fetchConversation();
-          fetchDmInbox();
+          fetchConversation({ silent: true });
+          fetchDmInbox({ silent: true });
         }
       )
       .subscribe();
@@ -855,10 +919,13 @@ export default function CampusPulse() {
       return;
     }
 
-    setDmMessages(previous => [
-      ...previous,
-      data
-    ]);
+    setDmMessages(previous => {
+      if (previous.some(item => item.id === data.id)) {
+        return previous;
+      }
+
+      return [...previous, data];
+    });
 
     setDmInboxMessages(previous => [
       data,
@@ -870,6 +937,9 @@ export default function CampusPulse() {
     setDmMessage('');
     setDmReplyingTo(null);
     setActiveDmMessageMenu(null);
+
+    // Keep the user inside the same conversation after sending.
+    setActiveView('messages');
 
     window.requestAnimationFrame(() => {
       const history =
@@ -1777,9 +1847,19 @@ export default function CampusPulse() {
                         <div
                           style={{
                             ...avatarCircle,
-                            background: '#0B1A3F',
-                            color: '#FFFFFF',
-                            border: '1px solid transparent'
+                            background: post.is_anonymous
+                              ? '#0B1A3F'
+                              : getAvatarColor(
+                                  post.author_name || 'Student'
+                                ),
+                            color: post.is_anonymous
+                              ? '#FFFFFF'
+                              : getAvatarTextColor(
+                                  getAvatarColor(
+                                    post.author_name || 'Student'
+                                  )
+                                ),
+                            border: '1px solid rgba(11,26,63,0.08)'
                           }}
                         >
                           {post.is_anonymous ? (
@@ -2143,7 +2223,7 @@ export default function CampusPulse() {
                               style={{
                                 ...inputStyle,
                                 padding: '12px 18px',
-                                fontSize: '14px',
+                                fontSize: '15px',
                                 borderColor:
                                   categoryBadge.border
                               }}
@@ -2355,7 +2435,15 @@ export default function CampusPulse() {
                           onClick={() => startNewDmWithUser(profile)}
                           style={instagramSearchResultRow}
                         >
-                          <div style={instagramAvatar}>
+                          <div
+                            style={{
+                              ...instagramAvatar,
+                              background: getAvatarColor(resultName),
+                              color: getAvatarTextColor(
+                                getAvatarColor(resultName)
+                              )
+                            }}
+                          >
                             {getInitials(resultName)}
                           </div>
 
@@ -2427,7 +2515,19 @@ export default function CampusPulse() {
                           ...(selected ? instagramThreadRowActive : {})
                         }}
                       >
-                        <div style={instagramAvatar}>
+                        <div
+                          style={{
+                            ...instagramAvatar,
+                            background: getAvatarColor(
+                              profile.name || 'Student'
+                            ),
+                            color: getAvatarTextColor(
+                              getAvatarColor(
+                                profile.name || 'Student'
+                              )
+                            )
+                          }}
+                        >
                           {getInitials(profile.name)}
                         </div>
 
@@ -2517,7 +2617,19 @@ export default function CampusPulse() {
                         minWidth: 0
                       }}
                     >
-                      <div style={instagramAvatarLarge}>
+                      <div
+                        style={{
+                          ...instagramAvatarLarge,
+                          background: getAvatarColor(
+                            activeDmUser.name || 'Student'
+                          ),
+                          color: getAvatarTextColor(
+                            getAvatarColor(
+                              activeDmUser.name || 'Student'
+                            )
+                          )
+                        }}
+                      >
                         {getInitials(activeDmUser.name)}
                       </div>
 
@@ -2612,7 +2724,15 @@ export default function CampusPulse() {
                             ...instagramAvatarLarge,
                             width: '64px',
                             height: '64px',
-                            marginBottom: '10px'
+                            marginBottom: '10px',
+                            background: getAvatarColor(
+                              activeDmUser.name || 'Student'
+                            ),
+                            color: getAvatarTextColor(
+                              getAvatarColor(
+                                activeDmUser.name || 'Student'
+                              )
+                            )
                           }}
                         >
                           {getInitials(activeDmUser.name)}
@@ -3113,8 +3233,19 @@ function CommentItem({
             <div
               style={{
                 ...commentAvatarStyle,
-                background: '#0B1A3F',
-                color: '#FFFFFF'
+                background: isAnonymous
+                  ? '#0B1A3F'
+                  : getAvatarColor(
+                      comment.author_name || 'Student'
+                    ),
+                color: isAnonymous
+                  ? '#FFFFFF'
+                  : getAvatarTextColor(
+                      getAvatarColor(
+                        comment.author_name || 'Student'
+                      )
+                    ),
+                border: '1px solid rgba(11,26,63,0.08)'
               }}
             >
               {isAnonymous ? (
@@ -3304,7 +3435,7 @@ function CommentItem({
 
 const pageStyle = {
   width: '100%',
-  maxWidth: '980px',
+  maxWidth: '1280px',
   margin: '0 auto',
   padding: '8px 20px 70px',
   boxSizing: 'border-box',
@@ -3936,52 +4067,27 @@ const instagramDmShell = {
   border: '1.5px solid #E2E8F0',
   borderRadius: '24px',
   overflow: 'hidden',
+
   boxShadow: '0 10px 30px rgba(11,26,57,0.08)'
 };
 
-const instagramDmSidebar = {
-  borderRight: '1px solid #E2E8F0',
-  display: 'flex',
-  flexDirection: 'column',
-  minWidth: 0,
-  background: '#FFFFFF'
-};
+const instagramDmSidebar = { borderRight: '1px solid #E2E8F0', display: 'flex',
+flexDirection: 'column', minWidth: 0, background: '#FFFFFF' };
 
-const instagramDmSidebarHeader = {
-  padding: '24px 22px 16px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: '12px'
-};
+const instagramDmSidebarHeader = { padding: '24px 22px 16px', display: 'flex',
+alignItems: 'center', justifyContent: 'space-between', gap: '12px' };
 
-const instagramDmSidebarTitle = {
-  margin: 0,
-  color: '#0B1A3F',
-  fontSize: '22px',
-  fontWeight: '900'
-};
+const instagramDmSidebarTitle = { margin: 0, color: '#0B1A3F', fontSize: '22px',
+fontWeight: '900' };
 
-const instagramDmSidebarSubtitle = {
-  margin: '4px 0 0',
-  color: '#94A3B8',
-  fontSize: '11px',
-  fontWeight: '700'
-};
+const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: '#94A3B8',
+fontSize: '11px', fontWeight: '700' };
 
 const instagramSearchWrap = { padding: '0 18px 16px' };
 
-const instagramSearchBar = {
-  height: '50px',
-  border: '1.5px solid #E2E8F0',
-  borderRadius: '15px',
-  background: '#F8FAFC',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  padding: '0 15px',
-  boxSizing: 'border-box'
-};
+const instagramSearchBar = { height: '50px', border: '1.5px solid #E2E8F0',
+borderRadius: '15px', background: '#F8FAFC', display: 'flex', alignItems:
+'center', gap: '10px', padding: '0 15px', boxSizing: 'border-box' };
 
 const instagramSearchIcon = {
   color: '#94A3B8',
@@ -4052,36 +4158,23 @@ const instagramSearchResultRow = {
   fontFamily: 'inherit'
 };
 
-const instagramThreadList = {
-  flex: 1,
-  overflowY: 'auto',
-  padding: '6px 10px 16px'
-};
+const instagramThreadList = { flex: 1, overflowY: 'auto', padding: '6px 10px 16px' };
 
-const instagramThreadRow = {
-  width: '100%',
-  border: 'none',
-  background: 'transparent',
-  borderRadius: '16px',
-  padding: '13px 12px',
-  display: 'flex',
-  gap: '13px',
-  alignItems: 'center',
-  textAlign: 'left',
-  cursor: 'pointer',
-  fontFamily: 'inherit'
-};
+const instagramThreadRow = { width: '100%', border: 'none', background:
+'transparent', borderRadius: '16px', padding: '13px 12px', display: 'flex', gap:
+'13px', alignItems: 'center', textAlign: 'left', cursor: 'pointer', fontFamily:
+'inherit' };
 
 const instagramThreadRowActive = { background: '#F1F5F9' };
 
 const instagramAvatar = {
-  width: '48px',
-  height: '48px',
+  width: '54px',
+  height: '54px',
   borderRadius: '50%',
   flexShrink: 0,
-  border: 'none',
-  background: '#0B1A3F',
-  color: '#FFFFFF',
+  border: '1px solid rgba(11,26,63,0.08)',
+  background: '#E0F2FE',
+  color: '#0B1A3F',
   fontSize: '14px',
   fontWeight: '900',
   display: 'flex',
@@ -4091,9 +4184,9 @@ const instagramAvatar = {
 
 const instagramAvatarLarge = {
   ...instagramAvatar,
-  width: '52px',
-  height: '52px',
-  fontSize: '15px'
+  width: '58px',
+  height: '58px',
+  fontSize: '16px'
 };
 
 const instagramPersonName = {
@@ -4167,20 +4260,14 @@ const instagramChatPanel = {
   overflow: 'hidden'
 };
 
-const instagramChatHeader = {
-  minHeight: '86px',
-  padding: '16px 24px',
-  borderBottom: '1px solid #E2E8F0',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: '14px'
-};
+const instagramChatHeader = { minHeight: '86px', padding: '16px 24px',
+borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center',
+justifyContent: 'space-between', gap: '14px' };
 
 const instagramChatName = {
   margin: 0,
   color: '#0B1A3F',
-  fontSize: '17px',
+  fontSize: '18px',
   fontWeight: '900'
 };
 
@@ -4203,17 +4290,10 @@ const instagramHeaderPin = {
   cursor: 'pointer'
 };
 
-const instagramChatHistory = {
-  position: 'relative',
-  flex: '1 1 auto',
-  minHeight: 0,
-  overflowY: 'auto',
-  overflowX: 'hidden',
-  overscrollBehavior: 'contain',
-  WebkitOverflowScrolling: 'touch',
-  padding: '26px 24px',
-  background: '#FFFFFF'
-};
+const instagramChatHistory = { position: 'relative', flex: '1 1 auto', minHeight: 0,
+overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain',
+WebkitOverflowScrolling: 'touch', padding: '26px 24px', background:
+'#FFFFFF' };
 
 const instagramEmptyChat = {
   height: '100%',
@@ -4265,10 +4345,10 @@ const instagramNoChatText = {
 };
 
 const instagramBubble = {
-  maxWidth: '72%',
-  padding: '12px 14px',
-  borderRadius: '19px',
-  fontSize: '13px'
+  maxWidth: '76%',
+  padding: '13px 16px',
+  borderRadius: '20px',
+  fontSize: '13.5px'
 };
 
 const instagramBubbleMine = {
@@ -4335,57 +4415,22 @@ const instagramReactionPill = {
   cursor: 'pointer'
 };
 
-const instagramMessageMenuButton = {
-  position: 'absolute',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  border: 'none',
-  background: 'transparent',
-  color: '#A3AED0',
-  cursor: 'pointer',
-  fontSize: '13px',
-  fontWeight: '900',
-  padding: '6px'
-};
+const instagramMessageMenuButton = { position: 'absolute', top: '8px', border:
+'none', background: 'transparent', color: '#A3AED0', cursor: 'pointer', padding:
+'4px 7px', fontWeight: '900', letterSpacing: '1px' };
 
-const instagramMessageMenu = {
-  position: 'absolute',
-  top: '100%',
-  marginTop: '5px',
-  zIndex: 40,
-  minWidth: '210px',
-  background: '#FFFFFF',
-  border: '1px solid #E2E8F0',
-  borderRadius: '12px',
-  padding: '7px',
-  boxShadow: '0 10px 24px rgba(11,26,63,0.14)'
-};
+const instagramMessageMenu = { position: 'absolute', top: '34px', background:
+'#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '13px', padding: '7px',
+boxShadow: '0 10px 25px rgba(11,26,57,0.12)', zIndex: 40, display: 'flex',
+alignItems: 'center', gap: '3px', flexWrap: 'wrap', minWidth: '250px', maxWidth:
+'min(310px, calc(100vw - 80px))' };
 
-const instagramEmojiButton = {
-  width: '29px',
-  height: '29px',
-  border: 'none',
-  borderRadius: '50%',
-  background: 'transparent',
-  cursor: 'pointer',
-  fontSize: '14px'
-};
+const instagramEmojiButton = { border: 'none', background: 'transparent',
+fontSize: '16px', cursor: 'pointer', padding: '4px' };
 
-const instagramMenuAction = {
-  width: '100%',
-  border: 'none',
-  background: 'transparent',
-  color: '#0B1A3F',
-  padding: '7px 8px',
-  borderRadius: '8px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '7px',
-  fontSize: '10px',
-  fontWeight: '800',
-  cursor: 'pointer',
-  fontFamily: 'inherit'
-};
+const instagramMenuAction = { border: 'none', background: '#F8FAFC', color:
+'#0B1A3F', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems:
+'center', gap: '4px', fontSize: '10px', fontWeight: '800', cursor: 'pointer' };
 
 const instagramReplyComposerPreview = {
   borderTop: '1px solid #E2E8F0',
@@ -4463,37 +4508,16 @@ const instagramPinnedRemove = {
   flexShrink: 0
 };
 
-const instagramComposer = {
-  borderTop: '1px solid #E2E8F0',
-  padding: '16px 20px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  background: '#FFFFFF',
-  flexShrink: 0,
-  position: 'relative',
-  zIndex: 3
-};
+const instagramComposer = { borderTop: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: '#FFFFFF', flexShrink: 0, position: 'relative', zIndex: 3 };
 
-const instagramComposerInput = {
-  flex: 1,
-  height: '50px',
-  minWidth: 0,
-  borderRadius: '20px',
-  border: '1.5px solid #E2E8F0',
-  background: '#F8FAFC',
-  padding: '0 16px',
-  fontSize: '13px',
-  fontWeight: '700',
-  color: '#0B1A3F',
-  outline: 'none',
-  boxSizing: 'border-box',
-  fontFamily: 'inherit'
-};
+const instagramComposerInput = { flex: 1, height: '50px', minWidth: 0,
+borderRadius: '20px', border: '1.5px solid #E2E8F0', background: '#F8FAFC',
+padding: '0 16px', fontSize: '13px', fontWeight: '700', color: '#0B1A3F', outline:
+'none', boxSizing: 'border-box', fontFamily: 'inherit' };
 
 const instagramSendButton = {
-  width: '48px',
-  height: '48px',
+  width: '52px',
+  height: '52px',
   borderRadius: '50%',
   border: 'none',
   background: '#0B1A3F',

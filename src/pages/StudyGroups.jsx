@@ -3166,12 +3166,12 @@ alignItems:
 };
 
 const STUDY_NAV_COLORS = {
-  browse: { bg: '#F1F6FF', text: '#5B8DEF', border: '#DCE8FF' },
-  created: { bg: '#F6F3FF', text: '#8A75D6', border: '#E4DDF8' },
-  joined: { bg: '#F0FAF7', text: '#50AA99', border: '#D5EEE8' },
+  browse: { bg: '#F3F7FD', text: '#648CCB', border: '#DDE7F5' },
+  created: { bg: '#F7F4FC', text: '#8B78B8', border: '#E7E0F2' },
+  joined: { bg: '#F2F9F7', text: '#5E9A8B', border: '#D9EBE6' },
   dms: { bg: '#F4F7FE', text: '#0B1A3F', border: '#DDE3EE' },
-  preferences: { bg: '#FFF8EE', text: '#E5A14D', border: '#F5E1C1' },
-  create: { bg: '#FFF4F6', text: '#E77D94', border: '#F6DCE2' }
+  preferences: { bg: '#FFF9F1', text: '#C99758', border: '#F0E2CB' },
+  create: { bg: '#FFF5F6', text: '#C76E7D', border: '#F0DDE1' }
 };
 const getStudyNavTabStyle = (tabKey, isActive) => {
 const tone = STUDY_NAV_COLORS[tabKey] || STUDY_NAV_COLORS.browse;
@@ -3699,13 +3699,13 @@ const statusStyles = {
 pending: {
 
 background:
-'#FFF7E6',
+'#FFF9F1',
 
 border:
-'#F6D48B',
+'#F0E2CB',
 
 color:
- '#B7791F',
+ '#C99758',
 
  label:
    'Pending Review'
@@ -3713,13 +3713,13 @@ color:
 
 approved: {
  background:
- '#ECFBF6',
+ '#F2F9F7',
 
    border:
-   '#BDEDDD',
+   '#D9EBE6',
 
    color:
-    '#008D68',
+    '#5E9A8B',
 
  label:
 
@@ -3729,13 +3729,13 @@ approved: {
 rejected: {
 
       background:
-      '#FFF0F0',
+      '#FFF5F6',
 
       border:
-      '#F6CACA',
+      '#F0DDE1',
 
       color:
-       '#D84C4C',
+       '#C76E7D',
 
       label:
         'Declined'
@@ -4849,11 +4849,11 @@ gap:
      '18px',
 
      background:
-     'linear-gradient(135deg,#F3F1FF 0%,#F7FBFF 100%)',
+     'linear-gradient(135deg,#F7F4FC 0%,#FBF9FD 100%)',
 
      border:
 
-         '1.5px solid #E2E5FF'
+         '1.5px solid #E7E0F2'
     }}
 >
 
@@ -4872,10 +4872,10 @@ style={{
     '14px',
 
     background:
-    '#E7E3FF',
+    '#EEE8F7',
 
     color:
-     '#6366F1',
+     '#8B78B8',
 
     display:
     'flex',
@@ -5099,7 +5099,7 @@ background:
 'linear-gradient(135deg,#EDE9FF,#F1F7FF)',
 
 color:
- '#6366F1',
+ '#8B78B8',
 
 display:
 'flex',
