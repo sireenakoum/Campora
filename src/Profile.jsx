@@ -58,7 +58,8 @@ export default function Profile() {
       } catch (err) {
         console.error('Profile loading error:', err);
         setError(
-          err?.message || 'Something went wrong while loading your profile.'
+          err?.message ||
+            'Something went wrong while loading your profile.'
         );
       } finally {
         setLoading(false);
@@ -219,7 +220,8 @@ export default function Profile() {
         savedAvatarUrl &&
         newAvatarUrl !== savedAvatarUrl
       ) {
-        const oldAvatarPath = getAvatarPathFromUrl(savedAvatarUrl);
+        const oldAvatarPath =
+          getAvatarPathFromUrl(savedAvatarUrl);
 
         if (
           oldAvatarPath &&
@@ -244,7 +246,9 @@ export default function Profile() {
         setFullName(updatedProfile.name || '');
         setAvatarUrl(updatedProfile.avatar_url || '');
         setSavedAvatarUrl(updatedProfile.avatar_url || '');
-        setAccountType(updatedProfile.account_type || 'Student');
+        setAccountType(
+          updatedProfile.account_type || 'Student'
+        );
         setMajor(updatedProfile.major || '');
         setYear(updatedProfile.year || '');
         setGuestTitle(updatedProfile.guest_title || '');
@@ -288,12 +292,21 @@ export default function Profile() {
   };
 
   if (loading) {
-    return <div style={styles.loading}>Loading profile...</div>;
+    return (
+      <div style={styles.loading}>
+        Loading profile...
+      </div>
+    );
   }
+
+  const isEngineering =
+    major?.toLowerCase().includes('engineering');
 
   return (
     <div style={styles.wrapper}>
-      <h1 style={styles.title}>Student Profile</h1>
+      <h1 style={styles.title}>
+        Student Profile
+      </h1>
 
       {error && (
         <div style={styles.errorBox}>
@@ -315,6 +328,7 @@ export default function Profile() {
                 src={avatarUrl}
                 alt="Profile"
                 style={styles.avatar}
+                onError={() => setAvatarUrl('')}
               />
             ) : (
               <div style={styles.avatarPlaceholder}>
@@ -439,7 +453,9 @@ export default function Profile() {
             <input
               type="text"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) =>
+                setFullName(e.target.value)
+              }
               disabled={saving}
               placeholder="Enter your full name"
               style={styles.input}
@@ -454,7 +470,9 @@ export default function Profile() {
 
               <select
                 value={year}
-                onChange={(e) => setYear(e.target.value)}
+                onChange={(e) =>
+                  setYear(e.target.value)
+                }
                 disabled={saving}
                 style={styles.input}
               >
@@ -462,22 +480,30 @@ export default function Profile() {
                   Select your year
                 </option>
 
-                {major === 'Engineering' ? (
+                {isEngineering ? (
                   <>
-                    <option value="E3">E3</option>
-                    <option value="E4">E4</option>
+                    <option value="E3">
+                      E3
+                    </option>
+
+                    <option value="E4">
+                      E4
+                    </option>
                   </>
                 ) : (
                   <>
                     <option value="Freshman">
                       Freshman
                     </option>
+
                     <option value="Sophomore">
                       Sophomore
                     </option>
+
                     <option value="Junior">
                       Junior
                     </option>
+
                     <option value="Senior">
                       Senior
                     </option>
@@ -499,7 +525,9 @@ export default function Profile() {
                 : styles.button
             }
           >
-            {saving ? 'Saving...' : 'Save Profile'}
+            {saving
+              ? 'Saving...'
+              : 'Save Profile'}
           </button>
         </form>
       </div>
@@ -530,7 +558,8 @@ const styles = {
     background: '#fff',
     borderRadius: '24px',
     padding: '35px',
-    boxShadow: '0 15px 30px rgba(0,0,0,0.04)',
+    boxShadow:
+      '0 15px 30px rgba(0,0,0,0.04)',
     border: '1px solid #F1F5F9',
   },
 
