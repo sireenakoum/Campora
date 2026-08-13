@@ -34,7 +34,9 @@ export default function Profile() {
 
         const { data, error } = await getProfile(user.id);
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         if (data) {
           setFullName(data.name || '');
@@ -58,7 +60,9 @@ export default function Profile() {
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
 
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     if (!file.type.startsWith('image/')) {
       setError('Please select an image file.');
@@ -97,7 +101,9 @@ export default function Profile() {
       let newAvatarUrl = avatarUrl;
 
       if (avatarFile) {
-        const fileExtension = avatarFile.name.split('.').pop();
+        const fileExtension =
+          avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+
         const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
 
         const { error: uploadError } = await supabase.storage
@@ -118,7 +124,6 @@ export default function Profile() {
           .getPublicUrl(fileName);
 
         newAvatarUrl = publicUrl;
-        setAvatarUrl(publicUrl);
       }
 
       const { error: updateError } = await updateProfile(user.id, {
@@ -128,6 +133,25 @@ export default function Profile() {
 
       if (updateError) {
         throw updateError;
+      }
+
+      const {
+        data: updatedProfile,
+        error: profileError,
+      } = await getProfile(user.id);
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      if (updatedProfile) {
+        setFullName(updatedProfile.name || '');
+        setAvatarUrl(updatedProfile.avatar_url || '');
+        setAccountType(updatedProfile.account_type || 'Student');
+        setMajor(updatedProfile.major || '');
+        setYear(updatedProfile.year || '');
+        setGuestTitle(updatedProfile.guest_title || '');
+        setCoursesTaken(updatedProfile.courses_taken || []);
       }
 
       setAvatarFile(null);
@@ -237,9 +261,12 @@ export default function Profile() {
               {coursesTaken.length === 0 ? (
                 <span style={styles.infoValue}>—</span>
               ) : (
-                coursesTaken.map((c) => (
-                  <span key={c} style={styles.tag}>
-                    {c}
+                coursesTaken.map((course) => (
+                  <span
+                    key={course}
+                    style={styles.tag}
+                  >
+                    {course}
                   </span>
                 ))
               )}
@@ -249,7 +276,10 @@ export default function Profile() {
 
         <div style={styles.divider} />
 
-        <form onSubmit={handleUpdate} style={styles.form}>
+        <form
+          onSubmit={handleUpdate}
+          style={styles.form}
+        >
           <p style={styles.sectionLabel}>
             Personal Details
           </p>
@@ -279,7 +309,9 @@ export default function Profile() {
             <input
               type="text"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) =>
+                setFullName(e.target.value)
+              }
               style={styles.input}
             />
           </div>
@@ -344,6 +376,7 @@ const styles = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
+    display: 'block',
   },
 
   avatarPlaceholder: {
@@ -389,7 +422,8 @@ const styles = {
 
   infoGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gridTemplateColumns:
+      'repeat(auto-fit, minmax(180px, 1fr))',
     gap: '16px',
   },
 
