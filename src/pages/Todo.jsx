@@ -641,7 +641,7 @@ return (
  <div
   style={{
    background:
-    'linear-gradient(135deg, var(--campora-active) 0%, var(--campora-navy) 60%, var(--primary-container) 100%)',
+    'linear-gradient(135deg, var(--campora-navy-solid) 0%, var(--campora-navy-solid) 60%, var(--primary-container) 100%)',
    borderRadius: 'var(--radius)',
    padding: '18px 22px',
    color: '#FFFFFF',

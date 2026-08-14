@@ -55,6 +55,56 @@ const getContrastText = (hexColor) => {
 };
 
 // =========================================================
+// DARK-MODE COLOR ADAPTATION
+// =========================================================
+
+const isDarkTheme = () =>
+  typeof document !== 'undefined' &&
+  document.documentElement.dataset.theme === 'dark';
+
+const darkModeColor = (hexColor) => {
+  if (!isDarkTheme()) return hexColor;
+
+  if (!hexColor) return '#E1F2FF';
+
+  let hex = hexColor.replace('#', '');
+
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map((char) => char + char)
+      .join('');
+  }
+
+  if (hex.length !== 6) return hexColor;
+
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  const mix = (a, b, t) => Math.round(a * (1 - t) + b * t);
+
+  let nextR;
+  let nextG;
+  let nextB;
+
+  if (brightness >= 145) {
+    nextR = mix(r, 16, 0.68);
+    nextG = mix(g, 23, 0.68);
+    nextB = mix(b, 35, 0.68);
+  } else {
+    nextR = mix(r, 203, 0.38);
+    nextG = mix(g, 214, 0.38);
+    nextB = mix(b, 232, 0.38);
+  }
+
+  return `#${[nextR, nextG, nextB]
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('')}`;
+};
+
+// =========================================================
 // COURSE LINK HELPERS
 // =========================================================
 
@@ -102,7 +152,7 @@ export default function Planner() {
   const [saving, setSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
-  const [viewType, setViewType] = useState('Month');
+  const [viewType, setViewType] = useState('Week');
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [editSeriesConfirmation, setEditSeriesConfirmation] = useState(null);
   const [showEntryCustomColor, setShowEntryCustomColor] = useState(false);
@@ -175,8 +225,12 @@ export default function Planner() {
 
   const clearSticky = () => {
     setStickyText('');
+    setStickyColor('#E1F2FF');
     localStorage.removeItem(
       `campora_sticky_text_${selectedDateStr}`
+    );
+    localStorage.removeItem(
+      `campora_sticky_color_${selectedDateStr}`
     );
   };
 
@@ -1643,7 +1697,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     key={`pad-${index}`}
                     style={{
                       minHeight: '120px',
-                      background: '#FCFDFE',
+                      background: 'var(--surface-container-low)',
                       borderRadius: '14px'
                     }}
                   />
@@ -1670,18 +1724,18 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       padding: '8px',
                       cursor: 'pointer',
                       background: isSelected
-                        ? '#EAF4FC'
-                        : '#FCFDFE',
+                        ? 'var(--campora-navy-tint-alpha)'
+                        : 'var(--surface-container-low)',
                       border: isSelected
-                        ? '1px solid rgba(0,45,98,0.18)'
-                        : '1px solid #F1F3F5',
+                        ? '1px solid var(--campora-navy)'
+                        : '1px solid var(--hairline)',
                       borderRadius: '14px',
                       display: 'flex',
                       flexDirection: 'column',
                       boxSizing: 'border-box',
                       transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
                       boxShadow: isSelected
-                        ? '0 4px 12px rgba(0,45,98,0.06)'
+                        ? 'var(--shadow-soft)'
                         : 'none'
                     }}
                   >
@@ -1706,7 +1760,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                               width: '22px',
                               height: '22px',
                               borderRadius: '50%',
-                              background: 'var(--campora-navy)',
+                              background: 'var(--campora-navy-solid)',
                               color: '#ffffff',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -1761,8 +1815,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       }}
                     >
                       {dayEvents.map((event) => {
-                        const eventColor =
-                          event.color || '#E1F2FF';
+                        const eventColor = darkModeColor(
+                          event.color || '#E1F2FF'
+                        );
 
                         const eventFg = getContrastText(eventColor);
 
@@ -2109,7 +2164,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 upNextEvents.map((event) => {
                   const barColor = event.is_completed
                     ? 'var(--surface-container-highest)'
-                    : event.color || '#E1F2FF';
+                    : darkModeColor(event.color || '#E1F2FF');
 
                   const eventDate = new Date(
                     `${event.date}T00:00:00`
@@ -2198,7 +2253,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                                   borderRadius: '50%',
                                   background: event.is_completed
                                     ? 'var(--surface-container-highest)'
-                                    : event.color || '#E1F2FF',
+                                    : darkModeColor(
+                                        event.color || '#E1F2FF'
+                                      ),
                                   border: '1px solid rgba(0,45,98,0.10)',
                                   flexShrink: 0
                                 }}
@@ -2447,8 +2504,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     flex: 1,
                     minHeight: '250px',
                     borderRadius: '18px',
-                    background: '#FCFDFE',
-                    border: '1px solid #F2F4F6',
+                    background: 'var(--surface-container-low)',
+                    border: '1px solid var(--hairline)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2544,7 +2601,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     minWidth: '18px',
                     padding: 0,
                     borderRadius: '50%',
-                    background: color,
+                    background: darkModeColor(color),
                     cursor: 'pointer',
                     border:
                       stickyColor === color
@@ -2590,7 +2647,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       top: '30px',
                       right: 0,
                       zIndex: 30,
-                      background: '#FAFBFC',
+                      background: 'var(--surface-container-lowest)',
                       padding: '8px',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--divider)',
@@ -2619,7 +2676,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
             <div
               style={{
-                background: stickyColor,
+                background: darkModeColor(stickyColor),
                 flex: 1,
                 minHeight: '150px',
                 padding: '14px',
@@ -2642,8 +2699,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   outline: 'none',
                   resize: 'none',
                   fontWeight: '800',
-                  color: getContrastText(stickyColor),
-                  caretColor: getContrastText(stickyColor),
+                  color: getContrastText(darkModeColor(stickyColor)),
+                  caretColor: getContrastText(
+                    darkModeColor(stickyColor)
+                  ),
                   fontSize: '12px',
                   lineHeight: '1.4',
                   fontFamily: 'inherit'

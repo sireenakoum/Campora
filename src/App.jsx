@@ -29,6 +29,8 @@ import {
   Command,
   Search,
   School,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 import './App.css';
@@ -42,6 +44,7 @@ import Announcements from './pages/Announcements';
 import Notifications from './pages/Notifications';
 import CourseManagement from './pages/CourseManagement';
 import Planner from './pages/Planner';
+import DevPlannerHarness from './pages/DevPlannerHarness';
 import Todo from './pages/Todo';
 import StudyGroups from './pages/StudyGroups';
 import CampusPulse from './pages/CampusPulse';
@@ -95,7 +98,6 @@ const NAV_PRIMARY = [
 const NAV_TOOLS = [
   { to: '/planner', path: 'planner', icon: Calendar, label: 'Planner' },
   { to: '/todo', path: 'todo', icon: CheckSquare, label: 'To-Do' },
-  { to: '/notifications', path: 'notifications', icon: Bell, label: 'Notifications' },
   { to: '/announcements', path: 'announcements', icon: Network, label: 'Campus Hub' },
 ];
 
@@ -322,7 +324,6 @@ function EmailVerified() {
 
 function DashboardLayout() {
   const [userName, setUserName] = useState('');
-  const [userRole, setUserRole] = useState('Student');
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [collapsed, setCollapsed] = useState(
@@ -403,7 +404,6 @@ function DashboardLayout() {
 
       setIsAdmin(!!adminRow);
       setUserName(profile.name || user.email?.split('@')[0] || 'Student');
-      setUserRole(profile.role || 'Student');
     }
 
     init();
@@ -527,11 +527,9 @@ function DashboardLayout() {
               key={item.to}
               {...item}
               badge={
-                item.path === 'notifications'
-                  ? unreadCount
-                  : item.path === 'todo'
-                    ? todoCount
-                    : 0
+                item.path === 'todo'
+                  ? todoCount
+                  : 0
               }
               rail={collapsed}
               onNavigate={() => {
@@ -557,84 +555,6 @@ function DashboardLayout() {
 
         {/* ACCOUNT FOOTER */}
         <div className="sidebar-footer">
-          <div className="account-card">
-            <button
-              type="button"
-              className="account-avatar"
-              onClick={() => navigate('/profile')}
-              title={collapsed ? 'Profile' : undefined}
-            >
-              {userName.charAt(0).toUpperCase() || 'U'}
-            </button>
-            <div className="account-meta">
-              <span className="account-name">{userName || 'Student'}</span>
-              <span className="account-role">{userRole}</span>
-            </div>
-            {!collapsed && (
-              <button
-                type="button"
-                className="account-chevron"
-                aria-expanded={accountOpen}
-                aria-label="Account menu"
-                onClick={() => setAccountOpen((current) => !current)}
-              >
-                <ChevronsRight
-                  size={16}
-                  style={{
-                    transform: accountOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.25s ease',
-                  }}
-                />
-              </button>
-            )}
-
-            {!collapsed && accountOpen && (
-              <div className="account-popover">
-                <button
-                  type="button"
-                  className="account-pop-btn"
-                  onClick={() => {
-                    setAccountOpen(false);
-                    navigate('/profile');
-                  }}
-                >
-                  <User size={16} />
-                  <span>Profile</span>
-                </button>
-                <button
-                  type="button"
-                  className="account-pop-btn"
-                  onClick={() => {
-                    setAccountOpen(false);
-                    navigate('/profile');
-                  }}
-                >
-                  <Settings size={16} />
-                  <span>Settings</span>
-                </button>
-                <button
-                  type="button"
-                  className="account-pop-btn"
-                  onClick={() =>
-                    setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
-                  }
-                >
-                  {theme === 'dark' ? '☀️' : '🌙'}
-                  <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-                </button>
-                <div className="account-pop-divider" />
-                <button
-                  type="button"
-                  className="account-pop-btn account-pop-logout"
-                  onClick={handleLogout}
-                >
-                  <LogOut size={16} />
-                  <span>Log out</span>
-                </button>
-              </div>
-            )}
-          </div>
-
           <button
             type="button"
             className="sidebar-collapse-btn"
@@ -689,12 +609,60 @@ function DashboardLayout() {
             </button>
             <button
               type="button"
-              className="topbar-avatar"
-              title="Profile"
-              onClick={() => navigate('/profile')}
+              className="topbar-icon-btn"
+              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
             >
-              {userName.charAt(0).toUpperCase() || 'U'}
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+            <div className="topbar-avatar-wrap">
+              <button
+                type="button"
+                className="topbar-avatar"
+                title="Account menu"
+                aria-expanded={accountOpen}
+                aria-label="Account menu"
+                onClick={() => setAccountOpen((current) => !current)}
+              >
+                {userName.charAt(0).toUpperCase() || 'U'}
+              </button>
+              {accountOpen && (
+                <div className="topbar-avatar-menu">
+                  <button
+                    type="button"
+                    className="account-pop-btn"
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate('/profile');
+                    }}
+                  >
+                    <User size={16} />
+                    <span>Profile</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="account-pop-btn"
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate('/profile');
+                    }}
+                  >
+                    <Settings size={16} />
+                    <span>Settings</span>
+                  </button>
+                  <div className="account-pop-divider" />
+                  <button
+                    type="button"
+                    className="account-pop-btn account-pop-logout"
+                    onClick={handleLogout}
+                  >
+                    <LogOut size={16} />
+                    <span>Log out</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <Outlet />
@@ -720,6 +688,7 @@ export default function App() {
         <Route path="/about" element={<About />} />
         <Route path="/features" element={<Features />} />
 
+        <Route path="/dev-planner" element={<DevPlannerHarness />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route

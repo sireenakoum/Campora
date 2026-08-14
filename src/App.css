@@ -15,6 +15,7 @@
 :root {
   /* Brand */
   --campora-navy: #002D62;
+  --campora-navy-solid: #002D62;
   --campora-blue: #002D62;
   --campora-active: #001A41;
 
@@ -987,6 +988,35 @@ body {
   transform: translateY(-1px);
 }
 
+/* Avatar account menu dropdown */
+.topbar-avatar-wrap {
+  position: relative;
+}
+
+.topbar-avatar-menu {
+  position: absolute;
+
+  top: calc(100% + 10px);
+  right: 0;
+
+  min-width: 210px;
+
+  padding: 8px;
+
+  background: #FFFFFF;
+
+  border: 1px solid var(--hairline);
+
+  border-radius: var(--radius-secondary);
+
+  box-shadow: var(--shadow-lift);
+
+  display: flex;
+  flex-direction: column;
+
+  z-index: 120;
+}
+
 
 /* =========================================================
    TYPOGRAPHY Ã¢â‚¬â€ INTER TYPE SCALE
@@ -1453,8 +1483,15 @@ button {
   --campora-container: #171A22;
   --campora-surface-low: #1E212B;
 
+  --campora-navy: #C6D4FF;
+  --campora-navy-solid: #1E365F;
   --campora-navy-tint: #1E365F;
   --campora-navy-tint-alpha: rgba(150, 180, 255, 0.12);
+
+  --campora-text: #ECEFF5;
+  --campora-body: #B4BAC8;
+  --campora-muted: #7D8492;
+  --campora-active: #C6D4FF;
 
   --hairline: rgba(255, 255, 255, 0.08);
   --divider: #23262F;
@@ -1464,6 +1501,16 @@ button {
   --surface-container: #23262F;
   --surface-container-high: #282B35;
   --surface-container-highest: #2E313C;
+
+  --background: #0E1016;
+  --on-background: #ECEFF5;
+  --on-surface: #ECEFF5;
+  --on-surface-variant: #B4BAC8;
+  --surface-bright: #1E212B;
+  --surface-dim: #0E1016;
+  --surface-variant: #2E313C;
+  --outline: #8A92A3;
+  --outline-variant: #3A3E4A;
 
   --shadow-lift: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
@@ -1569,6 +1616,7 @@ button {
 }
 
 :root[data-theme='dark'] .account-popover,
+:root[data-theme='dark'] .topbar-avatar-menu,
 :root[data-theme='dark'] .toast {
   background: #171A22;
 

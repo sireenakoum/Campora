@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, User, ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
+import { GraduationCap, User, ArrowLeft, ArrowRight, Check, X, Upload, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { parseScheduleFile, expandScheduleEvents, importScheduleRows } from '../lib/scheduleImport';
 
-const STEPS = ['About You', 'Academic Info', 'Courses Taken'];
+const STEPS = ['About You', 'Academic Info', 'Courses Taken', 'Schedule'];
 
 const MAJORS = [
   'Undecided',
@@ -63,7 +64,11 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [scheduleFile, setScheduleFile] = useState(null);
+  const [schedulePreview, setSchedulePreview] = useState(null);
+  const [scheduleDragging, setScheduleDragging] = useState(false);
   const isFinishing = useRef(false);
+  const fileInputRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -149,6 +154,34 @@ export default function Onboarding() {
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
+  const handleScheduleFile = async (file) => {
+    setError(null);
+    try {
+      const events = await parseScheduleFile(file);
+      if (!events.length) {
+        setScheduleFile(null);
+        setSchedulePreview(null);
+        setError('No events were found in that file. Please try a .pdf, .ics or .csv file.');
+        return;
+      }
+      const rows = expandScheduleEvents(events);
+      setScheduleFile(file);
+      setSchedulePreview({ events: events.length, entries: rows.length });
+    } catch (err) {
+      setScheduleFile(null);
+      setSchedulePreview(null);
+      setError(
+        err?.message || 'Could not read that file. Please try another one.'
+      );
+    }
+  };
+
+  const removeScheduleFile = () => {
+    setScheduleFile(null);
+    setSchedulePreview(null);
+    setError(null);
+  };
+
   const handleSkip = async () => {
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) {
@@ -212,6 +245,32 @@ export default function Onboarding() {
       .eq('id', user.id);
 
     if (updateError) return fail(updateError.message || 'Could not save your information. Please try again.');
+
+    if (scheduleFile) {
+      try {
+        const events = await parseScheduleFile(scheduleFile);
+        const rows = expandScheduleEvents(events);
+        const scheduleGroupIds = rows.map((row) => row.group_id).filter(Boolean);
+
+        const { error: scheduleError } = await importScheduleRows({
+          userId: user.id,
+          rows,
+        });
+
+        if (scheduleError) {
+          if (scheduleGroupIds.length > 0) {
+            await supabase
+              .from('planner_courses')
+              .delete()
+              .eq('user_id', user.id)
+              .in('group_id', scheduleGroupIds);
+          }
+          return fail(scheduleError.message || 'Could not add your schedule to Planner.');
+        }
+      } catch (err) {
+        return fail(err?.message || 'Could not read your schedule file.');
+      }
+    }
 
     navigate('/dashboard', { replace: true });
   };
@@ -392,6 +451,65 @@ export default function Onboarding() {
 
             {coursesTaken.length === 0 && (
               <p style={styles.hint}>No courses added yet — that's fine, you can skip this.</p>
+            )}
+          </div>
+        )}
+
+        {step === 3 && (
+          <div style={styles.stepBody}>
+            <p style={styles.prompt}>Upload your class schedule</p>
+            <p style={styles.hint}>
+              Add a .pdf, .ics or .csv file and we'll place it on your Planner automatically.
+            </p>
+
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setScheduleDragging(true); }}
+              onDragLeave={() => setScheduleDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setScheduleDragging(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleScheduleFile(file);
+              }}
+              style={scheduleDragging ? { ...styles.uploadBox, ...styles.uploadBoxActive } : styles.uploadBox}
+            >
+              <Upload size={26} color={scheduleDragging ? '#002D62' : '#6B7280'} />
+              <p style={styles.uploadTitle}>
+                {scheduleFile ? scheduleFile.name : 'Drag & drop or click to upload'}
+              </p>
+              <p style={styles.hint}>
+                {scheduleFile
+                  ? `Scheduled to be added on Finish · ${(scheduleFile.size / 1024).toFixed(1)} KB`
+                  : 'Supports .pdf, .ics and .csv files'}
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.ics,.csv,application/pdf,text/calendar,text/csv"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleScheduleFile(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+
+            {schedulePreview && (
+              <div style={styles.schedulePreview}>
+                <span style={styles.previewText}>
+                  Found <strong>{schedulePreview.events}</strong> event{schedulePreview.events === 1 ? '' : 's'} →{' '}
+                  <strong>{schedulePreview.entries}</strong> Planner entr{schedulePreview.entries === 1 ? 'y' : 'ies'}
+                </span>
+                <button type="button" onClick={removeScheduleFile} style={styles.removeBtn}>
+                  <Trash2 size={14} /> Remove
+                </button>
+              </div>
+            )}
+
+            {!scheduleFile && (
+              <p style={styles.hint}>No file yet — you can also skip this step and add it later from your profile.</p>
             )}
           </div>
         )}
@@ -591,6 +709,59 @@ const styles = {
     fontWeight: '700',
     fontSize: '0.9rem',
     cursor: 'pointer',
+  },
+  uploadBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    padding: '2rem 1.25rem',
+    borderRadius: '14px',
+    border: '2px dashed #CBD5E1',
+    backgroundColor: '#F9FAFB',
+    cursor: 'pointer',
+    textAlign: 'center',
+    transition: 'border-color 0.2s ease, background-color 0.2s ease',
+  },
+  uploadBoxActive: {
+    borderColor: '#002D62',
+    backgroundColor: '#EEF2FF',
+  },
+  uploadTitle: {
+    margin: 0,
+    fontSize: '0.95rem',
+    fontWeight: '700',
+    color: '#1F2937',
+    wordBreak: 'break-all',
+  },
+  schedulePreview: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '0.75rem',
+    padding: '0.7rem 0.9rem',
+    borderRadius: '10px',
+    backgroundColor: '#EFF6FF',
+    border: '1px solid #BFDBFE',
+  },
+  previewText: {
+    fontSize: '0.85rem',
+    color: '#1F2937',
+  },
+  removeBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '0.4rem 0.7rem',
+    borderRadius: '8px',
+    border: '1px solid #FECACA',
+    backgroundColor: '#FEF2F2',
+    color: '#DC2626',
+    fontSize: '0.8rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
   },
   tagWrap: {
     display: 'flex',

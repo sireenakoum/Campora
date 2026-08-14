@@ -1781,9 +1781,11 @@ export default function CampusPulse() {
                     key={post.id}
                     className="panel"
                     style={{
-                      borderColor: categoryBadge.border,
-                      borderTop: `10px solid ${categoryBadge.accent}`,
-                      boxShadow: `0 12px 30px ${categoryBadge.accent}14`,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      border: '1px solid var(--divider)',
+                      borderLeft: `4px solid ${categoryBadge.accent}`,
+                      boxShadow: 'var(--shadow-soft)',
                       marginBottom: '22px'
                     }}
                   >
@@ -2318,28 +2320,10 @@ export default function CampusPulse() {
       {activeView === 'messages' && (
         <div>
           <div style={{ marginBottom: '18px' }}>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: '900',
-                color: 'var(--campora-text)'
-              }}
-            >
-              Direct Messages
-            </h2>
-
-            <p
-              style={{
-                margin: '5px 0 0',
-                color: 'var(--campora-muted)',
-                fontSize: '13px',
-                fontWeight: '700'
-              }}
-            >
-              Search by student name or email and keep your private
-              conversations in one place.
-            </p>
+            <SectionHeader
+              title="Direct Messages"
+              subtitle="Search by student name or email and keep your private conversations in one place."
+            />
           </div>
 
           <div style={instagramDmShell}>
@@ -2645,7 +2629,7 @@ export default function CampusPulse() {
                   {(pinnedDmMessages[activeDmUser.id] || []).length > 0 && (
                     <div style={instagramPinnedWrap}>
                       <div style={instagramPinnedTitle}>
-                        <Pin size={13} fill="#B45309" color="#B45309" />
+                        <Pin size={13} fill="var(--tone-tertiary)" color="var(--tone-tertiary)" />
                         PINNED MESSAGES (
                         {(pinnedDmMessages[activeDmUser.id] || []).length})
                       </div>
@@ -3220,7 +3204,7 @@ function CommentItem({
                         comment.author_name || 'Student'
                       )
                     ),
-                border: '1px solid rgba(0,45,98,0.08)'
+                border: '1px solid var(--hairline)'
               }}
             >
               {isAnonymous ? (
@@ -3563,7 +3547,7 @@ const commentComposerRowStyle = {
 };
 
 const sendBtn = {
-  background: 'var(--campora-navy)',
+  background: 'var(--campora-navy-solid)',
   color: '#FFFFFF',
   border: 'none',
   borderRadius: '10px',
@@ -3625,7 +3609,7 @@ const dropdownMenu = {
   top: '28px',
   background: 'var(--surface-container-lowest)',
   borderRadius: '12px',
-  boxShadow: '0 10px 25px rgba(0,45,98,0.15)',
+  boxShadow: 'var(--shadow-soft)',
   border: '1px solid var(--divider)',
   padding: '6px',
   display: 'flex',
@@ -3653,7 +3637,7 @@ const dropdownItem = {
 const overlay = {
   position: 'fixed',
   inset: 0,
-  background: 'rgba(0,45,98,0.4)',
+  background: 'rgba(8, 11, 20, 0.55)',
   backdropFilter: 'blur(6px)',
   display: 'flex',
   alignItems: 'center',
@@ -3666,9 +3650,9 @@ const modalCardStyle = {
   width: '100%',
   maxWidth: '540px',
   padding: '32px',
-  borderRadius: '24px',
+  borderRadius: 'var(--radius)',
   background: 'var(--surface-container-lowest)',
-  boxShadow: '0 20px 50px rgba(0,45,98,0.2)'
+  boxShadow: 'var(--shadow-lift)'
 };
 
 const modalHeaderStyle = {
@@ -3732,7 +3716,7 @@ const cancelBtn = {
 };
 
 const saveBtnSmall = {
-  background: 'var(--campora-navy)',
+  background: 'var(--campora-navy-solid)',
   color: '#FFFFFF',
   border: 'none',
   borderRadius: '12px',
@@ -3888,11 +3872,11 @@ const instagramDmShell = {
   height: '76vh',
   maxHeight: '880px',
   background: 'var(--surface-container-lowest)',
-  border: '1.5px solid var(--divider)',
-  borderRadius: '24px',
+  border: '1px solid var(--divider)',
+  borderRadius: 'var(--radius-secondary)',
   overflow: 'hidden',
 
-  boxShadow: '0 10px 30px rgba(0,45,98,0.08)'
+  boxShadow: 'var(--shadow-soft)'
 };
 
 const instagramDmSidebar = { borderRight: '1px solid var(--divider)', display: 'flex',
@@ -3956,7 +3940,7 @@ const instagramSearchResults = {
   maxHeight: '250px',
   overflowY: 'auto',
   background: 'var(--surface-container-lowest)',
-  boxShadow: '0 8px 22px rgba(0,45,98,0.08)',
+  boxShadow: 'var(--shadow-soft)',
   zIndex: 2
 };
 
@@ -3996,7 +3980,7 @@ const instagramAvatar = {
   height: '54px',
   borderRadius: '50%',
   flexShrink: 0,
-  border: '1px solid rgba(0,45,98,0.08)',
+  border: '1px solid var(--hairline)',
   background: '#E0F2FE',
   color: 'var(--campora-text)',
   fontSize: '14px',
@@ -4117,7 +4101,7 @@ const instagramHeaderPin = {
 const instagramChatHistory = { position: 'relative', flex: '1 1 auto', minHeight: 0,
 overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain',
 WebkitOverflowScrolling: 'touch', padding: '26px 24px', background:
-'#FFFFFF' };
+'var(--surface-container-lowest)' };
 
 const instagramEmptyChat = {
   height: '100%',
@@ -4176,7 +4160,7 @@ const instagramBubble = {
 };
 
 const instagramBubbleMine = {
-  background: 'var(--campora-navy)',
+  background: 'var(--campora-navy-solid)',
   color: '#FFFFFF',
   borderBottomRightRadius: '6px'
 };
@@ -4244,8 +4228,8 @@ const instagramMessageMenuButton = { position: 'absolute', top: '8px', border:
 '4px 7px', fontWeight: '900', letterSpacing: '1px' };
 
 const instagramMessageMenu = { position: 'absolute', top: '34px', background:
-'#FFFFFF', border: '1px solid var(--divider)', borderRadius: '13px', padding: '7px',
-boxShadow: '0 10px 25px rgba(0,45,98,0.12)', zIndex: 40, display: 'flex',
+'var(--surface-container-lowest)', border: '1px solid var(--divider)', borderRadius: '13px', padding: '7px',
+boxShadow: 'var(--shadow-soft)', zIndex: 40, display: 'flex',
 alignItems: 'center', gap: '3px', flexWrap: 'wrap', minWidth: '250px', maxWidth:
 'min(310px, calc(100vw - 80px))' };
 
@@ -4276,9 +4260,9 @@ const instagramReplyClose = {
 };
 
 const instagramPinnedWrap = {
-  background: '#FFF8DD',
-  borderTop: '1px solid #F6D26D',
-  borderBottom: '1px solid #F6D26D',
+  background: 'var(--tone-tertiary-soft)',
+  borderTop: '1px solid var(--tone-tertiary)',
+  borderBottom: '1px solid var(--tone-tertiary)',
   padding: '10px 14px',
   flexShrink: 0
 };
@@ -4288,7 +4272,7 @@ const instagramPinnedTitle = {
   alignItems: 'center',
   gap: '6px',
   marginBottom: '8px',
-  color: '#B45309',
+  color: 'var(--tone-tertiary)',
   fontSize: '11px',
   fontWeight: '900'
 };
@@ -4309,8 +4293,8 @@ const instagramPinnedChip = {
   gap: '10px',
   padding: '8px 10px',
   borderRadius: '10px',
-  background: 'rgba(255,255,255,0.82)',
-  border: '1px solid #F6D26D'
+  background: 'var(--surface-container-lowest)',
+  border: '1px solid var(--tone-tertiary)'
 };
 
 const instagramPinnedMessageText = {
@@ -4325,7 +4309,7 @@ const instagramPinnedMessageText = {
 const instagramPinnedRemove = {
   border: 'none',
   background: 'transparent',
-  color: '#B45309',
+  color: 'var(--tone-tertiary)',
   cursor: 'pointer',
   display: 'flex',
   padding: '2px',
@@ -4344,7 +4328,7 @@ const instagramSendButton = {
   height: '52px',
   borderRadius: '50%',
   border: 'none',
-  background: 'var(--campora-navy)',
+  background: 'var(--campora-navy-solid)',
   color: '#FFFFFF',
   display: 'flex',
   alignItems: 'center',

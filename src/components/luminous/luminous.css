@@ -109,7 +109,7 @@
 }
 
 .btn-primary {
-  background: var(--campora-navy, #002d62);
+  background: var(--campora-navy-solid, #002d62);
   color: #ffffff;
   box-shadow: 0 8px 20px rgba(0, 45, 98, 0.25);
 }
@@ -315,7 +315,7 @@
 }
 
 .filter-chip.active {
-  background: var(--campora-navy, #002d62);
+  background: var(--campora-navy-solid, #002d62);
   color: #ffffff;
   box-shadow: 0 6px 16px rgba(0, 45, 98, 0.3);
 }
@@ -455,7 +455,7 @@
 }
 
 .bento-card.tone-primary {
-  background: var(--campora-navy, #002d62);
+  background: var(--campora-navy-solid, #002d62);
   color: #ffffff;
 }
 
@@ -637,6 +637,25 @@
 }
 
 /* ----- Dark mode for the page system ----- */
+:root[data-theme='dark'] {
+  --tone-primary: #c6d4ff;
+  --tone-primary-soft: rgba(198, 212, 255, 0.14);
+  --tone-secondary: #cbc9ff;
+  --tone-secondary-soft: rgba(203, 201, 255, 0.14);
+  --tone-tertiary: #ffb59a;
+  --tone-tertiary-soft: rgba(255, 181, 154, 0.14);
+  --tone-error: #ffb4ab;
+  --tone-error-soft: rgba(255, 180, 171, 0.14);
+  --tone-success: #8fd694;
+  --tone-success-soft: rgba(143, 214, 148, 0.14);
+}
+
+:root[data-theme='dark'] .btn-tinted,
+:root[data-theme='dark'] .btn-ghost,
+:root[data-theme='dark'] .text-primary {
+  color: var(--campora-navy, #c6d4ff);
+}
+
 :root[data-theme='dark'] .page-shell {
   background: var(--surface-container-lowest, #171a22);
 }

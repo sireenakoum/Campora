@@ -1175,8 +1175,8 @@ label="Direct Messages"
   style={{
     width: '100%',
     minHeight: '180px',
-    background: 'var(--campora-navy)',
-    border: '1.5px solid var(--campora-navy)',
+    background: 'var(--campora-navy-solid)',
+    border: '1.5px solid var(--campora-navy-solid)',
     borderRadius: '24px',
     padding: '30px 32px',
     boxShadow: '0 10px 24px rgba(10, 48, 91, 0.14)',

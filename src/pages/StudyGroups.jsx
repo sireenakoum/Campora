@@ -50,7 +50,7 @@ import {
   SegmentedControl
 } from '../components/luminous';
 
-const DmShellPortal = ({ active, children }) =>
+const ShellPortal = ({ active, children }) =>
   active ? createPortal(children, document.body) : children;
 import {
   dmViewStatus,
@@ -321,6 +321,37 @@ const [
   activeMessageMenu,
   setActiveMessageMenu
 ] = useState(null);
+
+const [
+  chatFullscreen,
+  setChatFullscreen
+] = useState(false);
+
+useEffect(() => {
+  const handleKey = (event) => {
+    if (event.key === 'Escape') {
+      setChatFullscreen(false);
+    }
+  };
+
+  if (chatFullscreen) {
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKey);
+  } else {
+    document.body.style.overflow = '';
+  }
+
+  return () => {
+    document.body.style.overflow = '';
+    window.removeEventListener('keydown', handleKey);
+  };
+}, [chatFullscreen]);
+
+useEffect(() => {
+  if (view !== 'chat') {
+    setChatFullscreen(false);
+  }
+}, [view]);
 
 
 
@@ -5243,7 +5274,7 @@ one place.
   </p>
   </div>
 
-  <DmShellPortal active={dmFullscreen}>
+  <ShellPortal active={dmFullscreen}>
  <div style={{ ...instagramDmShell, ...(dmFullscreen ? {
   position: 'fixed',
   top: 0,
@@ -5706,7 +5737,7 @@ style={instagramReplyClose}><X size={15} /></button>
      )}
    </section>
    </div>
-  </DmShellPortal>
+  </ShellPortal>
   </div>
 )}
 {/* =================================================
@@ -7806,6 +7837,7 @@ Leave
 {view === 'chat' &&
 
  selectedGroup && (
+<ShellPortal active={chatFullscreen}>
 <div
 style={{
  maxWidth:
@@ -7839,7 +7871,24 @@ overflow:
 'hidden',
 
  boxShadow:
-   '0 20px 40px -15px rgba(0,0,0,0.08)'
+   '0 20px 40px -15px rgba(0,0,0,0.08)',
+
+ ...(chatFullscreen ? {
+   position: 'fixed',
+   top: 0,
+   left: 0,
+   right: 0,
+   bottom: 0,
+   width: '100vw',
+   height: '100vh',
+   minHeight: '100vh',
+   maxHeight: '100vh',
+   maxWidth: '100vw',
+   borderRadius: 0,
+   border: 'none',
+   zIndex: 9990,
+   boxShadow: '0 0 60px rgba(0,45,98,0.35)'
+ } : {})
 }}
 >
 
@@ -8063,9 +8112,55 @@ fill={
   )
     ? PIN_COLORS.icon
      : 'none'
- }
+  }
 
 />
+
+</button>
+
+
+{/* FULLSCREEN */}
+
+<button
+onClick={() =>
+  setChatFullscreen(
+    (previous) => !previous
+  )
+}
+title={
+  chatFullscreen
+    ? 'Exit fullscreen'
+    : 'View fullscreen'
+}
+style={{
+  ...iconBtnStyle,
+
+ background:
+  chatFullscreen
+   ? '#EEF2FF'
+   : '#FFFFFF',
+
+ border:
+  chatFullscreen
+   ? '1px solid #C7D2FE'
+   : `1px solid ${getContrastBorder(
+      selectedGroup.color ||
+       '#E0F2FE'
+     )}`
+}}
+>
+
+{chatFullscreen ? (
+ <Minimize2
+  size={18}
+  color="#002D62"
+ />
+) : (
+ <Maximize2
+  size={18}
+  color="#1A1B1F"
+ />
+)}
 
 </button>
 
@@ -9528,9 +9623,9 @@ flex:
 
 <button
 type="submit"
-disabled={
-  !newMessage.trim()
-}
+  disabled={
+   !newMessage.trim()
+  }
   className="btn"
   style={{
    background: selectedGroup.color || '#002D62',
@@ -9552,6 +9647,7 @@ disabled={
 </form>
 
  </div>
+</ShellPortal>
 )}
 
 {/* =================================================
