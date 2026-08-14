@@ -3166,36 +3166,80 @@ anonymously</label>
 }
 function TabButton({ active, onClick, icon, label }) {
 const normalizedLabel = String(label || '').replace(/\s+/g, ' ').trim();
+
 const tabPalette = {
-'Course Match & Swap': { bg: '#F3F7FD', text: '#648CCB', border: '#DDE7F5' },
-'Course & Prof Reviews': { bg: '#FFF6F2', text: '#D9896A', border: '#F3DDD4' },
-'Curriculum': { bg: '#F7F4FC', text: '#8B78B8', border: '#E7E0F2' },
-'Major Q&A': { bg: '#F2F9F7', text: '#5E9A8B', border: '#D9EBE6' },
-'Seat Opening Reminders': { bg: '#FFF9F1', text: '#C99758', border: '#F0E2CB' },
-'My Posts': { bg: '#FBF5F9', text: '#A87695', border: '#EADDE5' },
-'Direct Messages': { bg: '#FAF9FE', text: 'var(--campora-navy)', border: '#DDE3EE' }
+'Course Match & Swap': {
+  bg: '#F3F7FD',
+  text: '#648CCB',
+  border: '#DDE7F5',
+  accent: '#648CCB'
+},
+'Course & Prof Reviews': {
+  bg: '#FFF6F2',
+  text: '#D9896A',
+  border: '#F3DDD4',
+  accent: '#D9896A'
+},
+'Curriculum': {
+  bg: '#F7F4FC',
+  text: '#8B78B8',
+  border: '#E7E0F2',
+  accent: '#8B78B8'
+},
+'Major Q&A': {
+  bg: '#F2F9F7',
+  text: '#5E9A8B',
+  border: '#D9EBE6',
+  accent: '#5E9A8B'
+},
+'Seat Opening Reminders': {
+  bg: '#FFF9F1',
+  text: '#C99758',
+  border: '#F0E2CB',
+  accent: '#C99758'
+},
+'My Posts': {
+  bg: '#FFF5F6',
+  text: '#C76E7D',
+  border: '#F0DDE1',
+  accent: '#C76E7D'
+},
+'Direct Messages': {
+  bg: '#F6F8FB',
+  text: '#75839A',
+  border: '#E4E8EF',
+  accent: '#75839A'
+}
 };
+
 const tone = tabPalette[normalizedLabel] || {
-bg: '#FAF9FE',
-text: 'var(--campora-navy)',
-border: '#DCE3F0'
+  bg: '#EEF3FB',
+  text: '#002D62',
+  border: '#D8E2FF',
+  accent: '#002D62'
 };
+
 return (
 <button
 onClick={onClick}
 className={`filter-chip ${active ? 'active' : ''}`}
-style={active
-? {
-    background: tone.bg,
-    color: tone.text,
-    border: `2px solid ${tone.text}`,
-    boxShadow: `0 4px 12px ${tone.text}18`
-  }
-: {
-    background: tone.bg,
-    color: tone.text,
-    border: `1.5px solid ${tone.border}`
-  }}
+style={
+  active
+    ? {
+        background: tone.accent,
+        color: '#FFFFFF',
+        borderColor: tone.accent,
+        boxShadow: `0 5px 16px ${tone.accent}30`,
+        transform: 'translateY(-1px)'
+      }
+    : {
+        background: tone.bg,
+        color: tone.text,
+        borderColor: tone.border,
+        boxShadow: 'none',
+        transform: 'none'
+      }
+}
 >
 {icon}
 {normalizedLabel}

@@ -152,7 +152,7 @@ export default function Planner() {
   const [saving, setSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
-  const [viewType, setViewType] = useState('Week');
+  const [viewType, setViewType] = useState('Month');
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [editSeriesConfirmation, setEditSeriesConfirmation] = useState(null);
   const [showEntryCustomColor, setShowEntryCustomColor] = useState(false);
@@ -1490,6 +1490,24 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
   return (
     <PageShell>
+
+      <style>{`
+        :root[data-theme='dark'] .planner-upnext-details {
+          background: #2a3038 !important;
+          border-color: #414b58 !important;
+        }
+
+        :root[data-theme='dark'] .planner-upnext-details-label {
+          color: #8fb4df !important;
+          opacity: 1 !important;
+        }
+
+        :root[data-theme='dark'] .planner-upnext-details-text {
+          color: #f5f7fa !important;
+          opacity: 1 !important;
+        }
+      `}</style>
+
       <div
         style={{
           display: 'flex',
@@ -1697,7 +1715,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     key={`pad-${index}`}
                     style={{
                       minHeight: '120px',
-                      background: 'var(--surface-container-low)',
+                      background: '#FCFDFE',
                       borderRadius: '14px'
                     }}
                   />
@@ -1725,7 +1743,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       cursor: 'pointer',
                       background: isSelected
                         ? 'var(--campora-navy-tint-alpha)'
-                        : 'var(--surface-container-low)',
+                        : '#FCFDFE',
                       border: isSelected
                         ? '1px solid var(--campora-navy)'
                         : '1px solid var(--hairline)',
@@ -2355,6 +2373,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
                         {visiblePlannerDescription(event.description || '') && (
                           <div
+                            className="planner-upnext-details"
                             style={{
                               marginTop: '10px',
                               padding: '12px 13px',
@@ -2364,6 +2383,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             }}
                           >
                             <div
+                              className="planner-upnext-details-label"
                               style={{
                                 fontSize: '9px',
                                 fontWeight: '900',
@@ -2377,6 +2397,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             </div>
 
                             <div
+                              className="planner-upnext-details-text"
                               style={{
                                 fontSize: '13px',
                                 lineHeight: '1.55',
@@ -2870,7 +2891,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           <div
             className="panel"
             style={{
-              width: '610px',
+              width: '900px',
               maxWidth: '94vw',
               maxHeight: '90vh',
               overflowY: 'auto',
@@ -2933,12 +2954,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             <form
               onSubmit={handleSaveEntry}
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '16px 18px'
               }}
             >
-              <div>
+              <div style={{ gridColumn: '1 / -1' }}>
                 <label style={modalLabel}>Title</label>
                 <input
                   type="text"
@@ -2955,7 +2976,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 />
               </div>
 
-              <div>
+              <div style={{ gridColumn: '1 / -1' }}>
                 <label style={modalLabel}>Details</label>
                 <textarea
                   placeholder="Add details, notes, room, instructions..."
@@ -2979,6 +3000,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               <div
                 className="label-caps"
                 style={{
+                  gridColumn: '1 / -1',
                   marginTop: '2px',
                   marginBottom: '-5px',
                   color: 'var(--campora-navy)',
@@ -3061,6 +3083,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               {isRepeatableType(newEntry.type) && (
                 <div
                   style={{
+                    gridColumn: '1 / -1',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '9px'
@@ -3124,6 +3147,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               <div
                 className="label-caps"
                 style={{
+                  gridColumn: '1 / -1',
                   marginTop: '2px',
                   marginBottom: '-5px',
                   color: 'var(--campora-navy)',
@@ -3208,6 +3232,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
               <div
                 style={{
+                  gridColumn: '1 / -1',
                   display: 'flex',
                   gap: '10px',
                   justifyContent: 'flex-end',

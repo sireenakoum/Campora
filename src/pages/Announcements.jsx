@@ -479,10 +479,10 @@ export default function Announcements() {
                 onClick={() => handleTabChange(tab.key)}
                 style={{
                   ...styles.tabCard,
-                  background: tab.softColor,
+                  background: isActive ? tab.color : tab.softColor,
                   borderColor: isActive ? tab.color : tab.borderColor,
                   boxShadow: isActive
-                    ? `0 10px 24px ${tab.color}24`
+                    ? `0 8px 20px ${tab.color}30`
                     : "0 5px 16px rgba(0,45,98,0.04)",
                   transform: isActive ? "translateY(-1px)" : "none"
                 }}
@@ -490,28 +490,17 @@ export default function Announcements() {
                 <div
                   style={{
                     ...styles.tabAccent,
-                    background: tab.color,
-                    opacity: isActive ? 1 : 0.72
+                    background: isActive ? "rgba(255,255,255,0.86)" : tab.color,
+                    opacity: isActive ? 0.95 : 0.72
                   }}
                 />
-
-                {isActive && (
-                  <div
-                    style={{
-                      ...styles.activePill,
-                      color: tab.color,
-                      borderColor: `${tab.color}26`
-                    }}
-                  >
-                    Active
-                  </div>
-                )}
 
                 <div
                   style={{
                     ...styles.tabIcon,
-                    color: tab.color,
-                    background: "#FFFFFF"
+                    color: isActive ? "#FFFFFF" : tab.color,
+                    background: isActive ? "rgba(255,255,255,0.14)" : "#FFFFFF",
+                    borderColor: isActive ? "rgba(255,255,255,0.22)" : tab.borderColor
                   }}
                 >
                   <TabIcon size={18} strokeWidth={2.2} />
@@ -521,13 +510,18 @@ export default function Announcements() {
                   <div
                     style={{
                       ...styles.tabLabel,
-                      color: tab.color
+                      color: isActive ? "#FFFFFF" : tab.color
                     }}
                   >
                     {tab.label}
                   </div>
 
-                  <div style={styles.tabDescription}>
+                  <div
+                    style={{
+                      ...styles.tabDescription,
+                      color: isActive ? "rgba(255,255,255,0.82)" : styles.tabDescription.color
+                    }}
+                  >
                     {tab.description}
                   </div>
                 </div>

@@ -24,8 +24,6 @@ import {
   Activity,
   Network,
   LogOut,
-  Settings,
-  Menu,
   Command,
   Search,
   School,
@@ -580,14 +578,6 @@ function DashboardLayout() {
           <div className="topbar-actions">
             <button
               type="button"
-              className="topbar-icon-btn topbar-menu-btn"
-              aria-label="Open menu"
-              onClick={() => setMobileOpen(true)}
-            >
-              <Menu size={20} />
-            </button>
-            <button
-              type="button"
               className="topbar-search"
               onClick={() => setPaletteOpen(true)}
             >
@@ -639,17 +629,6 @@ function DashboardLayout() {
                   >
                     <User size={16} />
                     <span>Profile</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="account-pop-btn"
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate('/profile');
-                    }}
-                  >
-                    <Settings size={16} />
-                    <span>Settings</span>
                   </button>
                   <div className="account-pop-divider" />
                   <button

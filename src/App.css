@@ -1,7 +1,7 @@
 /* =========================================================
-   CAMPORA Ã¢â‚¬â€ APP.CSS
-   LUMINOUS iOS (NAVY EDITION) Ã¢â‚¬â€ TECHNICAL SPEC v2
-   INTER TYPE SCALE Ã‚Â· LAYERED SURFACES Ã‚Â· GLASS SIDEBAR
+   CAMPORA ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â APP.CSS
+   LUMINOUS iOS (NAVY EDITION) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â TECHNICAL SPEC v2
+   INTER TYPE SCALE Ãƒâ€šÃ‚Â· LAYERED SURFACES Ãƒâ€šÃ‚Â· GLASS SIDEBAR
    FIXED SIDEBAR + SCROLLABLE APP CONTENT
 ========================================================= */
 
@@ -25,7 +25,7 @@
   --campora-muted: #717786;
 
   /* Surfaces */
-  --campora-bg: #FAF9FE;
+  --campora-bg: #FFFEFF;
   --campora-container: #FFFFFF;
   --campora-surface-low: #F4F3F8;
 
@@ -64,11 +64,11 @@
   --error-container: #FFDAD6;
   --on-error-container: #93000A;
 
-  --background: #FAF9FE;
+  --background: #FFFEFF;
   --on-background: #1A1B1F;
   --on-surface: #1A1B1F;
   --on-surface-variant: #414755;
-  --surface-bright: #FAF9FE;
+  --surface-bright: #FFFEFF;
   --surface-dim: #DAD9DF;
   --surface-container-lowest: #FFFFFF;
   --surface-container-low: #F4F3F8;
@@ -159,8 +159,8 @@ body {
 
 
 /* =========================================================
-   SIDEBAR Ã¢â‚¬â€ DESKTOP iOS CHROME
-   blur(40px) Ã‚Â· rgba(244,243,248,0.6) Ã‚Â· border-right
+   SIDEBAR ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â DESKTOP iOS CHROME
+   blur(40px) Ãƒâ€šÃ‚Â· rgba(244,243,248,0.6) Ãƒâ€šÃ‚Â· border-right
 ========================================================= */
 
 .sidebar {
@@ -317,9 +317,9 @@ body {
 
 
 /* =========================================================
-   NAVIGATION ITEMS Ã¢â‚¬â€ LIGHT NAVY PILLS
+   NAVIGATION ITEMS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â LIGHT NAVY PILLS
    Inactive: #414755 on transparent
-   Active:   #001A41 text Ã‚Â· #D8E2FF bg Ã‚Â· soft shadow
+   Active:   #001A41 text Ãƒâ€šÃ‚Â· #D8E2FF bg Ãƒâ€šÃ‚Â· soft shadow
 ========================================================= */
 
 .nav-item {
@@ -362,11 +362,21 @@ body {
 }
 
 .nav-item.active {
-  color: var(--campora-active) !important;
+  color: #FFFFFF !important;
 
-  background: #D8E2FF;
+  background: var(--campora-navy-solid);
 
-  box-shadow: 0 4px 14px rgba(0, 45, 98, 0.16);
+  box-shadow: 0 5px 16px rgba(0, 45, 98, 0.20);
+}
+
+
+.nav-item.active svg {
+  color: #FFFFFF;
+}
+
+.nav-item:hover:not(.active) {
+  color: var(--campora-navy);
+  background: rgba(0, 45, 98, 0.07);
 }
 
 .nav-badge {
@@ -710,7 +720,7 @@ body {
 
 
 /* =========================================================
-   COLLAPSED SIDEBAR Ã¢â€ â€™ EXPAND PAGE
+   COLLAPSED SIDEBAR ÃƒÂ¢Ã¢â‚¬ Ã¢â‚¬â„¢ EXPAND PAGE
 ========================================================= */
 
 .sidebar.collapsed + .main-content {
@@ -757,7 +767,7 @@ body {
 
 
 /* =========================================================
-   TOP GLASS BAR Ã¢â‚¬â€ iOS CHROME
+   TOP GLASS BAR ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â iOS CHROME
    Sticky, translucent, blurs content scrolling beneath it.
 ========================================================= */
 
@@ -781,7 +791,7 @@ body {
 
   padding: 0 var(--page-pad-x);
 
-  background: rgba(250, 249, 254, 0.55);
+  background: rgba(255, 254, 255, 0.82);
 
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
@@ -829,7 +839,7 @@ body {
   flex-shrink: 0;
 }
 
-/* Search pill Ã¢â‚¬â€ opens the Ã¢Å’ËœK command palette */
+/* Search pill ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â opens the ÃƒÂ¢Ã…â€™Ã‹Å“K command palette */
 .topbar-search {
   display: flex;
   align-items: center;
@@ -952,9 +962,9 @@ body {
 
   border-radius: 50%;
 
-  background: #BA1A1A;
+  background: var(--campora-navy-solid);
 
-  box-shadow: 0 0 0 2px rgba(250, 249, 254, 0.9);
+  box-shadow: 0 0 0 2px rgba(255, 254, 255, 0.96);
 }
 
 /* Circular avatar */
@@ -1019,9 +1029,9 @@ body {
 
 
 /* =========================================================
-   TYPOGRAPHY Ã¢â‚¬â€ INTER TYPE SCALE
-   Display 34/700/-0.04em Ã‚Â· H2 22/600/-0.03em
-   H3 20/600/-0.02em Ã‚Â· H4 17/600/-0.02em
+   TYPOGRAPHY ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â INTER TYPE SCALE
+   Display 34/700/-0.04em Ãƒâ€šÃ‚Â· H2 22/600/-0.03em
+   H3 20/600/-0.02em Ãƒâ€šÃ‚Â· H4 17/600/-0.02em
 ========================================================= */
 
 h1 {
@@ -1054,7 +1064,7 @@ h4 {
 
 
 /* =========================================================
-   SURFACES Ã¢â‚¬â€ SQUIRCLE GEOMETRY
+   SURFACES ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SQUIRCLE GEOMETRY
 ========================================================= */
 
 .card {
@@ -1082,7 +1092,7 @@ h4 {
 
 
 /* =========================================================
-   ICONS Ã¢â‚¬â€ 1.5px OUTLINED STROKE
+   ICONS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â 1.5px OUTLINED STROKE
 ========================================================= */
 
 .lucide {
@@ -1103,7 +1113,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE Ã¢â‚¬â€ MEDIUM SCREENS
+   RESPONSIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â MEDIUM SCREENS
 ========================================================= */
 
 @media (max-width: 1100px) {
@@ -1116,7 +1126,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE Ã¢â‚¬â€ SMALLER SCREENS
+   RESPONSIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SMALLER SCREENS
 ========================================================= */
 
 @media (max-width: 850px) {
@@ -1137,7 +1147,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE Ã¢â‚¬â€ VERY SMALL SCREENS
+   RESPONSIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â VERY SMALL SCREENS
 ========================================================= */
 
 @media (max-width: 650px) {
@@ -1226,7 +1236,7 @@ button {
 
 
 /* =========================================================
-   COMMAND PALETTE (Ã¢Å’ËœK)
+   COMMAND PALETTE (ÃƒÂ¢Ã…â€™Ã‹Å“K)
 ========================================================= */
 
 .palette-backdrop {
@@ -1475,44 +1485,44 @@ button {
 
 
 /* =========================================================
-   DARK MODE Ã¢â‚¬â€ [data-theme='dark']
+   DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â [data-theme='dark']
 ========================================================= */
 
 :root[data-theme='dark'] {
-  --campora-bg: #0E1016;
-  --campora-container: #171A22;
-  --campora-surface-low: #1E212B;
+  --campora-bg: #101722;
+  --campora-container: #16202D;
+  --campora-surface-low: #1B2736;
 
-  --campora-navy: #C6D4FF;
-  --campora-navy-solid: #1E365F;
-  --campora-navy-tint: #1E365F;
-  --campora-navy-tint-alpha: rgba(150, 180, 255, 0.12);
+  --campora-navy: #AFC8F4;
+  --campora-navy-solid: #274A78;
+  --campora-navy-tint: #203754;
+  --campora-navy-tint-alpha: rgba(130, 171, 230, 0.14);
 
-  --campora-text: #ECEFF5;
-  --campora-body: #B4BAC8;
-  --campora-muted: #7D8492;
-  --campora-active: #C6D4FF;
+  --campora-text: #F4F7FB;
+  --campora-body: #CDD5E0;
+  --campora-muted: #93A0B2;
+  --campora-active: #D7E5FA;
 
-  --hairline: rgba(255, 255, 255, 0.08);
-  --divider: #23262F;
+  --hairline: rgba(255, 255, 255, 0.075);
+  --divider: #263547;
 
-  --surface-container-lowest: #171A22;
-  --surface-container-low: #1E212B;
-  --surface-container: #23262F;
-  --surface-container-high: #282B35;
-  --surface-container-highest: #2E313C;
+  --surface-container-lowest: #16202D;
+  --surface-container-low: #1B2736;
+  --surface-container: #202D3D;
+  --surface-container-high: #263546;
+  --surface-container-highest: #2C3C4F;
 
-  --background: #0E1016;
-  --on-background: #ECEFF5;
-  --on-surface: #ECEFF5;
-  --on-surface-variant: #B4BAC8;
-  --surface-bright: #1E212B;
-  --surface-dim: #0E1016;
-  --surface-variant: #2E313C;
-  --outline: #8A92A3;
-  --outline-variant: #3A3E4A;
+  --background: #101722;
+  --on-background: #F4F7FB;
+  --on-surface: #F4F7FB;
+  --on-surface-variant: #CDD5E0;
+  --surface-bright: #1B2736;
+  --surface-dim: #101722;
+  --surface-variant: #2C3C4F;
+  --outline: #8795A8;
+  --outline-variant: #405169;
 
-  --shadow-lift: 0 20px 50px rgba(0, 0, 0, 0.5);
+  --shadow-lift: 0 20px 50px rgba(0, 0, 0, 0.34);
 }
 
 :root[data-theme='dark'] body {
@@ -1520,14 +1530,14 @@ button {
 }
 
 :root[data-theme='dark'] .sidebar {
-  background: rgba(30, 33, 43, 0.75);
+  background: rgba(18, 28, 40, 0.88);
 
   border-right-color: rgba(255, 255, 255, 0.06);
 }
 
 
 :root[data-theme='dark'] .sidebar-brand {
-  background: linear-gradient(135deg, rgba(30, 54, 95, 0.9), rgba(23, 26, 34, 0.76));
+  background: linear-gradient(135deg, rgba(39, 74, 120, 0.88), rgba(22, 32, 45, 0.92));
   border-color: rgba(173, 198, 255, 0.10);
 }
 
@@ -1550,7 +1560,7 @@ button {
 }
 
 :root[data-theme='dark'] .nav-item:hover {
-  color: #D5DEFF;
+  color: #E2ECFA;
 
   background: rgba(30, 54, 95, 0.55);
 }
@@ -1558,7 +1568,7 @@ button {
 :root[data-theme='dark'] .nav-item.active {
   color: #D5DEFF !important;
 
-  background: #1E365F;
+  background: #274A78;
 
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
@@ -1568,19 +1578,19 @@ button {
 }
 
 :root[data-theme='dark'] .app-topbar {
-  background: rgba(14, 16, 22, 0.6);
+  background: rgba(16, 23, 34, 0.82);
 
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 :root[data-theme='dark'] .topbar-search {
-  background: #23262F;
+  background: #202D3D;
 
   color: #7D8492;
 }
 
 :root[data-theme='dark'] .topbar-search:hover {
-  background: #282B35;
+  background: #263546;
 }
 
 :root[data-theme='dark'] .topbar-search-text {
@@ -1600,7 +1610,7 @@ button {
 }
 
 :root[data-theme='dark'] .topbar-icon-btn:hover {
-  background: #1E212B;
+  background: #1B2736;
 }
 
 :root[data-theme='dark'] .account-card {
@@ -1618,7 +1628,7 @@ button {
 :root[data-theme='dark'] .account-popover,
 :root[data-theme='dark'] .topbar-avatar-menu,
 :root[data-theme='dark'] .toast {
-  background: #171A22;
+  background: #16202D;
 
   color: var(--campora-text);
 }
@@ -1628,7 +1638,7 @@ button {
 }
 
 :root[data-theme='dark'] .account-pop-btn:hover {
-  background: #1E212B;
+  background: #1B2736;
 
   color: #ECEDF2;
 }
@@ -1638,7 +1648,7 @@ button {
 }
 
 :root[data-theme='dark'] .sidebar-collapse-btn:hover {
-  color: #D5DEFF;
+  color: #E2ECFA;
 }
 
 :root[data-theme='dark'] .palette-card {
@@ -1655,7 +1665,7 @@ button {
 }
 
 :root[data-theme='dark'] .palette-kbd {
-  background: #23262F;
+  background: #202D3D;
 
   color: var(--campora-muted);
 }
@@ -1665,9 +1675,9 @@ button {
 }
 
 :root[data-theme='dark'] .palette-row:hover {
-  background: #1E365F;
+  background: #274A78;
 
-  color: #D5DEFF;
+  color: #E2ECFA;
 }
 
 :root[data-theme='dark'] .palette-empty {
@@ -1679,5 +1689,1068 @@ button {
 }
 
 :root[data-theme='dark'] .toast-dismiss:hover {
-  background: #1E212B;
+  background: #1B2736;
+}
+
+:root[data-theme='dark'] .card {
+  background: var(--campora-container);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+}
+
+:root[data-theme='dark'] .nav-item.active {
+  background: #274A78;
+  color: #FFFFFF !important;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme='dark'] .nav-item.active svg {
+  color: #FFFFFF;
+}
+
+:root[data-theme='dark'] .topbar-avatar {
+  background: #315B91;
+  border-color: #263546;
+}
+
+
+/* =========================================================
+   CAMPORA DARK MODE â€” FULL DARK + READABLE
+========================================================= */
+
+:root[data-theme='dark'] {
+  /* Brand stays recognizable */
+  --campora-navy: #73A7E8;
+  --campora-navy-solid: #0B4A86;
+  --campora-blue: #73A7E8;
+  --campora-active: #DCEBFF;
+  --campora-navy-tint: #18385E;
+  --campora-navy-tint-alpha: rgba(115, 167, 232, 0.14);
+
+  /* Text hierarchy */
+  --campora-text: #F5F7FA;
+  --campora-body: #D8DCE3;
+  --campora-muted: #9DA5B2;
+
+  /* Dark surfaces */
+  --campora-bg: #101114;
+  --campora-container: #1B1D22;
+  --campora-surface-low: #22252B;
+
+  --background: #101114;
+  --on-background: #F5F7FA;
+  --on-surface: #F5F7FA;
+  --on-surface-variant: #D8DCE3;
+
+  --surface-bright: #2D3037;
+  --surface-dim: #101114;
+  --surface-container-lowest: #17191D;
+  --surface-container-low: #1D2025;
+  --surface-container: #23262C;
+  --surface-container-high: #292D34;
+  --surface-container-highest: #30343C;
+  --surface-variant: #30343C;
+
+  --outline: #8C95A3;
+  --outline-variant: #414751;
+  --hairline: rgba(255, 255, 255, 0.085);
+  --divider: #343941;
+
+  --shadow-soft: 0 8px 28px rgba(0, 0, 0, 0.26);
+  --shadow-lift: 0 20px 50px rgba(0, 0, 0, 0.42);
+}
+
+/* Entire app goes dark */
+:root[data-theme='dark'] html,
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] #root,
+:root[data-theme='dark'] .layout,
+:root[data-theme='dark'] .main-content {
+  background: var(--campora-bg) !important;
+  color: var(--campora-body);
+}
+
+/* Global readable text */
+:root[data-theme='dark'] h1,
+:root[data-theme='dark'] h2,
+:root[data-theme='dark'] h3,
+:root[data-theme='dark'] h4,
+:root[data-theme='dark'] h5,
+:root[data-theme='dark'] h6,
+:root[data-theme='dark'] .topbar-title-text,
+:root[data-theme='dark'] .account-name,
+:root[data-theme='dark'] .sidebar-wordmark {
+  color: var(--campora-text) !important;
+}
+
+:root[data-theme='dark'] p,
+:root[data-theme='dark'] label,
+:root[data-theme='dark'] .topbar-subtitle,
+:root[data-theme='dark'] .account-role {
+  color: var(--campora-body);
+}
+
+/* Sidebar */
+:root[data-theme='dark'] .sidebar {
+  background: #17191D !important;
+  border-right: 1px solid #2B2F36 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme='dark'] .sidebar-brand,
+:root[data-theme='dark'] .account-card {
+  background: #1D2025 !important;
+  border-color: #30343C !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme='dark'] .sidebar-brand-logo {
+  background: #FFFFFF !important;
+  mix-blend-mode: normal !important;
+}
+
+:root[data-theme='dark'] .sidebar-wordmark-sub,
+:root[data-theme='dark'] .nav-section-label {
+  color: #8D96A5 !important;
+}
+
+:root[data-theme='dark'] .nav-item {
+  color: #D5DAE2 !important;
+}
+
+:root[data-theme='dark'] .nav-item:hover:not(.active) {
+  color: #FFFFFF !important;
+  background: #252930 !important;
+}
+
+:root[data-theme='dark'] .nav-item.active {
+  color: #FFFFFF !important;
+  background: #0B4A86 !important;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.30) !important;
+}
+
+:root[data-theme='dark'] .nav-item.active svg {
+  color: #FFFFFF !important;
+}
+
+/* Top bar */
+:root[data-theme='dark'] .app-topbar {
+  background: rgba(16, 17, 20, 0.88) !important;
+  border-bottom-color: #2B2F36 !important;
+}
+
+:root[data-theme='dark'] .topbar-search {
+  background: #1D2025 !important;
+  border-color: #343941 !important;
+  color: #D8DCE3 !important;
+}
+
+:root[data-theme='dark'] .topbar-search:hover {
+  background: #252930 !important;
+  border-color: #414751 !important;
+}
+
+:root[data-theme='dark'] .topbar-search svg,
+:root[data-theme='dark'] .topbar-search-text,
+:root[data-theme='dark'] .topbar-icon-btn {
+  color: #D8DCE3 !important;
+}
+
+:root[data-theme='dark'] .topbar-kbd {
+  background: #2A2E35 !important;
+  border-color: #414751 !important;
+  color: #C8CED8 !important;
+}
+
+:root[data-theme='dark'] .topbar-icon-btn:hover {
+  background: #252930 !important;
+}
+
+/* Main white/surface cards become dark */
+:root[data-theme='dark'] .card {
+  background: var(--campora-container) !important;
+  border-color: var(--hairline) !important;
+  color: var(--campora-body) !important;
+  box-shadow: var(--shadow-soft) !important;
+}
+
+/* Catch the common inline white/light surfaces used across pages */
+:root[data-theme='dark'] .main-content [style*="background: rgb(255, 255, 255)"],
+:root[data-theme='dark'] .main-content [style*="background-color: rgb(255, 255, 255)"],
+:root[data-theme='dark'] .main-content [style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="background: white"] {
+  background: var(--campora-container) !important;
+  color: var(--campora-body) !important;
+  border-color: var(--hairline) !important;
+}
+
+/* Common very-light neutral cards */
+:root[data-theme='dark'] .main-content [style*="background: rgb(250, 251, 252)"],
+:root[data-theme='dark'] .main-content [style*="background: #FAFBFC"],
+:root[data-theme='dark'] .main-content [style*="background: #FDFDFE"],
+:root[data-theme='dark'] .main-content [style*="background: #FFFEFF"] {
+  background: #1D2025 !important;
+  color: var(--campora-body) !important;
+  border-color: var(--hairline) !important;
+}
+
+/* Inputs */
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] textarea,
+:root[data-theme='dark'] select {
+  background: #1D2025 !important;
+  color: #F5F7FA !important;
+  border-color: #3A404A !important;
+}
+
+:root[data-theme='dark'] input::placeholder,
+:root[data-theme='dark'] textarea::placeholder {
+  color: #7F8897 !important;
+}
+
+/* Menus / overlays */
+:root[data-theme='dark'] .account-popover,
+:root[data-theme='dark'] .topbar-avatar-menu,
+:root[data-theme='dark'] .palette-card,
+:root[data-theme='dark'] .toast {
+  background: #1B1D22 !important;
+  border-color: #343941 !important;
+  color: #F5F7FA !important;
+}
+
+:root[data-theme='dark'] .account-pop-btn,
+:root[data-theme='dark'] .palette-row {
+  color: #D8DCE3 !important;
+}
+
+:root[data-theme='dark'] .account-pop-btn:hover,
+:root[data-theme='dark'] .palette-row:hover {
+  background: #292D34 !important;
+  color: #FFFFFF !important;
+}
+
+/* Avatars / notification */
+:root[data-theme='dark'] .topbar-avatar,
+:root[data-theme='dark'] .account-avatar {
+  background: #0B4A86 !important;
+  color: #FFFFFF !important;
+  border-color: #30343C !important;
+}
+
+:root[data-theme='dark'] .topbar-dot {
+  background: #73A7E8 !important;
+  box-shadow: 0 0 0 2px #101114 !important;
+}
+
+/* Keep colorful accents colorful.
+   We only darken their pale BACKGROUND surfaces a little if necessary;
+   accent text/icons themselves stay untouched. */
+:root[data-theme='dark'] [style*="color: rgb(100, 140, 203)"],
+:root[data-theme='dark'] [style*="color: rgb(217, 137, 106)"],
+:root[data-theme='dark'] [style*="color: rgb(139, 120, 184)"],
+:root[data-theme='dark'] [style*="color: rgb(94, 154, 139)"],
+:root[data-theme='dark'] [style*="color: rgb(201, 151, 88)"] {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Make muted text actually visible on dark cards */
+:root[data-theme='dark'] .main-content [style*="color: var(--campora-muted)"] {
+  color: #9DA5B2 !important;
+}
+
+/* Preserve strong navy buttons */
+:root[data-theme='dark'] .main-content button[style*="var(--campora-navy-solid)"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(0, 45, 98)"] {
+  background: #0B4A86 !important;
+  color: #FFFFFF !important;
+}
+
+
+
+/* =========================================================
+   DARK MODE â€” CONTRAST + DASHBOARD COLOR POLISH
+========================================================= */
+
+/* Stronger readable text hierarchy inside all dark content */
+:root[data-theme='dark'] .main-content {
+  color: #DDE2E9 !important;
+}
+
+:root[data-theme='dark'] .main-content h1,
+:root[data-theme='dark'] .main-content h2,
+:root[data-theme='dark'] .main-content h3,
+:root[data-theme='dark'] .main-content h4,
+:root[data-theme='dark'] .main-content h5,
+:root[data-theme='dark'] .main-content h6 {
+  color: #F7F9FC !important;
+}
+
+:root[data-theme='dark'] .main-content p,
+:root[data-theme='dark'] .main-content span,
+:root[data-theme='dark'] .main-content div {
+  text-shadow: none;
+}
+
+/* Common inline light-mode text colors -> readable dark-mode equivalents */
+:root[data-theme='dark'] .main-content [style*="color: #1A1B1F"],
+:root[data-theme='dark'] .main-content [style*="color: rgb(26, 27, 31)"],
+:root[data-theme='dark'] .main-content [style*="color: #0B1A3F"],
+:root[data-theme='dark'] .main-content [style*="color: rgb(11, 26, 63)"] {
+  color: #F5F7FA !important;
+}
+
+:root[data-theme='dark'] .main-content [style*="color: #414755"],
+:root[data-theme='dark'] .main-content [style*="color: rgb(65, 71, 85)"],
+:root[data-theme='dark'] .main-content [style*="color: #717786"],
+:root[data-theme='dark'] .main-content [style*="color: rgb(113, 119, 134)"],
+:root[data-theme='dark'] .main-content [style*="color: #7C8AB8"],
+:root[data-theme='dark'] .main-content [style*="color: rgb(124, 138, 184)"] {
+  color: #AEB7C4 !important;
+}
+
+/* Keep navy links/buttons visible on dark surfaces */
+:root[data-theme='dark'] .main-content [style*="color: #002D62"],
+:root[data-theme='dark'] .main-content [style*="color: rgb(0, 45, 98)"] {
+  color: #79AEEB !important;
+}
+
+/* ---------------------------------------------------------
+   DASHBOARD TOP STAT TILES
+   Convert washed-out light tiles into richer dark color tiles.
+   These target the pale backgrounds used for Courses,
+   Assignments, Schedule, and Announcements.
+--------------------------------------------------------- */
+
+/* Courses â€” blue */
+:root[data-theme='dark'] .main-content [style*="background: #F3F7FD"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(243, 247, 253)"],
+:root[data-theme='dark'] .main-content [style*="background: #EFF6FF"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(239, 246, 255)"] {
+  background: #172A42 !important;
+  border-color: #29496D !important;
+}
+
+/* Assignments â€” purple */
+:root[data-theme='dark'] .main-content [style*="background: #F7F4FC"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(247, 244, 252)"],
+:root[data-theme='dark'] .main-content [style*="background: #F3E8FF"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(243, 232, 255)"] {
+  background: #29233A !important;
+  border-color: #4B3D69 !important;
+}
+
+/* Schedule â€” peach/orange */
+:root[data-theme='dark'] .main-content [style*="background: #FFF6F2"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(255, 246, 242)"],
+:root[data-theme='dark'] .main-content [style*="background: #FFF4DA"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(255, 244, 218)"] {
+  background: #38271F !important;
+  border-color: #684838 !important;
+}
+
+/* Announcements â€” pink */
+:root[data-theme='dark'] .main-content [style*="background: #FFF5F6"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(255, 245, 246)"],
+:root[data-theme='dark'] .main-content [style*="background: #FBF5F9"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(251, 245, 249)"] {
+  background: #38242D !important;
+  border-color: #684050 !important;
+}
+
+/* Numbers and labels inside colored dashboard/stat tiles */
+:root[data-theme='dark'] .main-content [style*="background: #172A42"] *,
+:root[data-theme='dark'] .main-content [style*="background: #29233A"] *,
+:root[data-theme='dark'] .main-content [style*="background: #38271F"] *,
+:root[data-theme='dark'] .main-content [style*="background: #38242D"] * {
+  opacity: 1 !important;
+}
+
+/* Light text used on dashboard stat cards must not fade */
+:root[data-theme='dark'] .main-content [style*="fontWeight: 800"],
+:root[data-theme='dark'] .main-content [style*="fontWeight: 900"] {
+  opacity: 1 !important;
+}
+
+/* Dashboard schedule rows/cards: dark surface, readable content */
+:root[data-theme='dark'] .main-content [style*="background: #FAFBFC"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(250, 251, 252)"] {
+  background: #1D2025 !important;
+  border-color: #343941 !important;
+  color: #DDE2E9 !important;
+}
+
+/* Progress/summary cards should be dark, not white */
+:root[data-theme='dark'] .main-content [style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(255, 255, 255)"] {
+  background: #1B1D22 !important;
+  border-color: #343941 !important;
+}
+
+/* But keep small white icon chips readable by turning them into elevated dark chips */
+:root[data-theme='dark'] .main-content button[style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="width: 44"][style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="width: 48"][style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="width: 50"][style*="background: #FFFFFF"] {
+  background: #262A31 !important;
+  border-color: #414751 !important;
+}
+
+/* Keep colorful icons vivid */
+:root[data-theme='dark'] .main-content svg {
+  opacity: 1;
+}
+
+
+
+/* =========================================================
+   DARK MODE â€” FINAL DASHBOARD READABILITY FIX
+   Fix progress card + schedule-row contrast only
+========================================================= */
+
+/* Progress card: make it a real dark card instead of washed-out white */
+:root[data-theme='dark'] .main-content [style*="borderRadius: 24"][style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="borderRadius: '24px'"][style*="background: '#FFFFFF'"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(255, 255, 255)"] {
+  background: #1B1D22 !important;
+  border-color: #343941 !important;
+  color: #F7F9FC !important;
+}
+
+/* Make the big completion number visible */
+:root[data-theme='dark'] .main-content [style*="font-size: 48"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 48"],
+:root[data-theme='dark'] .main-content [style*="font-size: 52"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 52"],
+:root[data-theme='dark'] .main-content [style*="font-size: 56"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 56"] {
+  color: #F7F9FC !important;
+  opacity: 1 !important;
+}
+
+/* Progress-card supporting text */
+:root[data-theme='dark'] .main-content [style*="1 of 1"],
+:root[data-theme='dark'] .main-content [style*="tasks completed"] {
+  color: #AEB7C4 !important;
+  opacity: 1 !important;
+}
+
+/* Progress ring should stay vivid */
+:root[data-theme='dark'] .main-content svg circle {
+  opacity: 1 !important;
+}
+
+/* Schedule rows: remove the washed-out gray look */
+:root[data-theme='dark'] .main-content [style*="linear-gradient"],
+:root[data-theme='dark'] .main-content [style*="background: linear-gradient"] {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Common schedule row surfaces */
+:root[data-theme='dark'] .main-content [style*="border-radius: 18px"],
+:root[data-theme='dark'] .main-content [style*="borderRadius: 18"],
+:root[data-theme='dark'] .main-content [style*="borderRadius: '18px'"] {
+  color: #F5F7FA !important;
+}
+
+/* Schedule titles like TEST / TEST 3 */
+:root[data-theme='dark'] .main-content [style*="fontWeight: 800"],
+:root[data-theme='dark'] .main-content [style*="fontWeight: '800'"],
+:root[data-theme='dark'] .main-content [style*="fontWeight: 900"],
+:root[data-theme='dark'] .main-content [style*="fontWeight: '900'"] {
+  color: #F5F7FA !important;
+  opacity: 1 !important;
+}
+
+/* Schedule metadata: times, class badges, etc. */
+:root[data-theme='dark'] .main-content [style*="fontSize: 12"],
+:root[data-theme='dark'] .main-content [style*="fontSize: '12px'"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 13"],
+:root[data-theme='dark'] .main-content [style*="fontSize: '13px'"] {
+  color: #AEB7C4 !important;
+  opacity: 1 !important;
+}
+
+/* Stronger dark translucent backing for dashboard schedule items */
+:root[data-theme='dark'] .main-content [style*="boxShadow"][style*="borderRadius: 18"],
+:root[data-theme='dark'] .main-content [style*="box-shadow"][style*="border-radius: 18px"] {
+  background-color: #20242A !important;
+  border-color: #3A414B !important;
+}
+
+/* Keep the schedule accent line visible, but never wash out text */
+:root[data-theme='dark'] .main-content [style*="rgba(255,255,255"],
+:root[data-theme='dark'] .main-content [style*="rgba(255, 255, 255"] {
+  color: inherit;
+}
+
+
+
+/* =========================================================
+   DASHBOARD DARK MODE â€” COLORED DARK CARDS
+   White/light dashboard cards become dark versions
+   of their assigned light-mode colors.
+========================================================= */
+
+/* COURSE â€” blue family */
+:root[data-theme='dark'] .main-content [style*="#F3F7FD"],
+:root[data-theme='dark'] .main-content [style*="#EFF6FF"],
+:root[data-theme='dark'] .main-content [style*="rgb(243, 247, 253)"],
+:root[data-theme='dark'] .main-content [style*="rgb(239, 246, 255)"] {
+  background: #14283F !important;
+  border-color: #294D73 !important;
+  color: #EAF3FF !important;
+}
+
+/* ASSIGNMENTS â€” purple family */
+:root[data-theme='dark'] .main-content [style*="#F7F4FC"],
+:root[data-theme='dark'] .main-content [style*="#F3E8FF"],
+:root[data-theme='dark'] .main-content [style*="rgb(247, 244, 252)"],
+:root[data-theme='dark'] .main-content [style*="rgb(243, 232, 255)"] {
+  background: #28213A !important;
+  border-color: #4C3E6B !important;
+  color: #F2ECFF !important;
+}
+
+/* SCHEDULE â€” peach/orange family */
+:root[data-theme='dark'] .main-content [style*="#FFF6F2"],
+:root[data-theme='dark'] .main-content [style*="#FFF4DA"],
+:root[data-theme='dark'] .main-content [style*="rgb(255, 246, 242)"],
+:root[data-theme='dark'] .main-content [style*="rgb(255, 244, 218)"] {
+  background: #38251E !important;
+  border-color: #684738 !important;
+  color: #FFF0E9 !important;
+}
+
+/* ANNOUNCEMENTS â€” pink family */
+:root[data-theme='dark'] .main-content [style*="#FFF5F6"],
+:root[data-theme='dark'] .main-content [style*="#FBF5F9"],
+:root[data-theme='dark'] .main-content [style*="rgb(255, 245, 246)"],
+:root[data-theme='dark'] .main-content [style*="rgb(251, 245, 249)"] {
+  background: #38232D !important;
+  border-color: #674052 !important;
+  color: #FFEAF0 !important;
+}
+
+/* Any remaining pure-white dashboard surface becomes dark neutral */
+:root[data-theme='dark'] .main-content [style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="background: '#FFFFFF'"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(255, 255, 255)"] {
+  background: #1B1F25 !important;
+  border-color: #343B46 !important;
+  color: #F5F7FA !important;
+}
+
+/* Keep text readable inside the four colored stat cards */
+:root[data-theme='dark'] .main-content [style*="#14283F"] *,
+:root[data-theme='dark'] .main-content [style*="#28213A"] *,
+:root[data-theme='dark'] .main-content [style*="#38251E"] *,
+:root[data-theme='dark'] .main-content [style*="#38232D"] * {
+  opacity: 1 !important;
+}
+
+/* To-Do Progress card */
+:root[data-theme='dark'] .main-content [style*="100%"] {
+  color: #73A7E8 !important;
+  opacity: 1 !important;
+}
+
+/* Large dashboard percentages/numbers â€” blue so they stand out */
+:root[data-theme='dark'] .main-content [style*="fontSize: 48"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 52"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 56"],
+:root[data-theme='dark'] .main-content [style*="font-size: 48px"],
+:root[data-theme='dark'] .main-content [style*="font-size: 52px"],
+:root[data-theme='dark'] .main-content [style*="font-size: 56px"] {
+  color: #73A7E8 !important;
+  opacity: 1 !important;
+}
+
+/* Progress circle/card dark neutral */
+:root[data-theme='dark'] .main-content [style*="borderRadius: 24"],
+:root[data-theme='dark'] .main-content [style*="border-radius: 24px"] {
+  background-color: #1B1F25 !important;
+  border-color: #343B46 !important;
+}
+
+/* Schedule event cards: no more pale gray */
+:root[data-theme='dark'] .main-content [style*="borderRadius: 18"],
+:root[data-theme='dark'] .main-content [style*="border-radius: 18px"] {
+  background-color: #20252C !important;
+  border-color: #3B4450 !important;
+  color: #F5F7FA !important;
+}
+
+/* Event title */
+:root[data-theme='dark'] .main-content [style*="fontWeight: 800"],
+:root[data-theme='dark'] .main-content [style*="fontWeight: 900"] {
+  color: #F5F7FA !important;
+  opacity: 1 !important;
+}
+
+/* Event secondary details */
+:root[data-theme='dark'] .main-content [style*="fontSize: 12"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 13"] {
+  color: #B4BECC !important;
+  opacity: 1 !important;
+}
+
+
+
+/* =========================================================
+   DASHBOARD DARK-MODE ONLY FIX
+   Leaves light mode untouched.
+========================================================= */
+
+/* Top four dashboard cards: deep versions of their assigned colors */
+:root[data-theme='dark'] .main-content [style*="#EEF4FF"],
+:root[data-theme='dark'] .main-content [style*="#F3F7FD"],
+:root[data-theme='dark'] .main-content [style*="#EFF6FF"] {
+  background: #18314D !important;
+  border-color: #2D527C !important;
+  color: #EAF3FF !important;
+}
+
+:root[data-theme='dark'] .main-content [style*="#F6F1FF"],
+:root[data-theme='dark'] .main-content [style*="#F7F4FC"],
+:root[data-theme='dark'] .main-content [style*="#F3E8FF"] {
+  background: #2C2540 !important;
+  border-color: #51446F !important;
+  color: #F2ECFF !important;
+}
+
+:root[data-theme='dark'] .main-content [style*="#FFF3EC"],
+:root[data-theme='dark'] .main-content [style*="#FFF6F2"],
+:root[data-theme='dark'] .main-content [style*="#FFF4DA"] {
+  background: #3A281F !important;
+  border-color: #6B4B3B !important;
+  color: #FFF0E9 !important;
+}
+
+:root[data-theme='dark'] .main-content [style*="#FFF1F5"],
+:root[data-theme='dark'] .main-content [style*="#FFF5F6"],
+:root[data-theme='dark'] .main-content [style*="#FBF5F9"] {
+  background: #3A2630 !important;
+  border-color: #6D4658 !important;
+  color: #FFEAF0 !important;
+}
+
+/* Keep the card labels/numbers readable */
+:root[data-theme='dark'] .main-content [style*="fontWeight: 900"],
+:root[data-theme='dark'] .main-content [style*="fontWeight: 800"] {
+  opacity: 1 !important;
+}
+
+:root[data-theme='dark'] .main-content [style*="color: #1A1B1F"],
+:root[data-theme='dark'] .main-content [style*="color: #414755"],
+:root[data-theme='dark'] .main-content [style*="color: #717786"] {
+  color: #F4F7FB !important;
+}
+
+/* To-Do progress card */
+:root[data-theme='dark'] .main-content [style*="100%"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 48"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 52"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 56"] {
+  color: #8DB8F0 !important;
+  opacity: 1 !important;
+}
+
+/* Make white progress panel dark */
+:root[data-theme='dark'] .main-content [style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(255, 255, 255)"] {
+  background: #1C2128 !important;
+  border-color: #343D48 !important;
+}
+
+/* Progress-ring container */
+:root[data-theme='dark'] .main-content [style*="borderRadius: '50%'"],
+:root[data-theme='dark'] .main-content [style*="border-radius: 50%"] {
+  background: #23334A !important;
+  color: #F7F9FC !important;
+}
+
+/* Today's schedule rows: dark instead of pale gray */
+:root[data-theme='dark'] .main-content [style*="linear-gradient"],
+:root[data-theme='dark'] .main-content [style*="background: #FAFBFC"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(250, 251, 252)"] {
+  background: #20252C !important;
+  border-color: #3A4552 !important;
+  color: #F5F7FA !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Schedule text */
+:root[data-theme='dark'] .main-content [style*="fontSize: 12"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 13"] {
+  color: #B9C3CF !important;
+  opacity: 1 !important;
+}
+
+
+
+/* =========================================================
+   DARK MODE â€” FINAL POLISH
+   Dashboard icon colors + Planner cells + Campus Hub accent
+========================================================= */
+
+/* ---------------------------------------------------------
+   DASHBOARD STAT ICONS
+   Keep each icon in its assigned color while cards stay dark.
+--------------------------------------------------------- */
+
+/* Course / blue icon family */
+:root[data-theme='dark'] .main-content [style*="#648CCB"],
+:root[data-theme='dark'] .main-content [style*="rgb(100, 140, 203)"] {
+  color: #79A9E8 !important;
+  opacity: 1 !important;
+}
+
+/* Assignment / purple icon family */
+:root[data-theme='dark'] .main-content [style*="#8B78B8"],
+:root[data-theme='dark'] .main-content [style*="rgb(139, 120, 184)"] {
+  color: #AE96E0 !important;
+  opacity: 1 !important;
+}
+
+/* Schedule / peach icon family */
+:root[data-theme='dark'] .main-content [style*="#D9896A"],
+:root[data-theme='dark'] .main-content [style*="rgb(217, 137, 106)"] {
+  color: #F0A184 !important;
+  opacity: 1 !important;
+}
+
+/* Announcement / pink icon family */
+:root[data-theme='dark'] .main-content [style*="#C76E7D"],
+:root[data-theme='dark'] .main-content [style*="rgb(199, 110, 125)"],
+:root[data-theme='dark'] .main-content [style*="#A87695"],
+:root[data-theme='dark'] .main-content [style*="rgb(168, 118, 149)"] {
+  color: #E38BA0 !important;
+  opacity: 1 !important;
+}
+
+/* Make icon chips dark but tinted, not black/white */
+:root[data-theme='dark'] .main-content [style*="borderRadius: 14"][style*="width: 44"],
+:root[data-theme='dark'] .main-content [style*="borderRadius: 16"][style*="width: 48"],
+:root[data-theme='dark'] .main-content [style*="border-radius: 14px"][style*="width: 44px"],
+:root[data-theme='dark'] .main-content [style*="border-radius: 16px"][style*="width: 48px"] {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* ---------------------------------------------------------
+   PLANNER
+   Date cells should be a lighter dark gray, never white.
+--------------------------------------------------------- */
+
+:root[data-theme='dark'] .main-content [style*="#FCFDFE"],
+:root[data-theme='dark'] .main-content [style*="rgb(252, 253, 254)"] {
+  background: #262A31 !important;
+  border-color: #3A404A !important;
+  color: #F5F7FA !important;
+}
+
+/* Common planner/calendar day-cell surfaces */
+:root[data-theme='dark'] .main-content [style*="background: var(--surface-container-lowest)"] {
+  background: #262A31 !important;
+  border-color: #3A404A !important;
+}
+
+/* Keep event colors vivid on top of the darker date cells */
+:root[data-theme='dark'] .main-content [style*="#262A31"] [style*="background"],
+:root[data-theme='dark'] .main-content [style*="#262A31"] [style*="border"] {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Planner day numbers / labels */
+:root[data-theme='dark'] .main-content [style*="#262A31"] {
+  color: #F5F7FA !important;
+}
+
+/* ---------------------------------------------------------
+   CAMPUS HUB / ANNOUNCEMENTS HERO
+   Stronger navy accent instead of faded icon treatment.
+--------------------------------------------------------- */
+
+:root[data-theme='dark'] .main-content [style*="var(--campora-navy)"] svg,
+:root[data-theme='dark'] .main-content [style*="#002D62"] svg,
+:root[data-theme='dark'] .main-content [style*="rgb(0, 45, 98)"] svg {
+  color: #8DB8F0 !important;
+  stroke: #8DB8F0 !important;
+  opacity: 1 !important;
+}
+
+/* Navy-tinted icon circles / hero icon wrappers */
+:root[data-theme='dark'] .main-content [style*="rgba(0, 45, 98"],
+:root[data-theme='dark'] .main-content [style*="rgba(0,45,98"] {
+  border-color: rgba(141, 184, 240, 0.28) !important;
+}
+
+/* Campus Hub heading/accent should stay crisp */
+:root[data-theme='dark'] .main-content [style*="color: var(--campora-navy)"] {
+  color: #8DB8F0 !important;
+  opacity: 1 !important;
+}
+
+
+
+/* =========================================================
+   DARK MODE â€” LAST THREE FIXES
+   Progress ring + Planner Up Next + Campus Hub Events count
+========================================================= */
+
+/* ---------------------------------------------------------
+   DASHBOARD TO-DO PROGRESS
+--------------------------------------------------------- */
+
+/* Make the progress card properly dark */
+:root[data-theme='dark'] .main-content [style*="1 of 1 tasks completed"],
+:root[data-theme='dark'] .main-content [style*="All clear"],
+:root[data-theme='dark'] .main-content [style*="100%"] {
+  color: #DCEBFF !important;
+  opacity: 1 !important;
+}
+
+/* Large progress number */
+:root[data-theme='dark'] .main-content [style*="fontSize: 48"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 52"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 56"] {
+  color: #8DB8F0 !important;
+  opacity: 1 !important;
+}
+
+/* Circular progress card / container */
+:root[data-theme='dark'] .main-content [style*="borderRadius: '24px'"][style*="background: '#FFFFFF'"],
+:root[data-theme='dark'] .main-content [style*="borderRadius: 24"][style*="background: #FFFFFF"] {
+  background: #1B2027 !important;
+  border-color: #344150 !important;
+}
+
+/* Progress SVG */
+:root[data-theme='dark'] .main-content svg circle {
+  opacity: 1 !important;
+}
+
+/* Background ring */
+:root[data-theme='dark'] .main-content svg circle:first-of-type {
+  stroke: #2C3644 !important;
+}
+
+/* Foreground ring */
+:root[data-theme='dark'] .main-content svg circle:last-of-type {
+  stroke: #5C93D6 !important;
+}
+
+/* ---------------------------------------------------------
+   PLANNER â€” UP NEXT DETAILS
+--------------------------------------------------------- */
+
+/* Light detail panels inside Up Next -> dark panel */
+:root[data-theme='dark'] .main-content [style*="DETAILS"],
+:root[data-theme='dark'] .main-content [style*="details"] {
+  opacity: 1 !important;
+}
+
+/* Common Up Next detail box backgrounds */
+:root[data-theme='dark'] .main-content [style*="background: #F4F3F8"],
+:root[data-theme='dark'] .main-content [style*="background: #FAFBFC"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(244, 243, 248)"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(250, 251, 252)"] {
+  background: #272C33 !important;
+  border-color: #3D4652 !important;
+  color: #F5F7FA !important;
+}
+
+/* Planner details labels */
+:root[data-theme='dark'] .main-content [style*="fontSize: 10"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 11"] {
+  color: #9FB4CC !important;
+  opacity: 1 !important;
+}
+
+/* Planner details body text */
+:root[data-theme='dark'] .main-content [style*="fontSize: 15"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 16"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 17"] {
+  color: #F3F6FA !important;
+  opacity: 1 !important;
+}
+
+/* Planner edit / complete controls */
+:root[data-theme='dark'] .main-content button[style*="background: #FFFFFF"],
+:root[data-theme='dark'] .main-content button[style*="background: rgb(255, 255, 255)"] {
+  background: #2A3038 !important;
+  border-color: #414B58 !important;
+  color: #8DB8F0 !important;
+}
+
+/* ---------------------------------------------------------
+   CAMPUS HUB â€” EVENTS COUNT
+--------------------------------------------------------- */
+
+/* Events stat card light mint -> dark green */
+:root[data-theme='dark'] .main-content [style*="#F2F9F7"],
+:root[data-theme='dark'] .main-content [style*="rgb(242, 249, 247)"] {
+  background: #20362F !important;
+  border-color: #3D685B !important;
+  color: #E4F5EF !important;
+}
+
+/* Events green accent */
+:root[data-theme='dark'] .main-content [style*="#5E9A8B"],
+:root[data-theme='dark'] .main-content [style*="rgb(94, 154, 139)"] {
+  color: #7CC2AE !important;
+  opacity: 1 !important;
+}
+
+/* Make zero / stat values visible in all Campus Hub summary cards */
+:root[data-theme='dark'] .main-content [style*="fontSize: 18"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 20"] {
+  color: #F5F7FA !important;
+  opacity: 1 !important;
+}
+
+
+
+/* =========================================================
+   DARK MODE â€” EXACT FIXES
+   Catch backgroundColor-based inline styles too.
+========================================================= */
+
+/* ---------------------------------------------------------
+   1) TO-DO PROGRESS â€” NO MORE WHITE CARD
+--------------------------------------------------------- */
+
+/* Any pure-white progress/card surface using background-color */
+:root[data-theme='dark'] .main-content [style*="background-color: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="background-color: rgb(255, 255, 255)"],
+:root[data-theme='dark'] .main-content [style*="backgroundColor: #FFFFFF"],
+:root[data-theme='dark'] .main-content [style*="backgroundColor: rgb(255, 255, 255)"] {
+  background: #1C2128 !important;
+  background-color: #1C2128 !important;
+  border-color: #34404E !important;
+  color: #F5F7FA !important;
+}
+
+/* Progress card/ring white inner area -> dark blue-gray */
+:root[data-theme='dark'] .main-content [style*="border-radius: 50%"][style*="background-color"],
+:root[data-theme='dark'] .main-content [style*="borderRadius: 50%"][style*="backgroundColor"],
+:root[data-theme='dark'] .main-content [style*="borderRadius: '50%'"] {
+  background: #202C3A !important;
+  background-color: #202C3A !important;
+}
+
+/* Big completion percentage */
+:root[data-theme='dark'] .main-content [style*="font-size: 48px"],
+:root[data-theme='dark'] .main-content [style*="font-size: 52px"],
+:root[data-theme='dark'] .main-content [style*="font-size: 56px"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 48"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 52"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 56"] {
+  color: #76A8E8 !important;
+  opacity: 1 !important;
+}
+
+/* Ring track + progress */
+:root[data-theme='dark'] .main-content svg circle:first-of-type {
+  stroke: #314155 !important;
+  opacity: 1 !important;
+}
+
+:root[data-theme='dark'] .main-content svg circle:last-of-type {
+  stroke: #6FA4E6 !important;
+  opacity: 1 !important;
+}
+
+/* Supporting progress text */
+:root[data-theme='dark'] .main-content [style*="color: #99A1B3"],
+:root[data-theme='dark'] .main-content [style*="color: rgb(153, 161, 179)"] {
+  color: #AEB8C6 !important;
+  opacity: 1 !important;
+}
+
+/* ---------------------------------------------------------
+   2) PLANNER UP NEXT â€” DETAILS BOX + TEXT
+--------------------------------------------------------- */
+
+/* Catch the actual light-gray panel whether it uses background or backgroundColor */
+:root[data-theme='dark'] .main-content [style*="background-color: #F4F3F8"],
+:root[data-theme='dark'] .main-content [style*="background-color: rgb(244, 243, 248)"],
+:root[data-theme='dark'] .main-content [style*="backgroundColor: #F4F3F8"],
+:root[data-theme='dark'] .main-content [style*="backgroundColor: rgb(244, 243, 248)"],
+:root[data-theme='dark'] .main-content [style*="background-color: #FAFBFC"],
+:root[data-theme='dark'] .main-content [style*="backgroundColor: #FAFBFC"] {
+  background: #2A3038 !important;
+  background-color: #2A3038 !important;
+  border-color: #414B58 !important;
+  color: #F7F9FC !important;
+}
+
+/* Details label */
+:root[data-theme='dark'] .main-content [style*="letter-spacing: 0.08em"],
+:root[data-theme='dark'] .main-content [style*="letterSpacing: 0.08em"],
+:root[data-theme='dark'] .main-content [style*="letterSpacing: '0.08em'"] {
+  color: #9AB8DA !important;
+  opacity: 1 !important;
+}
+
+/* Details body copy */
+:root[data-theme='dark'] .main-content [style*="fontSize: 16"][style*="fontWeight"],
+:root[data-theme='dark'] .main-content [style*="fontSize: '16px'"][style*="fontWeight"],
+:root[data-theme='dark'] .main-content [style*="fontSize: 17"][style*="fontWeight"] {
+  color: #F5F7FA !important;
+  opacity: 1 !important;
+}
+
+/* Edit / complete buttons should not be pale white */
+:root[data-theme='dark'] .main-content button[style*="background-color: #FFFFFF"],
+:root[data-theme='dark'] .main-content button[style*="backgroundColor: #FFFFFF"],
+:root[data-theme='dark'] .main-content button[style*="background-color: rgb(255, 255, 255)"] {
+  background: #2A3038 !important;
+  background-color: #2A3038 !important;
+  border-color: #46515F !important;
+}
+
+/* ---------------------------------------------------------
+   3) DASHBOARD STUDY GROUPS
+   Neutral panel; green only for icon/accent like the other sections.
+--------------------------------------------------------- */
+
+/* Remove full green background created from the light mint surface */
+:root[data-theme='dark'] .main-content [style*="background: #F2F9F7"],
+:root[data-theme='dark'] .main-content [style*="background-color: #F2F9F7"],
+:root[data-theme='dark'] .main-content [style*="backgroundColor: #F2F9F7"],
+:root[data-theme='dark'] .main-content [style*="background: rgb(242, 249, 247)"],
+:root[data-theme='dark'] .main-content [style*="background-color: rgb(242, 249, 247)"] {
+  background: #20252C !important;
+  background-color: #20252C !important;
+  border-color: #39434F !important;
+  color: #F5F7FA !important;
+}
+
+/* Keep the Study Groups green accent alive */
+:root[data-theme='dark'] .main-content [style*="#5E9A8B"],
+:root[data-theme='dark'] .main-content [style*="rgb(94, 154, 139)"] {
+  color: #6FC0AA !important;
+  stroke: #6FC0AA !important;
+  border-color: rgba(111, 192, 170, 0.35) !important;
+  opacity: 1 !important;
+}
+
+/* Green-tinted icon chips only */
+:root[data-theme='dark'] .main-content [style*="#5E9A8B"][style*="borderRadius"],
+:root[data-theme='dark'] .main-content [style*="rgb(94, 154, 139)"][style*="borderRadius"] {
+  background: rgba(94, 154, 139, 0.12) !important;
+}
+
+/* Inner chat/list area should match other neutral dark dashboard sections */
+:root[data-theme='dark'] .main-content [style*="background: #FFFFFF"][style*="borderRadius"],
+:root[data-theme='dark'] .main-content [style*="background-color: #FFFFFF"][style*="borderRadius"],
+:root[data-theme='dark'] .main-content [style*="backgroundColor: #FFFFFF"][style*="borderRadius"] {
+  background: #1D2229 !important;
+  background-color: #1D2229 !important;
+  border-color: #39434F !important;
 }

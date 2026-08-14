@@ -254,6 +254,7 @@ const [dashboardView, setDashboardView] = useState(null);
 // Add course
 const [isModalOpen, setIsModalOpen] = useState(false);
 const [editingCourse, setEditingCourse] = useState(null);
+const [addCourseToPlanner, setAddCourseToPlanner] = useState(false);
 const [semesterMode, setSemesterMode] = useState('existing');
 const [customSemester, setCustomSemester] = useState('');
 const [newCourse, setNewCourse] = useState({
@@ -561,6 +562,7 @@ const fetchNotes = async (courseId) => {
 const resetCourseForm = () => {
  const hasExistingSemester = semesterOptions.length > 0;
 
+ setAddCourseToPlanner(false);
  setSemesterMode(hasExistingSemester ? 'existing' : 'new');
 
   setCustomSemester('');
@@ -592,6 +594,7 @@ const openEditCourseModal = () => {
 
  const semester = courseSemester(selectedCourse);
 
+ setAddCourseToPlanner(Boolean(schedule?.groupId || schedule?.plannerIds?.length));
  setEditingCourse(selectedCourse);
  setSemesterMode('existing');
  setCustomSemester('');
@@ -803,15 +806,15 @@ try {
    setCustomSemesters((prev) => [...prev, finalSemester]);
  }
 
- // Rebuild the linked Planner class schedule using the edited values.
+ // Only sync this course to Planner when the user chooses to.
  await removeCourseScheduleFromPlanner(editingCourse.id);
 
  if (
+   addCourseToPlanner &&
    newCourse.days !== 'None' &&
-
-    newCourse.days !== 'Lab' &&
-    newCourse.class_start_date &&
-    newCourse.class_end_date
+   newCourse.days !== 'Lab' &&
+   newCourse.class_start_date &&
+   newCourse.class_end_date
   ){
     await createCourseScheduleInPlanner(
       {
@@ -886,7 +889,9 @@ const handleAddCourse = async (e) => {
       )
     }));
 
-    await createCourseScheduleInPlanner(data);
+    if (addCourseToPlanner) {
+      await createCourseScheduleInPlanner(data);
+    }
   }
 
   if (
@@ -2208,6 +2213,8 @@ const visibleSemesterCourses = semesterCourses.filter((course) => {
   <button
     type="button"
     onClick={() => {
+     setEditingCourse(null);
+     setAddCourseToPlanner(false);
      setSemesterMode('existing');
      setCustomSemester('');
      setNewCourse({
@@ -2460,6 +2467,9 @@ const visibleSemesterCourses = semesterCourses.filter((course) => {
    handleAddCourse={handleAddCourse}
    handleUpdateCourse={handleUpdateCourse}
    editingCourse={editingCourse}
+   addCourseToPlanner={addCourseToPlanner}
+   setAddCourseToPlanner={setAddCourseToPlanner}
+   setEditingCourse={setEditingCourse}
 
           setIsModalOpen={setIsModalOpen}
         />
@@ -3813,6 +3823,9 @@ if (selectedCourse) {
        handleAddCourse={handleAddCourse}
        handleUpdateCourse={handleUpdateCourse}
        editingCourse={editingCourse}
+       addCourseToPlanner={addCourseToPlanner}
+       setAddCourseToPlanner={setAddCourseToPlanner}
+       setEditingCourse={setEditingCourse}
        setIsModalOpen={setIsModalOpen}
       />
     )}
@@ -4654,6 +4667,9 @@ return (
           handleAddCourse={handleAddCourse}
           handleUpdateCourse={handleUpdateCourse}
           editingCourse={editingCourse}
+          addCourseToPlanner={addCourseToPlanner}
+          setAddCourseToPlanner={setAddCourseToPlanner}
+          setEditingCourse={setEditingCourse}
           setIsModalOpen={setIsModalOpen}
         />
       )}
@@ -4749,6 +4765,9 @@ function CourseModal({
  handleAddCourse,
  handleUpdateCourse,
  editingCourse,
+ addCourseToPlanner,
+ setAddCourseToPlanner,
+ setEditingCourse,
  setIsModalOpen
 }) {
  const hasExistingSemester = semesterOptions.length > 0;
@@ -4924,9 +4943,9 @@ function CourseModal({
 
  <div
   style={{
-   display: 'flex',
-   flexDirection: 'column',
-   gap: '13px'
+   display: 'grid',
+   gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+   gap: '14px'
   }}
  >
   <div>
@@ -5025,10 +5044,11 @@ function CourseModal({
  newCourse.days !== 'Lab' && (
   <div
    style={{
+    gridColumn: '1 / -1',
     background: '#F6F8FC',
     border: '1px solid #E4EAF2',
     borderRadius: '14px',
-    padding: '13px'
+    padding: '15px'
    }}
   >
    <div
@@ -5039,9 +5059,52 @@ function CourseModal({
       marginBottom: '10px'
     }}
    >
-    Sync Class Schedule to Planner
+    Add Class Schedule to Planner?
    </div>
 
+   <div
+    style={{
+      display: 'flex',
+      gap: '8px',
+      marginBottom: addCourseToPlanner ? '12px' : '0'
+    }}
+   >
+    <button
+      type="button"
+      onClick={() => setAddCourseToPlanner(true)}
+      style={{
+        flex: 1,
+        padding: '10px 12px',
+        borderRadius: '11px',
+        border: `1.5px solid ${addCourseToPlanner ? '#002D62' : '#DDE4EF'}`,
+        background: addCourseToPlanner ? '#002D62' : '#FFFFFF',
+        color: addCourseToPlanner ? '#FFFFFF' : '#4B5563',
+        fontWeight: '900',
+        cursor: 'pointer'
+      }}
+    >
+      Yes, add to Planner
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setAddCourseToPlanner(false)}
+      style={{
+        flex: 1,
+        padding: '10px 12px',
+        borderRadius: '11px',
+        border: `1.5px solid ${!addCourseToPlanner ? '#002D62' : '#DDE4EF'}`,
+        background: !addCourseToPlanner ? '#EEF4FB' : '#FFFFFF',
+        color: '#002D62',
+        fontWeight: '900',
+        cursor: 'pointer'
+      }}
+    >
+      No, course only
+    </button>
+   </div>
+
+   {addCourseToPlanner && (
    <div
     style={{
      display: 'grid',
@@ -5116,18 +5179,20 @@ function CourseModal({
         />
        </div>
       </div>
+      )}
 
        <div
         style={{
-         marginTop: '9px',
+         marginTop: addCourseToPlanner ? '9px' : '0',
          fontSize: '10px',
          fontWeight: '700',
          color: '#8A98B8',
          lineHeight: 1.4
         }}
        >
-        Fill these in and the {newCourse.days} class
-        schedule will be created in Planner automatically.
+        {addCourseToPlanner
+          ? `Enter the dates and times to add the ${newCourse.days} class schedule to Planner.`
+          : 'This course will stay in Courses only and will not be added to Planner.'}
        </div>
      </div>
     )}
@@ -5820,7 +5885,8 @@ const emptyIconCircle = {
   width: '94px',
   height: '94px',
   borderRadius: '50%',
-  background: '#DCEBFF',
+  background: '#EEF4FB',
+  border: '1.5px solid #D7E2F0',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -5863,7 +5929,8 @@ const semesterIconStyle = {
   width: '36px',
   height: '36px',
   borderRadius: '12px',
-  background: '#DCEBFF',
+  background: '#EEF4FB',
+  border: '1.5px solid #D7E2F0',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center'
@@ -6071,9 +6138,9 @@ const overlayStyle = {
 
 const modalCardStyle = {
  width: '100%',
- maxWidth: '500px',
+ maxWidth: '820px',
  border: '1.5px solid #DDE4EF',
- padding: '28px',
+ padding: '30px',
  borderRadius: '24px',
 
   background: '#FFFFFF',
@@ -6117,7 +6184,8 @@ const stepBubble = {
   width: '25px',
   height: '25px',
   borderRadius: '8px',
-  background: '#DCEBFF',
+  background: '#EEF4FB',
+  border: '1.5px solid #D7E2F0',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -6584,7 +6652,8 @@ const eventTypeBadgeStyle = {
 
   textAlign: 'center',
   borderRadius: '999px',
-  background: '#DCEBFF',
+  background: '#EEF4FB',
+  border: '1.5px solid #D7E2F0',
   color: '#1A1B1F',
   padding: '6px 9px',
   fontSize: '10px',

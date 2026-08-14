@@ -1279,6 +1279,12 @@ export default function Dashboard() {
   if (loading) {
     return (
       <PageShell>
+
+      
+
+
+
+
         <div className="panel" style={s.loadingCard}>
           <span className="icon-chip tone-primary">
             <Landmark size={25} strokeWidth={1.6} />
@@ -1301,6 +1307,171 @@ export default function Dashboard() {
 
   return (
     <PageShell>
+<style>{`
+        /* =================================================
+           DASHBOARD COMPONENT STYLES
+           These avoid literal inline white/green values so
+           App.css dark-mode catch-all rules cannot hijack them.
+        ================================================= */
+
+        /* TO-DO — LIGHT MODE */
+        .dashboard-todo-progress-card {
+          background: #FAFBFD;
+          border: 1px solid #EEF1F5;
+          box-shadow: none;
+        }
+
+        /* TO-DO — DARK MODE */
+        :root[data-theme='dark'] .main-content .dashboard-todo-progress-card {
+          background: #1F242B !important;
+          background-color: #1F242B !important;
+          border: 1px solid #39424E !important;
+          box-shadow: none !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-todo-progress-ring svg circle:first-of-type {
+          stroke: #334052 !important;
+          opacity: 1 !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-todo-progress-ring svg circle:last-of-type {
+          stroke: #6FA8EA !important;
+          opacity: 1 !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-todo-progress-ring div {
+          color: #8FBCF2 !important;
+          opacity: 1 !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-todo-headline {
+          color: #F5F7FA !important;
+          opacity: 1 !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-todo-meta {
+          color: #AEB8C6 !important;
+          opacity: 1 !important;
+        }
+
+        /* STUDY GROUPS PANEL — LIGHT MODE (same original look) */
+        .dashboard-panel-study-groups {
+          background: linear-gradient(
+            135deg,
+            #F2F9F7 0%,
+            var(--surface-container-lowest) 44%
+          );
+          border: 1px solid #D9EBE6;
+        }
+
+        .dashboard-study-chat-shell {
+          background: linear-gradient(
+            180deg,
+            #F2F9F7 0%,
+            var(--surface-container-lowest) 45%
+          );
+          border: 1px solid #D9EBE6;
+          box-shadow:
+            inset 0 4px 0 rgba(94,154,139,.33),
+            0 8px 22px rgba(0,45,98,.05);
+        }
+
+        .dashboard-study-chat-message {
+          background: linear-gradient(
+            180deg,
+            #F2F9F7 0%,
+            #FFFFFF 58%
+          );
+          border: 1px solid #D9EBE6;
+          box-shadow: inset 0 3px 0 rgba(94,154,139,.27);
+        }
+
+        /* STUDY GROUPS — DARK MODE
+           EXACTLY like Campus Pulse: neutral surface, colored icon/accent only */
+        :root[data-theme='dark'] .main-content .dashboard-panel-study-groups {
+          background: #20252C !important;
+          background-color: #20252C !important;
+          background-image: none !important;
+          border: 1px solid #3A434F !important;
+          box-shadow: 0 8px 24px rgba(0,0,0,.18) !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups > div:first-child .icon-chip {
+          background: rgba(94,154,139,.12) !important;
+          color: #72C1AD !important;
+          border-color: rgba(114,193,173,.34) !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups > div:first-child .icon-chip svg {
+          color: #72C1AD !important;
+          stroke: #72C1AD !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups .btn {
+          color: #72C1AD !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups .filter-chip {
+          background: #30353D !important;
+          color: #D8DDE4 !important;
+          border-color: transparent !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups .filter-chip.active {
+          background: #30353D !important;
+          color: #D8DDE4 !important;
+          border-color: transparent !important;
+          box-shadow: none !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-study-chat-shell {
+          background: #1B2027 !important;
+          background-color: #1B2027 !important;
+          background-image: none !important;
+          border: 1px solid #37414C !important;
+          box-shadow: none !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-study-chat-header {
+          background: transparent !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-study-chat-message {
+          background: #242A31 !important;
+          background-color: #242A31 !important;
+          background-image: none !important;
+          border: 1px solid #3B4651 !important;
+          box-shadow: none !important;
+          color: #EEF2F6 !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-study-chat-message .icon-chip {
+          background: #2B323A !important;
+          color: #BFC8D3 !important;
+          border-color: #414C58 !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups .dashboard-study-chat-header {
+          background: #1B2027 !important;
+          background-color: #1B2027 !important;
+          color: #F5F7FA !important;
+          border-bottom-color: #37414C !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups .dashboard-study-chat-header .stat-tile-title {
+          color: #F5F7FA !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups .dashboard-study-chat-header .stat-tile-desc {
+          color: #AEB8C6 !important;
+        }
+
+        :root[data-theme='dark'] .dashboard-panel-study-groups .dashboard-study-chat-header svg {
+          color: #72C1AD !important;
+          stroke: #72C1AD !important;
+        }
+
+      `}</style>
       {/* ===================================================
           GREETING HEADER
       =================================================== */}
@@ -1463,14 +1634,12 @@ export default function Dashboard() {
           />
 
           <div
-            className="panel-low"
+            className="panel-low dashboard-todo-progress-card"
             style={{
               ...s.todoCard,
-              background: '#FAFBFD',
-              border: '1px solid #EEF1F5',
-              boxShadow: 'none',
             }}
           >
+            <div className="dashboard-todo-progress-ring">
             <ProgressRing
               value={todoProgress}
               size={190}
@@ -1480,8 +1649,9 @@ export default function Dashboard() {
                 {todoProgress}%
               </div>
             </ProgressRing>
+            </div>
 
-            <div style={s.todoHeadline}>
+            <div className="dashboard-todo-headline" style={s.todoHeadline}>
               {todos.length === 0
                 ? 'Add your first task to get started.'
                 : todoProgress === 100
@@ -1493,7 +1663,7 @@ export default function Dashboard() {
                   } to go.`}
             </div>
 
-            <div style={s.todoMeta}>
+            <div className="dashboard-todo-meta" style={s.todoMeta}>
               {completedTodos.length} of{' '}
               {todos.length} tasks
               completed
@@ -1914,15 +2084,13 @@ export default function Dashboard() {
                 </div>
 
                 <div
+                  className="dashboard-study-chat-shell"
                   style={{
                     ...s.chatShell,
-                    background: `linear-gradient(180deg, ${TEAL_SOFT} 0%, var(--surface-container-lowest) 45%)`,
-                    border: `1px solid ${TEAL_BORDER}`,
-                    boxShadow: `inset 0 4px 0 ${TEAL}55, 0 8px 22px rgba(0,45,98,0.05)`,
                     borderRadius: '18px',
                   }}
                 >
-                  <div style={s.chatPreviewHeader}>
+                  <div className="dashboard-study-chat-header" style={s.chatPreviewHeader}>
                     <div>
                       <strong className="stat-tile-title" style={s.chatPreviewTitle}>
                         {selectedMiniGroup?.name ||
@@ -1955,11 +2123,9 @@ export default function Dashboard() {
                         message => (
                           <div
                             key={message.id}
+                            className="dashboard-study-chat-message"
                             style={{
                               ...s.chatMessageRow,
-                              background: `linear-gradient(180deg, ${TEAL_SOFT} 0%, #FFFFFF 58%)`,
-                              border: `1px solid ${TEAL_BORDER}`,
-                              boxShadow: `inset 0 3px 0 ${TEAL}45`,
                               borderRadius: '16px',
                             }}
                           >
@@ -2778,11 +2944,15 @@ function Panel({
 }) {
   return (
     <section
-      className="panel-low"
+      className={`panel-low dashboard-panel dashboard-panel-${String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
       style={{
         ...s.panel,
-        background: `linear-gradient(135deg, ${soft} 0%, var(--surface-container-lowest) 44%)`,
-        border: `1px solid ${border}`,
+        ...(title === 'Study Groups'
+          ? {}
+          : {
+              background: `linear-gradient(135deg, ${soft} 0%, var(--surface-container-lowest) 44%)`,
+              border: `1px solid ${border}`,
+            }),
       }}
     >
       <div style={s.panelHeader}>
@@ -3655,7 +3825,7 @@ const s = {
     gap: '12px',
     padding: '14px 16px',
     borderBottom: '1px solid var(--divider)',
-    background: '#FBFCFD',
+    background: 'var(--surface-container-lowest)',
   },
 
   chatPreviewTitle: {
