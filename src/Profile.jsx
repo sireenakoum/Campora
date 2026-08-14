@@ -15,6 +15,10 @@ export default function Profile() {
   const [major, setMajor] = useState('');
   const [year, setYear] = useState('');
   const [guestTitle, setGuestTitle] = useState('');
+
+  const [clubName, setClubName] = useState('');
+  const [clubPosition, setClubPosition] = useState('');
+
   const [description, setDescription] = useState('');
 
   const [message, setMessage] = useState(null);
@@ -34,9 +38,13 @@ export default function Profile() {
         } = await supabase.auth.getUser();
 
         if (userError) throw userError;
-        if (!user) throw new Error('User is not logged in.');
 
-        const { data, error: profileError } = await getProfile(user.id);
+        if (!user) {
+          throw new Error('User is not logged in.');
+        }
+
+        const { data, error: profileError } =
+          await getProfile(user.id);
 
         if (profileError) throw profileError;
 
@@ -44,14 +52,27 @@ export default function Profile() {
           setFullName(data.name || '');
           setAvatarUrl(data.avatar_url || '');
           setSavedAvatarUrl(data.avatar_url || '');
-          setAccountType(data.account_type || 'Student');
+
+          setAccountType(
+            data.account_type || 'Student'
+          );
+
+          // Major stays under the student's name
           setMajor(data.major || '');
+
           setYear(data.year || '');
           setGuestTitle(data.guest_title || '');
+
+          // Club information
+          setClubName(data.club_name || '');
+          setClubPosition(data.club_position || '');
+
+          // About Me
           setDescription(data.description || '');
         }
       } catch (err) {
         console.error('Profile loading error:', err);
+
         setError(
           err?.message ||
             'Something went wrong while loading your profile.'
@@ -106,58 +127,35 @@ export default function Profile() {
     if (!url) return null;
 
     try {
-      const marker = '/storage/v1/object/public/avatars/';
+      const marker =
+        '/storage/v1/object/public/avatars/';
+
       const markerIndex = url.indexOf(marker);
 
-      if (markerIndex === -1) return null;
+      if (markerIndex === -1) {
+        return null;
+      }
 
-      const path = url.substring(markerIndex + marker.length);
+      const path = url.substring(
+        markerIndex + marker.length
+      );
 
-      return decodeURIComponent(path.split('?')[0]);
+      return decodeURIComponent(
+        path.split('?')[0]
+      );
     } catch (err) {
-      console.error('Avatar path parsing error:', err);
+      console.error(
+        'Avatar path parsing error:',
+        err
+      );
+
       return null;
     }
   };
 
-  const getYearOptions = () => {
-    if (major.toLowerCase().includes('engineering')) {
-      return [
-        'Freshman',
-        'Sophomore',
-        'Junior',
-        'E3 - Senior',
-        'E4 - Senior',
-        'Masters',
-        'Ph.D',
-      ];
-    }
-
-    if (major.toLowerCase().includes('medicine')) {
-      return [
-        'Freshman',
-        'Sophomore',
-        'Junior',
-        'Senior',
-        'M1',
-        'M2',
-        'M3',
-        'M4',
-      ];
-    }
-
-    return [
-      'Freshman',
-      'Sophomore',
-      'Junior',
-      'Senior',
-      'Masters',
-      'Ph.D',
-    ];
-  };
-
   const handleDescriptionChange = (e) => {
     const value = e.target.value;
+
     const words = value.trim()
       ? value.trim().split(/\s+/)
       : [];
@@ -166,7 +164,9 @@ export default function Profile() {
       setDescription(value);
       setError(null);
     } else {
-      setError('Your description cannot exceed 200 words.');
+      setError(
+        'Your description cannot exceed 200 words.'
+      );
     }
 
     setMessage(null);
@@ -190,17 +190,28 @@ export default function Profile() {
       } = await supabase.auth.getUser();
 
       if (userError) throw userError;
-      if (!user) throw new Error('User is not logged in.');
+
+      if (!user) {
+        throw new Error('User is not logged in.');
+      }
 
       const cleanedName = fullName.trim();
+      const cleanedClubName = clubName.trim();
       const cleanedDescription = description.trim();
 
       if (!cleanedName) {
-        throw new Error('Please enter your full name.');
+        throw new Error(
+          'Please enter your full name.'
+        );
       }
 
-      if (accountType !== 'Guest' && !year) {
-        throw new Error('Please select your year.');
+      if (
+        accountType !== 'Guest' &&
+        !year
+      ) {
+        throw new Error(
+          'Please select your year.'
+        );
       }
 
       const wordCount = cleanedDescription
@@ -215,9 +226,13 @@ export default function Profile() {
 
       let newAvatarUrl = savedAvatarUrl;
 
+      // Upload new profile picture
       if (avatarFile) {
         const originalExtension =
-          avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+          avatarFile.name
+            .split('.')
+            .pop()
+            ?.toLowerCase() || 'jpg';
 
         const safeExtension =
           originalExtension === 'jpeg'
@@ -229,13 +244,19 @@ export default function Profile() {
 
         uploadedAvatarPath = fileName;
 
-        const { error: uploadError } = await supabase.storage
+        const {
+          error: uploadError,
+        } = await supabase.storage
           .from('avatars')
-          .upload(fileName, avatarFile, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: avatarFile.type,
-          });
+          .upload(
+            fileName,
+            avatarFile,
+            {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: avatarFile.type,
+            }
+          );
 
         if (uploadError) {
           throw new Error(
@@ -244,7 +265,9 @@ export default function Profile() {
           );
         }
 
-        const { data: publicUrlData } = supabase.storage
+        const {
+          data: publicUrlData,
+        } = supabase.storage
           .from('avatars')
           .getPublicUrl(fileName);
 
@@ -254,68 +277,134 @@ export default function Profile() {
           );
         }
 
-        newAvatarUrl = publicUrlData.publicUrl;
+        newAvatarUrl =
+          publicUrlData.publicUrl;
       }
 
-      const { error: updateError } = await updateProfile(user.id, {
+      // Save profile
+      const {
+        error: updateError,
+      } = await updateProfile(user.id, {
         name: cleanedName,
         avatar_url: newAvatarUrl,
-        year: accountType === 'Guest' ? null : year,
+        year:
+          accountType === 'Guest'
+            ? null
+            : year,
         description: cleanedDescription,
+
+        // Club information
+        club_name: cleanedClubName,
+        club_position: clubPosition,
       });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        throw updateError;
+      }
 
+      // Delete old avatar
       if (
         avatarFile &&
         savedAvatarUrl &&
         newAvatarUrl !== savedAvatarUrl
       ) {
         const oldAvatarPath =
-          getAvatarPathFromUrl(savedAvatarUrl);
+          getAvatarPathFromUrl(
+            savedAvatarUrl
+          );
 
         if (
           oldAvatarPath &&
-          oldAvatarPath.startsWith(`${user.id}/`)
+          oldAvatarPath.startsWith(
+            `${user.id}/`
+          )
         ) {
           await supabase.storage
             .from('avatars')
-            .remove([oldAvatarPath]);
+            .remove([
+              oldAvatarPath,
+            ]);
         }
       }
 
+      // Reload updated profile
       const {
         data: updatedProfile,
         error: profileError,
       } = await getProfile(user.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        throw profileError;
+      }
 
       if (updatedProfile) {
-        setFullName(updatedProfile.name || '');
-        setAvatarUrl(updatedProfile.avatar_url || '');
-        setSavedAvatarUrl(updatedProfile.avatar_url || '');
-        setAccountType(updatedProfile.account_type || 'Student');
-        setMajor(updatedProfile.major || '');
-        setYear(updatedProfile.year || '');
-        setGuestTitle(updatedProfile.guest_title || '');
-        setDescription(updatedProfile.description || '');
+        setFullName(
+          updatedProfile.name || ''
+        );
+
+        setAvatarUrl(
+          updatedProfile.avatar_url || ''
+        );
+
+        setSavedAvatarUrl(
+          updatedProfile.avatar_url || ''
+        );
+
+        setAccountType(
+          updatedProfile.account_type ||
+            'Student'
+        );
+
+        setMajor(
+          updatedProfile.major || ''
+        );
+
+        setYear(
+          updatedProfile.year || ''
+        );
+
+        setGuestTitle(
+          updatedProfile.guest_title || ''
+        );
+
+        setClubName(
+          updatedProfile.club_name || ''
+        );
+
+        setClubPosition(
+          updatedProfile.club_position || ''
+        );
+
+        setDescription(
+          updatedProfile.description || ''
+        );
       }
 
       if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
+        URL.revokeObjectURL(
+          previewUrlRef.current
+        );
+
         previewUrlRef.current = null;
       }
 
       setAvatarFile(null);
-      setMessage('Profile updated successfully!');
+
+      setMessage(
+        'Profile updated successfully!'
+      );
     } catch (err) {
-      console.error('Profile update error:', err);
+      console.error(
+        'Profile update error:',
+        err
+      );
 
       if (uploadedAvatarPath) {
         await supabase.storage
           .from('avatars')
-          .remove([uploadedAvatarPath]);
+          .remove([
+            uploadedAvatarPath,
+          ]);
       }
 
       setError(
@@ -329,7 +418,10 @@ export default function Profile() {
 
   const handleCancelAvatar = () => {
     if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current);
+      URL.revokeObjectURL(
+        previewUrlRef.current
+      );
+
       previewUrlRef.current = null;
     }
 
@@ -347,13 +439,17 @@ export default function Profile() {
     );
   }
 
-  const descriptionWordCount = description.trim()
-    ? description.trim().split(/\s+/).length
-    : 0;
+  const descriptionWordCount =
+    description.trim()
+      ? description.trim().split(/\s+/).length
+      : 0;
 
   return (
     <div style={styles.wrapper}>
-      <h1 style={styles.title}>Student Profile</h1>
+
+      <h1 style={styles.title}>
+        Student Profile
+      </h1>
 
       {error && (
         <div style={styles.errorBox}>
@@ -368,8 +464,13 @@ export default function Profile() {
       )}
 
       <div style={styles.card}>
-        {/* PROFILE HEADER */}
+
+        {/* =========================
+            PROFILE HEADER
+        ========================== */}
+
         <div style={styles.profileHeader}>
+
           <div style={styles.avatarContainer}>
             {avatarUrl ? (
               <img
@@ -378,40 +479,63 @@ export default function Profile() {
                 style={styles.avatar}
               />
             ) : (
-              <div style={styles.avatarPlaceholder}>
+              <div
+                style={
+                  styles.avatarPlaceholder
+                }
+              >
                 {fullName
-                  ? fullName.charAt(0).toUpperCase()
+                  ? fullName
+                      .charAt(0)
+                      .toUpperCase()
                   : '?'}
               </div>
             )}
           </div>
 
           <div style={styles.headerText}>
+
+            {/* STUDENT NAME */}
+
             <h2 style={styles.profileName}>
               {fullName || 'Student'}
             </h2>
 
-            <p style={styles.profileMajor}>
-              {major || accountType || 'Student'}
-            </p>
+            {/* MAJOR */}
 
-            {/* ABOUT ME DISPLAY */}
+            {major && (
+              <p style={styles.profileMajor}>
+                {major}
+              </p>
+            )}
+
+            {/* ABOUT ME */}
+
             {description && (
               <p style={styles.aboutMe}>
                 {description}
               </p>
             )}
+
           </div>
         </div>
 
-        {/* ONBOARDING INFORMATION */}
+        {/* =========================
+            ONBOARDING INFORMATION
+        ========================== */}
+
         <div style={styles.section}>
+
           <p style={styles.sectionLabel}>
             Onboarding Information
           </p>
 
           <div style={styles.infoGrid}>
+
+            {/* ACCOUNT TYPE */}
+
             <div style={styles.infoItem}>
+
               <span style={styles.infoKey}>
                 Account Type
               </span>
@@ -419,20 +543,35 @@ export default function Profile() {
               <span style={styles.infoValue}>
                 {accountType}
               </span>
+
             </div>
 
+            {/* CLUB */}
+
             <div style={styles.infoItem}>
+
               <span style={styles.infoKey}>
-                Major
+                Club
               </span>
 
               <span style={styles.infoValue}>
-                {major || '—'}
+                {clubName || '—'}
               </span>
+
+              {clubPosition && (
+                <span style={styles.clubPosition}>
+                  {clubPosition}
+                </span>
+              )}
+
             </div>
 
+            {/* YEAR / TITLE */}
+
             {accountType === 'Guest' ? (
+
               <div style={styles.infoItem}>
+
                 <span style={styles.infoKey}>
                   Title
                 </span>
@@ -440,9 +579,13 @@ export default function Profile() {
                 <span style={styles.infoValue}>
                   {guestTitle || '—'}
                 </span>
+
               </div>
+
             ) : (
+
               <div style={styles.infoItem}>
+
                 <span style={styles.infoKey}>
                   Year
                 </span>
@@ -450,23 +593,33 @@ export default function Profile() {
                 <span style={styles.infoValue}>
                   {year || '—'}
                 </span>
+
               </div>
+
             )}
+
           </div>
         </div>
 
         <div style={styles.divider} />
 
-        {/* EDIT FORM */}
+        {/* =========================
+            PERSONAL DETAILS
+        ========================== */}
+
         <form
           onSubmit={handleUpdate}
           style={styles.form}
         >
+
           <p style={styles.sectionLabel}>
             Personal Details
           </p>
 
+          {/* PROFILE PICTURE */}
+
           <div style={styles.inputGroup}>
+
             <label style={styles.label}>
               Profile Picture
             </label>
@@ -485,6 +638,7 @@ export default function Profile() {
 
             {avatarFile && (
               <div style={styles.selectedFileRow}>
+
                 <span style={styles.selectedFileText}>
                   Selected: {avatarFile.name}
                 </span>
@@ -493,15 +647,22 @@ export default function Profile() {
                   type="button"
                   onClick={handleCancelAvatar}
                   disabled={saving}
-                  style={styles.removeSelectionButton}
+                  style={
+                    styles.removeSelectionButton
+                  }
                 >
                   Cancel
                 </button>
+
               </div>
             )}
+
           </div>
 
+          {/* FULL NAME */}
+
           <div style={styles.inputGroup}>
+
             <label style={styles.label}>
               Full Name
             </label>
@@ -510,16 +671,22 @@ export default function Profile() {
               type="text"
               value={fullName}
               onChange={(e) =>
-                setFullName(e.target.value)
+                setFullName(
+                  e.target.value
+                )
               }
               disabled={saving}
               placeholder="Enter your full name"
               style={styles.input}
             />
+
           </div>
+
+          {/* YEAR */}
 
           {accountType !== 'Guest' && (
             <div style={styles.inputGroup}>
+
               <label style={styles.label}>
                 Year
               </label>
@@ -527,41 +694,165 @@ export default function Profile() {
               <select
                 value={year}
                 onChange={(e) =>
-                  setYear(e.target.value)
+                  setYear(
+                    e.target.value
+                  )
                 }
                 disabled={saving}
                 style={styles.input}
               >
+
                 <option value="">
                   Select your year
                 </option>
 
-                {getYearOptions().map((option) => (
-                  <option
-                    key={option}
-                    value={option}
-                  >
-                    {option}
-                  </option>
-                ))}
+                <option value="Freshman">
+                  Freshman
+                </option>
+
+                <option value="Sophomore">
+                  Sophomore
+                </option>
+
+                <option value="Junior">
+                  Junior
+                </option>
+
+                <option value="Senior">
+                  Senior
+                </option>
+
+                <option value="Masters">
+                  Masters
+                </option>
+
+                <option value="Ph.D">
+                  Ph.D
+                </option>
+
               </select>
+
             </div>
           )}
 
+          {/* CLUB NAME */}
+
           <div style={styles.inputGroup}>
+
+            <label style={styles.label}>
+              Club Name
+            </label>
+
+            <input
+              type="text"
+              value={clubName}
+              onChange={(e) =>
+                setClubName(
+                  e.target.value
+                )
+              }
+              disabled={saving}
+              placeholder="Enter the club name"
+              style={styles.input}
+            />
+
+          </div>
+
+          {/* CLUB POSITION */}
+
+          <div style={styles.inputGroup}>
+
+            <label style={styles.label}>
+              Club Position
+            </label>
+
+            <select
+              value={clubPosition}
+              onChange={(e) =>
+                setClubPosition(
+                  e.target.value
+                )
+              }
+              disabled={saving}
+              style={styles.input}
+            >
+
+              <option value="">
+                Select your position
+              </option>
+
+              <option value="President">
+                President
+              </option>
+
+              <option value="Vice President">
+                Vice President
+              </option>
+
+              <option value="Secretary">
+                Secretary
+              </option>
+
+              <option value="Treasurer">
+                Treasurer
+              </option>
+
+              <option value="Member at Large">
+                Member at Large
+              </option>
+
+              <option value="Public Relations">
+                Public Relations
+              </option>
+
+              <option value="Events Coordinator">
+                Events Coordinator
+              </option>
+
+              <option value="Marketing Coordinator">
+                Marketing Coordinator
+              </option>
+
+              <option value="Social Media Coordinator">
+                Social Media Coordinator
+              </option>
+
+              <option value="Media/Design">
+                Media/Design
+              </option>
+
+              <option value="Other">
+                Other
+              </option>
+
+            </select>
+
+          </div>
+
+          {/* ABOUT ME */}
+
+          <div style={styles.inputGroup}>
+
             <label style={styles.label}>
               About Me
             </label>
 
             <textarea
               value={description}
-              onChange={handleDescriptionChange}
+              onChange={
+                handleDescriptionChange
+              }
               disabled={saving}
               placeholder="Tell others a little about yourself..."
               style={styles.textarea}
             />
 
-            <div style={styles.descriptionFooter}>
+            <div
+              style={
+                styles.descriptionFooter
+              }
+            >
+
               <span style={styles.hint}>
                 Maximum 200 words.
               </span>
@@ -573,10 +864,15 @@ export default function Profile() {
                     : styles.wordCount
                 }
               >
-                {descriptionWordCount}/200 words
+                {descriptionWordCount}/200
+                words
               </span>
+
             </div>
+
           </div>
+
+          {/* SAVE */}
 
           <button
             type="submit"
@@ -590,8 +886,11 @@ export default function Profile() {
                 : styles.button
             }
           >
-            {saving ? 'Saving...' : 'Save Profile'}
+            {saving
+              ? 'Saving...'
+              : 'Save Profile'}
           </button>
+
         </form>
       </div>
     </div>
@@ -621,7 +920,8 @@ const styles = {
     background: '#fff',
     borderRadius: '24px',
     padding: '35px',
-    boxShadow: '0 15px 30px rgba(0,0,0,0.04)',
+    boxShadow:
+      '0 15px 30px rgba(0,0,0,0.04)',
     border: '1px solid #F1F5F9',
   },
 
@@ -674,14 +974,17 @@ const styles = {
     wordBreak: 'break-word',
   },
 
+  // Major directly underneath the name
   profileMajor: {
-    margin: 0,
+    margin: '0',
     color: '#667085',
     fontSize: '15px',
     fontWeight: '600',
+    lineHeight: '1.4',
+    wordBreak: 'break-word',
   },
 
-  /* NEW */
+  // About Me underneath the major
   aboutMe: {
     margin: '10px 0 0 0',
     color: '#98A2B3',
@@ -732,6 +1035,13 @@ const styles = {
     fontSize: '16px',
     fontWeight: '800',
     color: '#0B1A3F',
+    wordBreak: 'break-word',
+  },
+
+  clubPosition: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#667085',
   },
 
   divider: {
