@@ -7,9 +7,9 @@ export default function NewsCard({ news }) {
 
     <div
       style={{
-        background: "white",
-        borderRadius: "12px",
-        border: "1px solid #E5E7EB",
+        background: "var(--surface-container-lowest)",
+        borderRadius: "var(--radius-secondary)",
+        border: "1px solid var(--divider)",
         padding: "20px",
         marginBottom: "12px",
       }}
@@ -17,7 +17,7 @@ export default function NewsCard({ news }) {
 
       <h3
         style={{
-          color: "#0B1A3F",
+          color: "var(--campora-text)",
           marginBottom: "8px",
         }}
       >
@@ -29,7 +29,7 @@ export default function NewsCard({ news }) {
         <p
           style={{
             fontSize: "13px",
-            color: "#6B7280",
+            color: "var(--campora-muted)",
           }}
         >
           By {news.author}
@@ -39,7 +39,7 @@ export default function NewsCard({ news }) {
 
       <p
         style={{
-          color: "#6B7280",
+          color: "var(--campora-body)",
         }}
       >
         {news.content}
@@ -61,7 +61,7 @@ export default function NewsCard({ news }) {
             <span
               key={tag}
               style={{
-                background:"#F3F4F6",
+                background:"var(--surface-container)",
                 padding:"4px 10px",
                 borderRadius:"20px",
                 fontSize:"12px",

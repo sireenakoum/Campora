@@ -4,10 +4,12 @@ ArrowLeftRight,
 ArrowRight,
 Bell,
 BookOpen,
+CalendarDays,
 CheckCircle2,
-Compass,
 CornerDownRight,
 Edit3,
+GraduationCap,
+History,
 MessageCircle,
 MessageSquare,
 MoreVertical,
@@ -18,13 +20,17 @@ RotateCcw,
 Reply,
 Search,
 Send,
-Sparkles,
 Star,
 Trash2,
 UserRound,
 X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import {
+PageShell,
+IconChip,
+EmptyState
+} from '../components/luminous';
 const MAJORS = [
 'Computer Science',
 'Business / Finance',
@@ -58,6 +64,14 @@ const AVATAR_PALETTE = [
 '#FFF6F2', '#CFFAFE', '#E0E7FF', '#D1FAE5'
 ];
 const DM_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
+const REGISTRATION_TOOLS = [
+{ label: 'Planner', icon: CalendarDays, tab: 'match' },
+{ label: 'History', icon: History, tab: 'myposts' },
+{ label: 'Requirements', icon: BookOpen, tab: 'curriculum' }
+];
+
+
 
 const getInitials = name =>
 (name || 'S')
@@ -1099,30 +1113,23 @@ Date(a.created_at || 0));
 questionReplies]);
 return (
 
-<div style={{ width: '100%', maxWidth: '1100px', margin: '0 auto',
-paddingBottom: '60px' }}>
-<div style={{ marginBottom: '30px' }}>
-<div style={{
-display: 'inline-flex', alignItems: 'center', gap: '8px', background:
-'#FFFFFF', border: '1.5px solid #E2E8F0',
-padding: '6px 14px', borderRadius: '30px', fontSize: '11px', fontWeight:
-'800', color: '#0B1A3F', marginBottom: '10px'
-}}>
-<Compass size={14} color="#0B1A3F" />
-ACADEMIC REGISTRATION HUB
+<PageShell>
+<div className="stack" style={{ gap: 8 }}>
+<div className="label-caps">
+Home <span style={{ opacity: 0.55 }}>›</span> Academics <span style={{
+opacity: 0.55 }}>›</span> <strong className="text-primary">Registration</strong>
 </div>
-<h1 style={{ fontSize: '36px', fontWeight: '900', color: '#0B1A3F', margin:
-0, letterSpacing: '-0.5px' }}>
+<h1 style={{ fontSize: '38px', fontWeight: '900', color: 'var(--campora-text)',
+margin: 0, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
 Registration & Swap Hub
 </h1>
-<p style={{ color: '#A3AED0', fontWeight: '700', marginTop: '6px', fontSize:
-'14px' }}>
+<p style={{ color: 'var(--campora-muted)', fontWeight: '600', margin: 0,
+fontSize: '17px', lineHeight: 1.6, maxWidth: '640px' }}>
 Match course sections, read course & professor reviews, manage seat
 alerts, explore curricula, and ask other students for advice.
 </p>
 </div>
-<div style={{ display: 'flex', gap: '10px', marginBottom: '30px', overflowX:
-'auto', paddingBottom: '5px' }}>
+<div className="filter-row">
 <TabButton active={activeTab === 'match'} onClick={() =>
 setActiveTab('match')} icon={<ArrowLeftRight size={16} />} label="Course
 Match & Swap" />
@@ -1153,34 +1160,113 @@ label="Direct Messages"
 />
 </div>
 {activeTab === 'match' && (
-<div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-<div style={{ background: '#0B1A3F', color: 'white', padding: '30px',
-borderRadius: '24px', boxShadow: '0 10px 30px rgba(11,26,57,0.15)' }}>
-<div style={{ display: 'flex', alignItems: 'center', gap: '10px',
-marginBottom: '15px' }}>
-<Sparkles color="#FFFFFF" size={24} />
-<h2 style={{ margin: 0, fontSize: '22px', fontWeight: '800' }}>Find Your
-Ideal Course Match</h2>
-</div>
-<p style={{ color: '#CBD5E1', fontSize: '14px', fontWeight: '600',
-marginBottom: '25px', maxWidth: '760px', lineHeight: 1.6 }}>
-Enter the course you currently have and the course you want. Campora
-will show exact matches, similar reciprocal swaps, and possible alternatives
-even when section, CRN, professor or schedule is different.
-</p>
-<button onClick={() => {
-setEditingPostId(null); setSearchPref(EMPTY_SWAP);
-setMatchResult(null); setMatchFilter('all'); setIsMatchModalOpen(true);
-}} style={matchSearchBtn}>
-<Plus size={18} /> Check Match / Post Swap Request
+<div className="stack" style={{ gap: 26 }}>
+<div style={{ width: '100%' }}>
+<div className="stack" style={{ width: '100%' }}>
+<button
+  type="button"
+  onClick={() => {
+    setEditingPostId(null);
+    setSearchPref(EMPTY_SWAP);
+    setMatchResult(null);
+    setMatchFilter('all');
+    setIsMatchModalOpen(true);
+  }}
+  style={{
+    width: '100%',
+    minHeight: '180px',
+    background: 'var(--campora-navy)',
+    border: '1.5px solid var(--campora-navy)',
+    borderRadius: '24px',
+    padding: '30px 32px',
+    boxShadow: '0 10px 24px rgba(10, 48, 91, 0.14)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '22px',
+    fontFamily: 'inherit',
+    textAlign: 'left',
+    color: '#FFFFFF'
+  }}
+>
+  <div style={{
+    ...heroIconWrap,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    background: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.20)',
+    color: '#FFFFFF'
+  }}>
+    <ArrowLeftRight size={28} />
+  </div>
+  <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+      <h2 style={{ ...heroCardTitle, fontSize: 26, color: '#FFFFFF' }}>Register &amp; Swap</h2>
+      <span style={{ ...heroCardPill, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}>COURSE MATCH &amp; SWAP</span>
+    </div>
+    <p style={{
+      ...heroCardCopy,
+      maxWidth: 900,
+      margin: 0,
+      color: 'rgba(255,255,255,0.82)',
+      fontFamily: 'inherit'
+    }}>
+      Enter the course you currently have and the course you want. Campora helps you register, compare available options, find reciprocal swap matches, and browse useful alternatives all in one place.
+    </p>
+  </div>
+  <ArrowRight size={24} color="#FFFFFF" style={{ flexShrink: 0 }} />
 </button>
+
 </div>
-<div>
+</div>
+<div className="stack" style={{ gap: 16 }}>
 <h3 style={sectionHeading}>Recent Swap Requests</h3>
 {loading ? (
 <div style={loadingBox}><RefreshCw size={20} /> Loading...</div>
 ) : swapPosts.length === 0 ? (
-<div style={emptyCard}>No swap requests posted yet.</div>
+<div
+  style={{
+    minHeight: '220px',
+    background: '#FAFBFC',
+    border: '1.5px dashed #DCE3EC',
+    borderRadius: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '14px',
+    textAlign: 'center',
+    fontFamily: 'inherit'
+  }}
+>
+  <div
+    style={{
+      width: 68,
+      height: 68,
+      borderRadius: '50%',
+      background: '#F4F7FA',
+      border: '1px solid #E7ECF2',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#8B96A6'
+    }}
+  >
+    <ArrowLeftRight size={30} />
+  </div>
+  <p
+    style={{
+      margin: 0,
+      color: 'var(--campora-text)',
+      fontSize: 16,
+      fontWeight: 800,
+      fontFamily: 'inherit'
+    }}
+  >
+    No swap requests posted yet.
+  </p>
+</div>
 ):(
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
 {swapPosts.map(post => {
@@ -1280,11 +1366,11 @@ handleDeleteReview(review.id)} />}
 </div>
 <div style={{ marginTop: '16px' }}>
 <h4 style={{ margin: 0, fontSize: '19px', fontWeight: '900', color:
-'#0B1A3F' }}>
+'var(--campora-text)' }}>
 {review.course_code}{review.course_name && ` — ${review.course_name}`}
 
 </h4>
-<p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '11px',
+<p style={{ margin: '4px 0 0', color: 'var(--campora-muted)', fontSize: '11px',
 fontWeight: '700' }}>Posted {formatDate(review.created_at)}</p>
 </div>
 <div style={courseInfoGrid}>
@@ -1360,10 +1446,10 @@ curriculum once it is uploaded.</p>
 setSelectedMajor(event.target.value)} style={selectInputStyle}>
 {MAJORS.map(major => <option key={major} value={major}>{major}</option>)}
 </select>
-<div style={{ marginTop: '22px', padding: '45px 25px', border: '1.5px dashed #CBD5E1', borderRadius: '20px', textAlign: 'center' }}> <BookOpen size={32} color="#A3AED0" />
+<div style={{ marginTop: '22px', padding: '45px 25px', border: '1.5px dashed var(--outline)', borderRadius: '20px', textAlign: 'center' }}> <BookOpen size={32} color="var(--campora-muted)" />
 <h4 style={{ margin: '12px 0 5px', fontSize: '18px', fontWeight: '900',
-color: '#0B1A3F' }}>{selectedMajor} Curriculum</h4>
-<p style={{ margin: 0, color: '#94A3B8', fontWeight: '800', fontSize:
+color: 'var(--campora-text)' }}>{selectedMajor} Curriculum</h4>
+<p style={{ margin: 0, color: 'var(--campora-muted)', fontWeight: '800', fontSize:
 '14px' }}>To be uploaded.</p>
 </div>
 </div>
@@ -1388,7 +1474,7 @@ style={selectInputStyle}
 </select>
 </div>
 <form onSubmit={handlePostQuestion} style={reviewCard}>
-<h4 style={{ margin: '0 0 14px', color: '#0B1A3F', fontWeight: '900' }}>
+<h4 style={{ margin: '0 0 14px', color: 'var(--campora-text)', fontWeight: '900' }}>
 {editingQuestionId ? 'Edit Question' : `Ask about ${selectedMajor}`}
 </h4>
 <input type="text" placeholder="Question title" required
@@ -1436,9 +1522,9 @@ question.is_anonymous)}
 handleEditQuestion(question)} onDelete={() =>
 handleDeleteQuestion(question.id)} />}
 </div>
-<h4 style={{ margin: '16px 0 5px', color: '#0B1A3F', fontWeight: '900',
+<h4 style={{ margin: '16px 0 5px', color: 'var(--campora-text)', fontWeight: '900',
 fontSize: '17px' }}>{question.title}</h4>
-<p style={{ margin: '0 0 12px', fontSize: '11px', color: '#A3AED0',
+<p style={{ margin: '0 0 12px', fontSize: '11px', color: 'var(--campora-muted)',
 fontWeight: '700' }}>{formatDate(question.created_at)}</p>
 <p style={bodyText}>{question.content}</p>
 {replies.length > 0 && (
@@ -1527,10 +1613,10 @@ alignItems: 'flex-start', gap: '12px' }}>
 <div style={{ display: 'flex', gap: '10px' }}>
 <div style={bellCircle}><Bell size={18} /></div>
 <div>
-<h4 style={{ margin: 0, color: '#0B1A3F', fontWeight: '900',
+<h4 style={{ margin: 0, color: 'var(--campora-text)', fontWeight: '900',
 fontSize: '17px' }}>{reminder.course_code}</h4>
 {reminder.course_name && <p style={{ margin: '2px 0 0', color:
-'#475569', fontWeight: '700', fontSize: '12px' }}>{reminder.course_name}</p>}
+'var(--campora-body)', fontWeight: '700', fontSize: '12px' }}>{reminder.course_name}</p>}
 </div>
 </div>
 <OwnerActions onEdit={() => handleEditReminder(reminder)}
@@ -1555,11 +1641,11 @@ style={smallOutlineBtn}>{reminder.is_active ? 'Pause Alert' : 'Resume Alert'}</b
 </div>
 
 <div style={infoNotice}>
-<Bell size={18} color="#0B1A3F" />
+<Bell size={18} color="var(--campora-navy)" />
 <div>
 <strong>Seat notification system</strong>
 <p style={{ margin: '3px 0 0', fontSize: '12px', lineHeight: 1.5, color:
-'#64748B' }}>
+'var(--campora-muted)' }}>
 Your alert is saved in Campora. Automatic seat-opening detection
 requires connection to live university course availability data.
 </p>
@@ -1596,15 +1682,15 @@ marginBottom: '9px' }}>
 <span style={myPostSourceBadge}>{item.source}</span>
 <span style={myPostTypeBadge}>{item.type}</span>
 </div>
-<h4 style={{ margin: 0, color: '#0B1A3F', fontSize: '15px',
+<h4 style={{ margin: 0, color: 'var(--campora-text)', fontSize: '15px',
 fontWeight: '900' }}>{item.title}</h4>
 {item.subtitle && <p style={myPostSubtitle}>{item.subtitle}</p>}
 
 </div>
 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-<span style={{ fontSize: '10px', color: '#A3AED0', fontWeight:
+<span style={{ fontSize: '10px', color: 'var(--campora-muted)', fontWeight:
 '700' }}>{formatDate(item.created_at)}</span>
-<div style={{ marginTop: '8px', color: '#94A3B8', display: 'flex',
+<div style={{ marginTop: '8px', color: 'var(--campora-muted)', display: 'flex',
 justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
 </div>
 </div>
@@ -1632,11 +1718,11 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     minHeight: '700px',
     height: '76vh',
     maxHeight: '880px',
-    background: '#FFFFFF',
-    border: '1.5px solid #E2E8F0',
+    background: 'var(--surface-container-lowest)',
+    border: '1.5px solid var(--divider)',
     borderRadius: '24px',
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(11,26,57,0.07)'
+    boxShadow: '0 10px 30px rgba(0,45,98,0.07)'
   }}
  >
   {/* LEFT: INBOX */}
@@ -1645,8 +1731,8 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
      minWidth: 0,
      display: 'flex',
      flexDirection: 'column',
-     borderRight: '1px solid #E2E8F0',
-     background: '#FFFFFF'
+     borderRight: '1px solid var(--divider)',
+     background: 'var(--surface-container-lowest)'
     }}
   >
     <div
@@ -1663,7 +1749,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
   <h4
    style={{
      margin: 0,
-     color: '#0B1A3F',
+     color: 'var(--campora-text)',
      fontSize: '20px',
      fontWeight: '900'
    }}
@@ -1673,7 +1759,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
   <p
    style={{
      margin: '3px 0 0',
-     color: '#94A3B8',
+     color: 'var(--campora-muted)',
      fontSize: '11px',
      fontWeight: '700'
    }}
@@ -1694,8 +1780,8 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     alignItems: 'center',
     gap: '9px',
     padding: '0 13px',
-    background: '#F8FAFC',
-    border: '1.5px solid #E2E8F0',
+    background: '#FAFBFC',
+    border: '1.5px solid var(--divider)',
     borderRadius: '15px'
    }}
   >
@@ -1713,7 +1799,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
      border: 'none',
      outline: 'none',
      background: 'transparent',
-     color: '#0B1A3F',
+     color: 'var(--campora-text)',
      fontSize: '12px',
      fontWeight: '800',
      fontFamily: 'inherit'
@@ -1729,8 +1815,8 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
      margin: '0 14px 12px',
      padding: '6px',
      borderRadius: '14px',
-     border: '1px solid #E2E8F0',
-     background: '#FFFFFF',
+     border: '1px solid var(--divider)',
+     background: 'var(--surface-container-lowest)',
      maxHeight: '220px',
      overflowY: 'auto'
    }}
@@ -1765,7 +1851,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
  style={{
   width: '100%',
   border: 'none',
-  background: '#FFFFFF',
+  background: 'var(--surface-container-lowest)',
   borderRadius: '11px',
   padding: '10px',
   display: 'flex',
@@ -1785,7 +1871,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#0B1A3F',
+    color: 'var(--campora-text)',
     fontSize: '11px',
     fontWeight: '900',
     flexShrink: 0
@@ -1797,7 +1883,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
  <div style={{ minWidth: 0, flex: 1 }}>
   <div
    style={{
-    color: '#0B1A3F',
+    color: 'var(--campora-text)',
     fontSize: '12px',
     fontWeight: '900',
     overflow: 'hidden',
@@ -1812,7 +1898,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
           <div
            style={{
              marginTop: '2px',
-             color: '#94A3B8',
+             color: 'var(--campora-muted)',
              fontSize: '10px',
              fontWeight: '700',
              overflow: 'hidden',
@@ -1846,7 +1932,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
       style={{
        padding: '28px 16px',
        textAlign: 'center',
-       color: '#A3AED0',
+       color: 'var(--campora-muted)',
        fontSize: '11px',
        fontWeight: '800'
       }}
@@ -1881,7 +1967,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
       padding: '4px 6px',
       borderRadius: '16px',
       background: selected
-        ? '#F1F5F9'
+        ? '#FBFCFE'
         : 'transparent',
       boxSizing: 'border-box'
      }}
@@ -1928,7 +2014,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
      display: 'flex',
      alignItems: 'center',
      justifyContent: 'center',
-     color: '#0B1A3F',
+     color: 'var(--campora-text)',
      fontSize: '11px',
      fontWeight: '900',
      flexShrink: 0
@@ -1949,7 +2035,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
    <span
 
   style={{
-   color: '#0B1A3F',
+   color: 'var(--campora-text)',
    fontSize: '12px',
    fontWeight: '900',
    overflow: 'hidden',
@@ -1962,7 +2048,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
 
  <span
   style={{
-    color: '#A3AED0',
+    color: 'var(--campora-muted)',
     fontSize: '9px',
     fontWeight: '700',
     flexShrink: 0
@@ -1978,7 +2064,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
  <div
    style={{
     marginTop: '2px',
-    color: '#94A3B8',
+    color: 'var(--campora-muted)',
     fontSize: '9px',
     fontWeight: '700',
     overflow: 'hidden',
@@ -1993,7 +2079,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
 <div
  style={{
   marginTop: '3px',
-  color: '#64748B',
+  color: 'var(--campora-muted)',
   fontSize: '10px',
 
               fontWeight: '700',
@@ -2030,7 +2116,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
                : []
              ).includes(conversation.userId)
                ? '#C99758'
-               : '#A3AED0',
+               : 'var(--campora-muted)',
              display: 'flex',
              alignItems: 'center',
              justifyContent: 'center',
@@ -2063,7 +2149,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    background: '#FFFFFF'
+    background: 'var(--surface-container-lowest)'
   }}
 >
   {!activeDmUser ? (
@@ -2083,9 +2169,9 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
          width: '62px',
          height: '62px',
          borderRadius: '50%',
-         background: '#FFFFFF',
-         border: '2px solid #0B1A3F',
-         color: '#0B1A3F',
+         background: 'var(--surface-container-lowest)',
+         border: '2px solid var(--campora-navy)',
+         color: 'var(--campora-text)',
          display: 'flex',
          alignItems: 'center',
          justifyContent: 'center',
@@ -2099,7 +2185,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
   <h4
    style={{
     margin: 0,
-    color: '#0B1A3F',
+    color: 'var(--campora-text)',
     fontSize: '18px',
     fontWeight: '900'
    }}
@@ -2111,7 +2197,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     style={{
      maxWidth: '330px',
      margin: '7px 0 0',
-     color: '#94A3B8',
+     color: 'var(--campora-muted)',
      fontSize: '12px',
      fontWeight: '700',
      lineHeight: 1.5
@@ -2128,7 +2214,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     style={{
      padding: '16px 20px',
      minHeight: '70px',
-     borderBottom: '1px solid #E2E8F0',
+     borderBottom: '1px solid var(--divider)',
      display: 'flex',
      alignItems: 'center',
      justifyContent: 'space-between',
@@ -2154,7 +2240,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#0B1A3F',
+    color: 'var(--campora-text)',
     fontWeight: '900',
     fontSize: '12px',
     flexShrink: 0
@@ -2166,7 +2252,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
  <div style={{ minWidth: 0 }}>
   <div
    style={{
-    color: '#0B1A3F',
+    color: 'var(--campora-text)',
     fontSize: '14px',
     fontWeight: '900',
     overflow: 'hidden',
@@ -2180,7 +2266,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
   <div
    style={{
     marginTop: '2px',
-    color: '#94A3B8',
+    color: 'var(--campora-muted)',
     fontSize: '10px',
     fontWeight: '700',
     overflow: 'hidden',
@@ -2209,15 +2295,15 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
            width: '38px',
            height: '38px',
            borderRadius: '11px',
-           border: '1px solid #E2E8F0',
+           border: '1px solid var(--divider)',
            background: (Array.isArray(pinnedDmUsers) ? pinnedDmUsers :
 []).includes(activeDmUser.id)
              ? '#FFF9F1'
-             : '#FFFFFF',
+             : 'var(--surface-container-lowest)',
            color: (Array.isArray(pinnedDmUsers) ? pinnedDmUsers :
 []).includes(activeDmUser.id)
              ? '#C99758'
-             : '#64748B',
+             : 'var(--campora-muted)',
            display: 'flex',
            alignItems: 'center',
            justifyContent: 'center',
@@ -2316,14 +2402,14 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
        gap: '8px',
        padding: '8px 9px',
        borderRadius: '10px',
-       background: '#FFFFFF',
+       background: 'var(--surface-container-lowest)',
        border: '1px solid #C99758'
       }}
     >
       <div
        style={{
          minWidth: 0,
-         color: '#0B1A3F',
+         color: 'var(--campora-text)',
          fontSize: '10px',
          fontWeight: '800',
          overflow: 'hidden',
@@ -2380,7 +2466,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
        padding: '28px',
 
     textAlign: 'center',
-    color: '#A3AED0',
+    color: 'var(--campora-muted)',
     fontSize: '11px',
     fontWeight: '800'
   }}
@@ -2429,16 +2515,16 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
 
     : '16px 16px 16px 4px',
   background: mine
-    ? '#0B1A3F'
-    : '#FFFFFF',
+    ? 'var(--campora-navy)'
+    : 'var(--surface-container-lowest)',
   color: mine
-    ? '#FFFFFF'
-    : '#0B1A3F',
+    ? 'var(--surface-container-lowest)'
+    : 'var(--campora-navy)',
   border: mine
-    ? '1px solid #0B1A3F'
-    : '1px solid #E2E8F0',
+    ? '1px solid var(--campora-navy)'
+    : '1px solid var(--divider)',
   boxShadow:
-    '0 2px 8px rgba(11,26,57,0.05)'
+    '0 2px 8px rgba(0,45,98,0.05)'
  }}
 >
  {parsed?.source?.type === 'swap' && (
@@ -2448,7 +2534,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
       paddingBottom: '6px',
       borderBottom: mine
         ? '1px solid rgba(255,255,255,0.18)'
-        : '1px solid #E2E8F0',
+        : '1px solid var(--divider)',
       fontSize: '9px',
       fontWeight: '800',
       opacity: 0.8
@@ -2468,10 +2554,10 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     borderRadius: '8px',
     background: mine
       ? 'rgba(255,255,255,0.12)'
-      : '#F8FAFC',
+      : '#FAFBFC',
     borderLeft: mine
       ? '3px solid rgba(255,255,255,0.65)'
-      : '3px solid #0B1A3F',
+      : '3px solid var(--campora-navy)',
     fontSize: '9px'
    }}
 
@@ -2580,11 +2666,11 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
           border:
            (users || []).includes(currentUserId)
             ? '1px solid #67E8F9'
-            : '1px solid #E2E8F0',
+            : '1px solid var(--divider)',
           background:
            (users || []).includes(currentUserId)
-            ? '#F1F5F9'
-            : '#FFFFFF',
+            ? '#FBFCFE'
+            : 'var(--surface-container-lowest)',
           borderRadius: '999px',
           padding: '4px 8px',
           fontSize: '11px',
@@ -2617,7 +2703,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
      : { left: 'calc(100% + 4px)' }),
    border: 'none',
    background: 'transparent',
-   color: '#94A3B8',
+   color: 'var(--campora-muted)',
 
    cursor: 'pointer',
    padding: '4px',
@@ -2641,10 +2727,10 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     gap: '4px',
     flexWrap: 'wrap',
     padding: '7px',
-    background: '#FFFFFF',
-    border: '1px solid #E2E8F0',
+    background: 'var(--surface-container-lowest)',
+    border: '1px solid var(--divider)',
     borderRadius: '13px',
-    boxShadow: '0 10px 25px rgba(11,26,57,0.12)'
+    boxShadow: '0 10px 25px rgba(0,45,98,0.12)'
   }}
  >
   {DM_REACTIONS.map(emoji => (
@@ -2678,8 +2764,8 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
  }}
  style={{
   border: 'none',
-  background: '#F8FAFC',
-  color: '#0B1A3F',
+  background: '#FAFBFC',
+  color: 'var(--campora-text)',
   borderRadius: '8px',
   padding: '6px 8px',
   display: 'flex',
@@ -2698,8 +2784,8 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
  onClick={() => togglePinDmMessage(message.id)}
  style={{
   border: 'none',
-  background: isPinnedMessage ? '#FFF9F1' : '#F8FAFC',
-  color: isPinnedMessage ? '#C99758' : '#0B1A3F',
+  background: isPinnedMessage ? '#FFF9F1' : '#FAFBFC',
+  color: isPinnedMessage ? '#C99758' : 'var(--campora-text)',
   borderRadius: '8px',
   padding: '6px 8px',
   display: 'flex',
@@ -2733,8 +2819,8 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
   <div
    style={{
     padding: '9px 18px',
-    background: '#F8FAFC',
-    borderTop: '1px solid #E2E8F0',
+    background: '#FAFBFC',
+    borderTop: '1px solid var(--divider)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -2745,7 +2831,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
    <div style={{ minWidth: 0 }}>
     <div
       style={{
-       color: '#0B1A3F',
+       color: 'var(--campora-text)',
        fontSize: '10px',
        fontWeight: '900'
       }}
@@ -2756,7 +2842,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
    <div
     style={{
      marginTop: '2px',
-     color: '#64748B',
+     color: 'var(--campora-muted)',
      fontSize: '9px',
      fontWeight: '700',
      overflow: 'hidden',
@@ -2775,7 +2861,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
     style={{
      border: 'none',
      background: 'transparent',
-     color: '#94A3B8',
+     color: 'var(--campora-muted)',
      cursor: 'pointer',
      display: 'flex'
     }}
@@ -2789,11 +2875,11 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
 <div
   style={{
    padding: '14px 16px',
-   borderTop: '1px solid #E2E8F0',
+   borderTop: '1px solid var(--divider)',
    display: 'flex',
    alignItems: 'flex-end',
    gap: '10px',
-   background: '#FFFFFF',
+   background: 'var(--surface-container-lowest)',
    flexShrink: 0
   }}
 >
@@ -2818,11 +2904,11 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
      minHeight: '48px',
      maxHeight: '120px',
      resize: 'none',
-     border: '1.5px solid #E2E8F0',
-     background: '#F8FAFC',
+     border: '1.5px solid var(--divider)',
+     background: '#FAFBFC',
      borderRadius: '15px',
      padding: '12px 13px',
-     color: '#0B1A3F',
+     color: 'var(--campora-text)',
      outline: 'none',
      fontFamily: 'inherit',
      fontSize: '12px',
@@ -2840,8 +2926,8 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
      height: '48px',
      borderRadius: '50%',
      border: 'none',
-     background: '#0B1A3F',
-     color: '#FFFFFF',
+     background: 'var(--campora-navy)',
+     color: 'var(--surface-container-lowest)',
      display: 'flex',
      alignItems: 'center',
      justifyContent: 'center',
@@ -2979,7 +3065,7 @@ cannot currently be contacted.</div>
 })}
 </div>
 )}
-<div style={{ marginTop: '18px', paddingTop: '18px', borderTop: '1px solid #E2E8F0' }}> <p style={{ ...bodyText, marginBottom: '10px', textAlign: 'center' }}
+<div style={{ marginTop: '18px', paddingTop: '18px', borderTop: '1px solid var(--divider)' }}> <p style={{ ...bodyText, marginBottom: '10px', textAlign: 'center' }}
 >Want other students to find your request too?</p>
 <button type="button" onClick={handleConfirmPostMatch}
 style={{ ...secondaryActionBtn, width: '100%' }}>Post My Request Anyway</button>
@@ -3075,7 +3161,7 @@ anonymously</label>
 </div>
 </div>
 )}
-</div>
+</PageShell>
 );
 }
 function TabButton({ active, onClick, icon, label }) {
@@ -3087,27 +3173,29 @@ const tabPalette = {
 'Major Q&A': { bg: '#F2F9F7', text: '#5E9A8B', border: '#D9EBE6' },
 'Seat Opening Reminders': { bg: '#FFF9F1', text: '#C99758', border: '#F0E2CB' },
 'My Posts': { bg: '#FBF5F9', text: '#A87695', border: '#EADDE5' },
-'Direct Messages': { bg: '#F4F7FE', text: '#0B1A3F', border: '#DDE3EE' }
+'Direct Messages': { bg: '#FAF9FE', text: 'var(--campora-navy)', border: '#DDE3EE' }
 };
 const tone = tabPalette[normalizedLabel] || {
-bg: '#F4F7FE',
-text: '#0B1A3F',
+bg: '#FAF9FE',
+text: 'var(--campora-navy)',
 border: '#DCE3F0'
 };
 return (
 <button
 onClick={onClick}
-style={{
-...colorTabBtnBase,
-background: active ? tone.text : tone.bg,
-color: active ? '#FFFFFF' : tone.text,
-border: active
-? `2px solid ${tone.text}`
-: `1.5px solid ${tone.border}`,
-boxShadow: active
-? `0 6px 16px ${tone.text}28`
-: 'none'
-}}
+className={`filter-chip ${active ? 'active' : ''}`}
+style={active
+? {
+    background: tone.bg,
+    color: tone.text,
+    border: `2px solid ${tone.text}`,
+    boxShadow: `0 4px 12px ${tone.text}18`
+  }
+: {
+    background: tone.bg,
+    color: tone.text,
+    border: `1.5px solid ${tone.border}`
+  }}
 >
 {icon}
 {normalizedLabel}
@@ -3185,7 +3273,7 @@ return (
 {post[`${prefix}_crn`] && <span style={smallCrnBadge}>CRN {post[`${prefix}
 _crn`]}</span>}
 </div>
-<h4 style={{ margin: '10px 0 3px', color: '#0B1A3F', fontSize: '16px',
+<h4 style={{ margin: '10px 0 3px', color: 'var(--campora-text)', fontSize: '16px',
 fontWeight: '900' }}>{post[`${prefix}_course`]}</h4>
 {post[`${prefix}_course_name`] && <p style={swapCourseName}>{post[`${prefix}_course_name`]}</p>}
 <div style={compactCourseInfoGrid}>
@@ -3201,7 +3289,7 @@ function MatchCourseSummary({ label, type, post }) {
 return (
 <div style={swapCourseBlock}>
 <span style={type === 'have' ? badgeRed : badgeGreen}>{label}</span>
-<h4 style={{ margin: '10px 0', color: '#0B1A3F', fontWeight: '900' }}
+<h4 style={{ margin: '10px 0', color: 'var(--campora-text)', fontWeight: '900' }}
 >{post[`${type}_course`]}</h4>
 <div style={{ display: 'grid', gap: '8px' }}>
 <InfoItem label="COURSE NAME" value={post[`${type}_course_name`]} /
@@ -3222,10 +3310,10 @@ return (
 alignItems: 'center', gap: '10px', cursor: clickable ? 'pointer' : 'default' }}>
 <div style={avatarCircle}>{displayName.charAt(0).toUpperCase()}</div>
 <div>
-<p style={{ margin: 0, fontWeight: '900', color: '#0B1A3F', fontSize:
+<p style={{ margin: 0, fontWeight: '900', color: 'var(--campora-text)', fontSize:
 
 '14px' }}>{displayName}</p>
-<span style={{ fontSize: '10px', color: '#A3AED0', fontWeight: '700' }}
+<span style={{ fontSize: '10px', color: 'var(--campora-muted)', fontWeight: '700' }}
 
 >{isAnonymous ? 'Anonymous' : clickable ? 'Click to message' : 'Student'}</span>
 </div>
@@ -3250,7 +3338,7 @@ function ModalHeader({ title, onClose }) {
 return (
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems:
 'center', gap: '10px', marginBottom: '20px' }}>
-<h2 style={{ margin: 0, color: '#0B1A3F', fontWeight: '900', fontSize:
+<h2 style={{ margin: 0, color: 'var(--campora-text)', fontWeight: '900', fontSize:
 '20px' }}>{title}</h2>
 <button type="button" onClick={onClose} style={closeModalBtn}><X
 size={19} /></button>
@@ -3284,8 +3372,8 @@ alignItems: 'flex-start' }}>
 <div onClick={!mine ? onMessage : undefined} style={{ cursor: !mine ?
 'pointer' : 'default' }}>
 <p style={{ margin: 0, fontWeight: '900', fontSize: '12px', color:
-'#0B1A3F' }}>{reply.author_name}</p>
-<span style={{ fontSize: '9px', color: '#A3AED0', fontWeight: '700' }}>{!
+'var(--campora-text)' }}>{reply.author_name}</p>
+<span style={{ fontSize: '9px', color: 'var(--campora-muted)', fontWeight: '700' }}>{!
 mine ? 'Click to message' : 'Your reply'}</span>
 </div>
 {mine && !editing && <OwnerActions onEdit={onStartEdit}
@@ -3304,323 +3392,213 @@ onClick={onCancelEdit}>Cancel</button>
 </div>
 </div>
 ):(
-<p style={{ margin: '8px 0 0', fontSize: '12px', color: '#475569',
+<p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--campora-body)',
 fontWeight: '600', lineHeight: 1.5 }}>{reply.content}</p>
 )}
 </div>
 );
 }
-const colorTabBtnBase = {
-display: 'flex',
-alignItems: 'center',
-gap: '8px',
-padding: '12px 18px',
-borderRadius: '14px',
-
-fontWeight: '900',
-fontSize: '13px',
-cursor: 'pointer',
-whiteSpace: 'nowrap',
-transition: 'all 0.18s ease'
+const registrationHeroCard = {
+  width: '100%',
+  minWidth: 0,
+  minHeight: '190px',
+  background: '#FFFFFF',
+  border: 'none',
+  borderRadius: 0,
+  padding: '28px 30px',
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '20px',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  boxShadow: 'none',
+  color: 'var(--campora-text)',
+  transition: 'background 0.2s ease'
 };
-const matchSearchBtn = { background: '#FFFFFF', color: '#0B1A3F', border:
-'none', padding: '12px 24px', borderRadius: '14px', fontWeight: '900', fontSize:
-'14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' };
-const primaryActionBtn = { background: '#0B1A3F', color: '#FFFFFF', border:
+const swapHeroCard = {
+  ...registrationHeroCard,
+  background: '#FBFCFE',
+  borderLeft: '1.5px solid #E6EBF2'
+};
+const heroIconWrap = {
+  width: '54px',
+  height: '54px',
+  borderRadius: '16px',
+  background: '#F5F8FC',
+  border: '1px solid #E4EAF2',
+  color: 'var(--campora-navy)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0
+};
+const heroCardTitle = {
+  margin: 0,
+  fontSize: '24px',
+  fontWeight: '900',
+  color: 'var(--campora-text)',
+  letterSpacing: '-0.3px'
+};
+const heroCardCopy = {
+  margin: '14px 0 20px',
+  fontSize: '14px',
+  lineHeight: 1.65,
+  color: 'var(--campora-muted)',
+  fontWeight: '600',
+  maxWidth: '560px',
+  wordBreak: 'normal',
+  overflowWrap: 'break-word'
+};
+const heroCardPill = {
+  background: '#F5F8FC',
+  color: 'var(--campora-navy)',
+  border: '1px solid #E0E7F0',
+  borderRadius: '999px',
+  padding: '6px 10px',
+  fontSize: '9px',
+  fontWeight: '900',
+  letterSpacing: '0.6px'
+};
+const heroCardCta = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  color: 'var(--campora-navy)',
+  fontSize: '12px',
+  fontWeight: '900',
+  letterSpacing: '0.4px',
+  paddingTop: '3px'
+};
+const primaryActionBtn = { background: 'var(--campora-navy)', color: 'var(--surface-container-lowest)', border:
 'none', padding: '10px 16px', borderRadius: '12px', fontWeight: '800', fontSize:
 '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent:
 'center', gap: '6px' };
-const secondaryActionBtn = { background: '#FFFFFF', color: '#0B1A3F', border:
-'1.5px solid #E2E8F0', padding: '10px 16px', borderRadius: '12px', fontWeight:
+const secondaryActionBtn = { background: 'var(--surface-container-lowest)', color: 'var(--campora-text)', border:
+'1.5px solid var(--divider)', padding: '10px 16px', borderRadius: '12px', fontWeight:
 '800', fontSize: '13px', cursor: 'pointer' };
-const primarySaveBtn = { width: '100%', background: '#0B1A3F', color:
-'#FFFFFF', border: 'none', padding: '14px', borderRadius: '14px', fontWeight:
+const primarySaveBtn = { width: '100%', background: 'var(--campora-navy)', color:
+'var(--surface-container-lowest)', border: 'none', padding: '14px', borderRadius: '14px', fontWeight:
 '900', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center',
 justifyContent: 'center', gap: '8px' };
 const sectionHeading = { margin: '0 0 15px', fontSize: '20px', fontWeight: '900',
-color: '#0B1A3F' };
+color: 'var(--campora-text)' };
 const sectionDescription = { margin: '0 0 18px', fontSize: '13px', color:
-'#64748B', fontWeight: '600', lineHeight: 1.5 };
+'var(--campora-muted)', fontWeight: '600', lineHeight: 1.5 };
 const sectionTopRow = { display: 'flex', alignItems: 'center', justifyContent:
 'space-between', gap: '15px', flexWrap: 'wrap' };
-const swapCard = { background: '#FFFFFF', padding: '20px', borderRadius:
-'20px', border: '1.5px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+const swapCard = { background: 'var(--surface-container-lowest)', padding: '20px', borderRadius:
+'20px', border: '1.5px solid var(--divider)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
 transition: 'all 0.2s ease' };
-const takenSwapCard = { background: '#FBFCFE', border: '1.5px solid #CBD5E1' }; const reviewCard = { background: '#FFFFFF', padding: '22px', borderRadius:
-'20px', border: '1.5px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }; const emptyCard = { background: '#FFFFFF', border: '1.5px dashed #CBD5E1',
-padding: '30px', borderRadius: '20px', textAlign: 'center', color: '#94A3B8',
+const takenSwapCard = { background: '#FBFCFE', border: '1.5px solid var(--outline)' }; const reviewCard = { background: 'var(--surface-container-lowest)', padding: '22px', borderRadius:
+'20px', border: '1.5px solid var(--divider)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }; const emptyCard = { background: 'var(--surface-container-lowest)', border: '1.5px dashed var(--outline)',
+padding: '30px', borderRadius: '20px', textAlign: 'center', color: 'var(--campora-muted)',
 fontWeight: '700', fontSize: '14px' };
 const loadingBox = { display: 'flex', alignItems: 'center', justifyContent: 'center',
-gap: '8px', padding: '35px', color: '#A3AED0', fontWeight: '700' };
+gap: '8px', padding: '35px', color: 'var(--campora-muted)', fontWeight: '700' };
 const avatarCircle = { width: '38px', height: '38px', borderRadius: '50%',
-background: '#F8FAFC', border: '1.5px solid #E2E8F0', color: '#0B1A3F',
+background: '#FAFBFC', border: '1.5px solid var(--divider)', color: 'var(--campora-text)',
 fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center',
 fontSize: '14px', flexShrink: 0 };
-const swapCourseBlock = { background: '#F8FAFC', border: '1px solid #E9EDF5', borderRadius: '15px', padding: '15px' }; const swapCourseHeader = { display: 'flex', justifyContent: 'space-between',
+const swapCourseBlock = { background: '#FAFBFC', border: '1px solid #E9EDF5', borderRadius: '15px', padding: '15px' }; const swapCourseHeader = { display: 'flex', justifyContent: 'space-between',
 alignItems: 'center', gap: '8px' };
 
-const swapCourseName = { margin: '0 0 12px', color: '#64748B', fontSize:
+const swapCourseName = { margin: '0 0 12px', color: 'var(--campora-muted)', fontSize:
 '11px', fontWeight: '700', lineHeight: 1.4 };
 
 const compactCourseInfoGrid = { display: 'grid', gridTemplateColumns:
-'repeat(2, minmax(0, 1fr))', gap: '10px', paddingTop: '11px', borderTop: '1px solid #E2E8F0' }; const swapArrowDivider = { position: 'relative', height: '34px', display: 'flex',
+'repeat(2, minmax(0, 1fr))', gap: '10px', paddingTop: '11px', borderTop: '1px solid var(--divider)' }; const swapArrowDivider = { position: 'relative', height: '34px', display: 'flex',
 alignItems: 'center', justifyContent: 'center' };
 const swapArrowCircle = { width: '30px', height: '30px', borderRadius: '50%',
-background: '#FFFFFF', border: '1.5px solid #E2E8F0', color: '#94A3B8',
+background: 'var(--surface-container-lowest)', border: '1.5px solid var(--divider)', color: 'var(--campora-muted)',
 display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const smallCrnBadge = { background: '#FFFFFF', color: '#64748B', border: '1px solid #E2E8F0', padding: '4px 8px', borderRadius: '8px', fontSize: '9px', fontWeight: '900' };
+const smallCrnBadge = { background: 'var(--surface-container-lowest)', color: 'var(--campora-muted)', border: '1px solid var(--divider)', padding: '4px 8px', borderRadius: '8px', fontSize: '9px', fontWeight: '900' };
 const availableStatusBadge = { background: '#F2F9F7', color: '#5E9A8B',
 border: '1px solid #D9EBE6', padding: '5px 9px', borderRadius: '9px', fontSize:
 '9px', fontWeight: '900', letterSpacing: '0.4px' };
-const takenStatusBadge = { background: '#F1F5F9', color: '#64748B', border:
-'1px solid #CBD5E1', padding: '5px 9px', borderRadius: '9px', fontSize: '9px',
+const takenStatusBadge = { background: '#FBFCFE', color: 'var(--campora-muted)', border:
+'1px solid var(--outline)', padding: '5px 9px', borderRadius: '9px', fontSize: '9px',
 fontWeight: '900', letterSpacing: '0.4px' };
-const takenNotice = { marginTop: '15px', background: '#F1F5F9', color:
-'#64748B', border: '1px solid #E2E8F0', padding: '10px 12px', borderRadius:
+const takenNotice = { marginTop: '15px', background: '#FBFCFE', color:
+'var(--campora-muted)', border: '1px solid var(--divider)', padding: '10px 12px', borderRadius:
 '11px', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center',
 justifyContent: 'center', gap: '6px' };
-const markTakenButton = { width: '100%', background: '#FFFFFF', color:
-'#0B1A3F', border: '1.5px solid #CBD5E1', padding: '9px 12px', borderRadius:
+const markTakenButton = { width: '100%', background: 'var(--surface-container-lowest)', color:
+'var(--campora-text)', border: '1.5px solid var(--outline)', padding: '9px 12px', borderRadius:
 '11px', fontWeight: '800', fontSize: '11px', cursor: 'pointer', display: 'flex',
 alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '10px' };
-const reopenSwapButton = { ...markTakenButton, color: '#475569' };
-const swapFormSection = { background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '17px', display: 'flex', flexDirection: 'column', gap: '12px' };
+const reopenSwapButton = { ...markTakenButton, color: 'var(--campora-body)' };
+const swapFormSection = { background: '#FAFBFC', border: '1px solid var(--divider)', borderRadius: '16px', padding: '17px', display: 'flex', flexDirection: 'column', gap: '12px' };
 const swapFormSectionHeader = { display: 'flex', alignItems: 'center', gap:
 '10px', marginBottom: '2px' };
-const swapFormTitle = { margin: 0, color: '#0B1A3F', fontSize: '14px',
+const swapFormTitle = { margin: 0, color: 'var(--campora-text)', fontSize: '14px',
 fontWeight: '900' };
-const swapFormSubtitle = { margin: '2px 0 0', color: '#94A3B8', fontSize:
+const swapFormSubtitle = { margin: '2px 0 0', color: 'var(--campora-muted)', fontSize:
 '10px', fontWeight: '700' };
-const badgeRed = { background: '#FFF6F2', color: '#D9896A', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900' }; const badgeGreen = { background: '#F2F9F7', color: '#5E9A8B', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const badgeGray = { background: '#F1F5F9', color: '#64748B', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const reviewTag = { background: '#FFF9F1', color: '#D97706', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '800' }; const dmBtnStyle = { width: '100%', background: '#FFFFFF', border: '1.5px solid #E2E8F0', color: '#0B1A3F', padding: '10px', borderRadius: '12px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' };
+const badgeRed = { background: '#FFF6F2', color: '#D9896A', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900' }; const badgeGreen = { background: '#F2F9F7', color: '#5E9A8B', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const badgeGray = { background: '#FBFCFE', color: 'var(--campora-muted)', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const reviewTag = { background: '#FFF9F1', color: '#D97706', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '800' }; const dmBtnStyle = { width: '100%', background: 'var(--surface-container-lowest)', border: '1.5px solid var(--divider)', color: 'var(--campora-text)', padding: '10px', borderRadius: '12px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' };
 
-const modalInput = { width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: '12px', border: '1.5px solid #E2E8F0', fontSize: '13px', fontWeight: '700', color: '#0B1A3F', outline: 'none', background: '#FFFFFF' };
+const modalInput = { width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: '12px', border: '1.5px solid var(--divider)', fontSize: '13px', fontWeight: '700', color: 'var(--campora-text)', outline: 'none', background: 'var(--surface-container-lowest)' };
 const selectInputStyle = { width: '100%', boxSizing: 'border-box', padding:
-'12px 14px', borderRadius: '12px', border: '1.5px solid #E2E8F0', fontSize:
-'14px', fontWeight: '800', color: '#0B1A3F', outline: 'none', background:
-'#FFFFFF' };
-const fieldLabel = { fontSize: '10px', fontWeight: '900', color: '#0B1A3F',
+'12px 14px', borderRadius: '12px', border: '1.5px solid var(--divider)', fontSize:
+'14px', fontWeight: '800', color: 'var(--campora-text)', outline: 'none', background:
+'var(--surface-container-lowest)' };
+const fieldLabel = { fontSize: '10px', fontWeight: '900', color: 'var(--campora-text)',
 marginBottom: '6px', display: 'block', letterSpacing: '0.6px' };
 const checkboxLabel = { display: 'flex', alignItems: 'center', gap: '8px', cursor:
-'pointer', fontSize: '12px', fontWeight: '700', color: '#0B1A3F' };
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(11,26,63,0.42)',
+'pointer', fontSize: '12px', fontWeight: '700', color: 'var(--campora-text)' };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,45,98,0.42)',
 backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent:
 'center', padding: '20px', zIndex: 1000 };
 const modalCardLarge = { width: '100%', maxWidth: '650px', maxHeight:
 '90vh', overflowY: 'auto', padding: '28px', boxSizing: 'border-box', background:
-'#FFFFFF', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.18)' };
-const dmSearchCard = { background: '#FFFFFF', border: '1.5px solid #E2E8F0',
-borderRadius: '16px', padding: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }; const dmSearchInput = { ...modalInput, paddingLeft: '42px', height: '46px' };
-const dmSearchIcon = { color: '#94A3B8', pointerEvents: 'none', flexShrink: 0 };
-const dmSearchResultsBox = { marginTop: '8px', borderTop: '1px solid #E2E8F0', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '260px', overflowY: 'auto' };
-const dmSearchResultRow = { width: '100%', border: 'none', background:
-'#FFFFFF', borderRadius: '12px', padding: '10px', display: 'flex', alignItems:
-'center', gap: '10px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' };
-const dmSearchStatus = { padding: '14px', textAlign: 'center', color: '#94A3B8',
+'var(--surface-container-lowest)', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.18)' };
+const dmSearchStatus = { padding: '14px', textAlign: 'center', color: 'var(--campora-muted)',
 fontSize: '12px', fontWeight: '700' };
 
-const instagramPinButton = { flexShrink: 0, width: '34px', height: '34px',
-borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-cursor: 'pointer' };
-const instagramHeaderPin = { width: '38px', height: '38px', borderRadius:
-'11px', border: '1px solid #E2E8F0', background: '#FFFFFF', display: 'flex',
-alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
-const instagramHeaderPinActive = { background: '#FFF9F1', borderColor:
-'#C99758' };
-const instagramPinnedMessageLabel = { display: 'flex', alignItems: 'center',
-gap: '4px', color: '#C99758', fontSize: '9px', fontWeight: '900', marginBottom:
-'4px' };
-const instagramReactionRow = { display: 'flex', gap: '4px', flexWrap: 'wrap',
-
-marginTop: '4px' };
-const instagramReactionPill = { border: '1px solid #E2E8F0', background:
-
-'#FFFFFF', borderRadius: '999px', padding: '3px 8px', fontSize: '11px', cursor:
-'pointer', color: '#0B1A3F', fontWeight: '800' };
-const instagramMessageMenuButton = { position: 'absolute', top: '8px', border:
-'none', background: 'transparent', color: '#A3AED0', cursor: 'pointer', padding:
-'4px 7px', fontWeight: '900', letterSpacing: '1px' };
-const instagramMessageMenu = { position: 'absolute', top: '34px', background:
-'#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '13px', padding: '7px',
-boxShadow: '0 10px 25px rgba(11,26,57,0.12)', zIndex: 40, display: 'flex',
-alignItems: 'center', gap: '3px', flexWrap: 'wrap', minWidth: '250px', maxWidth:
-'min(310px, calc(100vw - 80px))' };
-const instagramEmojiButton = { border: 'none', background: 'transparent',
-fontSize: '16px', cursor: 'pointer', padding: '4px' };
-const instagramMenuAction = { border: 'none', background: '#F8FAFC', color:
-'#0B1A3F', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems:
-'center', gap: '4px', fontSize: '10px', fontWeight: '800', cursor: 'pointer' };
-const instagramReplyQuote = { display: 'flex', flexDirection: 'column', gap: '2px',
-padding: '7px 9px', marginBottom: '7px', borderRadius: '9px', background:
-'#FFFFFF', borderLeft: '3px solid #0B1A3F', color: '#64748B', fontSize: '10px' };
-const instagramReplyQuoteMine = { background: 'rgba(255,255,255,0.13)',
-borderLeftColor: 'rgba(255,255,255,0.7)', color: 'rgba(255,255,255,0.9)' };
-const instagramReplyComposerPreview = { padding: '10px 20px', borderTop:
-'1px solid #E2E8F0', background: '#F8FAFC', display: 'flex', alignItems: 'center',
-justifyContent: 'space-between', gap: '12px', color: '#0B1A3F', fontSize: '10px',
-flexShrink: 0, position: 'relative', zIndex: 3 };
-const instagramReplyClose = { border: 'none', background: 'transparent', color:
-'#94A3B8', cursor: 'pointer', display: 'flex' };
-const instagramDmShell = { display: 'grid', gridTemplateColumns: '390px minmax(0, 1fr)', minHeight: '700px', height: '76vh', maxHeight: '880px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '24px',
-overflow: 'hidden', boxShadow: '0 10px 30px rgba(11,26,57,0.08)' };
-const instagramDmSidebar = { borderRight: '1px solid #E2E8F0', display: 'flex',
-flexDirection: 'column', minWidth: 0, background: '#FFFFFF' };
-const instagramDmSidebarHeader = { padding: '24px 22px 16px', display: 'flex',
-alignItems: 'center', justifyContent: 'space-between', gap: '12px' };
-const instagramDmSidebarTitle = { margin: 0, color: '#0B1A3F', fontSize: '22px',
-fontWeight: '900' };
-const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: '#94A3B8',
-fontSize: '11px', fontWeight: '700' };
-const instagramSearchWrap = { padding: '0 18px 16px' };
-const instagramSearchBar = { height: '50px', border: '1.5px solid #E2E8F0',
-borderRadius: '15px', background: '#F8FAFC', display: 'flex', alignItems:
-'center', gap: '10px', padding: '0 15px', boxSizing: 'border-box' };
-const instagramSearchInput = { width: '100%', minWidth: 0, height: '100%',
-border: 'none', outline: 'none', padding: 0, margin: 0, background: 'transparent',
-
-color: '#0B1A3F', fontSize: '13px', fontWeight: '700', fontFamily: 'inherit',
-boxSizing: 'border-box', lineHeight: 1 };
-const instagramSearchResults = { margin: '0 16px 12px', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '6px', maxHeight: '250px', overflowY: 'auto', background: '#FFFFFF', boxShadow: '0 8px 22px rgba(11,26,57,0.08)',
-zIndex: 2 };
-const instagramSearchResultRow = { width: '100%', border: 'none', background:
-'#FFFFFF', borderRadius: '11px', padding: '11px', display: 'flex', alignItems:
-'center', gap: '12px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' };
-const instagramThreadList = { flex: 1, overflowY: 'auto', padding: '6px 10px 16px' }; const instagramThreadRow = { width: '100%', border: 'none', background:
-'transparent', borderRadius: '16px', padding: '13px 12px', display: 'flex', gap:
-'13px', alignItems: 'center', textAlign: 'left', cursor: 'pointer', fontFamily:
-'inherit' };
-const instagramThreadRowActive = { background: '#F1F5F9' };
-const instagramAvatar = { width: '48px', height: '48px', borderRadius: '50%',
-flexShrink: 0, border: '1.5px solid #E2E8F0', background: '#F8FAFC', color:
-'#0B1A3F', fontSize: '14px', fontWeight: '900', display: 'flex', alignItems:
-'center', justifyContent: 'center' };
-const instagramAvatarLarge = { ...instagramAvatar, width: '52px', height: '52px',
-fontSize: '15px' };
-const instagramPersonName = { margin: 0, color: '#0B1A3F', fontSize: '14px',
-fontWeight: '900', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow:
-'ellipsis' };
-const instagramPersonMeta = { margin: '3px 0 0', color: '#A3AED0', fontSize:
-'10px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden',
-textOverflow: 'ellipsis' };
-const instagramThreadTopLine = { display: 'flex', alignItems: 'center',
-justifyContent: 'space-between', gap: '8px' };
-const instagramThreadDate = { color: '#A3AED0', fontSize: '8px', fontWeight:
-'700', flexShrink: 0 };
-const instagramMessagePreview = { margin: '5px 0 0', color: '#64748B',
-fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden',
-textOverflow: 'ellipsis' };
-const instagramEmptyThreads = { padding: '28px 14px', textAlign: 'center',
-color: '#A3AED0', fontSize: '11px', fontWeight: '700' };
-const instagramChatPanel = { minWidth: 0, minHeight: 0, height: '100%',
-display: 'flex', flexDirection: 'column', background: '#FFFFFF', overflow:
-'hidden' };
-const instagramChatHeader = { minHeight: '86px', padding: '16px 24px',
-borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center',
-justifyContent: 'space-between' };
-const instagramChatName = { margin: 0, color: '#0B1A3F', fontSize: '17px',
-fontWeight: '900' };
-const instagramChatEmail = { margin: '4px 0 0', color: '#94A3B8', fontSize:
-'11px', fontWeight: '700' };
-
-const instagramSwapContext = { margin: '10px 18px 0', background: '#F8FAFC',
-border: '1px solid #E2E8F0', borderRadius: '11px', padding: '9px 11px', display:
-'flex', alignItems: 'center', gap: '7px', color: '#64748B', fontSize: '10px',
-
-fontWeight: '800' };
-const instagramChatHistory = { position: 'relative', flex: '1 1 auto', minHeight: 0,
-overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain',
-WebkitOverflowScrolling: 'touch', padding: '26px 24px', background:
-'#FFFFFF' };
-const instagramEmptyChat = { height: '100%', display: 'flex', alignItems:
-'center', justifyContent: 'center', color: '#A3AED0', fontSize: '12px', fontWeight:
-'700' };
-const instagramNoChat = { height: '100%', display: 'flex', flexDirection:
-'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
-padding: '35px' };
-const instagramNoChatIcon = { width: '72px', height: '72px', borderRadius:
-'50%', border: '2px solid #0B1A3F', color: '#0B1A3F', display: 'flex', alignItems:
-'center', justifyContent: 'center', marginBottom: '14px' };
-const instagramNoChatTitle = { margin: 0, color: '#0B1A3F', fontSize: '18px',
-fontWeight: '900' };
-const instagramNoChatText = { margin: '7px 0 0', color: '#94A3B8', maxWidth:
-'320px', fontSize: '11px', fontWeight: '700', lineHeight: 1.5 };
-const instagramBubble = { maxWidth: '72%', padding: '12px 14px',
-borderRadius: '19px', fontSize: '13px' };
-const instagramBubbleMine = { background: '#0B1A3F', color: '#FFFFFF',
-borderBottomRightRadius: '6px' };
-const instagramBubbleTheirs = { background: '#F1F5F9', color: '#0B1A3F',
-borderBottomLeftRadius: '6px' };
-const instagramBubbleText = { margin: 0, fontSize: '13px', lineHeight: 1.5,
-fontWeight: '600', whiteSpace: 'pre-wrap', wordBreak: 'break-word' };
-const instagramBubbleFooter = { display: 'flex', alignItems: 'center',
-justifyContent: 'space-between', gap: '10px', marginTop: '5px', fontSize: '8px',
-opacity: 0.7 };
-const instagramComposer = { borderTop: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: '#FFFFFF', flexShrink: 0, position: 'relative', zIndex: 3 };
-const instagramComposerInput = { ...modalInput, flex: 1, height: '50px',
-minHeight: '50px', maxHeight: '120px', resize: 'none', borderRadius: '20px',
-background: '#F8FAFC', padding: '14px 16px', fontSize: '13px' };
-const instagramSendButton = { width: '48px', height: '48px', borderRadius:
-'50%', border: 'none', background: '#0B1A3F', color: '#FFFFFF', display: 'flex',
-alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 };
-const chatModal = { width: 'min(860px, 94vw)', height: 'min(760px, 90vh)',
-padding: '24px', boxSizing: 'border-box', background: '#FFFFFF', borderRadius:
-'22px', boxShadow: '0 20px 50px rgba(0,0,0,0.20)', display: 'flex', flexDirection:
-'column' };
 const modalForm = { display: 'flex', flexDirection: 'column', gap: '14px' };
 
 const twoColumnGrid = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }; const formBottomRow = { display: 'flex', justifyContent: 'space-between',
 alignItems: 'center', gap: '15px', flexWrap: 'wrap' };
 
-const iconActionBtn = { background: '#FFFFFF', border: '1.5px solid #E2E8F0',
-padding: '7px', borderRadius: '8px', cursor: 'pointer', color: '#64748B', display:
+const iconActionBtn = { background: 'var(--surface-container-lowest)', border: '1.5px solid var(--divider)',
+padding: '7px', borderRadius: '8px', cursor: 'pointer', color: 'var(--campora-muted)', display:
 'flex', alignItems: 'center', justifyContent: 'center' };
 const closeModalBtn = { background: 'transparent', border: 'none', color:
-'#94A3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent:
+'var(--campora-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent:
 'center', padding: '4px' };
-const courseInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', padding: '15px', margin: '15px 0', background: '#F8FAFC', borderRadius: '14px', border: '1px solid #E2E8F0' };
-const infoLabel = { display: 'block', color: '#94A3B8', fontSize: '9px',
+const courseInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', padding: '15px', margin: '15px 0', background: '#FAFBFC', borderRadius: '14px', border: '1px solid var(--divider)' };
+const infoLabel = { display: 'block', color: 'var(--campora-muted)', fontSize: '9px',
 fontWeight: '900', letterSpacing: '0.6px', marginBottom: '3px' };
-const infoValue = { margin: 0, color: '#0B1A3F', fontSize: '12px', fontWeight:
+const infoValue = { margin: 0, color: 'var(--campora-text)', fontSize: '12px', fontWeight:
 '800' };
-const bodyText = { margin: 0, fontSize: '13px', color: '#334155', fontWeight:
+const bodyText = { margin: 0, fontSize: '13px', color: 'var(--campora-body)', fontWeight:
 '600', lineHeight: 1.6 };
 const replySection = { display: 'flex', flexDirection: 'column', gap: '9px',
-marginTop: '15px', paddingLeft: '14px', borderLeft: '2px solid #E2E8F0' };
-const replyCard = { background: '#F8FAFC', padding: '11px 13px', borderRadius:
-'12px', border: '1px solid #E2E8F0' };
+marginTop: '15px', paddingLeft: '14px', borderLeft: '2px solid var(--divider)' };
+const replyCard = { background: '#FAFBFC', padding: '11px 13px', borderRadius:
+'12px', border: '1px solid var(--divider)' };
 const replyButton = { background: 'none', border: 'none', padding: 0, color:
-'#0B1A3F', fontWeight: '800', fontSize: '12px', cursor: 'pointer', display: 'flex',
+'var(--campora-text)', fontWeight: '800', fontSize: '12px', cursor: 'pointer', display: 'flex',
 alignItems: 'center', gap: '5px' };
 const reminderFormGrid = { display: 'grid', gridTemplateColumns:
 'repeat(autofit, minmax(180px, 1fr))', gap: '10px' };
 const bellCircle = { width: '38px', height: '38px', borderRadius: '12px',
-background: '#F8FAFC', color: '#0B1A3F', display: 'flex', alignItems: 'center',
-justifyContent: 'center', border: '1px solid #E2E8F0' };
-const smallOutlineBtn = { background: '#FFFFFF', border: '1px solid #E2E8F0',
-borderRadius: '9px', color: '#0B1A3F', padding: '7px 10px', cursor: 'pointer',
+background: '#FAFBFC', color: 'var(--campora-text)', display: 'flex', alignItems: 'center',
+justifyContent: 'center', border: '1px solid var(--divider)' };
+const smallOutlineBtn = { background: 'var(--surface-container-lowest)', border: '1px solid var(--divider)',
+borderRadius: '9px', color: 'var(--campora-text)', padding: '7px 10px', cursor: 'pointer',
 fontSize: '11px', fontWeight: '800' };
 const infoNotice = { display: 'flex', alignItems: 'flex-start', gap: '10px', padding:
-'15px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius:
-'14px', color: '#0B1A3F', fontSize: '12px', fontWeight: '600' };
+'15px', background: '#FAFBFC', border: '1px solid var(--divider)', borderRadius:
+'14px', color: 'var(--campora-text)', fontSize: '12px', fontWeight: '600' };
 const successNotice = { background: '#F2F9F7', color: '#5E9A8B', padding:
 '15px', borderRadius: '15px', marginBottom: '18px', fontWeight: '900' };
 const warningNotice = { background: '#FFF9F1', color: '#C99758', padding:
 '15px', borderRadius: '15px', marginBottom: '18px', fontWeight: '900' };
-const chatHistory = { flex: 1, minHeight: '420px', overflowY: 'auto', padding:
-'16px', background: '#F8FAFC', borderRadius: '14px', border: '1px solid #E2E8F0', marginBottom: '12px' }; const emptyChat = { height: '100%', display: 'flex', alignItems: 'center',
-justifyContent: 'center', textAlign: 'center', color: '#94A3B8', fontSize: '13px',
-
-fontWeight: '700' };
-const messageBubble = { maxWidth: '75%', padding: '10px 12px', borderRadius:
-'14px' };
-const messageDeleteBtn = { background: 'transparent', border: 'none', color:
-'inherit', opacity: 0.75, cursor: 'pointer', display: 'flex', padding: 0 };
-
-const chatComposer = { display: 'flex', alignItems: 'flex-end', gap: '8px' };
-const matchFilterActiveBtn = { background: '#0B1A3F', color: '#FFFFFF', border:
-'1.5px solid #0B1A3F', padding: '8px 12px', borderRadius: '10px', fontWeight:
+const matchFilterActiveBtn = { background: 'var(--campora-navy)', color: 'var(--surface-container-lowest)', border:
+'1.5px solid var(--campora-navy)', padding: '8px 12px', borderRadius: '10px', fontWeight:
 '800', fontSize: '11px', cursor: 'pointer' };
-const matchFilterInactiveBtn = { background: '#FFFFFF', color: '#64748B',
-border: '1.5px solid #E2E8F0', padding: '8px 12px', borderRadius: '10px',
+const matchFilterInactiveBtn = { background: 'var(--surface-container-lowest)', color: 'var(--campora-muted)',
+border: '1.5px solid var(--divider)', padding: '8px 12px', borderRadius: '10px',
 fontWeight: '800', fontSize: '11px', cursor: 'pointer' };
 const exactMatchBadge = { background: '#F2F9F7', color: '#5E9A8B', border:
 '1px solid #D9EBE6', padding: '5px 9px', borderRadius: '9px', fontSize: '9px',
@@ -3628,22 +3606,22 @@ fontWeight: '900', whiteSpace: 'nowrap' };
 const similarMatchBadge = { background: '#FFF9F1', color: '#C99758', border:
 '1px solid #F0E2CB', padding: '5px 9px', borderRadius: '9px', fontSize: '9px',
 fontWeight: '900', whiteSpace: 'nowrap' };
-const possibleMatchBadge = { background: '#F1F5F9', color: '#64748B',
-border: '1px solid #CBD5E1', padding: '5px 9px', borderRadius: '9px', fontSize:
+const possibleMatchBadge = { background: '#FBFCFE', color: 'var(--campora-muted)',
+border: '1px solid var(--outline)', padding: '5px 9px', borderRadius: '9px', fontSize:
 '9px', fontWeight: '900', whiteSpace: 'nowrap' };
 const matchDetailNotice = { marginTop: '12px', padding: '10px 12px',
-borderRadius: '11px', background: '#F8FAFC', border: '1px solid #E2E8F0',
-fontSize: '11px', color: '#64748B', fontWeight: '700' };
+borderRadius: '11px', background: '#FAFBFC', border: '1px solid var(--divider)',
+fontSize: '11px', color: 'var(--campora-muted)', fontWeight: '700' };
 const differentDetailsText = { marginTop: '8px', fontSize: '10px', color:
-'#94A3B8', fontWeight: '700' };
+'var(--campora-muted)', fontWeight: '700' };
 const myPostCard = { ...reviewCard, width: '100%', textAlign: 'left', cursor:
 'pointer', fontFamily: 'inherit' };
-const myPostSourceBadge = { background: '#EEF2FF', color: '#0B1A3F',
+const myPostSourceBadge = { background: '#EEF2FF', color: 'var(--campora-text)',
 border: '1px solid #DDE5F4', padding: '5px 9px', borderRadius: '8px', fontSize:
 '9px', fontWeight: '900' };
-const myPostTypeBadge = { background: '#F8FAFC', color: '#64748B', border:
-'1px solid #E2E8F0', padding: '5px 9px', borderRadius: '8px', fontSize: '9px',
+const myPostTypeBadge = { background: '#FAFBFC', color: 'var(--campora-muted)', border:
+'1px solid var(--divider)', padding: '5px 9px', borderRadius: '8px', fontSize: '9px',
 fontWeight: '900' };
-const myPostSubtitle = { margin: '6px 0 0', color: '#64748B', fontSize: '12px',
+const myPostSubtitle = { margin: '6px 0 0', color: 'var(--campora-muted)', fontSize: '12px',
 fontWeight: '600', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis' };
 

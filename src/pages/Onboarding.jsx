@@ -265,7 +265,7 @@ export default function Onboarding() {
                 onClick={() => setAccountType('Student')}
                 style={accountType === 'Student' ? { ...styles.choiceCard, ...styles.choiceCardActive } : styles.choiceCard}
               >
-                <GraduationCap size={34} color={accountType === 'Student' ? '#FFFFFF' : '#0B1A3F'} />
+                <GraduationCap size={34} color={accountType === 'Student' ? '#FFFFFF' : '#002D62'} />
                 <span style={{ fontWeight: '900', fontSize: '1.05rem' }}>Student</span>
                 <small style={styles.choiceHint}>I'm enrolled at AUB</small>
               </button>
@@ -274,7 +274,7 @@ export default function Onboarding() {
                 onClick={() => setAccountType('Guest')}
                 style={accountType === 'Guest' ? { ...styles.choiceCard, ...styles.choiceCardActive } : styles.choiceCard}
               >
-                <User size={34} color={accountType === 'Guest' ? '#FFFFFF' : '#0B1A3F'} />
+                <User size={34} color={accountType === 'Guest' ? '#FFFFFF' : '#002D62'} />
                 <span style={{ fontWeight: '900', fontSize: '1.05rem' }}>Guest</span>
                 <small style={styles.choiceHint}>Alumni, visitor, or community member</small>
               </button>
@@ -475,13 +475,13 @@ const styles = {
   progressTrack: {
     height: '8px',
     borderRadius: '10px',
-    backgroundColor: '#F4F7FE',
+    backgroundColor: '#FAF9FE',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: '10px',
-    backgroundColor: '#0B1A3F',
+    backgroundColor: '#002D62',
     transition: 'width 0.3s ease',
   },
   progressLabel: {
@@ -542,16 +542,16 @@ const styles = {
     gap: '0.6rem',
     padding: '1.75rem 1rem',
     borderRadius: '16px',
-    border: '2px solid #E2E8F0',
+    border: '2px solid #E3E2E7',
     backgroundColor: '#fff',
-    color: '#0B1A3F',
+    color: '#1A1B1F',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     textAlign: 'center',
   },
   choiceCardActive: {
-    borderColor: '#0B1A3F',
-    backgroundColor: '#0B1A3F',
+    borderColor: '#002D62',
+    backgroundColor: '#002D62',
     color: '#FFFFFF',
   },
   choiceHint: {
@@ -586,8 +586,8 @@ const styles = {
     padding: '0.7rem 1rem',
     borderRadius: '10px',
     border: '2px dashed #CBD5E1',
-    backgroundColor: '#F8FAFF',
-    color: '#0B1A3F',
+    backgroundColor: '#D8E2FF',
+    color: '#1A1B1F',
     fontWeight: '700',
     fontSize: '0.9rem',
     cursor: 'pointer',
@@ -603,8 +603,8 @@ const styles = {
     gap: '6px',
     padding: '0.45rem 0.85rem',
     borderRadius: '20px',
-    backgroundColor: '#F4F7FE',
-    color: '#0B1A3F',
+    backgroundColor: '#FAF9FE',
+    color: '#1A1B1F',
     fontSize: '0.85rem',
     fontWeight: '700',
   },
@@ -613,7 +613,7 @@ const styles = {
     alignItems: 'center',
     background: 'none',
     border: 'none',
-    color: '#0B1A3F',
+    color: '#1A1B1F',
     opacity: 0.6,
     cursor: 'pointer',
     padding: 0,

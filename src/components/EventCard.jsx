@@ -7,9 +7,9 @@ export default function EventCard({ event }) {
 
     <div
       style={{
-        background:"white",
-        border:"1px solid #E5E7EB",
-        borderRadius:"12px",
+        background:"var(--surface-container-lowest)",
+        border:"1px solid var(--divider)",
+        borderRadius:"var(--radius-secondary)",
         padding:"20px",
         marginBottom:"12px",
       }}
@@ -25,7 +25,7 @@ export default function EventCard({ event }) {
 
         <h3
           style={{
-            color:"#0B1A3F",
+            color:"var(--campora-text)",
           }}
         >
           {event.title}
@@ -36,8 +36,8 @@ export default function EventCard({ event }) {
 
           <span
             style={{
-              background:"#DCFCE7",
-              color:"#166534",
+              background:"var(--tone-success-soft)",
+              color:"var(--tone-success)",
               padding:"5px 10px",
               borderRadius:"20px",
               fontSize:"12px",
@@ -53,7 +53,7 @@ export default function EventCard({ event }) {
 
       <p
         style={{
-          color:"#6B7280",
+          color:"var(--campora-body)",
         }}
       >
         {event.description}
@@ -67,7 +67,7 @@ export default function EventCard({ event }) {
 
       <p
         style={{
-          color:"#1D4ED8",
+          color:"var(--campora-navy)",
         }}
       >
 

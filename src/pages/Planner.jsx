@@ -18,12 +18,19 @@ import {
 
 import { supabase } from '../lib/supabase';
 
+import {
+  PageShell,
+  IconChip,
+  ProgressRing,
+  EmptyState
+} from '../components/luminous';
+
 // =========================================================
 // AUTOMATIC TEXT CONTRAST
 // =========================================================
 
 const getContrastText = (hexColor) => {
-  if (!hexColor) return '#0B1A3F';
+  if (!hexColor) return '#002D62';
 
   let hex = hexColor.replace('#', '');
 
@@ -35,7 +42,7 @@ const getContrastText = (hexColor) => {
   }
 
   if (hex.length !== 6) {
-    return '#0B1A3F';
+    return '#002D62';
   }
 
   const r = parseInt(hex.substring(0, 2), 16);
@@ -44,7 +51,7 @@ const getContrastText = (hexColor) => {
 
   const brightness = (r * 299 + g * 587 + b * 114) / 1000;
 
-  return brightness < 145 ? '#FFFFFF' : '#0B1A3F';
+  return brightness < 145 ? '#FFFFFF' : '#002D62';
 };
 
 // =========================================================
@@ -131,7 +138,7 @@ export default function Planner() {
     '#CDF7F8',
     '#D3F8E2',
     '#DCE6FF',
-    '#0B1A3F'
+    '#002D62'
   ];
 
   const [stickyText, setStickyText] = useState('');
@@ -515,6 +522,10 @@ export default function Planner() {
   };
 
   const { startPadding, dateArray } = getDatesToDisplay();
+  const endPadding =
+    viewType === 'Month'
+      ? (7 - ((startPadding + dateArray.length) % 7)) % 7
+      : 0;
 
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -688,8 +699,68 @@ export default function Planner() {
   };
 
 
+  const insertPlannerEntries = async (entries) => {
+    let result = await supabase
+      .from('planner_courses')
+      .insert(entries)
+      .select();
+
+    const missingGroupId =
+      result.error &&
+      /group_id/i.test(result.error.message || '') &&
+      /(column|schema|does not exist|not found)/i.test(result.error.message || '');
+
+    if (missingGroupId) {
+      const compatibleEntries = entries.map(({ group_id, ...entry }) => entry);
+      result = await supabase
+        .from('planner_courses')
+        .insert(compatibleEntries)
+        .select();
+    }
+
+    return result;
+  };
+
+  const confirmDuplicatePlannerEntries = async (entries = []) => {
+    if (!user || !entries.length) return true;
+
+    const dates = [...new Set(entries.map((entry) => entry.date).filter(Boolean))];
+    if (!dates.length) return true;
+
+    const { data: existing, error } = await supabase
+      .from('planner_courses')
+      .select('id, name, date, start_time, end_time')
+      .eq('user_id', user.id)
+      .in('date', dates);
+
+    if (error) {
+      console.warn('Duplicate check skipped:', error);
+      return true;
+    }
+
+    const normalizedName = newEntry.name.trim().toLowerCase();
+    const hasExactDuplicate = (existing || []).some((item) =>
+      String(item.name || '').trim().toLowerCase() === normalizedName &&
+      entries.some((entry) =>
+        entry.date === item.date &&
+        entry.start_time === item.start_time &&
+        entry.end_time === item.end_time
+      )
+    );
+
+    if (!hasExactDuplicate) return true;
+
+    return window.confirm(
+      'You already have an entry with the same title, date, and time. Add it anyway?'
+    );
+  };
+
   const createEntryOrSeries = async () => {
-    const groupId = crypto.randomUUID();
+    const groupId =
+      newEntry.repeat === 'none'
+        ? null
+        : (globalThis.crypto?.randomUUID?.() ||
+          `planner-${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
     const entriesToSave = buildSeriesEntries({
       entryData: newEntry,
@@ -708,10 +779,8 @@ export default function Planner() {
       return false;
     }
 
-    const { data: savedEntries, error } = await supabase
-      .from('planner_courses')
-      .insert(entriesToSave)
-      .select();
+    const { data: savedEntries, error } =
+      await insertPlannerEntries(entriesToSave);
 
     if (error) {
       console.error('Create entry error:', error);
@@ -818,10 +887,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       return false;
     }
 
-    const { data: savedEntries, error: insertError } = await supabase
-      .from('planner_courses')
-      .insert(entriesToSave)
-      .select();
+    const { data: savedEntries, error: insertError } =
+      await insertPlannerEntries(entriesToSave);
 
     if (insertError) {
       console.error('Create series error:', insertError);
@@ -924,7 +991,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         }
 
         if (newEntry.alertType === 'notification') {
-          await saveNotificationsForEntries([data]);
+          savePlannerAlertChoice([data], 'notification');
         }
       }
 
@@ -1040,7 +1107,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     } catch (error) {
       console.error('Planner save error:', error);
       alert(
-        'Something went wrong while saving. Please try again.'
+        `Something went wrong while saving: ${error?.message || 'Unknown error'}`
       );
     } finally {
       setSaving(false);
@@ -1227,6 +1294,26 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     (course) => course.date === selectedDateStr
   );
 
+  const todayStr = formatDate(new Date());
+
+  const upNextAll = courses
+    .filter((course) => course.date >= todayStr)
+    .sort((a, b) =>
+      (a.date + (a.start_time || '')).localeCompare(
+        b.date + (b.start_time || '')
+      )
+    );
+
+  const upNextDone = upNextAll.filter(
+    (course) => course.is_completed
+  ).length;
+
+  const upNextEvents = upNextAll.slice(0, 6);
+
+  const upNextProgress = upNextAll.length
+    ? Math.round((upNextDone / upNextAll.length) * 100)
+    : 0;
+
   const ColorPalette = ({
     selectedColor,
     onChange,
@@ -1265,11 +1352,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               cursor: 'pointer',
               border:
                 selectedColor === color
-                  ? '2.5px solid #0B1A3F'
+                  ? '2.5px solid #002D62'
                   : '1px solid #CCD5E6',
               boxShadow:
                 selectedColor === color
-                  ? '0 0 0 2px white, 0 0 0 3px #0B1A3F18'
+                  ? '0 0 0 2px white, 0 0 0 3px #002D6218'
                   : 'none'
             }}
           />
@@ -1289,8 +1376,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             padding: '7px 11px',
             borderRadius: '9px',
             fontWeight: '900',
-            fontSize: '11px',
-            color: '#0B1A3F',
+            fontSize: '12px',
+            color: '#1A1B1F',
             cursor: 'pointer'
           }}
         >
@@ -1326,7 +1413,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               display: 'flex',
               alignItems: 'center',
               gap: '7px',
-              color: '#64748B',
+              color: '#717786',
               fontWeight: '800',
               fontSize: '11px'
             }}
@@ -1348,499 +1435,981 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
   );
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '25px',
-        width: '100%',
-        height: 'calc(100vh - 120px)',
-        overflow: 'hidden'
-      }}
-    >
+    <PageShell>
       <div
         style={{
-          flex: 1,
           display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0
+          flexWrap: 'wrap',
+          gap: '25px',
+          alignItems: 'flex-start',
+          width: '100%'
         }}
       >
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '16px'
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '28px',
-              fontWeight: '900',
-              color: '#0B1A3F',
-              margin: 0
-            }}
-          >
-            {viewType === 'Month'
-              ? viewDate.toLocaleString('default', {
-                  month: 'long',
-                  year: 'numeric'
-                })
-              : viewType === 'Week'
-              ? `Week of ${dateArray[0].toLocaleDateString()}`
-              : selectedDate.toDateString()}
-          </h1>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: '10px',
-              alignItems: 'center'
-            }}
-          >
-            <div style={switcherGroup}>
-              {['Month', 'Week', 'Day'].map((view) => (
-                <button
-                  key={view}
-                  onClick={() => setViewType(view)}
-                  style={
-                    viewType === view ? activeToggle : toggleStyle
-                  }
-                >
-                  {view}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {
-                const now = new Date();
-                setViewDate(now);
-                setSelectedDate(now);
-              }}
-              style={navBtn}
-            >
-              Today
-            </button>
-
-            <button onClick={handlePrev} style={navBtn}>
-              <ChevronLeft size={18} />
-            </button>
-
-            <button onClick={handleNext} style={navBtn}>
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div
-          className="card"
-          style={{
-            flex: 1,
-            padding: '20px',
-            position: 'relative',
-            border: '1.5px solid #E9EDF7',
-            overflowY: 'auto'
-          }}
-        >
-          {loading && (
-            <RefreshCw
-              className="animate-spin"
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                color: '#0B1A3F',
-                zIndex: 20
-              }}
-            />
-          )}
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns:
-                viewType === 'Day'
-                  ? '1fr'
-                  : 'repeat(7, minmax(0, 1fr))',
-              gridTemplateRows:
-                viewType !== 'Day' ? 'auto 1fr' : '1fr',
-              gap: '10px',
-              alignItems: 'start'
-            }}
-          >
-            {viewType !== 'Day' &&
-              days.map((day) => (
-                <div key={day} style={dayHeader}>
-                  {day.toUpperCase()}
-                </div>
-              ))}
-
-            {viewType === 'Month' &&
-              [...Array(startPadding)].map((_, index) => (
-                <div key={`pad-${index}`} />
-              ))}
-
-            {dateArray.map((dateObj, index) => {
-              const dateStr = formatDate(dateObj);
-              const isSelected = dateStr === selectedDateStr;
-              const dayEvents = courses.filter(
-                (course) => course.date === dateStr
-              );
-
-              return (
-                <div
-                  key={index}
-                  onClick={() => setSelectedDate(dateObj)}
-                  style={{
-                    height:
-                      viewType === 'Month' ? '130px' : '480px',
-                    padding: '10px',
-                    borderRadius: '14px',
-                    cursor: 'pointer',
-                    transition: '0.2s',
-                    border: isSelected
-                      ? '2px solid #0B1A3F'
-                      : '1px solid #F1F4F9',
-                    background: isSelected ? '#F8FAFF' : 'white',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '6px'
-                    }}
-                  >
-                    <div style={{ minWidth: '24px' }}>
-                      {isSelected && (
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenModal(dateStr);
-                          }}
-                          style={cellAddIcon}
-                        >
-                          <Plus size={12} strokeWidth={3} />
-                        </button>
-                      )}
-                    </div>
-
-                    <span
-                      style={{
-                        fontWeight: '900',
-                        color: '#0B1A3F',
-                        fontSize:
-                          viewType === 'Day' ? '28px' : '14px'
-                      }}
-                    >
-                      {dateObj.getDate()}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      flex: 1,
-                      overflowY: 'auto',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                      paddingRight: '2px'
-                    }}
-                  >
-                    {dayEvents.map((event) => {
-                      const eventBackground = event.is_completed
-                        ? '#F1F5F9'
-                        : event.color || '#E1F2FF';
-
-                      const eventTextColor = event.is_completed
-                        ? '#0B1A3F'
-                        : getContrastText(eventBackground);
-
-                      return (
-                        <div
-                          key={event.id}
-                          onClick={(clickEvent) => {
-                            clickEvent.stopPropagation();
-                            handleOpenEditModal(event);
-                          }}
-                          style={{
-                            background: eventBackground,
-                            fontSize:
-                              viewType === 'Month' ? '10px' : '12px',
-                            fontWeight: '800',
-                            padding: '6px 8px',
-                            borderRadius: '8px',
-                            color: eventTextColor,
-                            textDecoration: event.is_completed
-                              ? 'line-through'
-                              : 'none',
-                            wordBreak: 'break-word',
-                            boxShadow:
-                              '0 1px 3px rgba(0,0,0,0.04)',
-                            border:
-                              '1px solid rgba(0,0,0,0.05)'
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            <span
-                              style={{
-                                opacity: 0.78,
-                                fontSize: '9px',
-                                fontWeight: '700',
-                                color: eventTextColor
-                              }}
-                            >
-                              {event.start_time?.substring(0, 5)} -{' '}
-                              {event.end_time?.substring(0, 5)}
-                            </span>
-
-                            <Edit3
-                              size={11}
-                              color={eventTextColor}
-                              style={{
-                                opacity: 0.65,
-                                flexShrink: 0
-                              }}
-                            />
-                          </div>
-
-                          <div
-                            style={{
-                              fontWeight: '900',
-                              marginTop: '2px',
-                              lineHeight: '1.2',
-                              color: eventTextColor
-                            }}
-                          >
-                            {event.name}
-                          </div>
-
-                          {viewType !== 'Month' &&
-                            visiblePlannerDescription(
-                              event.description || ''
-                            ) && (
-                              <div
-                                style={{
-                                  fontSize: '10px',
-                                  opacity: 0.88,
-                                  marginTop: '4px',
-                                  borderTop:
-                                    eventTextColor === '#FFFFFF'
-                                      ? '1px solid rgba(255,255,255,0.25)'
-                                      : '1px solid rgba(11,26,57,0.12)',
-                                  paddingTop: '4px',
-                                  fontWeight: '500',
-                                  lineHeight: '1.3',
-                                  color: eventTextColor
-                                }}
-                              >
-                                {visiblePlannerDescription(
-                                  event.description || ''
-                                )}
-                              </div>
-                            )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div
-        style={{
-          width: '330px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          flexShrink: 0
-        }}
-      >
-        <div
-          className="card"
-          style={{
-            flex: 1,
-            maxHeight: '55%',
+            flex: '999 1 520px',
+            minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            border: '1.5px solid #E9EDF7',
-            overflow: 'hidden'
+            gap: '16px'
           }}
         >
           <div
+            className="panel"
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '8px'
+              justifyContent: 'space-between',
+              gap: '16px',
+              flexWrap: 'nowrap',
+              minHeight: '72px'
             }}
           >
-            <h3
+            <div
               style={{
-                margin: 0,
-                fontSize: '17px',
-                fontWeight: '900',
-                color: '#0B1A3F'
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap'
               }}
             >
-              Agenda
-            </h3>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={() => {
+                  const now = new Date();
+                  setViewDate(now);
+                  setSelectedDate(now);
+                }}
+              >
+                Today
+              </button>
 
-            <button
-              onClick={eraseAll}
-              style={{
-                color: '#EE5D50',
-                background: 'none',
-                border: 'none',
-                fontSize: '11px',
-                fontWeight: '800',
-                cursor: 'pointer'
-              }}
-            >
-              Erase All
-            </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={handlePrev}
+                aria-label="Previous"
+                style={{ width: '36px', padding: 0 }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={handleNext}
+                aria-label="Next"
+                style={{ width: '36px', padding: 0 }}
+              >
+                <ChevronRight size={18} />
+              </button>
+
+              <h2
+                style={{
+                  margin: '0 0 0 8px',
+                  minWidth: '190px',
+                  fontSize: '20px',
+                  fontWeight: '800',
+                  color: 'var(--campora-text)',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                {viewType === 'Month'
+                  ? viewDate.toLocaleString('default', {
+                      month: 'long',
+                      year: 'numeric'
+                    })
+                  : viewType === 'Week'
+                  ? `Week of ${dateArray[0].toLocaleDateString()}`
+                  : selectedDate.toDateString()}
+              </h2>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', flexShrink: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '3px',
+                  borderRadius: '12px',
+                  background: '#FCFDFE',
+                  border: '1px solid #F0F2F5'
+                }}
+              >
+                {['Month', 'Week', 'Day'].map((option) => {
+                  const active = viewType === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setViewType(option)}
+                      style={{
+                        border: 'none',
+                        borderRadius: '9px',
+                        padding: '7px 11px',
+                        background: active ? '#FFFFFF' : 'transparent',
+                        color: active ? 'var(--campora-navy)' : 'var(--campora-muted)',
+                        fontSize: '12px',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        boxShadow: active ? '0 1px 3px rgba(0,45,98,0.08)' : 'none'
+                      }}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => handleOpenModal(selectedDateStr)}
+                style={{ height: '38px', paddingInline: '14px' }}
+              >
+                <Plus size={15} />
+                Add Entry
+              </button>
+            </div>
           </div>
 
-          <p
+        <div
+            className="panel"
             style={{
-              fontSize: '12px',
-              fontWeight: '700',
-              color: '#A3AED0',
-              marginBottom: '12px'
+              position: 'relative',
+              padding: 0,
+              overflow: 'hidden'
             }}
           >
-            {selectedDate.toDateString()}
-          </p>
+            {loading && (
+              <RefreshCw
+                className="animate-spin"
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  color: 'var(--campora-text)',
+                  zIndex: 20
+                }}
+              />
+            )}
 
-          <div
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              paddingRight: '2px'
-            }}
-          >
-            {selectedDayEvents.length > 0 ? (
-              selectedDayEvents.map((event) => {
-                const agendaBackground = event.is_completed
-                  ? '#F8FAFF'
-                  : event.color || '#E1F2FF';
+            {viewType !== 'Day' && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gap: '6px',
+                  background: '#FFFFFF',
+                  borderBottom: '1px solid #F1F3F5',
+                  padding: '8px 8px 6px'
+                }}
+              >
+                {days.map((day) => (
+                  <div
+                    key={day}
+                    className="label-caps"
+                    style={{
+                      padding: '10px 8px',
+                      textAlign: 'center',
+                      background: '#FCFDFE',
+                      borderRadius: '10px'
+                    }}
+                  >
+                    {day.toUpperCase()}
+                  </div>
+                ))}
+              </div>
+            )}
 
-                const agendaTextColor = event.is_completed
-                  ? '#0B1A3F'
-                  : getContrastText(agendaBackground);
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  viewType === 'Day'
+                    ? '1fr'
+                    : 'repeat(7, minmax(0, 1fr))',
+                gap: '6px',
+                background: '#FFFFFF',
+                alignItems: 'stretch',
+                padding: '8px'
+              }}
+            >
+              {viewType === 'Month' &&
+                [...Array(startPadding)].map((_, index) => (
+                  <div
+                    key={`pad-${index}`}
+                    style={{
+                      minHeight: '120px',
+                      background: '#FCFDFE',
+                      borderRadius: '14px'
+                    }}
+                  />
+                ))}
+
+              {dateArray.map((dateObj, index) => {
+                const dateStr = formatDate(dateObj);
+                const isSelected = dateStr === selectedDateStr;
+                const isToday = dateStr === todayStr;
+                const dayEvents = courses.filter(
+                  (course) => course.date === dateStr
+                );
 
                 return (
                   <div
-                    key={event.id}
+                    key={index}
+                    onClick={() => {
+                      setSelectedDate(dateObj);
+                      setViewDate(dateObj);
+                    }}
                     style={{
-                      padding: '10px 12px',
-                      borderRadius: '12px',
-                      background: agendaBackground,
-                      color: agendaTextColor,
+                      minHeight:
+                        viewType === 'Month' ? '120px' : '480px',
+                      padding: '8px',
+                      cursor: 'pointer',
+                      background: isSelected
+                        ? '#EAF4FC'
+                        : '#FCFDFE',
+                      border: isSelected
+                        ? '1px solid rgba(0,45,98,0.18)'
+                        : '1px solid #F1F3F5',
+                      borderRadius: '14px',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '6px',
-                      border: '1px solid rgba(0,0,0,0.04)'
+                      boxSizing: 'border-box',
+                      transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
+                      boxShadow: isSelected
+                        ? '0 4px 12px rgba(0,45,98,0.06)'
+                        : 'none'
                     }}
                   >
                     <div
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        marginBottom: '6px'
+                      }}
+                    >
+                      <div style={{ minWidth: '24px' }}>
+                        {isSelected && (
+                          <button
+                            type="button"
+                            title="Add entry"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenModal(dateStr);
+                            }}
+                            style={{
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              background: 'var(--campora-navy)',
+                              color: '#ffffff',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: 'none',
+                              cursor: 'pointer',
+                              boxShadow:
+                                '0 2px 6px rgba(0,45,98,0.2)'
+                            }}
+                          >
+                            <Plus size={12} strokeWidth={3} />
+                          </button>
+                        )}
+                      </div>
+
+                      <span
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '800',
+                          lineHeight: 1,
+                          fontSize:
+                            viewType === 'Day' ? '22px' : '13px',
+                          background: isToday
+                            ? 'var(--campora-navy)'
+                            : 'transparent',
+                          color: isToday
+                            ? '#ffffff'
+                            : 'var(--campora-text)',
+                          boxShadow:
+                            isSelected && !isToday
+                              ? '0 0 0 1px rgba(0,45,98,0.16)'
+                              : 'none'
+                        }}
+                      >
+                        {dateObj.getDate()}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '5px',
+                        paddingRight: '2px'
+                      }}
+                    >
+                      {dayEvents.map((event) => {
+                        const eventColor =
+                          event.color || '#E1F2FF';
+
+                        const eventFg = getContrastText(eventColor);
+
+                        return (
+                          <div
+                            key={event.id}
+                            title={event.name}
+                            onClick={(clickEvent) => {
+                              clickEvent.stopPropagation();
+                              handleOpenEditModal(event);
+                            }}
+                            style={{
+                              background: event.is_completed
+                                ? 'var(--surface-container-low)'
+                                : eventColor,
+                              color: event.is_completed
+                                ? 'var(--campora-muted)'
+                                : eventFg,
+                              fontSize:
+                                viewType === 'Month'
+                                  ? '10px'
+                                  : '12px',
+                              fontWeight: '700',
+                              padding: '4px 8px',
+                              borderRadius: 'var(--radius-pill)',
+                              textDecoration: event.is_completed
+                                ? 'line-through'
+                                : 'none',
+                              wordBreak: 'break-word',
+                              border: event.is_completed
+                                ? '1px solid var(--hairline)'
+                                : `1px solid ${eventColor}`,
+                              boxShadow: event.is_completed
+                                ? 'none'
+                                : `0 2px 8px ${eventColor}33`,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {viewType !== 'Month' && (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    opacity: 0.75,
+                                    fontSize: '9px',
+                                    fontWeight: '700'
+                                  }}
+                                >
+                                  {event.start_time?.substring(0, 5)}{' '}
+                                  - {event.end_time?.substring(0, 5)}
+                                </span>
+
+                                <Edit3
+                                  size={11}
+                                  style={{
+                                    opacity: 0.65,
+                                    flexShrink: 0
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            <div
+                              style={{
+                                fontWeight: '800',
+                                marginTop:
+                                  viewType !== 'Month' ? '1px' : 0,
+                                lineHeight: '1.2',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {event.name}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {viewType === 'Month' &&
+                [...Array(endPadding)].map((_, index) => (
+                  <div
+                    key={`end-pad-${index}`}
+                    style={{
+                      minHeight: '120px',
+                      background: '#FCFDFE',
+                      borderRadius: '14px'
+                    }}
+                  />
+                ))}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            flex: '1 1 320px',
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}
+        >
+          <div className="panel">
+            <div
+              className="label-caps"
+              style={{ marginBottom: '10px' }}
+            >
+              Quick Jump
+            </div>
+
+            <div
+              className="label-caps"
+              style={{
+                fontSize: '13px',
+                fontWeight: '800',
+                letterSpacing: 0,
+                textTransform: 'none',
+                color: 'var(--campora-text)',
+                marginBottom: '8px'
+              }}
+            >
+              {selectedDate.toLocaleString('default', {
+                month: 'long',
+                year: 'numeric'
+              })}
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: '4px'
+              }}
+            >
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(
+                (dayLabel) => (
+                  <div
+                    key={dayLabel}
+                    className="label-caps"
+                    style={{
+                      textAlign: 'center',
+                      fontSize: '10px',
+                      paddingBottom: '4px'
+                    }}
+                  >
+                    {dayLabel}
+                  </div>
+                )
+              )}
+
+              {[
+                ...Array(
+                  new Date(
+                    selectedDate.getFullYear(),
+                    selectedDate.getMonth(),
+                    1
+                  ).getDay()
+                )
+              ].map((_, padIndex) => (
+                <div key={`qj-pad-${padIndex}`} />
+              ))}
+
+              {Array.from(
+                {
+                  length: new Date(
+                    selectedDate.getFullYear(),
+                    selectedDate.getMonth() + 1,
+                    0
+                  ).getDate()
+                },
+                (_, dayIndex) => {
+                  const dayObject = new Date(
+                    selectedDate.getFullYear(),
+                    selectedDate.getMonth(),
+                    dayIndex + 1
+                  );
+                  const dayString = formatDate(dayObject);
+                  const dayIsToday = dayString === todayStr;
+                  const dayIsSelected =
+                    dayString === selectedDateStr;
+
+                  return (
+                    <button
+                      key={dayIndex}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDate(dayObject);
+                        setViewDate(dayObject);
+                      }}
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        margin: '0 auto',
+                        borderRadius: '50%',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight:
+                          dayIsToday || dayIsSelected ? 800 : 600,
+                        background: dayIsToday
+                          ? 'var(--campora-navy)'
+                          : dayIsSelected
+                          ? '#EAF4FC'
+                          : 'transparent',
+                        color: dayIsToday
+                          ? '#ffffff'
+                          : dayIsSelected
+                          ? 'var(--campora-navy)'
+                          : 'var(--campora-body)',
+                        boxShadow:
+                          dayIsSelected && !dayIsToday
+                            ? '0 0 0 1px rgba(0,45,98,0.22), 0 2px 6px rgba(0,45,98,0.06)'
+                            : 'none'
+                      }}
+                    >
+                      {dayObject.getDate()}
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          </div>
+
+          <div
+            className="panel"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '470px',
+              minHeight: '470px',
+              overflow: 'hidden'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '14px',
+                gap: '10px',
+                flexShrink: 0
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  minWidth: 0
+                }}
+              >
+                <ProgressRing
+                  value={upNextProgress}
+                  size={34}
+                  stroke={4}
+                >
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      color: 'var(--campora-text)'
+                    }}
+                  >
+                    {upNextDone}
+                  </span>
+                </ProgressRing>
+
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '16px',
+                    fontWeight: '800',
+                    color: 'var(--campora-text)'
+                  }}
+                >
+                  Up Next
+                </h3>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  alignItems: 'center'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={eraseAll}
+                  className="btn btn-sm btn-ghost"
+                  style={{
+                    color: 'var(--campora-navy)',
+                    background: 'var(--campora-navy-tint-alpha)',
+                    border: '1px solid var(--outline-variant)',
+                    height: '32px'
+                  }}
+                >
+                  Erase All
+                </button>
+
+                <button
+                  type="button"
+                  title="Add entry"
+                  onClick={() => handleOpenModal(selectedDateStr)}
+                  className="btn btn-sm btn-primary"
+                  style={{ width: '36px', height: '36px', padding: 0 }}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                overscrollBehaviorY: 'contain',
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y',
+                paddingRight: '10px',
+                paddingBottom: '12px',
+                scrollbarGutter: 'stable',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#AAB4C4 #F4F3F8'
+              }}
+            >
+              {upNextEvents.length > 0 ? (
+                upNextEvents.map((event) => {
+                  const barColor = event.is_completed
+                    ? 'var(--surface-container-highest)'
+                    : event.color || '#E1F2FF';
+
+                  const eventDate = new Date(
+                    `${event.date}T00:00:00`
+                  );
+
+                  return (
+                    <div
+                      key={event.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleOpenEditModal(event)}
+                      onKeyDown={(eventKey) => {
+                        if (eventKey.key === 'Enter' || eventKey.key === ' ') {
+                          eventKey.preventDefault();
+                          handleOpenEditModal(event);
+                        }
+                      }}
+                      style={{
+                        position: 'relative',
+                        overflow: 'hidden',
+                        borderRadius: '16px',
+                        padding: '20px 18px 18px',
+                        background: event.is_completed
+                          ? 'var(--surface-container-low)'
+                          : `${barColor}18`,
+                        border: '1px solid var(--hairline)',
+                        boxShadow: '0 6px 18px rgba(0, 45, 98, 0.05)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'stretch',
+                        gap: '14px',
+                        height: '220px',
+                        minHeight: '220px',
+                        maxHeight: '220px',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition:
+                          'box-shadow 0.18s ease, border-color 0.18s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow =
+                          '0 10px 24px rgba(0, 45, 98, 0.10)';
+                        e.currentTarget.style.borderColor =
+                          'rgba(0,45,98,0.16)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow =
+                          '0 6px 18px rgba(0, 45, 98, 0.05)';
+                        e.currentTarget.style.borderColor =
+                          'var(--hairline)';
                       }}
                     >
                       <div
                         style={{
-                          display: 'flex',
-                          flexDirection: 'column'
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          height: '5px',
+                          background: barColor
                         }}
-                      >
+                      />
+
+                                            <div style={{ width: '100%', minWidth: 0 }}>
                         <div
                           style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: '10px'
                           }}
                         >
-                          {event.reminder && (
-                            <Bell size={10} color={agendaTextColor} />
-                          )}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                flexWrap: 'wrap'
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '11px',
+                                  height: '11px',
+                                  borderRadius: '50%',
+                                  background: event.is_completed
+                                    ? 'var(--surface-container-highest)'
+                                    : event.color || '#E1F2FF',
+                                  border: '1px solid rgba(0,45,98,0.10)',
+                                  flexShrink: 0
+                                }}
+                              />
 
-                          <span
-                            style={{
-                              fontWeight: '900',
-                              fontSize: '13px',
-                              color: agendaTextColor,
-                              textDecoration: event.is_completed
-                                ? 'line-through'
-                                : 'none'
-                            }}
-                          >
-                            {event.name}
-                          </span>
+                              <span
+                                style={{
+                                  fontSize: '16px',
+                                  fontWeight: '900',
+                                  color: event.is_completed
+                                    ? 'var(--campora-muted)'
+                                    : 'var(--campora-text)',
+                                  textDecoration: event.is_completed
+                                    ? 'line-through'
+                                    : 'none',
+                                  lineHeight: '1.3',
+                                  wordBreak: 'break-word'
+                                }}
+                              >
+                                {event.name}
+                              </span>
+
+                              {event.is_completed && (
+                                <span
+                                  className="label-caps"
+                                  style={{
+                                    fontSize: '9px',
+                                    color: 'var(--campora-muted)'
+                                  }}
+                                >
+                                  Completed
+                                </span>
+                              )}
+                            </div>
+
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                flexWrap: 'wrap',
+                                marginTop: '6px'
+                              }}
+                            >
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  height: '24px',
+                                  padding: '0 8px',
+                                  borderRadius: '999px',
+                                  background: 'rgba(255,255,255,0.72)',
+                                  border: '1px solid rgba(0,45,98,0.08)',
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  color: 'var(--campora-navy)'
+                                }}
+                              >
+                                {event.type || 'Entry'}
+                              </span>
+
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  color: 'var(--campora-muted)'
+                                }}
+                              >
+                                <CalIcon size={11} />
+                                {eventDate.toLocaleDateString('default', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </span>
+
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  color: 'var(--campora-muted)'
+                                }}
+                              >
+                                {event.start_time?.substring(0, 5) || ''}
+                                {event.end_time
+                                  ? ` – ${event.end_time.substring(0, 5)}`
+                                  : ''}
+                              </span>
+
+                              {event.reminder && <Bell size={11} />}
+                            </div>
+                          </div>
                         </div>
 
-                        <span
-                          style={{
-                            fontSize: '10px',
-                            fontWeight: '700',
-                            opacity: 0.7,
-                            color: agendaTextColor
-                          }}
-                        >
-                          {event.start_time?.substring(0, 5)} -{' '}
-                          {event.end_time?.substring(0, 5)}
-                        </span>
+                        {visiblePlannerDescription(event.description || '') && (
+                          <div
+                            style={{
+                              marginTop: '10px',
+                              padding: '12px 13px',
+                              borderRadius: '12px',
+                              background: 'rgba(255,255,255,0.62)',
+                              border: '1px solid rgba(0,45,98,0.06)'
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: '900',
+                                letterSpacing: '0.06em',
+                                textTransform: 'uppercase',
+                                color: 'var(--campora-muted)',
+                                marginBottom: '4px'
+                              }}
+                            >
+                              Details
+                            </div>
+
+                            <div
+                              style={{
+                                fontSize: '13px',
+                                lineHeight: '1.55',
+                                fontWeight: '600',
+                                color: 'var(--campora-body)',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                maxHeight: '62px',
+                                overflowY: 'auto',
+                                paddingRight: '4px',
+                                scrollbarWidth: 'thin'
+                              }}
+                            >
+                              {visiblePlannerDescription(event.description || '')}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div
                         style={{
+                          width: '100%',
                           display: 'flex',
                           gap: '8px',
-                          alignItems: 'center'
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          flexShrink: 0,
+                          paddingTop: '8px',
+                          borderTop: '1px solid rgba(0,45,98,0.08)'
                         }}
                       >
-                        <Edit3
-                          size={15}
-                          onClick={() => handleOpenEditModal(event)}
-                          color={agendaTextColor}
-                          style={{ cursor: 'pointer' }}
-                        />
-
-                        <CheckCircle2
-                          size={15}
-                          onClick={() => toggleCompleted(event)}
-                          style={{
-                            cursor: 'pointer',
-                            color: event.is_completed
-                              ? '#05CD99'
-                              : agendaTextColor,
-                            opacity: event.is_completed ? 1 : 0.7
+                        <button
+                          type="button"
+                          title="Edit entry"
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            handleOpenEditModal(event);
                           }}
-                        />
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                            height: '30px',
+                            padding: '0 10px',
+                            borderRadius: '999px',
+                            border: '1px solid rgba(0,45,98,0.10)',
+                            background: 'rgba(255,255,255,0.78)',
+                            color: 'var(--campora-navy)',
+                            fontSize: '10px',
+                            fontWeight: '800',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Edit3 size={12} />
+                          Edit
+                        </button>
 
-                        <Trash2
-                          size={15}
-                          onClick={() => {
+                        <button
+                          type="button"
+                          title={event.is_completed ? 'Mark incomplete' : 'Mark complete'}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            toggleCompleted(event);
+                          }}
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '999px',
+                            border: '1px solid rgba(0,45,98,0.08)',
+                            background: event.is_completed
+                              ? 'var(--campora-navy-tint-alpha)'
+                              : 'rgba(255,255,255,0.72)',
+                            color: event.is_completed
+                              ? 'var(--campora-navy)'
+                              : 'var(--campora-muted)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <CheckCircle2 size={15} />
+                        </button>
+
+                        <button
+                          type="button"
+                          title="Delete entry"
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
                             if (event.group_id) {
                               setDeleteConfirmation(event);
                             } else {
@@ -1854,230 +2423,42 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             }
                           }}
                           style={{
-                            color: '#EE5D50',
+                            width: '30px',
+                            height: '30px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '999px',
+                            border: '1px solid rgba(186,26,26,0.08)',
+                            background: 'rgba(255,255,255,0.72)',
+                            color: 'var(--campora-urgent)',
                             cursor: 'pointer'
                           }}
-                        />
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
-
-                    {visiblePlannerDescription(
-                      event.description || ''
-                    ) && (
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          color: agendaTextColor,
-                          opacity: 0.9,
-                          background:
-                            agendaTextColor === '#FFFFFF'
-                              ? 'rgba(255,255,255,0.10)'
-                              : 'rgba(255,255,255,0.5)',
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          lineHeight: '1.3'
-                        }}
-                      >
-                        {visiblePlannerDescription(
-                          event.description || ''
-                        )}
-                      </p>
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              <div
-                style={{
-                  textAlign: 'center',
-                  marginTop: '30px',
-                  opacity: 0.3
-                }}
-              >
-                <CalIcon size={36} />
-                <p
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: '700'
-                  }}
-                >
-                  Free Day
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div
-          className="card"
-          style={{
-            flex: 1,
-            border: '1.5px solid #E9EDF7',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '16px',
-            minHeight: 0
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '7px'
-            }}
-          >
-            <div>
-              <h4
-                style={{
-                  fontSize: '12px',
-                  fontWeight: '900',
-                  color: '#0B1A3F',
-                  margin: 0,
-                  letterSpacing: '0.5px'
-                }}
-              >
-                STICKIES
-              </h4>
-
-              <span
-                style={{
-                  fontSize: '9px',
-                  color: '#A3AED0',
-                  fontWeight: '700'
-                }}
-              >
-                {selectedDateStr}
-              </span>
-            </div>
-
-            {stickyText && (
-              <button
-                type="button"
-                onClick={() => {
-                  const confirmed = window.confirm(
-                    'Clear this sticky?'
                   );
-
-                  if (confirmed) clearSticky();
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#EE5D50',
-                  cursor: 'pointer',
-                  fontSize: '10px',
-                  fontWeight: '900'
-                }}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              marginBottom: '8px',
-              flexWrap: 'nowrap'
-            }}
-          >
-            {camporaColors.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => {
-                  handleStickyColorChange(color);
-                  setShowStickyCustomColor(false);
-                }}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  minWidth: '18px',
-                  padding: 0,
-                  borderRadius: '50%',
-                  background: color,
-                  cursor: 'pointer',
-                  border:
-                    stickyColor === color
-                      ? '2px solid #0B1A3F'
-                      : '1px solid #CCD5E6',
-                  boxShadow:
-                    stickyColor === color
-                      ? '0 0 0 2px white'
-                      : 'none'
-                }}
-              />
-            ))}
-
-            <div
-              style={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                minWidth: 0
-              }}
-            >
-              <button
-                type="button"
-                title="Custom Color"
-                onClick={() =>
-                  setShowStickyCustomColor(!showStickyCustomColor)
-                }
-                style={{
-                  height: '24px',
-                  padding: '0 6px',
-                  borderRadius: '7px',
-                  background: 'white',
-                  border: '1.5px solid #CCD5E6',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '3px',
-                  color: '#0B1A3F',
-                  fontSize: '9px',
-                  fontWeight: '900',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <Plus size={10} strokeWidth={3} />
-                Custom
-              </button>
-
-              {showStickyCustomColor && (
+                })
+              ) : (
                 <div
                   style={{
-                    position: 'absolute',
-                    top: '30px',
-                    right: 0,
-                    zIndex: 30,
-                    background: 'white',
-                    padding: '8px',
-                    borderRadius: '10px',
-                    border: '1px solid #E2E8F0',
-                    boxShadow:
-                      '0 8px 20px rgba(11,26,57,0.12)'
+                    flex: 1,
+                    minHeight: '250px',
+                    borderRadius: '18px',
+                    background: '#FCFDFE',
+                    border: '1px solid #F2F4F6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '18px'
                   }}
                 >
-                  <input
-                    type="color"
-                    value={stickyColor}
-                    onChange={(event) =>
-                      handleStickyColorChange(event.target.value)
-                    }
-                    style={{
-                      width: '42px',
-                      height: '34px',
-                      padding: 0,
-                      border: 'none',
-                      background: 'transparent',
-                      cursor: 'pointer'
-                    }}
+                  <EmptyState
+                    icon={CalIcon}
+                    title="Free Day"
+                    text="Nothing on the horizon yet. Use the button above to plan something."
                   />
                 </div>
               )}
@@ -2085,38 +2466,190 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           </div>
 
           <div
-            style={{
-              background: stickyColor,
-              flex: 1,
-              minHeight: '150px',
-              padding: '14px',
-              borderRadius: '2px 2px 25px 2px',
-              boxShadow:
-                '0 8px 16px -8px rgba(0,0,0,0.15)',
-              display: 'flex'
-            }}
+            className="panel"
+            style={{ display: 'flex', flexDirection: 'column' }}
           >
-            <textarea
-              placeholder="Sticky memo..."
-              value={stickyText}
-              onChange={(event) =>
-                handleStickyTextChange(event.target.value)
-              }
+            <div
               style={{
-                width: '100%',
-                height: '100%',
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                resize: 'none',
-                fontWeight: '800',
-                color: getContrastText(stickyColor),
-                caretColor: getContrastText(stickyColor),
-                fontSize: '12px',
-                lineHeight: '1.4',
-                fontFamily: 'inherit'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '10px'
               }}
-            />
+            >
+              <div style={{ minWidth: 0 }}>
+                <h4
+                  className="label-caps"
+                  style={{
+                    margin: 0,
+                    fontSize: '12px',
+                    color: 'var(--campora-text)',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  STICKIES
+                </h4>
+
+                <span
+                  className="muted"
+                  style={{ fontSize: '11px', fontWeight: '700' }}
+                >
+                  {selectedDateStr}
+                </span>
+              </div>
+
+              {stickyText && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const confirmed = window.confirm(
+                      'Clear this sticky?'
+                    );
+
+                    if (confirmed) clearSticky();
+                  }}
+                  className="btn btn-sm btn-ghost"
+                  style={{
+                    color: 'var(--campora-urgent)',
+                    height: '32px',
+                    padding: '0 10px',
+                    fontSize: '11px'
+                  }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '10px',
+                flexWrap: 'wrap'
+              }}
+            >
+              {camporaColors.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => {
+                    handleStickyColorChange(color);
+                    setShowStickyCustomColor(false);
+                  }}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    minWidth: '18px',
+                    padding: 0,
+                    borderRadius: '50%',
+                    background: color,
+                    cursor: 'pointer',
+                    border:
+                      stickyColor === color
+                        ? '2px solid var(--campora-navy)'
+                        : '1px solid var(--outline-variant)',
+                    boxShadow:
+                      stickyColor === color
+                        ? '0 0 0 2px #ffffff'
+                        : 'none'
+                  }}
+                />
+              ))}
+
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  minWidth: 0
+                }}
+              >
+                <button
+                  type="button"
+                  title="Custom Color"
+                  onClick={() =>
+                    setShowStickyCustomColor(!showStickyCustomColor)
+                  }
+                  className="btn btn-sm btn-outline"
+                  style={{
+                    height: '24px',
+                    padding: '0 8px',
+                    fontSize: '9px'
+                  }}
+                >
+                  <Plus size={10} strokeWidth={3} />
+                  Custom
+                </button>
+
+                {showStickyCustomColor && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '30px',
+                      right: 0,
+                      zIndex: 30,
+                      background: '#FAFBFC',
+                      padding: '8px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--divider)',
+                      boxShadow: 'var(--shadow-lift)'
+                    }}
+                  >
+                    <input
+                      type="color"
+                      value={stickyColor}
+                      onChange={(event) =>
+                        handleStickyColorChange(event.target.value)
+                      }
+                      style={{
+                        width: '42px',
+                        height: '34px',
+                        padding: 0,
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: stickyColor,
+                flex: 1,
+                minHeight: '150px',
+                padding: '14px',
+                borderRadius: '2px 2px var(--radius-secondary) 2px',
+                boxShadow: 'var(--shadow-soft)',
+                display: 'flex'
+              }}
+            >
+              <textarea
+                placeholder="Sticky memo..."
+                value={stickyText}
+                onChange={(event) =>
+                  handleStickyTextChange(event.target.value)
+                }
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  resize: 'none',
+                  fontWeight: '800',
+                  color: getContrastText(stickyColor),
+                  caretColor: getContrastText(stickyColor),
+                  fontSize: '12px',
+                  lineHeight: '1.4',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -2124,25 +2657,21 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       {deleteConfirmation && (
         <div style={overlay}>
           <div
-            className="card"
+            className="panel"
             style={{
               width: '380px',
-              border: '2px solid #0B1A3F',
-              padding: '30px',
+              maxWidth: '100%',
+              padding: '24px',
               textAlign: 'center'
             }}
           >
-            <AlertCircle
-              size={36}
-              color="#EE5D50"
-              style={{ marginBottom: '16px' }}
-            />
+            <IconChip icon={AlertCircle} tone="error" lg />
 
             <h2
               style={{
-                marginBottom: '8px',
+                margin: '14px 0 8px',
                 fontWeight: '900',
-                color: '#0B1A3F',
+                color: 'var(--campora-text)',
                 fontSize: '20px'
               }}
             >
@@ -2150,34 +2679,31 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             </h2>
 
             <p
+              className="muted"
               style={{
-                color: '#A3AED0',
-                fontWeight: '800',
-                marginBottom: '24px',
-                fontSize: '13px'
+                fontWeight: '700',
+                margin: '0 0 22px',
+                fontSize: '13px',
+                lineHeight: '1.5'
               }}
             >
               Delete only this occurrence or the entire repeating
               series?
             </p>
 
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}
-            >
+            <div className="stack">
               <button
+                type="button"
                 onClick={() =>
                   executeDelete(deleteConfirmation.id, false)
                 }
-                style={seriesBtnStyle}
+                className="btn btn-primary"
               >
                 Only this instance
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   executeDelete(
                     deleteConfirmation.id,
@@ -2185,17 +2711,15 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     deleteConfirmation.group_id
                   )
                 }
-                style={{
-                  ...seriesBtnStyle,
-                  background: '#EE5D50'
-                }}
+                className="btn btn-danger"
               >
                 Delete Entire Series
               </button>
 
               <button
+                type="button"
                 onClick={() => setDeleteConfirmation(null)}
-                style={cancelButtonStyle}
+                className="btn btn-ghost"
               >
                 Cancel
               </button>
@@ -2205,32 +2729,23 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       )}
 
       {editSeriesConfirmation && (
-        <div
-          style={{
-            ...overlay,
-            zIndex: 1200
-          }}
-        >
+        <div style={{ ...overlay, zIndex: 1200 }}>
           <div
-            className="card"
+            className="panel"
             style={{
               width: '390px',
-              border: '2px solid #0B1A3F',
-              padding: '30px',
+              maxWidth: '100%',
+              padding: '24px',
               textAlign: 'center'
             }}
           >
-            <Edit3
-              size={34}
-              color="#0B1A3F"
-              style={{ marginBottom: '14px' }}
-            />
+            <IconChip icon={Edit3} tone="primary" lg />
 
             <h2
               style={{
-                margin: '0 0 8px',
+                margin: '14px 0 8px',
                 fontWeight: '900',
-                color: '#0B1A3F',
+                color: 'var(--campora-text)',
                 fontSize: '20px'
               }}
             >
@@ -2238,10 +2753,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             </h2>
 
             <p
+              className="muted"
               style={{
-                color: '#A3AED0',
-                fontWeight: '800',
-                margin: '0 0 24px',
+                fontWeight: '700',
+                margin: '0 0 22px',
                 fontSize: '13px',
                 lineHeight: '1.5'
               }}
@@ -2250,18 +2765,13 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               occurrence or to the entire repeating schedule?
             </p>
 
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}
-            >
+            <div className="stack">
               <button
+                type="button"
                 onClick={confirmEditSingle}
                 disabled={saving}
+                className="btn btn-primary"
                 style={{
-                  ...seriesBtnStyle,
                   opacity: saving ? 0.65 : 1,
                   cursor: saving ? 'not-allowed' : 'pointer'
                 }}
@@ -2270,10 +2780,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               </button>
 
               <button
+                type="button"
                 onClick={confirmEditSeries}
                 disabled={saving}
+                className="btn btn-outline"
                 style={{
-                  ...seriesBtnStyle,
                   opacity: saving ? 0.65 : 1,
                   cursor: saving ? 'not-allowed' : 'pointer'
                 }}
@@ -2282,12 +2793,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               </button>
 
               <button
+                type="button"
                 disabled={saving}
                 onClick={() => setEditSeriesConfirmation(null)}
-                style={{
-                  ...cancelButtonStyle,
-                  opacity: saving ? 0.6 : 1
-                }}
+                className="btn btn-ghost"
+                style={{ opacity: saving ? 0.6 : 1 }}
               >
                 Cancel
               </button>
@@ -2299,13 +2809,17 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       {isModalOpen && (
         <div style={overlay}>
           <div
-            className="card"
+            className="panel"
             style={{
-              width: '430px',
-              maxHeight: '88vh',
+              width: '610px',
+              maxWidth: '94vw',
+              maxHeight: '90vh',
               overflowY: 'auto',
-              border: '1.5px solid #0B1A3F',
-              padding: '30px'
+              padding: '26px 28px 24px',
+              background: '#FFFFFF',
+              border: '1px solid #EEF1F4',
+              boxShadow: '0 20px 60px rgba(0,45,98,0.16)',
+              borderRadius: '26px'
             }}
           >
             <div
@@ -2313,19 +2827,30 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '20px'
+                marginBottom: '18px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid #F0F2F5'
               }}
             >
-              <h2
-                style={{
-                  margin: 0,
-                  fontWeight: '900',
-                  color: '#0B1A3F',
-                  fontSize: '20px'
-                }}
-              >
-                {editingEntry ? 'Edit Entry' : 'New Entry'}
-              </h2>
+              <div>
+                <h2
+                  style={{
+                    margin: 0,
+                    fontWeight: '900',
+                    color: 'var(--campora-text)',
+                    fontSize: '22px',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  {editingEntry ? 'Edit Entry' : 'New Entry'}
+                </h2>
+                <div
+                  className="muted"
+                  style={{ marginTop: '4px', fontSize: '11px', fontWeight: '700' }}
+                >
+                  Keep it simple — add what you need and save.
+                </div>
+              </div>
 
               {editingEntry && (
                 <button
@@ -2333,17 +2858,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   title="Delete Entry"
                   onClick={handleDeleteFromEdit}
                   disabled={saving}
+                  className="btn btn-sm btn-danger"
                   style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '9px',
-                    background: '#FFF5F5',
-                    border: '1px solid #FECACA',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#EE5D50',
-                    cursor: saving ? 'not-allowed' : 'pointer',
+                    width: '36px',
+                    height: '36px',
+                    padding: 0,
                     opacity: saving ? 0.5 : 1
                   }}
                 >
@@ -2357,52 +2876,67 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px'
+                gap: '16px'
               }}
             >
-              <input
-                type="text"
-                placeholder="Title"
-                required
-                style={modalInput}
-                value={newEntry.name}
-                onChange={(event) =>
-                  setNewEntry({
-                    ...newEntry,
-                    name: event.target.value
-                  })
-                }
-              />
+              <div>
+                <label style={modalLabel}>Title</label>
+                <input
+                  type="text"
+                  placeholder="Title"
+                  required
+                  style={modalInput}
+                  value={newEntry.name}
+                  onChange={(event) =>
+                    setNewEntry({
+                      ...newEntry,
+                      name: event.target.value
+                    })
+                  }
+                />
+              </div>
 
-              <textarea
-                placeholder="Add small notes..."
-                style={{
-                  ...modalInput,
-                  resize: 'none',
-                  height: '55px',
-                  fontFamily: 'inherit'
-                }}
-                value={newEntry.description}
-                onChange={(event) =>
-                  setNewEntry({
-                    ...newEntry,
-                    description: event.target.value
-                  })
-                }
-              />
+              <div>
+                <label style={modalLabel}>Details</label>
+                <textarea
+                  placeholder="Add details, notes, room, instructions..."
+                  style={{
+                    ...modalInput,
+                    resize: 'vertical',
+                    minHeight: '88px',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.45'
+                  }}
+                  value={newEntry.description}
+                  onChange={(event) =>
+                    setNewEntry({
+                      ...newEntry,
+                      description: event.target.value
+                    })
+                  }
+                />
+              </div>
 
               <div
+                className="label-caps"
                 style={{
-                  display: 'flex',
-                  gap: '10px'
+                  marginTop: '2px',
+                  marginBottom: '-5px',
+                  color: 'var(--campora-navy)',
+                  fontSize: '10px',
+                  letterSpacing: '0.08em'
                 }}
               >
+                SCHEDULE
+              </div>
+
+              <div>
+                <label style={modalLabel}>Type</label>
                 <select
                   style={modalInput}
                   value={newEntry.type}
                   onChange={(event) => {
                     const type = event.target.value;
-
                     setNewEntry({
                       ...newEntry,
                       type,
@@ -2418,7 +2952,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   <option value="Task">Task</option>
                   <option value="Exam">Exam</option>
                 </select>
+              </div>
 
+              <div>
+                <label style={modalLabel}>Date</label>
                 <input
                   type="date"
                   style={modalInput}
@@ -2432,33 +2969,51 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 />
               </div>
 
+              <div>
+                <label style={modalLabel}>Start time</label>
+                <input
+                  type="time"
+                  style={modalInput}
+                  value={newEntry.start_time}
+                  onChange={(event) =>
+                    setNewEntry({
+                      ...newEntry,
+                      start_time: event.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <label style={modalLabel}>End time</label>
+                <input
+                  type="time"
+                  style={modalInput}
+                  value={newEntry.end_time}
+                  onChange={(event) =>
+                    setNewEntry({
+                      ...newEntry,
+                      end_time: event.target.value
+                    })
+                  }
+                />
+              </div>
+
               {isRepeatableType(newEntry.type) && (
                 <div
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px',
-                    padding: '12px',
-                    background: '#F8FAFF',
-                    borderRadius: '10px',
-                    border: '1px solid #E9EDF7'
+                    gap: '9px'
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: '900',
-                      color: '#0B1A3F'
-                    }}
-                  >
-                    REPEAT
-                  </div>
+                  <label style={modalLabel}>Repeat</label>
 
                   <div
                     style={{
                       display: 'flex',
                       flexWrap: 'wrap',
-                      gap: '7px'
+                      gap: '8px'
                     }}
                   >
                     {[
@@ -2476,25 +3031,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             repeat: repeatOption.value
                           })
                         }
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '7px',
-                          border:
-                            newEntry.repeat === repeatOption.value
-                              ? '1.5px solid #0B1A3F'
-                              : '1px solid #D8E0EE',
-                          fontSize: '10px',
-                          fontWeight: '900',
-                          cursor: 'pointer',
-                          background:
-                            newEntry.repeat === repeatOption.value
-                              ? '#0B1A3F'
-                              : 'white',
-                          color:
-                            newEntry.repeat === repeatOption.value
-                              ? 'white'
-                              : '#0B1A3F'
-                        }}
+                        className={
+                          newEntry.repeat === repeatOption.value
+                            ? 'filter-chip active'
+                            : 'filter-chip'
+                        }
                       >
                         {repeatOption.label}
                       </button>
@@ -2502,32 +3043,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   </div>
 
                   {newEntry.repeat !== 'none' && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: '900',
-                          color: '#0B1A3F',
-                          minWidth: '42px'
-                        }}
-                      >
-                        UNTIL
-                      </span>
-
+                    <div style={{ marginTop: '2px' }}>
+                      <label style={modalLabel}>Repeat until</label>
                       <input
                         type="date"
                         min={newEntry.date}
-                        style={{
-                          ...modalInput,
-                          padding: '6px 8px',
-                          fontSize: '11px'
-                        }}
+                        style={modalInput}
                         value={newEntry.until_date}
                         onChange={(event) =>
                           setNewEntry({
@@ -2542,87 +3063,32 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               )}
 
               <div
+                className="label-caps"
                 style={{
-                  display: 'flex',
-                  gap: '10px'
+                  marginTop: '2px',
+                  marginBottom: '-5px',
+                  color: 'var(--campora-navy)',
+                  fontSize: '10px',
+                  letterSpacing: '0.08em'
                 }}
               >
-                <input
-                  type="time"
-                  style={modalInput}
-                  value={newEntry.start_time}
-                  onChange={(event) =>
-                    setNewEntry({
-                      ...newEntry,
-                      start_time: event.target.value
-                    })
-                  }
-                />
-
-                <input
-                  type="time"
-                  style={modalInput}
-                  value={newEntry.end_time}
-                  onChange={(event) =>
-                    setNewEntry({
-                      ...newEntry,
-                      end_time: event.target.value
-                    })
-                  }
-                />
+                OPTIONS
               </div>
 
-              <div
-                style={{
-                  padding: '12px',
-                  background: '#F8FAFF',
-                  border: '1px solid #E9EDF7',
-                  borderRadius: '12px'
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: '900',
-                    color: '#94A3B8',
-                    marginBottom: '9px'
-                  }}
-                >
-                  ALERT
-                </div>
+              <div>
+                <label style={modalLabel}>Alert</label>
 
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    display: 'flex',
+                    flexWrap: 'wrap',
                     gap: '8px'
                   }}
                 >
                   {[
-                    {
-                      value: 'none',
-                      label: 'None',
-                      icon: BellOff,
-                      color: '#75839A',
-                      soft: '#F6F8FB',
-                      border: '#E4E8EF'
-                    },
-                    {
-                      value: 'notification',
-                      label: 'Notification',
-                      icon: Bell,
-                      color: '#648CCB',
-                      soft: '#F3F7FD',
-                      border: '#DDE7F5'
-                    },
-                    {
-                      value: 'reminder',
-                      label: 'Reminder',
-                      icon: AlarmClock,
-                      color: '#8B78B8',
-                      soft: '#F7F4FC',
-                      border: '#E7E0F2'
-                    }
+                    { value: 'none', label: 'None', icon: BellOff },
+                    { value: 'notification', label: 'Notification', icon: Bell },
+                    { value: 'reminder', label: 'Reminder', icon: AlarmClock }
                   ].map((option) => {
                     const AlertIcon = option.icon;
                     const active = newEntry.alertType === option.value;
@@ -2638,26 +3104,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             reminder: option.value === 'reminder'
                           })
                         }
-                        style={{
-                          minHeight: '43px',
-                          borderRadius: '10px',
-                          border: active
-                            ? `1.5px solid ${option.color}`
-                            : `1px solid ${option.border}`,
-                          background: active
-                            ? option.color
-                            : option.soft,
-                          color: active
-                            ? '#FFFFFF'
-                            : option.color,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          fontSize: '10px',
-                          fontWeight: '900'
-                        }}
+                        className={active ? 'filter-chip active' : 'filter-chip'}
                       >
                         <AlertIcon size={14} />
                         {option.label}
@@ -2668,12 +3115,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
                 {newEntry.alertType !== 'none' && (
                   <div
+                    className="muted"
                     style={{
-                      marginTop: '9px',
-                      color:
-                        newEntry.alertType === 'reminder'
-                          ? '#8B78B8'
-                          : '#648CCB',
+                      marginTop: '7px',
                       fontSize: '10px',
                       fontWeight: '800',
                       lineHeight: 1.45
@@ -2686,18 +3130,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 )}
               </div>
 
-              <div style={{ paddingTop: '4px' }}>
-                <div
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: '900',
-                    color: '#94A3B8',
-                    marginBottom: '8px'
-                  }}
-                >
+              <div>
+                <div className="label-caps" style={{ marginBottom: '8px' }}>
                   COLOR
                 </div>
-
                 <ColorPalette
                   selectedColor={newEntry.color}
                   onChange={(color) =>
@@ -2711,186 +3147,107 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
+              <div
                 style={{
-                  ...saveBtn,
-                  opacity: saving ? 0.65 : 1,
-                  cursor: saving ? 'not-allowed' : 'pointer'
+                  display: 'flex',
+                  gap: '10px',
+                  justifyContent: 'flex-end',
+                  flexWrap: 'wrap',
+                  paddingTop: '16px',
+                  marginTop: '2px',
+                  borderTop: '1px solid #F0F2F5'
                 }}
               >
-                {saving
-                  ? 'Saving...'
-                  : editingEntry
-                  ? 'Save Changes'
-                  : 'Confirm'}
-              </button>
-
-              {editingEntry && (
                 <button
                   type="button"
                   disabled={saving}
-                  onClick={handleDeleteFromEdit}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingEntry(null);
+                  }}
+                  className="btn btn-ghost"
                   style={{
-                    background: '#FFF5F5',
-                    border: '1.5px solid #FECACA',
-                    color: '#EE5D50',
-                    padding: '10px',
-                    borderRadius: '10px',
-                    fontWeight: '900',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '7px',
-                    opacity: saving ? 0.5 : 1
+                    color: 'var(--campora-muted)',
+                    opacity: saving ? 0.5 : 1,
+                    minWidth: '110px'
                   }}
                 >
-                  <Trash2 size={14} />
-                  Delete Entry
+                  Cancel
                 </button>
-              )}
 
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setEditingEntry(null);
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontWeight: '900',
-                  color: '#A3AED0',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  marginTop: '4px',
-                  opacity: saving ? 0.5 : 1
-                }}
-              >
-                Cancel
-              </button>
+                {editingEntry && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={handleDeleteFromEdit}
+                    className="btn btn-danger"
+                    style={{
+                      opacity: saving ? 0.5 : 1,
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      minWidth: '130px'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Delete Entry
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn btn-primary"
+                  style={{
+                    opacity: saving ? 0.65 : 1,
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    minWidth: '140px'
+                  }}
+                >
+                  {saving
+                    ? 'Saving...'
+                    : editingEntry
+                    ? 'Save Changes'
+                    : 'Confirm'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
-
-const switcherGroup = {
-  display: 'flex',
-  background: '#F4F7FE',
-  padding: '4px',
-  borderRadius: '12px'
-};
-
-const toggleStyle = {
-  background: 'none',
-  border: 'none',
-  padding: '6px 12px',
-  fontSize: '11px',
-  fontWeight: '900',
-  color: '#A3AED0',
-  cursor: 'pointer',
-  borderRadius: '8px'
-};
-
-const activeToggle = {
-  ...toggleStyle,
-  background: 'white',
-  color: '#0B1A3F',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-};
-
-const navBtn = {
-  background: 'white',
-  border: '1.5px solid #E2E8F0',
-  padding: '6px 12px',
-  borderRadius: '10px',
-  fontWeight: '900',
-  color: '#0B1A3F',
-  cursor: 'pointer',
-  fontSize: '12px'
-};
-
-const saveBtn = {
-  background: '#0B1A3F',
-  border: 'none',
-  color: 'white',
-  padding: '11px',
-  borderRadius: '10px',
-  fontWeight: '900',
-  cursor: 'pointer',
-  fontSize: '13px',
-  marginTop: '3px'
-};
-
-const seriesBtnStyle = {
-  background: '#0B1A3F',
-  color: 'white',
-  border: 'none',
-  padding: '12px',
-  borderRadius: '10px',
-  fontWeight: '900',
-  cursor: 'pointer',
-  fontSize: '12px'
-};
-
-const cancelButtonStyle = {
-  background: '#F1F5F9',
-  border: 'none',
-  padding: '10px',
-  borderRadius: '10px',
-  fontWeight: '900',
-  cursor: 'pointer',
-  color: '#0B1A3F'
-};
-
-const dayHeader = {
-  textAlign: 'center',
-  fontWeight: '900',
-  color: '#94A3B8',
-  fontSize: '11px',
-  paddingBottom: '6px'
-};
-
-const cellAddIcon = {
-  width: '22px',
-  height: '22px',
-  borderRadius: '50%',
-  background: '#0B1A3F',
-  color: 'white',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: 'none',
-  cursor: 'pointer',
-  transition: '0.2s',
-  boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
-};
-
-const modalInput = {
-  padding: '10px',
-  borderRadius: '8px',
-  border: '1.5px solid #E2E8F0',
-  fontWeight: '800',
-  outline: 'none',
-  fontSize: '12px',
-  flex: 1,
-  color: '#0B1A3F',
-  boxSizing: 'border-box'
-};
 
 const overlay = {
   position: 'fixed',
   inset: 0,
-  background: 'rgba(11,26,57,0.4)',
-  backdropFilter: 'blur(6px)',
+  background: 'rgba(0, 45, 98, 0.24)',
+  backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  zIndex: 1000
+  zIndex: 1000,
+  padding: '20px'
+};
+
+const modalLabel = {
+  display: 'block',
+  marginBottom: '7px',
+  fontSize: '11px',
+  fontWeight: '800',
+  color: 'var(--campora-muted)'
+};
+
+const modalInput = {
+  width: '100%',
+  padding: '12px 13px',
+  borderRadius: '14px',
+  border: '1px solid #E9EDF1',
+  fontWeight: '700',
+  outline: 'none',
+  fontSize: '13px',
+  flex: 1,
+  color: 'var(--campora-text)',
+  background: '#FCFDFE',
+  boxSizing: 'border-box'
 };

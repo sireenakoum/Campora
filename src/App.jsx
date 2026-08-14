@@ -1,31 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   NavLink,
-  Link,
   Outlet,
   useNavigate,
+  useLocation,
 } from 'react-router-dom';
 
 import {
   LayoutDashboard,
   Bell,
-  GraduationCap,
+  BookOpen,
   Calendar,
   User,
   Users,
   ChevronsLeft,
   ChevronsRight,
-  MessageSquare,
   CheckSquare,
   ShieldCheck,
-  Compass,
-  Megaphone,
+  UserCheck,
+  Activity,
+  Network,
+  LogOut,
+  Settings,
+  Menu,
+  Command,
+  Search,
+  School,
 } from 'lucide-react';
 
 import './App.css';
+import camporaLogo from './assets/camporanavylogo.png';
 
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
@@ -48,11 +55,158 @@ import Profile from './Profile';
 import ForgotPassword from './ForgotPassword';
 
 import { supabase } from './lib/supabase';
+import { signOut } from './lib/auth';
+import {
+  getUnreadNotificationsForCurrentUser,
+  getTodosForCurrentUser,
+} from './lib/queries';
+import { getToasts, dismiss, subscribeToasts } from './lib/toast';
 import {
   catchUpUnreadDmNotifications,
   dmViewStatus,
   ensureDmNotification,
 } from './lib/dmNotifications';
+
+const TOPBAR_META = {
+  '/dashboard': ['Dashboard', 'Your campus overview'],
+  '/announcements': ['Announcements', 'Campus updates and notices'],
+  '/notifications': [
+    'Notifications & Reminders',
+    'Manage your alerts and to-dos',
+  ],
+  '/campus-pulse': ['Campus Pulse', "What's happening around campus"],
+  '/courses': ['Courses', 'Manage your classes and calendar'],
+  '/registration': ['Registration', 'Course selection and swaps'],
+  '/planner': ['Planner', 'Your schedule and deadlines'],
+  '/todo': ['To-Do', 'Your task list'],
+  '/study-groups': ['Study Groups', 'Circles and direct messages'],
+  '/admin/study-groups': ['Admin Reviews', 'Moderate study groups and posts'],
+  '/profile': ['Profile', 'Your account details'],
+};
+
+const NAV_PRIMARY = [
+  { to: '/dashboard', path: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/courses', path: 'courses', icon: BookOpen, label: 'Courses' },
+  { to: '/registration', path: 'registration', icon: UserCheck, label: 'Registration' },
+  { to: '/study-groups', path: 'study-groups', icon: Users, label: 'Study Groups' },
+  { to: '/campus-pulse', path: 'campus-pulse', icon: Activity, label: 'Campus Pulse' },
+];
+
+const NAV_TOOLS = [
+  { to: '/planner', path: 'planner', icon: Calendar, label: 'Planner' },
+  { to: '/todo', path: 'todo', icon: CheckSquare, label: 'To-Do' },
+  { to: '/notifications', path: 'notifications', icon: Bell, label: 'Notifications' },
+  { to: '/announcements', path: 'announcements', icon: Network, label: 'Campus Hub' },
+];
+
+function NavRow({ to, label, icon: Icon, badge, rail, onNavigate }) {
+  return (
+    <NavLink
+      to={to}
+      data-path={to.slice(1)}
+      title={rail ? label : undefined}
+      className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+      onClick={onNavigate}
+    >
+      <Icon size={20} />
+      <span>{label}</span>
+      {badge > 0 && <span className="nav-badge">{badge > 99 ? '99+' : badge}</span>}
+    </NavLink>
+  );
+}
+
+function CommandPalette({ items, onClose, onSelect }) {
+  const [query, setQuery] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    setQuery('');
+    const t = setTimeout(() => inputRef.current?.focus(), 30);
+    return () => clearTimeout(t);
+  }, []);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? items.filter(
+        (item) =>
+          item.label.toLowerCase().includes(q) || item.to.toLowerCase().includes(q)
+      )
+    : items;
+
+  const choose = (item) => {
+    onClose();
+    onSelect(item.to);
+  };
+
+  return (
+    <div className="palette-backdrop" onMouseDown={onClose}>
+      <div
+        className="palette-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Quick navigation"
+        onMouseDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') onClose();
+          if (event.key === 'Enter' && filtered[0]) choose(filtered[0]);
+        }}
+      >
+        <div className="palette-input-row">
+          <Search size={18} />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Jump to a page…"
+            className="palette-input"
+          />
+          <kbd className="palette-kbd">esc</kbd>
+        </div>
+        <div className="palette-list">
+          {filtered.length === 0 ? (
+            <div className="palette-empty">No matches found.</div>
+          ) : (
+            filtered.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.to}
+                  type="button"
+                  className="palette-row"
+                  onClick={() => choose(item)}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ToastViewport() {
+  const [items, setItems] = useState(getToasts);
+
+  useEffect(() => subscribeToasts(setItems), []);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="toast-viewport">
+      {items.map((item) => (
+        <div key={item.id} className={`toast toast-${item.kind}`}>
+          <span>{item.message}</span>
+          <button type="button" className="toast-dismiss" onClick={() => dismiss(item.id)}>
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // Watches for incoming study-group direct messages and creates an unread
 // notification (with timestamp) for the recipient whenever they are not
@@ -131,7 +285,7 @@ function EmailVerified() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F4F7FE',
+        backgroundColor: '#FAF9FE',
       }}
     >
       <div
@@ -146,7 +300,7 @@ function EmailVerified() {
           style={{
             fontSize: '24px',
             fontWeight: '900',
-            color: '#0B1A3F',
+            color: '#1A1B1F',
           }}
         >
           ✅ Email Verified!
@@ -154,7 +308,7 @@ function EmailVerified() {
 
         <p
           style={{
-            color: '#64748B',
+            color: '#717786',
             margin: '20px 0',
             fontWeight: '700',
           }}
@@ -176,6 +330,37 @@ function DashboardLayout() {
   );
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [todoCount, setTodoCount] = useState(0);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem('campora_theme') || 'light'
+  );
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('campora_theme', theme);
+  }, [theme]);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
+  };
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteOpen((current) => !current);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(
@@ -224,362 +409,305 @@ function DashboardLayout() {
     init();
   }, [navigate]);
 
+  useEffect(() => {
+    let active = true;
+
+    const refreshUnread = async () => {
+      try {
+        const unread = await getUnreadNotificationsForCurrentUser();
+        if (active) setUnreadCount(unread.length);
+      } catch (error) {
+        console.error('Unread count error:', error);
+      }
+    };
+
+    refreshUnread();
+
+    const channel = supabase
+      .channel('topbar_unread')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+        },
+        refreshUnread
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const [topbarTitle, topbarSubtitle] =
+    TOPBAR_META[location.pathname] || ['Campora', 'Academic portal'];
+
+  const paletteItems = [
+    ...NAV_PRIMARY,
+    ...NAV_TOOLS,
+    ...(isAdmin
+      ? [
+          {
+            to: '/admin/study-groups',
+            path: 'admin-study-groups',
+            icon: ShieldCheck,
+            label: 'Admin Reviews',
+          },
+        ]
+      : []),
+    { to: '/profile', path: 'profile', icon: User, label: 'Profile' },
+  ];
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const todos = await getTodosForCurrentUser();
+        if (active) {
+          setTodoCount(
+            todos.filter((todo) => !todo.completed).length
+          );
+        }
+      } catch (error) {
+        console.error('To-Do count error:', error);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [location.pathname]);
+
   return (
     <div className="layout">
       <DmNotificationsListener />
-      <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
-        {/* COLLAPSE BUTTON */}
-        <button
-          onClick={() => setCollapsed((current) => !current)}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          style={{
-            position: 'absolute',
-            top: '22px',
-            right: '-14px',
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            backgroundColor: '#0B1A3F',
-            color: '#fff',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(11, 26, 63, 0.3)',
-            zIndex: 10,
-          }}
-        >
-          {collapsed ? (
-            <ChevronsRight size={18} />
-          ) : (
-            <ChevronsLeft size={18} />
-          )}
-        </button>
-
-        {/* LOGO */}
-        <div
-          className="logo-section"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: collapsed ? 0 : '12px',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            background: 'white',
-            padding: '12px',
-            margin: collapsed
-              ? '0 8px 40px 8px'
-              : '0 20px 40px 20px',
-            borderRadius: '16px',
-            border: '1px solid rgba(224, 229, 242, 0.8)',
-            boxShadow:
-              '0 10px 25px -5px rgba(11, 26, 63, 0.12)',
-            transition: 'all 0.3s ease',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              height: '48px',
-              width: '56px',
-              flexShrink: 0,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '12px',
-              background: '#F4F7FE',
-              padding: '4px',
-              boxShadow:
-                'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
-            }}
-          >
-            <svg
-              viewBox="0 0 240 160"
-              style={{ width: '100%', height: '100%' }}
-              fill="none"
-            >
-              <path
-                d="M120 4 L123 18 L137 21 L123 24 L120 38 L117 24 L103 21 L117 18 Z"
-                fill="#0B1A3F"
-              />
-
-              <path
-                d="M62 34 L102 18"
-                stroke="#0B1A3F"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-
-              <path
-                d="M138 18 L178 34 L178 55"
-                stroke="#0B1A3F"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-
-              <path
-                d="M62 34 L62 55"
-                stroke="#0B1A3F"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-
-              <path
-                d="M69 38 L104 23"
-                stroke="#0B1A3F"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-
-              <path
-                d="M136 23 L171 38 L171 55"
-                stroke="#0B1A3F"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-
-              <path
-                d="M69 38 L69 55"
-                stroke="#0B1A3F"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-
-              <text
-                x="120"
-                y="82"
-                fontFamily="'Times New Roman', serif"
-                fontWeight="bold"
-                fontSize="29"
-                fill="#0B1A3F"
-                textAnchor="middle"
-                letterSpacing="2"
-              >
-                CAMPORA
-              </text>
-
-              <path
-                d="M62 95 L62 108 C62 135 120 152 120 152 C120 152 178 135 178 108 L178 95"
-                stroke="#0B1A3F"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              <path
-                d="M120 126 C92 121 58 104 44 88"
-                stroke="#0B1A3F"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-
-              <circle
-                cx="120"
-                cy="131"
-                r="2.5"
-                fill="#0B1A3F"
-              />
-            </svg>
-          </div>
-
-          <div className="logo-caption">
-            <h1
-              style={{
-                fontSize: '18px',
-                fontWeight: '900',
-                color: '#0B1A3F',
-                margin: 0,
-              }}
-            >
-              Campora
-            </h1>
-
-            <p
-              style={{
-                fontSize: '8px',
-                fontWeight: '900',
-                color: '#0B1A3F',
-                margin: 0,
-                opacity: 0.6,
-              }}
-            >
-              ACADEMIC PORTAL
-            </p>
-          </div>
+      <div
+        className={mobileOpen ? 'scrim show' : 'scrim'}
+        onClick={() => setMobileOpen(false)}
+      />
+      <aside
+        className={[
+          collapsed ? 'sidebar collapsed' : 'sidebar',
+          mobileOpen ? 'mobile-open' : '',
+        ].join(' ')}
+      >
+        {/* BRAND */}
+        <div className="sidebar-brand">
+          <img
+            src={camporaLogo}
+            alt="Campora logo"
+            className="sidebar-brand-logo"
+          />
+          <span className="sidebar-wordmark">
+            <span className="sidebar-wordmark-main">Campora</span>
+            <span className="sidebar-wordmark-sub">Academic Portal</span>
+          </span>
         </div>
 
         {/* NAVIGATION */}
-        <nav style={{ flex: 1 }}>
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <LayoutDashboard size={20} />
-            <span>Dashboard</span>
-          </NavLink>
+        <nav>
+          {NAV_PRIMARY.map((item) => (
+            <NavRow
+              key={item.to}
+              {...item}
+              rail={collapsed}
+              onNavigate={() => {
+                setMobileOpen(false);
+                setAccountOpen(false);
+              }}
+            />
+          ))}
 
-          <NavLink
-            to="/announcements"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <Megaphone size={20} />
-            <span>Announcements</span>
-          </NavLink>
+          <span className="nav-section-label">Tools</span>
 
-          <NavLink
-            to="/notifications"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <Bell size={20} />
-            <span>Notifications & Reminders</span>
-          </NavLink>
-
-          <NavLink
-            to="/campus-pulse"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <MessageSquare size={20} />
-            <span>Campus Pulse</span>
-          </NavLink>
-
-          <NavLink
-            to="/courses"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <GraduationCap size={20} />
-            <span>Courses</span>
-          </NavLink>
-
-          <NavLink
-            to="/registration"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <Compass size={20} />
-            <span>Registration</span>
-          </NavLink>
-
-          <NavLink
-            to="/planner"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <Calendar size={20} />
-            <span>Planner</span>
-          </NavLink>
-
-          <NavLink
-            to="/todo"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <CheckSquare size={20} />
-            <span>To-Do</span>
-          </NavLink>
-
-          <NavLink
-            to="/study-groups"
-            className={({ isActive }) =>
-              isActive ? 'nav-item active' : 'nav-item'
-            }
-          >
-            <Users size={20} />
-            <span>Study Groups</span>
-          </NavLink>
+          {NAV_TOOLS.map((item) => (
+            <NavRow
+              key={item.to}
+              {...item}
+              badge={
+                item.path === 'notifications'
+                  ? unreadCount
+                  : item.path === 'todo'
+                    ? todoCount
+                    : 0
+              }
+              rail={collapsed}
+              onNavigate={() => {
+                setMobileOpen(false);
+                setAccountOpen(false);
+              }}
+            />
+          ))}
 
           {isAdmin && (
-            <NavLink
+            <NavRow
               to="/admin/study-groups"
-              className={({ isActive }) =>
-                isActive ? 'nav-item active' : 'nav-item'
-              }
-            >
-              <ShieldCheck size={20} />
-              <span>Admin Reviews</span>
-            </NavLink>
+              label="Admin Reviews"
+              icon={ShieldCheck}
+              rail={collapsed}
+              onNavigate={() => {
+                setMobileOpen(false);
+                setAccountOpen(false);
+              }}
+            />
           )}
         </nav>
 
-        {/* PROFILE */}
-        <Link
-          to="/profile"
-          className="sidebar-profile"
-          style={{
-            padding: '25px',
-            borderTop: '1px solid #eee',
-            textDecoration: 'none',
-            display: 'block',
-          }}
-        >
-          <div
-            className="profile-inner"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '50%',
-                backgroundColor: '#F4F7FE',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#0B1A3F',
-                border: '1px solid #E9EDF7',
-                flexShrink: 0,
-              }}
+        {/* ACCOUNT FOOTER */}
+        <div className="sidebar-footer">
+          <div className="account-card">
+            <button
+              type="button"
+              className="account-avatar"
+              onClick={() => navigate('/profile')}
+              title={collapsed ? 'Profile' : undefined}
             >
-              <User size={22} />
+              {userName.charAt(0).toUpperCase() || 'U'}
+            </button>
+            <div className="account-meta">
+              <span className="account-name">{userName || 'Student'}</span>
+              <span className="account-role">{userRole}</span>
             </div>
-
-            <div className="profile-text">
-              <p
-                style={{
-                  fontWeight: '900',
-                  fontSize: '14px',
-                  color: '#0B1A3F',
-                  margin: 0,
-                }}
+            {!collapsed && (
+              <button
+                type="button"
+                className="account-chevron"
+                aria-expanded={accountOpen}
+                aria-label="Account menu"
+                onClick={() => setAccountOpen((current) => !current)}
               >
-                {userName || 'Student'}
-              </p>
+                <ChevronsRight
+                  size={16}
+                  style={{
+                    transform: accountOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.25s ease',
+                  }}
+                />
+              </button>
+            )}
 
-              <p
-                style={{
-                  fontWeight: '900',
-                  fontSize: '11px',
-                  color: '#0B1A3F',
-                  margin: 0,
-                  opacity: 0.7,
-                }}
-              >
-                {userRole}
-              </p>
-            </div>
+            {!collapsed && accountOpen && (
+              <div className="account-popover">
+                <button
+                  type="button"
+                  className="account-pop-btn"
+                  onClick={() => {
+                    setAccountOpen(false);
+                    navigate('/profile');
+                  }}
+                >
+                  <User size={16} />
+                  <span>Profile</span>
+                </button>
+                <button
+                  type="button"
+                  className="account-pop-btn"
+                  onClick={() => {
+                    setAccountOpen(false);
+                    navigate('/profile');
+                  }}
+                >
+                  <Settings size={16} />
+                  <span>Settings</span>
+                </button>
+                <button
+                  type="button"
+                  className="account-pop-btn"
+                  onClick={() =>
+                    setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+                  }
+                >
+                  {theme === 'dark' ? '☀️' : '🌙'}
+                  <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                </button>
+                <div className="account-pop-divider" />
+                <button
+                  type="button"
+                  className="account-pop-btn account-pop-logout"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={16} />
+                  <span>Log out</span>
+                </button>
+              </div>
+            )}
           </div>
-        </Link>
+
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={() => setCollapsed((current) => !current)}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? (
+              <ChevronsRight size={18} />
+            ) : (
+              <ChevronsLeft size={18} />
+            )}
+          </button>
+        </div>
       </aside>
 
       <main className="main-content">
+        <header className="app-topbar">
+          <div className="topbar-title">
+            <h2 className="topbar-title-text">{topbarTitle}</h2>
+            <p className="topbar-subtitle">{topbarSubtitle}</p>
+          </div>
+          <div className="topbar-actions">
+            <button
+              type="button"
+              className="topbar-icon-btn topbar-menu-btn"
+              aria-label="Open menu"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            <button
+              type="button"
+              className="topbar-search"
+              onClick={() => setPaletteOpen(true)}
+            >
+              <Search size={18} />
+              <span className="topbar-search-text">Search Campora…</span>
+              <kbd className="topbar-kbd">
+                <Command size={12} />
+                K
+              </kbd>
+            </button>
+            <button
+              type="button"
+              className="topbar-icon-btn"
+              title="Notifications"
+              onClick={() => navigate('/notifications')}
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && <span className="topbar-dot" />}
+            </button>
+            <button
+              type="button"
+              className="topbar-avatar"
+              title="Profile"
+              onClick={() => navigate('/profile')}
+            >
+              {userName.charAt(0).toUpperCase() || 'U'}
+            </button>
+          </div>
+        </header>
         <Outlet />
       </main>
+
+      {paletteOpen && (
+        <CommandPalette
+          items={paletteItems}
+          onClose={() => setPaletteOpen(false)}
+          onSelect={navigate}
+        />
+      )}
+      <ToastViewport />
     </div>
   );
 }

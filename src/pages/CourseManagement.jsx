@@ -29,11 +29,19 @@ import {
 
 import { supabase } from '../lib/supabase';
 
+import {
+  PageShell,
+  SectionHeader,
+  EmptyState,
+  StatTile,
+  IconChip
+} from '../components/luminous';
+
 // =========================================================
 // HELPERS
 // =========================================================
 
-function NotepadIcon({ size = 32, color = '#0B1A3F' }) {
+function NotepadIcon({ size = 32, color = '#002D62' }) {
  return (
   <svg
     width={size}
@@ -117,7 +125,7 @@ const COURSE_COLORS = [
   { bg: '#CFFAFE', name: 'Light Blue' },
   { bg: '#D1FAE5', name: 'Mint' },
   { bg: '#E0E7FF', name: 'Periwinkle' },
-  { bg: '#0B1A3F', name: 'Navy' }
+  { bg: '#002D62', name: 'Navy' }
 ];
 
 const DEFAULT_COURSE_COLOR = COURSE_COLORS[0].bg;
@@ -146,13 +154,13 @@ const getContrastColor = (backgroundColor) => {
 
   (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
 
-  return luminance < 0.58 ? '#FFFFFF' : '#0B1A3F';
+  return luminance < 0.58 ? '#FFFFFF' : '#002D62';
 };
 
 const getMutedContrastColor = (backgroundColor) =>
  getContrastColor(backgroundColor) === '#FFFFFF'
   ? 'rgba(255,255,255,0.78)'
-  : '#64748B';
+  : '#717786';
 
 const localKey = (userId, name) =>
  `campora-course-management:${userId || 'guest'}:${name}`;
@@ -2115,25 +2123,18 @@ const visibleSemesterCourses = semesterCourses.filter((course) => {
  );
 });
 
-return (
- <div
-   style={{
-    width: '100%',
-    maxWidth: '1250px',
-    margin: '0 auto',
-    animation: 'fadeIn 0.35s ease'
-   }}
- >
-   <button
-    onClick={() => {
-      setSelectedSemester(null);
-      setSearchTerm('');
-    }}
-    style={backBtnStyle}
-   >
-    <ArrowLeft size={20} strokeWidth={3} />
-    <span>Back to Semesters</span>
-   </button>
+ return (
+  <PageShell>
+    <button
+      onClick={() => {
+        setSelectedSemester(null);
+        setSearchTerm('');
+      }}
+     className="btn btn-ghost"
+    >
+     <ArrowLeft size={20} strokeWidth={3} />
+     <span>Back to Semesters</span>
+    </button>
 
   <div
    style={{
@@ -2156,7 +2157,7 @@ return (
   style={{
    fontSize: '42px',
    fontWeight: '900',
-   color: '#0B1A3F',
+   color: '#1A1B1F',
    margin: '10px 0 0'
   }}
  >
@@ -2186,24 +2187,23 @@ return (
   flexWrap: 'wrap'
  }}
 >
- <button
-  type="button"
-  onClick={() => openEditSemester(selectedSemester)}
-  style={editSemesterBtnStyle}
- >
-  <Edit2 size={16} />
-  Edit Semester
- </button>
-
- <button
-  type="button"
-  onClick={() => handleDeleteSemester(selectedSemester)}
-  style={deleteSemesterBtnStyle}
-
+  <button
+   type="button"
+   onClick={() => openEditSemester(selectedSemester)}
+   className="btn btn-tinted btn-sm"
   >
-   <Trash2 size={16} />
-   Delete Semester
+   <Edit2 size={16} />
+   Edit Semester
   </button>
+
+  <button
+   type="button"
+   onClick={() => handleDeleteSemester(selectedSemester)}
+   className="btn btn-error btn-sm"
+  >
+    <Trash2 size={16} />
+    Delete Semester
+   </button>
 
   <button
     type="button"
@@ -2224,7 +2224,7 @@ return (
      });
      setIsModalOpen(true);
     }}
-    style={addBtnStyle}
+    className="btn btn-primary"
   >
     <Plus size={19} strokeWidth={3} />
     Add Course
@@ -2306,18 +2306,10 @@ return (
 {visibleSemesterCourses.length === 0 ? (
  <div style={emptyCoursesCard}>
    <EmptyState
-    text={
-      semesterCourses.length === 0
-
-     ? 'No courses in this semester yet.'
-     : 'No courses match your search.'
-    }
-    subtext={
-      semesterCourses.length === 0
-       ? 'Use Add Course to create the first course.'
-       : 'Try another course or professor name.'
-    }
-  />
+     icon={FolderOpen}
+     title={semesterCourses.length === 0 ? 'No courses in this semester yet.' : 'No courses match your search.'}
+     text={semesterCourses.length === 0 ? 'Use Add Course to create the first course.' : 'Try another course or professor name.'}
+   />
  </div>
 ):(
  <div style={courseGridStyle}>
@@ -2364,7 +2356,7 @@ return (
 
   border: `1.8px solid ${courseColor}`,
   borderTop: `7px solid ${courseColor}`,
-  boxShadow: `0 10px 26px rgba(11,26,63,0.045)`
+  boxShadow: `0 10px 26px rgba(0,45,98,0.045)`
  }}
 >
  <div style={courseCardTopRow}>
@@ -2472,8 +2464,8 @@ return (
           setIsModalOpen={setIsModalOpen}
         />
        )}
-      </div>
-    );
+    </PageShell>
+  );
 }
 
 // =========================================================
@@ -2486,7 +2478,7 @@ if (selectedCourse) {
   const themeMutedTextColor =
     themeTextColor === '#FFFFFF'
      ? 'rgba(255,255,255,0.78)'
-     : '#64748B';
+     : '#717786';
   const themeSoft = `${themeColor}14`;
   const themeBorder = `${themeColor}55`;
   const semester = courseSemester(selectedCourse);
@@ -2531,25 +2523,18 @@ if (selectedCourse) {
      }
     ];
 
-return (
- <div
-   style={{
-    width: '100%',
-    maxWidth: '1250px',
-    margin: '0 auto',
-    animation: 'fadeIn 0.35s ease'
-   }}
- >
-   <button
-    onClick={() => {
-      setSelectedCourse(null);
-      setActiveFolderView(null);
-    }}
-    style={backBtnStyle}
-   >
-    <ArrowLeft size={20} strokeWidth={3} />
-    <span>Back to Courses</span>
-   </button>
+ return (
+  <PageShell>
+    <button
+       onClick={() => {
+        setSelectedCourse(null);
+        setActiveFolderView(null);
+      }}
+     className="btn btn-ghost"
+    >
+     <ArrowLeft size={20} strokeWidth={3} />
+     <span>Back to Courses</span>
+    </button>
 
   {/* COURSE HEADER */}
   <div
@@ -2559,7 +2544,7 @@ return (
      borderRadius: '26px',
      padding: '26px 28px',
      marginBottom: '22px',
-     boxShadow: '0 12px 30px rgba(11,26,63,0.04)',
+     boxShadow: '0 12px 30px rgba(0,45,98,0.04)',
      display: 'flex',
      justifyContent: 'space-between',
      alignItems: 'center',
@@ -2578,7 +2563,7 @@ return (
    style={{
     fontSize: '40px',
     fontWeight: '900',
-    color: '#0B1A3F',
+    color: '#1A1B1F',
     margin: '10px 0 0'
    }}
   >
@@ -2593,7 +2578,7 @@ return (
      marginTop: '8px',
      fontSize: '14px',
      fontWeight: '800',
-     color: '#64748B'
+     color: '#717786'
    }}
   >
    {selectedCourse.professor && (
@@ -2634,7 +2619,7 @@ return (
      style={{
       ...workspaceTabBase,
       background: workspaceTab === tab.id ? themeColor : themeSoft,
-      color: workspaceTab === tab.id ? themeTextColor : '#0B1A3F',
+      color: workspaceTab === tab.id ? themeTextColor : '#1A1B1F',
       border: `1.5px solid ${workspaceTab === tab.id ? themeColor : themeBorder}`,
       boxShadow: workspaceTab === tab.id ? `0 6px 15px ${themeColor}28` : 'none'
      }}
@@ -2645,9 +2630,9 @@ return (
        style={{
         ...(workspaceTab === tab.id ? activeCountBubble : countBubble),
         background: workspaceTab === tab.id
-          ? (themeTextColor === '#FFFFFF' ? 'rgba(255,255,255,0.18)' : 'rgba(11,26,63,0.10)')
+          ? (themeTextColor === '#FFFFFF' ? 'rgba(255,255,255,0.18)' : 'rgba(0,45,98,0.10)')
           : '#FFFFFF',
-        color: workspaceTab === tab.id ? themeTextColor : '#0B1A3F'
+        color: workspaceTab === tab.id ? themeTextColor : '#1A1B1F'
        }}
      >
        {tab.count}
@@ -2774,7 +2759,7 @@ return (
  onChange={(e) => setNoteTitle(e.target.value)}
  style={{
    ...notepadTitleInput,
-   color: '#0B1A3F',
+   color: '#1A1B1F',
    background: '#FFFFFF',
    border: `1.5px solid ${themeBorder}`
  }}
@@ -2785,7 +2770,7 @@ return (
  onChange={(e) => setActiveNotes(e.target.value)}
  style={{
   ...notepadTextArea,
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   background: '#FFFFFF',
   border: `1.5px solid ${themeBorder}`
   }}
@@ -2801,7 +2786,7 @@ return (
      marginBottom: 0
    }}
   >
-   <NotepadIcon size={21} color="#0B1A3F" />
+   <NotepadIcon size={21} color="#002D62" />
    Saved Notes
    <span style={titleCountStyle}>
      {savedNotes.length}
@@ -2812,7 +2797,7 @@ return (
    <button
      type="button"
      onClick={clearAllNotes}
-     style={clearAllBtnStyle}
+     className="btn btn-danger btn-sm"
    >
      <Trash2 size={13} />
      Clear All
@@ -2823,8 +2808,9 @@ return (
  <div style={{ height: '16px' }} />
  {savedNotes.length === 0 ? (
   <EmptyState
-   text="No saved notes yet."
-   subtext="Write your first note on the left."
+   icon={FileText}
+   title="No saved notes yet."
+   text="Write your first note on the left."
   />
  ):(
   <div
@@ -2844,10 +2830,10 @@ return (
     background:
       editingNoteId === note.id
         ? themeColor
-        : '#F8FAFC',
+        : '#E9E7ED',
     border:
       editingNoteId === note.id
-        ? '1.5px solid #0B1A3F'
+        ? '1.5px solid #002D62'
         : '1px solid #E8EDF5'
    }}
   >
@@ -2863,7 +2849,7 @@ return (
         color:
           editingNoteId === note.id
             ? themeTextColor
-            : '#0B1A3F'
+            : '#002D62'
       }}
     >
       {note.title || 'Untitled Note'}
@@ -2967,7 +2953,7 @@ return (
 
   <button
    type="submit"
-   style={saveBtnStyle}
+   className="btn btn-primary btn-sm"
   >
    {assignmentEditingId
     ? 'Save Changes'
@@ -3005,7 +2991,7 @@ return (
   <button
     type="button"
     onClick={clearAllAssignments}
-    style={clearAllBtnStyle}
+    className="btn btn-danger btn-sm"
   >
     <Trash2 size={13} />
     Clear All
@@ -3016,9 +3002,10 @@ return (
 <div style={{ height: '16px' }} />
 {selectedAssignments.length === 0 ? (
  <EmptyState
-  text="No assignments yet."
-  subtext="Add one from the form."
- />
+   icon={ClipboardCheck}
+   title="No assignments yet."
+   text="Add one from the form."
+  />
 ):(
  <div
   style={{
@@ -3040,12 +3027,12 @@ return (
        style={{
          ...completionButtonStyle,
          background: assignment.completed
-           ? '#0B1A3F'
+           ? '#002D62'
            : '#FFFFFF',
          color: assignment.completed
            ? '#FFFFFF'
 
-   : '#0B1A3F'
+   : '#002D62'
  }}
 >
  {assignment.completed && (
@@ -3062,7 +3049,7 @@ return (
  <div
   style={{
     fontWeight: '900',
-    color: '#0B1A3F',
+    color: '#1A1B1F',
     textDecoration:
      assignment.completed
       ? 'line-through'
@@ -3195,7 +3182,7 @@ return (
   />
  </div>
 
- <button type="submit" style={saveBtnStyle}>
+ <button type="submit" className="btn btn-primary btn-sm">
   {eventEditingId
    ? 'Save Changes'
    : 'Add Upcoming Item'}
@@ -3236,7 +3223,7 @@ return (
    <button
      type="button"
      onClick={clearAllUpcoming}
-     style={clearAllBtnStyle}
+     className="btn btn-danger btn-sm"
    >
      <Trash2 size={13} />
      Clear All
@@ -3249,8 +3236,9 @@ return (
  {selectedEvents.filter((event) => !event.completed)
   .length === 0 ? (
   <EmptyState
-    text="Nothing upcoming."
-    subtext="Add an exam, quiz, project, or other date."
+    icon={Clock3}
+    title="Nothing upcoming."
+    text="Add an exam, quiz, project, or other date."
   />
  ):(
   <div
@@ -3285,7 +3273,7 @@ return (
        style={{
          ...completionButtonStyle,
          background: '#FFFFFF',
-         color: '#0B1A3F'
+         color: '#1A1B1F'
        }}
       />
 
@@ -3297,7 +3285,7 @@ return (
       <div
        style={{
         fontWeight: '900',
-        color: '#0B1A3F'
+        color: '#1A1B1F'
        }}
       >
        {event.title}
@@ -3379,7 +3367,7 @@ return (
         key={event.id}
         style={{
          ...taskRowStyle,
-         background: '#F8FAFC'
+         background: '#E9E7ED'
         }}
       >
         <button
@@ -3389,7 +3377,7 @@ return (
          }
          style={{
            ...completionButtonStyle,
-           background: '#0B1A3F',
+           background: '#002D62',
            color: '#FFFFFF'
          }}
         >
@@ -3409,7 +3397,7 @@ return (
           <div
            style={{
             fontWeight: '900',
-            color: '#64748B',
+            color: '#717786',
             textDecoration: 'line-through'
            }}
           >
@@ -3466,7 +3454,7 @@ return (
   </>
  ):(
   <>
-    <Folder color="#0B1A3F" size={20} />
+    <Folder color="#002D62" size={20} />
     <span>Course Folders</span>
     <span style={titleCountStyle}>
      {existingFolders.length}
@@ -3486,7 +3474,7 @@ return (
   <button
     type="button"
     onClick={clearAllResources}
-    style={clearAllBtnStyle}
+    className="btn btn-danger btn-sm"
   >
     <Trash2 size={13} />
     Clear All
@@ -3501,7 +3489,7 @@ return (
    disabled={uploading}
 
                />
-               <FolderPlus size={18} color="#0B1A3F" />
+               <FolderPlus size={18} color="#002D62" />
                <span
                 style={{
                   fontSize: '13px',
@@ -3516,11 +3504,11 @@ return (
 
            {!activeFolderView ? (
              existingFolders.length === 0 ? (
-              <EmptyState
-               text="No folders created yet."
-               subtext='Click "Add File" to upload something and create your first
-folder.'
-             />
+               <EmptyState
+                icon={Folder}
+                title="No folders created yet."
+                text='Click "Add File" to upload something and create your first folder.'
+              />
             ):(
              <div
               style={{
@@ -3630,7 +3618,7 @@ folder.'
   <div
     style={{
       fontWeight: '900',
-      color: '#0B1A3F',
+      color: '#1A1B1F',
       fontSize: '15px',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
@@ -3693,7 +3681,7 @@ folder.'
 
           <ChevronRight
            size={18}
-           color="#A3AED0"
+           color="#717786"
           />
         </div>
        )}
@@ -3712,10 +3700,11 @@ folder.'
  >
    {(filesByFolder[activeFolderView] || []).length ===
    0?(
-    <EmptyState
-      text="This folder is empty."
-      subtext='Click "Add File" to save a file here.'
-    />
+     <EmptyState
+       icon={FolderOpen}
+       title="This folder is empty."
+       text='Click "Add File" to save a file here.'
+     />
    ):(
     filesByFolder[activeFolderView].map((file) => (
       <div key={file.id} style={fileRowStyle}>
@@ -3734,7 +3723,7 @@ folder.'
         >
          <FileText
           size={18}
-          color="#0B1A3F"
+          color="#002D62"
          />
          <div
 
@@ -3743,7 +3732,7 @@ folder.'
              textOverflow: 'ellipsis',
              whiteSpace: 'nowrap',
              fontWeight: '800',
-             color: '#0B1A3F'
+             color: '#1A1B1F'
            }}
           >
            {file.file_name}
@@ -3794,7 +3783,7 @@ folder.'
       <button
        type="button"
        onClick={openEditCourseModal}
-       style={editCourseBtnStyle}
+       className="btn btn-tinted btn-sm"
       >
        <Edit2 size={16} />
        Edit Course
@@ -3840,12 +3829,12 @@ folder.'
   marginBottom: '20px'
  }}
 >
- <FolderPlus size={26} color="#0B1A3F" />
+ <FolderPlus size={26} color="#002D62" />
  <h3
   style={{
     margin: 0,
     fontWeight: '900',
-    color: '#0B1A3F',
+    color: '#1A1B1F',
     fontSize: '20px'
   }}
  >
@@ -3880,7 +3869,7 @@ folder.'
   <div
    style={{
     fontSize: '11px',
-    color: '#64748B',
+    color: '#717786',
 
     marginTop: '5px',
     fontWeight: '600'
@@ -3964,7 +3953,7 @@ folder.'
 <button
  type="submit"
  disabled={uploading}
- style={saveBtnStyle}
+ className="btn btn-primary btn-sm"
 >
  {uploading ? (
   <RefreshCw
@@ -3989,10 +3978,10 @@ folder.'
             </button>
            </form>
           </div>
-        </div>
-       )}
-      </div>
-    );
+           </div>
+        )}
+   </PageShell>
+  );
 }
 
 const dashboardItems = (() => {
@@ -4157,58 +4146,21 @@ const dashboardViewMeta = {
 // =========================================================
 
 return (
- <div
-   style={{
-     width: '100%',
-     maxWidth: '1250px',
-     margin: '0 auto'
-   }}
- >
-   {/* HEADER */}
-   <div
-     style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: '34px',
-      gap: '20px',
-      flexWrap: 'wrap'
-     }}
-   >
-     <div>
-      <h1
-        style={{
-         fontSize: '48px',
-         fontWeight: '900',
-         color: '#0B1A3F',
-         margin: 0
-        }}
-      >
-        Courses
-      </h1>
-
-     <p
-      style={{
-
-     margin: '8px 0 0',
-     color: '#7C8AB8',
-     fontWeight: '700',
-     fontSize: '15px'
-   }}
-  >
-   Organize every semester, course, assignment, exam,
-   note, and resource in one place.
-  </p>
- </div>
-
- <button
-  onClick={openAddCourseModal}
-  style={addBtnStyle}
- >
-  <Plus size={20} strokeWidth={3} />
-  <span>Add Course</span>
- </button>
-</div>
+  <PageShell>
+    <SectionHeader
+      title="Courses"
+      subtitle="Organize every semester, course, assignment, exam, note, and resource in one place."
+      action={
+        <button
+          type="button"
+          onClick={openAddCourseModal}
+          className="btn btn-primary"
+        >
+          <Plus size={20} strokeWidth={3} />
+          <span>Add Course</span>
+        </button>
+      }
+     />
 
 {/* STATS */}
 <div style={statsGridStyle}>
@@ -4387,7 +4339,7 @@ return (
       ):(
         <ChevronRight
          size={18}
-         color="#A3AED0"
+         color="#717786"
         />
       )}
     </div>
@@ -4443,14 +4395,14 @@ return (
     className="animate-spin"
     size={28}
 
-     color="#0B1A3F"
+     color="#002D62"
     />
   </div>
 ) : courses.length === 0 ? (
   <div style={emptyCoursesCard}>
     <div style={{ textAlign: 'center', maxWidth: '430px' }}>
      <div style={emptyIconCircle}>
-       <GraduationCap size={46} color="#0B1A3F" />
+       <GraduationCap size={46} color="#002D62" />
      </div>
 
    <h2 style={emptyCoursesTitle}>No courses yet</h2>
@@ -4461,20 +4413,20 @@ return (
    </p>
 
      <button
-      type="button"
-      onClick={openAddCourseModal}
-      style={addBtnStyle}
-     >
-      <Plus size={19} strokeWidth={3} />
-      Add Course
-     </button>
+       type="button"
+       onClick={openAddCourseModal}
+       className="btn btn-primary"
+      >
+       <Plus size={19} strokeWidth={3} />
+       Add Course
+      </button>
     </div>
   </div>
 ) : semesterOptions.length === 0 ? (
   <div style={emptyCoursesCard}>
     <div style={{ textAlign: 'center', maxWidth: '430px' }}>
      <div style={emptyIconCircle}>
-      <GraduationCap size={46} color="#0B1A3F" />
+      <GraduationCap size={46} color="#002D62" />
      </div>
 
    <h2 style={emptyCoursesTitle}>No semesters yet</h2>
@@ -4483,15 +4435,15 @@ return (
     Create your first semester, then add courses inside it.
    </p>
 
-   <button
-    type="button"
-    onClick={openAddCourseModal}
-    style={addBtnStyle}
-   >
-    <Plus size={19} strokeWidth={3} />
-    Add Course
+  <button
+   type="button"
+   onClick={openAddCourseModal}
+   className="btn btn-primary"
+  >
+   <Plus size={19} strokeWidth={3} />
+   Add Course
 
-    </button>
+  </button>
   </div>
  </div>
 ):(
@@ -4580,7 +4532,7 @@ return (
  >
    <div style={semesterFolderTopStyle}>
     <div style={semesterFolderIconStyle}>
-      <CalendarDays size={23} color="#0B1A3F" />
+      <CalendarDays size={23} color="#002D62" />
     </div>
 
    <div
@@ -4704,9 +4656,9 @@ return (
           editingCourse={editingCourse}
           setIsModalOpen={setIsModalOpen}
         />
-       )}
-      </div>
-    );
+      )}
+   </PageShell>
+  );
 }
 
 // =========================================================
@@ -4818,7 +4770,7 @@ function CourseModal({
          style={{
           margin: 0,
           fontWeight: '900',
-          color: '#0B1A3F',
+          color: '#1A1B1F',
           fontSize: '24px'
          }}
        >
@@ -5083,7 +5035,7 @@ function CourseModal({
     style={{
       fontSize: '11px',
       fontWeight: '900',
-      color: '#0B1A3F',
+      color: '#1A1B1F',
       marginBottom: '10px'
     }}
    >
@@ -5207,7 +5159,7 @@ function CourseModal({
       background: color.bg,
       boxShadow:
         newCourse.color === color.bg
-         ? '0 0 0 3px #FFFFFF, 0 0 0 5px #0B1A3F'
+         ? '0 0 0 3px #FFFFFF, 0 0 0 5px #002D62'
          : 'none'
      }}
    />
@@ -5220,7 +5172,7 @@ function CourseModal({
     style={{
       fontSize: '13px',
       fontWeight: '900',
-      color: '#0B1A3F'
+      color: '#1A1B1F'
     }}
    >
     + Custom Color
@@ -5251,7 +5203,7 @@ function CourseModal({
  </div>
 </div>
 
-        <button type="submit" style={saveBtnStyle}>
+        <button type="submit" className="btn btn-primary btn-sm">
          {editingCourse
           ? 'Save Course Changes'
           : 'Create Course Workspace'}
@@ -5296,7 +5248,7 @@ function StatCard({
       fontFamily: 'inherit',
       outline: 'none',
       boxShadow: active
-        ? `0 0 0 2px ${iconColor}, 0 12px 28px rgba(11,26,63,0.07)`
+        ? `0 0 0 2px ${iconColor}, 0 12px 28px rgba(0,45,98,0.07)`
 
         : statCardStyle.boxShadow
       }}
@@ -5337,7 +5289,7 @@ function MiniStat({ label, value, icon }) {
 function CourseCount({
  label,
  value,
- color = '#0B1A3F',
+ color = '#002D62',
  muted = '#8997B8',
  bg = '#F7F9FC'
 }) {
@@ -5442,42 +5394,12 @@ function MiniAlertBadge({ icon, label }) {
  return (
   <span style={{
    display: 'inline-flex', alignItems: 'center', gap: '4px',
-   padding: '3px 7px', borderRadius: '999px', background: '#F4F7FE',
-   color: '#64748B', fontSize: '9px', fontWeight: '850'
+   padding: '3px 7px', borderRadius: '999px', background: '#FAF9FE',
+   color: '#717786', fontSize: '9px', fontWeight: '850'
   }}>
    {icon}{label}
   </span>
  );
-}
-
-function EmptyState({ text, subtext }) {
- return (
-  <div style={emptyStateStyle}>
-    <div
-     style={{
-       fontWeight: '900',
-       color: '#0B1A3F',
-       fontSize: '15px'
-     }}
-    >
-     {text}
-    </div>
-
-       {subtext && (
-        <div
-          style={{
-           color: '#95A2BF',
-           fontSize: '13px',
-           fontWeight: '700',
-           marginTop: '5px',
-           lineHeight: 1.5
-          }}
-        >
-          {subtext}
-        </div>
-       )}
-      </div>
-    );
 }
 
 // =========================================================
@@ -5490,7 +5412,7 @@ function EmptyState({ text, subtext }) {
 
 const editSemesterBtnStyle = {
   background: '#F2F6FC',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   border: '1.5px solid #DDE4EF',
   padding: '11px 14px',
   borderRadius: '13px',
@@ -5523,7 +5445,7 @@ const semesterEditModalStyle = {
   border: '1.5px solid #DDE4EF',
   borderRadius: '24px',
   padding: '26px',
-  boxShadow: '0 25px 70px rgba(11,26,63,0.18)'
+  boxShadow: '0 25px 70px rgba(0,45,98,0.18)'
 };
 
 const semesterEditModalHeaderStyle = {
@@ -5537,7 +5459,7 @@ const semesterEditModalHeaderStyle = {
 
 const semesterEditModalTitleStyle = {
   margin: 0,
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   fontSize: '22px',
   fontWeight: '900'
 };
@@ -5558,7 +5480,7 @@ const semesterEditActionsStyle = {
 
 const semesterEditCancelBtnStyle = {
   background: '#F3F6FA',
-  color: '#64748B',
+  color: '#717786',
   border: 'none',
   borderRadius: '11px',
   padding: '10px 15px',
@@ -5568,7 +5490,7 @@ const semesterEditCancelBtnStyle = {
 };
 
 const semesterEditSaveBtnStyle = {
-  background: '#0B1A3F',
+  background: '#002D62',
   color: '#FFFFFF',
   border: 'none',
   borderRadius: '11px',
@@ -5633,7 +5555,7 @@ const clearAllBtnStyle = {
 };
 
 const addBtnStyle = {
-  background: '#0B1A3F',
+  background: '#002D62',
   color: '#FFFFFF',
   border: 'none',
   padding: '14px 24px',
@@ -5645,7 +5567,7 @@ const addBtnStyle = {
   justifyContent: 'center',
   gap: '9px',
   fontSize: '15px',
-  boxShadow: '0 10px 22px rgba(11, 26, 63, 0.14)'
+  boxShadow: '0 10px 22px rgba(0, 45, 98, 0.14)'
 };
 
 const statsGridStyle = {
@@ -5665,7 +5587,7 @@ const statCardStyle = {
   alignItems: 'center',
   gap: '15px',
   minHeight: '92px',
-  boxShadow: '0 10px 25px rgba(11, 26, 63, 0.04)'
+  boxShadow: '0 10px 25px rgba(0, 45, 98, 0.04)'
 };
 
 const statIconStyle = {
@@ -5680,7 +5602,7 @@ const statIconStyle = {
 };
 
 const statValueStyle = {
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   fontSize: '24px',
   fontWeight: '900',
   lineHeight: 1,
@@ -5707,7 +5629,7 @@ const dashboardDetailCardStyle = {
   borderRadius: '22px',
   padding: '20px',
   marginBottom: '24px',
-  boxShadow: '0 10px 28px rgba(11,26,63,0.04)'
+  boxShadow: '0 10px 28px rgba(0,45,98,0.04)'
 };
 
 const dashboardDetailHeaderStyle = {
@@ -5731,7 +5653,7 @@ const dashboardDetailIconStyle = {
 
 const dashboardDetailTitleStyle = {
   margin: 0,
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   fontSize: '17px',
   fontWeight: '900'
 };
@@ -5749,7 +5671,7 @@ const dashboardCloseBtnStyle = {
   borderRadius: '10px',
   border: 'none',
   background: '#F3F6FA',
-  color: '#64748B',
+  color: '#717786',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
@@ -5778,7 +5700,7 @@ const dashboardItemStyle = {
 };
 
 const dashboardItemTitleStyle = {
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   fontSize: '13px',
   fontWeight: '900',
   overflow: 'hidden',
@@ -5830,7 +5752,7 @@ const searchBoxStyle = {
   alignItems: 'center',
   gap: '12px',
   background: '#FFFFFF',
-  border: '1.5px solid #E2E8F0',
+  border: '1.5px solid #E3E2E7',
   borderRadius: '18px',
   padding: '0 17px',
   minHeight: '58px'
@@ -5842,7 +5764,7 @@ const searchInputStyle = {
   width: '100%',
   fontSize: '15px',
   fontWeight: '700',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   background: 'transparent'
 };
 
@@ -5856,7 +5778,7 @@ const clearSearchBtn = {
   alignItems: 'center',
   justifyContent: 'center',
   cursor: 'pointer',
-  color: '#64748B'
+  color: '#717786'
 };
 
 const semesterFilterStyle = {
@@ -5864,9 +5786,9 @@ const semesterFilterStyle = {
  minHeight: '58px',
  padding: '0 42px 0 18px',
  borderRadius: '24px',
- border: '1.5px solid #E2E8F0',
+ border: '1.5px solid #E3E2E7',
  background: '#FFFFFF',
- color: '#0B1A3F',
+ color: '#1A1B1F',
 
   fontWeight: '800',
   fontSize: '14px',
@@ -5891,7 +5813,7 @@ const emptyCoursesCard = {
   alignItems: 'center',
   justifyContent: 'center',
   padding: '40px',
-  boxShadow: '0 16px 40px rgba(11, 26, 63, 0.05)'
+  boxShadow: '0 16px 40px rgba(0, 45, 98, 0.05)'
 };
 
 const emptyIconCircle = {
@@ -5907,7 +5829,7 @@ const emptyIconCircle = {
 
 const emptyCoursesTitle = {
   margin: '0 0 9px',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   fontSize: '27px',
   fontWeight: '900'
 };
@@ -5926,7 +5848,7 @@ const semesterSectionStyle = {
   border: '1.5px solid #E7EBF4',
   borderRadius: '25px',
   padding: '22px',
-  boxShadow: '0 10px 28px rgba(11,26,63,0.035)'
+  boxShadow: '0 10px 28px rgba(0,45,98,0.035)'
 };
 
 const semesterHeaderStyle = {
@@ -5950,7 +5872,7 @@ const semesterIconStyle = {
 const semesterAddButton = {
   border: '1.5px solid #DDE4EF',
   background: '#FFFFFF',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   borderRadius: '12px',
   padding: '9px 13px',
   fontWeight: '900',
@@ -5974,7 +5896,7 @@ const courseCardStyle = {
   padding: '21px',
   borderRadius: '20px',
   cursor: 'pointer',
-  boxShadow: '0 8px 20px rgba(11,26,63,0.035)',
+  boxShadow: '0 8px 20px rgba(0,45,98,0.035)',
   display: 'flex',
   flexDirection: 'column',
   minHeight: '230px',
@@ -6000,7 +5922,7 @@ const courseIconWrap = {
 const courseNameStyle = {
   fontSize: '23px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   margin: '0 0 11px'
 };
 
@@ -6049,7 +5971,7 @@ const courseCountItem = {
 const openWorkspaceText = {
   marginTop: '16px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   fontSize: '12px'
 };
 
@@ -6063,8 +5985,8 @@ const semesterFolderCardStyle = {
   borderRadius: '24px',
   padding: '22px',
   cursor: 'pointer',
-  boxShadow: '0 10px 26px rgba(11,26,63,0.04)',
-  color: '#0B1A3F',
+  boxShadow: '0 10px 26px rgba(0,45,98,0.04)',
+  color: '#1A1B1F',
   fontFamily: 'inherit',
   display: 'flex',
   flexDirection: 'column',
@@ -6094,7 +6016,7 @@ const semesterFolderTitleStyle = {
   width: '100%',
   fontSize: '21px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   marginBottom: '5px',
   textAlign: 'center'
 };
@@ -6137,7 +6059,7 @@ const semesterMiniCountStyle = {
 const overlayStyle = {
   position: 'fixed',
   inset: 0,
-  background: 'rgba(11,26,57,0.42)',
+  background: 'rgba(0,45,98,0.42)',
   backdropFilter: 'blur(8px)',
   display: 'flex',
   justifyContent: 'center',
@@ -6155,7 +6077,7 @@ const modalCardStyle = {
  borderRadius: '24px',
 
   background: '#FFFFFF',
-  boxShadow: '0 25px 70px rgba(11,26,63,0.18)',
+  boxShadow: '0 25px 70px rgba(0,45,98,0.18)',
   maxHeight: '90vh',
   overflowY: 'auto'
 };
@@ -6163,7 +6085,7 @@ const modalCardStyle = {
 const modalCloseButton = {
   border: 'none',
   background: '#F3F6FA',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   width: '36px',
   height: '36px',
   borderRadius: '11px',
@@ -6185,7 +6107,7 @@ const stepTitleStyle = {
   display: 'flex',
   alignItems: 'center',
   gap: '8px',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   fontSize: '14px',
   fontWeight: '900',
   marginBottom: '13px'
@@ -6206,8 +6128,8 @@ const activeTabBtn = {
   flex: 1,
   padding: '10px',
   borderRadius: '11px',
-  border: '1.5px solid #0B1A3F',
-  background: '#0B1A3F',
+  border: '1.5px solid #002D62',
+  background: '#002D62',
   color: '#FFFFFF',
   fontWeight: '900',
   fontSize: '12px',
@@ -6229,7 +6151,7 @@ const inactiveTabBtn = {
 const fieldLabel = {
   fontSize: '12px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   marginBottom: '6px',
   display: 'block'
 };
@@ -6244,7 +6166,7 @@ const modalInput = {
   fontWeight: '800',
   outline: 'none',
   fontSize: '14px',
-  color: '#0B1A3F'
+  color: '#1A1B1F'
 };
 
 const colorGridStyle = {
@@ -6259,7 +6181,7 @@ const colorCircleStyle = {
   width: '36px',
   height: '36px',
   borderRadius: '50%',
-  border: '1px solid rgba(11,26,63,0.10)',
+  border: '1px solid rgba(0,45,98,0.10)',
   cursor: 'pointer',
   padding: 0
 };
@@ -6284,7 +6206,7 @@ const customColorInput = {
 };
 
 const saveBtnStyle = {
-  background: '#0B1A3F',
+  background: '#002D62',
   color: '#FFFFFF',
   border: 'none',
   padding: '14px',
@@ -6306,11 +6228,11 @@ const cancelBtnStyle = {
 
 const backBtnStyle = {
   background: '#FFFFFF',
-  border: '1.5px solid #E2E8F0',
+  border: '1.5px solid #E3E2E7',
   padding: '10px 16px',
   borderRadius: '13px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   cursor: 'pointer',
   marginBottom: '18px',
   display: 'flex',
@@ -6357,13 +6279,13 @@ const miniStatIconStyle = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#0B1A3F'
+  color: '#1A1B1F'
 };
 
 const miniStatValueStyle = {
   fontSize: '18px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   lineHeight: 1
 };
 
@@ -6415,7 +6337,7 @@ const workspaceTabBase = {
 
 const workspaceTabActive = {
  border: 'none',
- background: '#0B1A3F',
+ background: '#002D62',
  color: '#FFFFFF',
  minHeight: '46px',
  borderRadius: '13px',
@@ -6474,15 +6396,15 @@ const notepadCardStyle = {
   padding: '24px',
   boxShadow: '0 10px 25px rgba(0,0,0,0.035)',
   backgroundImage:
-   'linear-gradient(transparent 95%, rgba(11,26,57,0.065) 95%)',
+   'linear-gradient(transparent 95%, rgba(0,45,98,0.065) 95%)',
   backgroundSize: '100% 28px',
-  border: '1px solid rgba(11,26,57,0.08)'
+  border: '1px solid rgba(0,45,98,0.08)'
 };
 
 const notepadTag = {
   fontSize: '12px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
@@ -6496,11 +6418,11 @@ const notepadTitleInput = {
   boxSizing: 'border-box',
   padding: '11px 13px',
   borderRadius: '12px',
-  border: '1.5px solid rgba(11,26,57,0.12)',
+  border: '1.5px solid rgba(0,45,98,0.12)',
   background: '#FFFFFF',
   fontSize: '17px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   outline: 'none',
   marginBottom: '13px'
 };
@@ -6517,14 +6439,14 @@ const notepadTextArea = {
  fontSize: '15px',
 
   fontWeight: '700',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   lineHeight: '28px',
   fontFamily: 'inherit',
   padding: '13px'
 };
 
 const saveNotepadBtn = {
-  background: '#0B1A3F',
+  background: '#002D62',
   color: '#FFFFFF',
   border: 'none',
   padding: '8px 13px',
@@ -6539,12 +6461,12 @@ const saveNotepadBtn = {
 
 const smallNoteBtn = {
   background: '#FFFFFF',
-  border: '1px solid rgba(11,26,57,0.14)',
+  border: '1px solid rgba(0,45,98,0.14)',
   padding: '7px 11px',
   borderRadius: '10px',
   fontSize: '11px',
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   cursor: 'pointer'
 };
 
@@ -6553,13 +6475,13 @@ const whitePanelStyle = {
   border: '1.5px solid #E7EBF4',
   borderRadius: '22px',
   padding: '22px',
-  boxShadow: '0 8px 22px rgba(11,26,63,0.035)'
+  boxShadow: '0 8px 22px rgba(0,45,98,0.035)'
 };
 
 const panelTitleStyle = {
  margin: '0 0 17px',
  fontWeight: '900',
- color: '#0B1A3F',
+ color: '#1A1B1F',
  fontSize: '17px',
  display: 'flex',
  alignItems: 'center',
@@ -6592,7 +6514,7 @@ const savedNoteRow = {
 
 const savedNoteTitle = {
   fontWeight: '900',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   fontSize: '13px',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -6627,12 +6549,12 @@ const doneSectionDividerStyle = {
 const doneEmptyStyle = {
   padding: '18px 12px',
   textAlign: 'center',
-  color: '#A3AED0',
+  color: '#717786',
   fontSize: '11px',
   fontWeight: '800',
   background: '#FAFBFD',
   borderRadius: '12px',
-  border: '1px dashed #E2E8F0'
+  border: '1px dashed #E3E2E7'
 };
 
 const taskRowStyle = {
@@ -6663,7 +6585,7 @@ const eventTypeBadgeStyle = {
   textAlign: 'center',
   borderRadius: '999px',
   background: '#DCEBFF',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   padding: '6px 9px',
   fontSize: '10px',
   fontWeight: '900'
@@ -6700,7 +6622,7 @@ const iconBackBtn = {
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
-  color: '#0B1A3F'
+  color: '#1A1B1F'
 };
 
 const iconActionBtn = {
@@ -6724,7 +6646,7 @@ const uploadIconLabel = {
   border: '1px solid #E4EAF2',
   padding: '9px 13px',
   borderRadius: '12px',
-  color: '#0B1A3F'
+  color: '#1A1B1F'
 };
 
 const folderCardStyle = {
@@ -6736,7 +6658,7 @@ const folderCardStyle = {
   borderRadius: '16px',
   cursor: 'pointer',
   border: '1px solid #E5EAF2',
-  boxShadow: '0 5px 14px rgba(11,26,63,0.025)',
+  boxShadow: '0 5px 14px rgba(0,45,98,0.025)',
   minWidth: 0
 };
 
@@ -6767,7 +6689,7 @@ const fileRowStyle = {
 const editCourseBtnStyle = {
   background: '#F2F6FC',
   border: '1.5px solid #DDE4EF',
-  color: '#0B1A3F',
+  color: '#1A1B1F',
   borderRadius: '12px',
   padding: '10px 14px',
   fontWeight: '900',

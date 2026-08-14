@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -22,6 +22,7 @@ import {
   HelpCircle,
   Repeat2,
   Star,
+  Plus,
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -32,13 +33,15 @@ import {
   getResources,
 } from '../lib/campusHub';
 
+import {
+  PageShell,
+  SectionHeader,
+  ProgressRing,
+} from '../components/luminous';
+
 // =========================================================
 // CAMPORA THEME
 // =========================================================
-
-const NAVY = '#0B1A3F';
-const MUTED = '#8B97AD';
-const BORDER = '#E8ECF3';
 
 const PURPLE = '#8B78B8';
 const PURPLE_SOFT = '#F7F4FC';
@@ -73,6 +76,49 @@ const CAMPUS_PULSE_CATEGORIES = [
   'Lost & Found',
   'Opportunities',
 ];
+
+const campusPulseTone = (category) => {
+  switch (category) {
+    case 'Clubs & Events':
+      return { accent: TEAL, soft: TEAL_SOFT, border: TEAL_BORDER };
+    case 'Questions':
+      return { accent: PURPLE, soft: PURPLE_SOFT, border: PURPLE_BORDER };
+    case 'Campus Life':
+      return { accent: BLUE, soft: BLUE_SOFT, border: BLUE_BORDER };
+    case 'Complaints':
+      return { accent: ROSE, soft: ROSE_SOFT, border: ROSE_BORDER };
+    case 'Lost & Found':
+      return { accent: GOLD, soft: GOLD_SOFT, border: GOLD_BORDER };
+    case 'Opportunities':
+      return { accent: TERRACOTTA, soft: TERRACOTTA_SOFT, border: TERRACOTTA_BORDER };
+    default:
+      return { accent: BLUE, soft: BLUE_SOFT, border: BLUE_BORDER };
+  }
+};
+
+const dashboardNotificationTone = item => {
+  const text = `${item?.category || ''} ${item?.title || ''} ${item?.message || item?.content || ''}`.toLowerCase();
+
+  if (text.includes('study group') || text.includes('group') || text.includes('circle')) {
+    return { accent: TEAL, soft: TEAL_SOFT, border: TEAL_BORDER, icon: Users };
+  }
+  if (text.includes('planner') || text.includes('calendar') || text.includes('schedule')) {
+    return { accent: BLUE, soft: BLUE_SOFT, border: BLUE_BORDER, icon: CalendarDays };
+  }
+  if (text.includes('assignment') || text.includes('course') || text.includes('quiz') || text.includes('exam')) {
+    return { accent: PURPLE, soft: PURPLE_SOFT, border: PURPLE_BORDER, icon: BookOpen };
+  }
+  if (text.includes('registration') || text.includes('swap') || text.includes('seat') || text.includes('crn')) {
+    return { accent: TERRACOTTA, soft: TERRACOTTA_SOFT, border: TERRACOTTA_BORDER, icon: Compass };
+  }
+  if (text.includes('todo') || text.includes('to-do') || text.includes('task')) {
+    return { accent: GOLD, soft: GOLD_SOFT, border: GOLD_BORDER, icon: CheckCircle2 };
+  }
+  if (text.includes('announcement') || text.includes('campus')) {
+    return { accent: ROSE, soft: ROSE_SOFT, border: ROSE_BORDER, icon: Megaphone };
+  }
+  return { accent: PURPLE, soft: PURPLE_SOFT, border: PURPLE_BORDER, icon: Bell };
+};
 
 const TODO_PRIORITIES = [
   {
@@ -281,6 +327,51 @@ function plannerTypeIcon(type) {
   }
 
   return CalendarDays;
+}
+
+function timeParts(value) {
+  const normalized =
+    String(value || '').length === 5
+      ? `${value}:00`
+      : value;
+
+  const date = new Date(
+    `2000-01-01T${normalized}`
+  );
+
+  if (Number.isNaN(date.getTime())) {
+    return {
+      time: String(value || '--'),
+      meridian: '',
+    };
+  }
+
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const meridian = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+
+  return {
+    time: `${hour12}:${String(minutes).padStart(2, '0')}`,
+    meridian,
+  };
+}
+
+function isPastTime(value) {
+  if (!value) return false;
+
+  const now = new Date();
+
+  const current = `${String(
+    now.getHours()
+  ).padStart(2, '0')}:${String(
+    now.getMinutes()
+  ).padStart(2, '0')}`;
+
+  return (
+    String(value).substring(0, 5) <=
+    current
+  );
 }
 
 // =========================================================
@@ -1187,151 +1278,241 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div style={styles.page}>
-        <div
-          style={styles.loadingCard}
-        >
-          <div
-            style={
-              styles.loadingIcon
-            }
-          >
-            <Landmark size={25} />
-          </div>
+      <PageShell>
+        <div className="panel" style={s.loadingCard}>
+          <span className="icon-chip tone-primary">
+            <Landmark size={25} strokeWidth={1.6} />
+          </span>
 
           <div>
-            <div
-              style={
-                styles.loadingTitle
-              }
-            >
+            <div className="stat-tile-title" style={s.loadingTitle}>
               Loading your dashboard
             </div>
 
-            <div
-              style={
-                styles.loadingText
-              }
-            >
+            <div className="stat-tile-desc" style={s.loadingText}>
               Bringing together your
               Campora summary...
             </div>
           </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <>
-      <style>
-        {`
-          .dashboard-scroll::-webkit-scrollbar {
-            width: 7px;
-          }
-
-          .dashboard-scroll::-webkit-scrollbar-track {
-            background: transparent;
-          }
-
-          .dashboard-scroll::-webkit-scrollbar-thumb {
-            background: #D9DFEB;
-            border-radius: 999px;
-          }
-
-          .dashboard-scroll::-webkit-scrollbar-thumb:hover {
-            background: #C5CEDD;
-          }
-        `}
-      </style>
-
-      <div className="dashboard-scroll" style={styles.page}>
+    <PageShell>
       {/* ===================================================
-          NAVY HERO
+          GREETING HEADER
       =================================================== */}
 
-      <section style={styles.hero}>
-        <div
-          style={
-            styles.heroGlowOne
-          }
-        />
-
-        <div
-          style={
-            styles.heroGlowTwo
-          }
-        />
-
-        <div
-          style={
-            styles.heroContent
-          }
-        >
-          <div>
-            <div
-              style={
-                styles.heroEyebrow
-              }
-            >
-              <Sparkles size={13} />
-              {dateLabel.toUpperCase()}
-            </div>
-
-            <h1
-              style={
-                styles.heroTitle
-              }
-            >
-              {greeting()},{' '}
-              {capitalizeName(
-                profile?.name
-              )}
-            </h1>
-
-            <p
-              style={
-                styles.heroSubtitle
-              }
-            >
-              Your day, courses and
-              campus updates — summarized
-              in one place.
-            </p>
+      <div style={s.greetingWrap}>
+        <div>
+          <div className="label-caps" style={s.greetingEyebrow}>
+            <Sparkles size={13} />
+            {dateLabel.toUpperCase()}
           </div>
 
+          <h1 style={s.greeting}>
+            {greeting()},
+          </h1>
 
+          <div style={s.greetingName}>
+            {capitalizeName(
+              profile?.name
+            )}
+          </div>
+
+          <p style={s.greetingSub}>
+            Your day, courses and
+            campus updates — summarized
+            in one place.
+          </p>
         </div>
-      </section>
+
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => navigate('/planner')}
+        >
+          <Plus size={18} />
+          New Event
+        </button>
+      </div>
 
       {error && (
-        <div
-          style={
-            styles.errorBanner
-          }
-        >
+        <div style={s.errorBanner}>
           {error}
         </div>
       )}
 
       {/* ===================================================
+          STAT TILES
+      =================================================== */}
+
+      <div className="grid-4">
+        <DashboardStatTile
+          icon={BookOpen}
+          title={String(courses.length)}
+          desc="Courses"
+          accent="#0B3A70"
+          soft="#F1F5FA"
+          border="#E2E8F1"
+        />
+
+        <DashboardStatTile
+          icon={ClipboardCheck}
+          title={String(activeAssignments.length)}
+          desc="Assignments"
+          accent={PURPLE}
+          soft="#F5F2FA"
+          border="#E9E3F2"
+        />
+
+        <DashboardStatTile
+          icon={CalendarDays}
+          title={String(todaysSchedule.length)}
+          desc="Schedule"
+          accent={TERRACOTTA}
+          soft="#FCF4F0"
+          border="#F1E3DB"
+        />
+
+        <DashboardStatTile
+          icon={Megaphone}
+          title={String(campusHubAnnouncements.length)}
+          desc="Announcements"
+          accent={ROSE}
+          soft="#FCF2F4"
+          border="#F0E2E5"
+        />
+      </div>
+
+      {/* ===================================================
+          TODAY'S SCHEDULE + TO-DO PROGRESS
+      =================================================== */}
+
+      <div className="split">
+        <div className="split-main">
+          <SectionHeader
+            title="Today's Schedule"
+            subtitle="A live summary of what you have in Planner today."
+            action={
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => navigate('/planner')}
+              >
+                View All
+                <ArrowRight size={14} />
+              </button>
+            }
+          />
+
+          {todaysSchedule.length ===
+          0 ? (
+            <EmptyState
+              icon={CalendarDays}
+              title="Nothing scheduled today"
+              text="Anything you add to today in Planner will automatically appear here."
+              action="Open Planner"
+              onAction={() =>
+                navigate('/planner')
+              }
+            />
+          ) : (
+            <div className="stack">
+              {todaysSchedule
+                .slice(0, 6)
+                .map(item => (
+                  <ScheduleRow
+                    key={item.id}
+                    item={item}
+                    onClick={() =>
+                      navigate(
+                        '/planner',
+                        {
+                          state: {
+                            focusId:
+                              item.id,
+                            focusDate:
+                              item.date,
+                          },
+                        }
+                      )
+                    }
+                  />
+                ))}
+            </div>
+          )}
+        </div>
+
+        <div className="split-side">
+          <SectionHeader
+            title="To-Do Progress"
+            subtitle="A simple progress check on your task list."
+            action={
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => navigate('/todo')}
+              >
+                Open To-Do
+                <ArrowRight size={14} />
+              </button>
+            }
+          />
+
+          <div
+            className="panel-low"
+            style={{
+              ...s.todoCard,
+              background: '#FAFBFD',
+              border: '1px solid #EEF1F5',
+              boxShadow: 'none',
+            }}
+          >
+            <ProgressRing
+              value={todoProgress}
+              size={190}
+              stroke={11}
+            >
+              <div style={s.todoPct}>
+                {todoProgress}%
+              </div>
+            </ProgressRing>
+
+            <div style={s.todoHeadline}>
+              {todos.length === 0
+                ? 'Add your first task to get started.'
+                : todoProgress === 100
+                ? 'All clear — great work!'
+                : `${remainingTodos.length} ${
+                    remainingTodos.length === 1
+                      ? 'task'
+                      : 'tasks'
+                  } to go.`}
+            </div>
+
+            <div style={s.todoMeta}>
+              {completedTodos.length} of{' '}
+              {todos.length} tasks
+              completed
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===================================================
           QUICK ACCESS
       =================================================== */}
 
-      <section style={styles.quickAccessSection}>
-        <div style={styles.quickAccessHeader}>
-          <div>
-            <h2 style={styles.quickAccessTitle}>
-              Quick Access
-            </h2>
+      <section>
+        <SectionHeader
+          title="Quick Access"
+          subtitle="Jump straight to any part of Campora."
+        />
 
-            <p style={styles.quickAccessSubtitle}>
-              Jump straight to any part of Campora.
-            </p>
-          </div>
-        </div>
-
-        <div style={styles.quickAccessGrid}>
+        <div style={s.quickGrid}>
           <QuickAccessCard
             icon={CalendarDays}
             label="Planner"
@@ -1415,857 +1596,892 @@ export default function Dashboard() {
       </section>
 
       {/* ===================================================
-          TODAY + ACADEMIC SUMMARY
-      =================================================== */}
-
-      <div
-        style={
-          styles.primaryGrid
-        }
-      >
-        <Panel
-          title="Today's Schedule"
-          subtitle="A live summary of what you have in Planner today."
-          icon={CalendarDays}
-          accent={BLUE}
-          soft={BLUE_SOFT}
-          border={BLUE_BORDER}
-          action="Open in Planner"
-          onAction={() =>
-            navigate('/planner')
-          }
-        >
-          {todaysSchedule.length ===
-          0 ? (
-            <EmptyState
-              icon={
-                CalendarDays
-              }
-              title="Nothing scheduled today"
-              text="Anything you add to today in Planner will automatically appear here."
-              action="Open Planner"
-              onAction={() =>
-                navigate('/planner')
-              }
-            />
-          ) : (
-            <div
-              style={
-                styles.itemList
-              }
-            >
-              {todaysSchedule
-                .slice(0, 6)
-                .map(item => (
-                  <ScheduleRow
-                    key={item.id}
-                    item={item}
-                    onClick={() =>
-                      navigate(
-                        '/planner',
-                        {
-                          state: {
-                            focusId:
-                              item.id,
-                            focusDate:
-                              item.date,
-                          },
-                        }
-                      )
-                    }
-                  />
-                ))}
-            </div>
-          )}
-        </Panel>
-
-        <Panel
-          title="Courses"
-          subtitle="Your academic workspace at a glance."
-          icon={BookOpen}
-          accent={PURPLE}
-          soft={PURPLE_SOFT}
-          border={PURPLE_BORDER}
-          action="Open Courses"
-          onAction={() =>
-            navigate('/courses')
-          }
-        >
-          <div
-            style={
-              styles.academicGrid
-            }
-          >
-            <AcademicMetric
-              label="Courses"
-              value={
-                courses.length
-              }
-              accent={PURPLE}
-              soft={PURPLE_SOFT}
-              border={
-                PURPLE_BORDER
-              }
-              icon={BookOpen}
-            />
-
-            <AcademicMetric
-              label="Credits"
-              value={
-                totalCredits
-              }
-              accent={GOLD}
-              soft={GOLD_SOFT}
-              border={
-                GOLD_BORDER
-              }
-              icon={
-                GraduationCap
-              }
-            />
-
-            <AcademicMetric
-              label="Assignments"
-              value={
-                activeAssignments.length
-              }
-              accent={BLUE}
-              soft={BLUE_SOFT}
-              border={
-                BLUE_BORDER
-              }
-              icon={
-                ClipboardCheck
-              }
-            />
-
-            <AcademicMetric
-              label="Upcoming"
-              value={
-                upcomingCourseEvents.length
-              }
-              accent={
-                TERRACOTTA
-              }
-              soft={
-                TERRACOTTA_SOFT
-              }
-              border={
-                TERRACOTTA_BORDER
-              }
-              icon={Clock3}
-            />
-
-            <AcademicMetric
-              label="Resources"
-              value={
-                courseResources.length
-              }
-              accent={TEAL}
-              soft={TEAL_SOFT}
-              border={
-                TEAL_BORDER
-              }
-              icon={FolderOpen}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              navigate('/courses')
-            }
-            style={
-              styles.coursesFooter
-            }
-          >
-            <span>
-              {totalCredits}{' '}
-              {totalCredits === 1
-                ? 'credit'
-                : 'credits'}{' '}
-              across{' '}
-              {courses.length}{' '}
-              {courses.length === 1
-                ? 'course'
-                : 'courses'}
-            </span>
-
-            <ChevronRight
-              size={17}
-            />
-          </button>
-        </Panel>
-      </div>
-
-      {/* ===================================================
-          UPCOMING + TO-DO
-      =================================================== */}
-
-      <div
-        style={
-          styles.secondaryGrid
-        }
-      >
-        <Panel
-          title="Upcoming"
-          subtitle="The next things coming up in Planner."
-          icon={Clock3}
-          accent={
-            TERRACOTTA
-          }
-          soft={
-            TERRACOTTA_SOFT
-          }
-          border={
-            TERRACOTTA_BORDER
-          }
-          action="Open Planner"
-          onAction={() =>
-            navigate('/planner')
-          }
-        >
-          {upcomingPlanner.length ===
-          0 ? (
-            <EmptyState
-              icon={Clock3}
-              title="Nothing coming up"
-              text="Upcoming Planner items will appear here automatically."
-            />
-          ) : (
-            <div
-              style={
-                styles.itemList
-              }
-            >
-              {upcomingPlanner.map(
-                item => (
-                  <UpcomingRow
-                    key={item.id}
-                    item={item}
-                    onClick={() =>
-                      navigate(
-                        '/planner',
-                        {
-                          state: {
-                            focusId:
-                              item.id,
-                            focusDate:
-                              item.date,
-                          },
-                        }
-                      )
-                    }
-                  />
-                )
-              )}
-            </div>
-          )}
-        </Panel>
-
-        <Panel
-          title="To-Do"
-          subtitle="A simple progress check on your task list."
-          icon={CheckCircle2}
-          accent={TEAL}
-          soft={TEAL_SOFT}
-          border={TEAL_BORDER}
-          action="Open To-Do"
-          onAction={() =>
-            navigate('/todo')
-          }
-        >
-          <div
-            style={
-              styles.todoSummary
-            }
-          >
-            <div
-              style={
-                styles.todoTop
-              }
-            >
-              <div>
-                <div
-                  style={
-                    styles.todoNumber
-                  }
-                >
-                  {
-                    remainingTodos.length
-                  }
-                </div>
-
-                <div
-                  style={
-                    styles.todoLabel
-                  }
-                >
-                  {remainingTodos.length ===
-                  1
-                    ? 'task left'
-                    : 'tasks left'}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  ...styles.todoPercent,
-                  background:
-                    TEAL_SOFT,
-                  color: TEAL,
-                  border: `1px solid ${TEAL_BORDER}`,
-                }}
-              >
-                {todoProgress}%
-              </div>
-            </div>
-
-            <div
-              style={
-                styles.progressTrack
-              }
-            >
-              <div
-                style={{
-                  width: `${todoProgress}%`,
-                  height: '100%',
-                  borderRadius:
-                    '999px',
-                  background: TEAL,
-                  transition:
-                    'width .2s ease',
-                }}
-              />
-            </div>
-
-            <div
-              style={
-                styles.todoFooter
-              }
-            >
-              {
-                completedTodos.length
-              }{' '}
-              completed out of{' '}
-              {todos.length}
-            </div>
-          </div>
-        </Panel>
-      </div>
-
-      {/* ===================================================
-          CAMPUS / NOTIFICATIONS
+          CAMPUS UPDATE + ACADEMIC SUMMARY
       =================================================== */}
 
       <Panel
         title="Campus Update"
         subtitle="Your latest important Campus Hub update."
         icon={Megaphone}
-        accent={
-          TERRACOTTA
-        }
-        soft={
-          TERRACOTTA_SOFT
-        }
-        border={
-          TERRACOTTA_BORDER
-        }
+        accent={TERRACOTTA}
+        soft={TERRACOTTA_SOFT}
+        border={TERRACOTTA_BORDER}
         action="View Campus Hub"
         onAction={() =>
-          navigate(
-            '/announcements'
-          )
+          navigate('/announcements')
         }
       >
-        <div
-          style={
-            styles.campusRow
-          }
-        >
-          {announcement ? (
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  '/announcements'
-                )
-              }
-              style={
-                styles.announcementCard
-              }
-            >
+        <div style={{ width: '100%' }}>
+          <div style={{ width: '100%' }}>
+            {announcement ? (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate('/announcements')
+                }
+                className="accent-row tone-tertiary"
+                style={s.announcementCard}
+              >
+                <span
+                  className="icon-chip"
+                  style={{
+                    ...s.previewIcon,
+                    background: TERRACOTTA_SOFT,
+                    color: TERRACOTTA,
+                  }}
+                >
+                  <Megaphone size={18} />
+                </span>
+
+                <span style={s.previewMain}>
+                  <span className="label-caps" style={{ color: TERRACOTTA }}>
+                    {announcement.is_pinned
+                      ? 'PINNED ANNOUNCEMENT'
+                      : String(
+                          announcement.category ||
+                            'ANNOUNCEMENT'
+                        ).toUpperCase()}
+                  </span>
+
+                  <span className="stat-tile-title" style={s.announcementTitle}>
+                    {announcement.title ||
+                      'Campus announcement'}
+                  </span>
+
+                  {announcement.content && (
+                    <span className="stat-tile-desc" style={s.announcementText}>
+                      {announcement.content}
+                    </span>
+                  )}
+                </span>
+
+                <ChevronRight
+                  size={18}
+                  className="dimmed"
+                />
+              </button>
+            ) : (
               <div
                 style={{
-                  ...styles.announcementIcon,
-                  background:
-                    TERRACOTTA_SOFT,
-                  color:
-                    TERRACOTTA,
-                  border: `1px solid ${TERRACOTTA_BORDER}`,
+                  width: '100%',
+                  minHeight: '150px',
+                  padding: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  color: 'var(--campora-muted)',
                 }}
               >
-                <Megaphone
-                  size={18}
-                />
-              </div>
-
-              <div
-                style={
-                  styles.announcementBody
-                }
-              >
-                <div
-                  style={
-                    styles.announcementMeta
-                  }
+                <p
+                  style={{
+                    margin: 0,
+                    width: '100%',
+                    textAlign: 'center',
+                  }}
                 >
-                  {announcement.is_pinned
-                    ? 'PINNED ANNOUNCEMENT'
-                    : String(
-                        announcement.category ||
-                          'ANNOUNCEMENT'
-                      ).toUpperCase()}
-                </div>
-
-                <div
-                  style={
-                    styles.announcementTitle
-                  }
-                >
-                  {announcement.title ||
-                    'Campus announcement'}
-                </div>
-
-                {announcement.content && (
-                  <div
-                    style={
-                      styles.announcementText
-                    }
-                  >
-                    {
-                      announcement.content
-                    }
-                  </div>
-                )}
+                  No campus announcements right now.
+                </p>
               </div>
+            )}
+          </div>
 
-              <ChevronRight
-                size={18}
-                color="#9DA8BA"
-              />
-            </button>
-          ) : (
-            <div
-              style={
-                styles.noAnnouncement
-              }
-            >
-              No campus announcements
-              right now.
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() =>
-              navigate(
-                '/notifications'
-              )
-            }
-            style={
-              styles.notificationSummary
-            }
-          >
-            <div
-              style={{
-                ...styles.notificationIcon,
-                background:
-                  PURPLE_SOFT,
-                color: PURPLE,
-                border: `1px solid ${PURPLE_BORDER}`,
-              }}
-            >
-              <Bell size={18} />
-            </div>
-
-            <div
-              style={{
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={
-                  styles.notificationTitle
-                }
-              >
-                Notifications
-              </div>
-
-              <div
-                style={
-                  styles.notificationText
-                }
-              >
-                {unreadCount === 0
-                  ? 'You’re all caught up.'
-                  : `${unreadCount} unread ${
-                      unreadCount === 1
-                        ? 'update'
-                        : 'updates'
-                    }`}
-              </div>
-            </div>
-
-            <ChevronRight
-              size={18}
-              color="#9DA8BA"
-            />
-          </button>
         </div>
       </Panel>
 
       {/* ===================================================
-          MINI CAMPORA WORKSPACES
+          UPCOMING + TO-DO
       =================================================== */}
 
-      <div style={styles.workspaceSection}>
-        <div style={styles.workspaceSectionHeader}>
-          <div>
-            <h2 style={styles.workspaceSectionTitle}>
-              Your Campora Spaces
-            </h2>
-
-            <p style={styles.workspaceSectionSubtitle}>
-              Preview and move through the important parts of each space without leaving your dashboard.
-            </p>
-          </div>
-        </div>
-
-        {/* CAMPUS PULSE */}
-
-        <Panel
-          title="Campus Pulse"
-          subtitle="Browse a smaller version of your student feed."
-          icon={MessageSquare}
-          accent={ROSE}
-          soft={ROSE_SOFT}
-          border={ROSE_BORDER}
-          action="Open Campus Pulse"
-          onAction={() =>
-            navigate('/campus-pulse')
-          }
-        >
-          <div style={styles.miniTabsScroll}>
-            {CAMPUS_PULSE_CATEGORIES.map(
-              category => {
-                const active =
-                  campusPulseCategory ===
-                  category;
-
-                return (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() =>
-                      setCampusPulseCategory(
-                        category
-                      )
-                    }
-                    style={{
-                      ...styles.miniPill,
-                      background: active
-                        ? ROSE
-                        : ROSE_SOFT,
-                      color: active
-                        ? '#FFFFFF'
-                        : ROSE,
-                      border: `1px solid ${ROSE_BORDER}`,
-                    }}
-                  >
-                    {category}
-                  </button>
-                );
-              }
+      <Panel
+        title="Upcoming"
+        subtitle="The next things coming up in Planner."
+        icon={Clock3}
+        accent={TERRACOTTA}
+        soft={TERRACOTTA_SOFT}
+        border={TERRACOTTA_BORDER}
+        action="Open Planner"
+        onAction={() =>
+          navigate('/planner')
+        }
+      >
+        {upcomingPlanner.length ===
+        0 ? (
+          <EmptyState
+            icon={Clock3}
+            title="Nothing coming up"
+            text="Upcoming Planner items will appear here automatically."
+          />
+        ) : (
+          <div className="stack">
+            {upcomingPlanner.map(
+              item => (
+                <UpcomingRow
+                  key={item.id}
+                  item={item}
+                  onClick={() =>
+                    navigate(
+                      '/planner',
+                      {
+                        state: {
+                          focusId:
+                            item.id,
+                          focusDate:
+                            item.date,
+                        },
+                      }
+                    )
+                  }
+                />
+              )
             )}
           </div>
+        )}
+      </Panel>
 
-          {filteredCampusPulse.length ===
-          0 ? (
-            <MiniEmpty
-              text={`No ${campusPulseCategory === 'All' ? '' : campusPulseCategory.toLowerCase() + ' '}posts to preview.`}
-            />
-          ) : (
-            <div style={styles.previewList}>
-              {filteredCampusPulse.map(
-                post => (
-                  <button
-                    key={post.id}
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        '/campus-pulse'
-                      )
-                    }
-                    style={
-                      styles.previewRow
-                    }
-                  >
-                    <div
-                      style={{
-                        ...styles.previewIcon,
-                        background:
-                          ROSE_SOFT,
-                        color: ROSE,
-                        border: `1px solid ${ROSE_BORDER}`,
-                      }}
-                    >
-                      <MessageSquare
-                        size={16}
-                      />
-                    </div>
+      {/* ===================================================
+          YOUR CAMPORA SPACES
+      =================================================== */}
 
-                    <div
-                      style={
-                        styles.previewMain
+      <section>
+        <SectionHeader
+          title="Your Campora Spaces"
+          subtitle="Preview and move through the important parts of each space without leaving your dashboard."
+        />
+
+        <div className="stack" style={{ gap: '20px', marginTop: '4px' }}>
+          {/* CAMPUS PULSE */}
+
+          <Panel
+            title="Campus Pulse"
+            subtitle="Browse a smaller version of your student feed."
+            icon={MessageSquare}
+            accent={ROSE}
+            soft={ROSE_SOFT}
+            border={ROSE_BORDER}
+            action="Open Campus Pulse"
+            onAction={() =>
+              navigate('/campus-pulse')
+            }
+          >
+            <div className="filter-row">
+              {CAMPUS_PULSE_CATEGORIES.map(
+                category => {
+                  const active =
+                    campusPulseCategory ===
+                    category;
+
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() =>
+                        setCampusPulseCategory(
+                          category
+                        )
                       }
+                      className={`filter-chip ${
+                        active
+                          ? 'active'
+                          : ''
+                      }`}
                     >
-                      <div
-                        style={
-                          styles.previewTopLine
-                        }
-                      >
-                        <strong
-                          style={
-                            styles.previewTitle
-                          }
-                        >
-                          {post.title ||
-                            post.category ||
-                            'Campus Pulse post'}
-                        </strong>
-
-                        <span
-                          style={{
-                            ...styles.previewTag,
-                            color: ROSE,
-                            background:
-                              ROSE_SOFT,
-                          }}
-                        >
-                          {post.category ||
-                            'Post'}
-                        </span>
-                      </div>
-
-                      <div
-                        style={
-                          styles.previewText
-                        }
-                      >
-                        {post.content ||
-                          'Open Campus Pulse to view this post.'}
-                      </div>
-                    </div>
-
-                    <ChevronRight
-                      size={16}
-                      color="#A4AEC0"
-                    />
-                  </button>
-                )
+                      {category}
+                    </button>
+                  );
+                }
               )}
             </div>
-          )}
-        </Panel>
 
-        {/* STUDY GROUPS */}
+            {filteredCampusPulse.length ===
+            0 ? (
+              <MiniEmpty
+                text={`No ${campusPulseCategory === 'All' ? '' : campusPulseCategory.toLowerCase() + ' '}posts to preview.`}
+              />
+            ) : (
+              <div className="stack">
+                {filteredCampusPulse.map(post => {
+                  const tone = campusPulseTone(post.category);
 
-        <Panel
-          title="Study Groups"
-          subtitle="Peek into recent activity from your joined study circles."
-          icon={Users}
-          accent={TEAL}
-          soft={TEAL_SOFT}
-          border={TEAL_BORDER}
-          action="Open Study Groups"
-          onAction={() =>
-            navigate('/study-groups')
-          }
-        >
-          {studyGroups.length === 0 ? (
-            <MiniEmpty
-              text="Join or create a study group and its recent chat activity will appear here."
-            />
-          ) : (
-            <>
-              <div style={styles.miniTabsScroll}>
-                {studyGroups
-                  .slice(0, 6)
-                  .map(group => {
-                    const active =
-                      selectedMiniGroup
-                        ?.id ===
-                      group.id;
+                  return (
+                    <button
+                      key={post.id}
+                      type="button"
+                      onClick={() => navigate('/campus-pulse')}
+                      style={{
+                        ...s.previewRow,
+                        background: `linear-gradient(180deg, ${tone.soft} 0%, var(--surface-container-lowest) 48%)`,
+                        border: `1px solid ${tone.border}`,
+                        boxShadow: `inset 0 4px 0 ${tone.accent}55, 0 8px 22px rgba(0,45,98,0.05)`,
+                      }}
+                    >
+                      <span
+                        className="icon-chip"
+                        style={{
+                          ...s.previewIcon,
+                          background: tone.soft,
+                          color: tone.accent,
+                          border: `1px solid ${tone.border}`,
+                        }}
+                      >
+                        <MessageSquare size={16} />
+                      </span>
+
+                      <span style={s.previewMain}>
+                        <span style={s.previewTopLine}>
+                          <strong
+                            className="stat-tile-title"
+                            style={s.previewTitle}
+                          >
+                            {post.title || post.category || 'Campus Pulse post'}
+                          </strong>
+
+                          <span
+                            className="pill"
+                            style={{
+                              background: tone.soft,
+                              color: tone.accent,
+                              border: `1px solid ${tone.border}`,
+                            }}
+                          >
+                            {post.category || 'Post'}
+                          </span>
+                        </span>
+
+                        <span className="stat-tile-desc" style={s.previewText}>
+                          {post.content || 'Open Campus Pulse to view this post.'}
+                        </span>
+                      </span>
+
+                      <ChevronRight size={16} className="dimmed" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+
+          {/* STUDY GROUPS */}
+
+          <Panel
+            title="Study Groups"
+            subtitle="Peek into recent activity from your joined study circles."
+            icon={Users}
+            accent={TEAL}
+            soft={TEAL_SOFT}
+            border={TEAL_BORDER}
+            action="Open Study Groups"
+            onAction={() =>
+              navigate('/study-groups')
+            }
+          >
+            {studyGroups.length === 0 ? (
+              <MiniEmpty
+                text="Join or create a study group and its recent chat activity will appear here."
+              />
+            ) : (
+              <>
+                <div className="filter-row">
+                  {studyGroups
+                    .slice(0, 6)
+                    .map(group => {
+                      const active =
+                        selectedMiniGroup
+                          ?.id ===
+                        group.id;
+
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedMiniGroupId(
+                              group.id
+                            )
+                          }
+                          className={`filter-chip ${
+                            active
+                              ? 'active'
+                              : ''
+                          }`}
+                        >
+                          {group.name ||
+                            group.title ||
+                            'Study Group'}
+                        </button>
+                      );
+                    })}
+                </div>
+
+                <div
+                  style={{
+                    ...s.chatShell,
+                    background: `linear-gradient(180deg, ${TEAL_SOFT} 0%, var(--surface-container-lowest) 45%)`,
+                    border: `1px solid ${TEAL_BORDER}`,
+                    boxShadow: `inset 0 4px 0 ${TEAL}55, 0 8px 22px rgba(0,45,98,0.05)`,
+                    borderRadius: '18px',
+                  }}
+                >
+                  <div style={s.chatPreviewHeader}>
+                    <div>
+                      <strong className="stat-tile-title" style={s.chatPreviewTitle}>
+                        {selectedMiniGroup?.name ||
+                          selectedMiniGroup?.title ||
+                          'Group Chat'}
+                      </strong>
+
+                      <div className="stat-tile-desc" style={s.chatPreviewSubtitle}>
+                        Recent group chat
+                      </div>
+                    </div>
+
+                    <MessageSquare
+                      size={17}
+                      style={{ color: TEAL }}
+                    />
+                  </div>
+
+                  {selectedGroupMessages.length ===
+                  0 ? (
+                    <div style={{ padding: '8px' }}>
+                      <MiniEmpty
+                        text="No recent messages in this group yet."
+                        compact
+                      />
+                    </div>
+                  ) : (
+                    <div className="stack" style={{ padding: '10px', gap: '8px' }}>
+                      {selectedGroupMessages.map(
+                        message => (
+                          <div
+                            key={message.id}
+                            style={{
+                              ...s.chatMessageRow,
+                              background: `linear-gradient(180deg, ${TEAL_SOFT} 0%, #FFFFFF 58%)`,
+                              border: `1px solid ${TEAL_BORDER}`,
+                              boxShadow: `inset 0 3px 0 ${TEAL}45`,
+                              borderRadius: '16px',
+                            }}
+                          >
+                            <span
+                              className="icon-chip"
+                              style={{
+                                ...s.chatAvatar,
+                                background: TEAL_SOFT,
+                                color: TEAL,
+                                border: `1px solid ${TEAL_BORDER}`,
+                              }}
+                            >
+                              {String(
+                                message.sender_name ||
+                                  'S'
+                              )
+                                .slice(0, 1)
+                                .toUpperCase()}
+                            </span>
+
+                            <span style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
+                              <div className="stat-tile-title" style={s.chatSender}>
+                                {message.sender_name ||
+                                  'Student'}
+                              </div>
+
+                              <div className="stat-tile-desc" style={s.chatText}>
+                                {messagePreview(
+                                  message
+                                ) ||
+                                  'Message'}
+                              </div>
+                            </span>
+
+                            <span className="label-caps" style={s.chatTime}>
+                              {compactDate(
+                                message.created_at
+                              )}
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </Panel>
+
+          {/* REGISTRATION */}
+
+          <Panel
+            title="Registration"
+            subtitle="Move between your registration reminders, swaps, reviews and questions."
+            icon={Compass}
+            accent={TERRACOTTA}
+            soft={TERRACOTTA_SOFT}
+            border={TERRACOTTA_BORDER}
+            action="Open Registration"
+            onAction={() =>
+              navigate('/registration')
+            }
+          >
+            <div className="filter-row">
+              {REGISTRATION_TABS.map(
+                tab => {
+                  const active =
+                    registrationTab === tab;
+
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() =>
+                        setRegistrationTab(
+                          tab
+                        )
+                      }
+                      className={`filter-chip ${
+                        active
+                          ? 'active'
+                          : ''
+                      }`}
+                    >
+                      {tab}
+                      <span style={s.pillCount}>
+                        {
+                          (
+                            registrationDataByTab[
+                              tab
+                            ] || []
+                          ).length
+                        }
+                      </span>
+                    </button>
+                  );
+                }
+              )}
+            </div>
+
+            {currentRegistrationItems.length ===
+            0 ? (
+              <MiniEmpty
+                text={`No ${registrationTab.toLowerCase()} to preview right now.`}
+              />
+            ) : (
+              <div className="stack">
+                {currentRegistrationItems.map(
+                  item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          '/registration'
+                        )
+                      }
+                      className="accent-row tone-tertiary"
+                      style={s.previewRow}
+                    >
+                      <span
+                        className="icon-chip"
+                        style={{
+                          ...s.previewIcon,
+                          background:
+                            TERRACOTTA_SOFT,
+                          color:
+                            TERRACOTTA,
+                        }}
+                      >
+                        {registrationTab ===
+                        'Reminders' ? (
+                          <Bell size={16} />
+                        ) : registrationTab ===
+                          'Swaps' ? (
+                          <Repeat2 size={16} />
+                        ) : registrationTab ===
+                          'Reviews' ? (
+                          <Star size={16} />
+                        ) : (
+                          <HelpCircle
+                            size={16}
+                          />
+                        )}
+                      </span>
+
+                      <span style={s.previewMain}>
+                        <strong className="stat-tile-title" style={s.previewTitle}>
+                          {registrationTab ===
+                          'Reminders'
+                            ? item.course_name ||
+                              item.course_code ||
+                              'Registration Reminder'
+                            : registrationTab ===
+                              'Swaps'
+                            ? item.have_course ||
+                              item.course_have ||
+                              item.title ||
+                              'Course Swap'
+                            : registrationTab ===
+                              'Reviews'
+                            ? item.course_name ||
+                              item.course_code ||
+                              item.title ||
+                              'Course Review'
+                            : item.title ||
+                              item.question ||
+                              item.content ||
+                              'Major Question'}
+                        </strong>
+
+                        <span className="stat-tile-desc" style={s.previewText}>
+                          {registrationTab ===
+                          'Reminders'
+                            ? [
+                                item.crn
+                                  ? `CRN ${item.crn}`
+                                  : '',
+                                item.target_section
+                                  ? `Section ${item.target_section}`
+                                  : '',
+                                item.notes || '',
+                              ]
+                                .filter(Boolean)
+                                .join(' • ')
+                            : item.content ||
+                              item.body ||
+                              item.want_course ||
+                              item.course_want ||
+                              item.comment ||
+                              'Open Registration to view details.'}
+                        </span>
+                      </span>
+
+                      <ChevronRight
+                        size={16}
+                        className="dimmed"
+                      />
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+          </Panel>
+
+          {/* TO-DO PRIORITIES */}
+
+          <Panel
+            title="To-Do Priorities"
+            subtitle="Flip through your high, medium and low priority tasks."
+            icon={CheckCircle2}
+            accent={activeTodoPriority.accent}
+            soft={activeTodoPriority.soft}
+            border={activeTodoPriority.border}
+            action="Open To-Do"
+            onAction={() =>
+              navigate('/todo')
+            }
+          >
+            <div style={s.carouselHeader}>
+              <button
+                type="button"
+                onClick={() =>
+                  setTodoPriorityIndex(
+                    current =>
+                      (current -
+                        1 +
+                        TODO_PRIORITIES.length) %
+                      TODO_PRIORITIES.length
+                  )
+                }
+                className="btn btn-outline"
+                style={s.carouselArrow}
+              >
+                <ArrowLeft size={16} />
+              </button>
+
+              <div
+                className="pill"
+                style={{
+                  ...s.carouselLabel,
+                  color:
+                    activeTodoPriority.accent,
+                  background:
+                    activeTodoPriority.soft,
+                }}
+              >
+                {activeTodoPriority.label}
+                <span style={s.carouselCount}>
+                  {
+                    remainingTodos.filter(
+                      task =>
+                        String(
+                          task.priority || ''
+                        )
+                          .trim()
+                          .toLowerCase() ===
+                        activeTodoPriority.key
+                    ).length
+                  }
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setTodoPriorityIndex(
+                    current =>
+                      (current + 1) %
+                      TODO_PRIORITIES.length
+                  )
+                }
+                className="btn btn-outline"
+                style={s.carouselArrow}
+              >
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {priorityTodos.length === 0 ? (
+              <MiniEmpty
+                text={`No ${activeTodoPriority.key} priority tasks right now.`}
+              />
+            ) : (
+              <div className="stack">
+                {priorityTodos.map(
+                  task => (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() =>
+                        navigate('/todo')
+                      }
+                      className="accent-row"
+                      style={{
+                        ...s.previewRow,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '50%',
+                          background:
+                            activeTodoPriority.accent,
+                          flexShrink: 0,
+                        }}
+                      />
+
+                      <span style={s.previewMain}>
+                        <strong className="stat-tile-title" style={s.previewTitle}>
+                          {task.title ||
+                            'Task'}
+                        </strong>
+
+                        {task.details && (
+                          <span className="stat-tile-desc" style={s.previewText}>
+                            {task.details}
+                          </span>
+                        )}
+                      </span>
+
+                      <ChevronRight
+                        size={16}
+                        className="dimmed"
+                      />
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+          </Panel>
+
+          {/* NOTIFICATIONS / REMINDERS */}
+
+          <Panel
+            title="Notifications & Reminders"
+            subtitle="Flip between your newest notifications and reminders."
+            icon={Bell}
+            accent={PURPLE}
+            soft={PURPLE_SOFT}
+            border={PURPLE_BORDER}
+            action="Open Notifications"
+            onAction={() =>
+              navigate('/notifications')
+            }
+          >
+            <div style={s.carouselHeader}>
+              <button
+                type="button"
+                onClick={() =>
+                  setNotificationModeIndex(
+                    current =>
+                      (current -
+                        1 +
+                        notificationModes.length) %
+                      notificationModes.length
+                  )
+                }
+                className="btn btn-outline"
+                style={s.carouselArrow}
+              >
+                <ArrowLeft size={16} />
+              </button>
+
+              <div
+                className="pill"
+                style={{
+                  ...s.carouselLabel,
+                  color: PURPLE,
+                  background: PURPLE_SOFT,
+                }}
+              >
+                {activeNotificationMode}
+                <span style={s.carouselCount}>
+                  {activeNotificationMode ===
+                  'Notifications'
+                    ? allNotifications.length
+                    : dashboardReminders.length}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setNotificationModeIndex(
+                    current =>
+                      (current + 1) %
+                      notificationModes.length
+                  )
+                }
+                className="btn btn-outline"
+                style={s.carouselArrow}
+              >
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {visibleNotificationItems.length ===
+            0 ? (
+              <MiniEmpty
+                text={`No ${activeNotificationMode.toLowerCase()} right now.`}
+              />
+            ) : (
+              <div className="stack">
+                {visibleNotificationItems
+                  .slice(0, 4)
+                  .map(item => {
+                    const tone = {
+                      accent: PURPLE,
+                      soft: PURPLE_SOFT,
+                      border: PURPLE_BORDER,
+                      icon: Bell,
+                    };
+                    const NotificationIcon = tone.icon;
 
                     return (
                       <button
-                        key={group.id}
+                        key={item.id}
                         type="button"
                         onClick={() =>
-                          setSelectedMiniGroupId(
-                            group.id
+                          navigate(
+                            '/notifications'
                           )
                         }
                         style={{
-                          ...styles.miniPill,
-                          background: active
-                            ? TEAL
-                            : TEAL_SOFT,
-                          color: active
-                            ? '#FFFFFF'
-                            : TEAL,
-                          border: `1px solid ${TEAL_BORDER}`,
+                          ...s.previewRow,
+                          background: `linear-gradient(180deg, ${tone.soft} 0%, var(--surface-container-lowest) 48%)`,
+                          border: `1px solid ${tone.border}`,
+                          boxShadow: `inset 0 4px 0 ${tone.accent}55, 0 8px 22px rgba(0,45,98,0.05)`,
                         }}
                       >
-                        {group.name ||
-                          group.title ||
-                          'Study Group'}
+                        <span
+                          className="icon-chip"
+                          style={{
+                            ...s.previewIcon,
+                            background: tone.soft,
+                            color: tone.accent,
+                            border: `1px solid ${tone.border}`,
+                          }}
+                        >
+                          <NotificationIcon size={16} />
+                        </span>
+
+                        <span style={s.previewMain}>
+                          <span style={s.previewTopLine}>
+                            <strong className="stat-tile-title" style={s.previewTitle}>
+                              {item.title ||
+                                'Campora update'}
+                            </strong>
+
+                            {activeNotificationMode ===
+                              'Notifications' &&
+                              item.read === false && (
+                                <span
+                                  className="pill"
+                                  style={{
+                                    background: tone.soft,
+                                    color: tone.accent,
+                                    border: `1px solid ${tone.border}`,
+                                  }}
+                                >
+                                  NEW
+                                </span>
+                              )}
+                          </span>
+
+                          <span className="stat-tile-desc" style={s.previewText}>
+                            {item.message ||
+                              item.content ||
+                              'Open Notifications to view this update.'}
+                          </span>
+                        </span>
+
+                        <ChevronRight
+                          size={16}
+                          style={{ color: tone.accent, opacity: 0.7 }}
+                        />
                       </button>
                     );
                   })}
               </div>
+            )}
+          </Panel>
 
-              <div style={styles.chatPreviewShell}>
-                <div style={styles.chatPreviewHeader}>
-                  <div>
-                    <strong style={styles.chatPreviewTitle}>
-                      {selectedMiniGroup?.name ||
-                        selectedMiniGroup?.title ||
-                        'Group Chat'}
-                    </strong>
+          {/* CAMPUS HUB */}
 
-                    <div style={styles.chatPreviewSubtitle}>
-                      Recent group chat
-                    </div>
-                  </div>
-
-                  <MessageSquare
-                    size={17}
-                    color={TEAL}
-                  />
-                </div>
-
-                {selectedGroupMessages.length ===
-                0 ? (
-                  <MiniEmpty
-                    text="No recent messages in this group yet."
-                    compact
-                  />
-                ) : (
-                  <div style={styles.chatMessages}>
-                    {selectedGroupMessages.map(
-                      message => (
-                        <div
-                          key={message.id}
-                          style={styles.chatMessageRow}
-                        >
-                          <div
-                            style={{
-                              ...styles.chatAvatar,
-                              background:
-                                TEAL_SOFT,
-                              color: TEAL,
-                            }}
-                          >
-                            {String(
-                              message.sender_name ||
-                                'S'
-                            )
-                              .slice(0, 1)
-                              .toUpperCase()}
-                          </div>
-
-                          <div
-                            style={{
-                              minWidth: 0,
-                              flex: 1,
-                            }}
-                          >
-                            <div style={styles.chatSender}>
-                              {message.sender_name ||
-                                'Student'}
-                            </div>
-
-                            <div style={styles.chatText}>
-                              {messagePreview(
-                                message
-                              ) ||
-                                'Message'}
-                            </div>
-                          </div>
-
-                          <span style={styles.chatTime}>
-                            {compactDate(
-                              message.created_at
-                            )}
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </Panel>
-
-        {/* REGISTRATION */}
-
-        <Panel
-          title="Registration"
-          subtitle="Move between your registration reminders, swaps, reviews and questions."
-          icon={Compass}
-          accent={TERRACOTTA}
-          soft={TERRACOTTA_SOFT}
-          border={TERRACOTTA_BORDER}
-          action="Open Registration"
-          onAction={() =>
-            navigate('/registration')
-          }
-        >
-          <div style={styles.miniTabsScroll}>
-            {REGISTRATION_TABS.map(
-              tab => {
+          <Panel
+            title="Campus Hub"
+            subtitle="Browse announcements, news, events and resources from the dashboard."
+            icon={Megaphone}
+            accent={GOLD}
+            soft={GOLD_SOFT}
+            border={GOLD_BORDER}
+            action="Open Campus Hub"
+            onAction={() =>
+              navigate('/announcements')
+            }
+          >
+            <div className="filter-row" style={{ justifyContent: 'center', textAlign: 'center' }}>
+              {HUB_TABS.map(tab => {
                 const active =
-                  registrationTab === tab;
+                  hubTab === tab;
 
                 return (
                   <button
                     key={tab}
                     type="button"
                     onClick={() =>
-                      setRegistrationTab(
-                        tab
-                      )
+                      setHubTab(tab)
                     }
-                    style={{
-                      ...styles.miniPill,
-                      background: active
-                        ? TERRACOTTA
-                        : TERRACOTTA_SOFT,
-                      color: active
-                        ? '#FFFFFF'
-                        : TERRACOTTA,
-                      border: `1px solid ${TERRACOTTA_BORDER}`,
-                    }}
+                    className={`filter-chip ${
+                      active
+                        ? 'active'
+                        : ''
+                    }`}
                   >
                     {tab}
-                    <span style={styles.pillCount}>
+                    <span style={s.pillCount}>
                       {
                         (
-                          registrationDataByTab[
+                          hubDataByTab[
                             tab
                           ] || []
                         ).length
@@ -2273,506 +2489,143 @@ export default function Dashboard() {
                     </span>
                   </button>
                 );
-              }
-            )}
-          </div>
+              })}
+            </div>
 
-          {currentRegistrationItems.length ===
-          0 ? (
-            <MiniEmpty
-              text={`No ${registrationTab.toLowerCase()} to preview right now.`}
-            />
-          ) : (
-            <div style={styles.previewList}>
-              {currentRegistrationItems.map(
-                item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        '/registration'
-                      )
-                    }
-                    style={styles.previewRow}
-                  >
-                    <div
+            {currentHubItems.length === 0 ? (
+              <MiniEmpty
+                text={`No ${hubTab.toLowerCase()} to preview right now.`}
+              />
+            ) : (
+              <div className="stack">
+                {currentHubItems.map(
+                  item => (
+                    <button
+                      key={item.id || item.url || item.title}
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          '/announcements'
+                        )
+                      }
+                      className="accent-row tone-primary"
                       style={{
-                        ...styles.previewIcon,
-                        background:
-                          TERRACOTTA_SOFT,
-                        color:
-                          TERRACOTTA,
-                        border: `1px solid ${TERRACOTTA_BORDER}`,
+                        ...s.previewRow,
+                        textAlign: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      {registrationTab ===
-                      'Reminders' ? (
-                        <Bell size={16} />
-                      ) : registrationTab ===
-                        'Swaps' ? (
-                        <Repeat2 size={16} />
-                      ) : registrationTab ===
-                        'Reviews' ? (
-                        <Star size={16} />
-                      ) : (
-                        <HelpCircle
-                          size={16}
-                        />
-                      )}
-                    </div>
+                      <span
+                        className="icon-chip"
+                        style={{
+                          ...s.previewIcon,
+                          background:
+                            GOLD_SOFT,
+                          color: GOLD,
+                        }}
+                      >
+                        {hubTab ===
+                        'Announcements' ? (
+                          <Megaphone
+                            size={16}
+                          />
+                        ) : hubTab ===
+                          'News' ? (
+                          <BookOpen
+                            size={16}
+                          />
+                        ) : hubTab ===
+                          'Events' ? (
+                          <CalendarDays
+                            size={16}
+                          />
+                        ) : (
+                          <FolderOpen
+                            size={16}
+                          />
+                        )}
+                      </span>
 
-                    <div style={styles.previewMain}>
-                      <strong style={styles.previewTitle}>
-                        {registrationTab ===
-                        'Reminders'
-                          ? item.course_name ||
-                            item.course_code ||
-                            'Registration Reminder'
-                          : registrationTab ===
-                            'Swaps'
-                          ? item.have_course ||
-                            item.course_have ||
-                            item.title ||
-                            'Course Swap'
-                          : registrationTab ===
-                            'Reviews'
-                          ? item.course_name ||
-                            item.course_code ||
-                            item.title ||
-                            'Course Review'
-                          : item.title ||
-                            item.question ||
-                            item.content ||
-                            'Major Question'}
-                      </strong>
-
-                      <div style={styles.previewText}>
-                        {registrationTab ===
-                        'Reminders'
-                          ? [
-                              item.crn
-                                ? `CRN ${item.crn}`
-                                : '',
-                              item.target_section
-                                ? `Section ${item.target_section}`
-                                : '',
-                              item.notes || '',
-                            ]
-                              .filter(Boolean)
-                              .join(' • ')
-                          : item.content ||
-                            item.body ||
-                            item.want_course ||
-                            item.course_want ||
-                            item.comment ||
-                            'Open Registration to view details.'}
-                      </div>
-                    </div>
-
-                    <ChevronRight
-                      size={16}
-                      color="#A4AEC0"
-                    />
-                  </button>
-                )
-              )}
-            </div>
-          )}
-        </Panel>
-
-        {/* TO-DO CAROUSEL */}
-
-        <Panel
-          title="To-Do Priorities"
-          subtitle="Flip through your high, medium and low priority tasks."
-          icon={CheckCircle2}
-          accent={
-            activeTodoPriority.accent
-          }
-          soft={
-            activeTodoPriority.soft
-          }
-          border={
-            activeTodoPriority.border
-          }
-          action="Open To-Do"
-          onAction={() =>
-            navigate('/todo')
-          }
-        >
-          <div style={styles.carouselHeader}>
-            <button
-              type="button"
-              onClick={() =>
-                setTodoPriorityIndex(
-                  current =>
-                    (current -
-                      1 +
-                      TODO_PRIORITIES.length) %
-                    TODO_PRIORITIES.length
-                )
-              }
-              style={styles.carouselArrow}
-            >
-              <ArrowLeft size={16} />
-            </button>
-
-            <div
-              style={{
-                ...styles.carouselLabel,
-                color:
-                  activeTodoPriority.accent,
-                background:
-                  activeTodoPriority.soft,
-                border: `1px solid ${activeTodoPriority.border}`,
-              }}
-            >
-              {activeTodoPriority.label}
-              <span style={styles.carouselCount}>
-                {
-                  remainingTodos.filter(
-                    task =>
-                      String(
-                        task.priority || ''
-                      )
-                        .trim()
-                        .toLowerCase() ===
-                      activeTodoPriority.key
-                  ).length
-                }
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setTodoPriorityIndex(
-                  current =>
-                    (current + 1) %
-                    TODO_PRIORITIES.length
-                )
-              }
-              style={styles.carouselArrow}
-            >
-              <ArrowRight size={16} />
-            </button>
-          </div>
-
-          {priorityTodos.length === 0 ? (
-            <MiniEmpty
-              text={`No ${activeTodoPriority.key} priority tasks right now.`}
-            />
-          ) : (
-            <div style={styles.previewList}>
-              {priorityTodos.map(
-                task => (
-                  <button
-                    key={task.id}
-                    type="button"
-                    onClick={() =>
-                      navigate('/todo')
-                    }
-                    style={styles.previewRow}
-                  >
-                    <div
-                      style={{
-                        ...styles.priorityDot,
-                        background:
-                          activeTodoPriority.accent,
-                      }}
-                    />
-
-                    <div style={styles.previewMain}>
-                      <strong style={styles.previewTitle}>
-                        {task.title ||
-                          'Task'}
-                      </strong>
-
-                      {task.details && (
-                        <div style={styles.previewText}>
-                          {task.details}
-                        </div>
-                      )}
-                    </div>
-
-                    <ChevronRight
-                      size={16}
-                      color="#A4AEC0"
-                    />
-                  </button>
-                )
-              )}
-            </div>
-          )}
-        </Panel>
-
-        {/* NOTIFICATIONS / REMINDERS CAROUSEL */}
-
-        <Panel
-          title="Notifications & Reminders"
-          subtitle="Flip between your newest notifications and reminders."
-          icon={Bell}
-          accent={PURPLE}
-          soft={PURPLE_SOFT}
-          border={PURPLE_BORDER}
-          action="Open Notifications"
-          onAction={() =>
-            navigate('/notifications')
-          }
-        >
-          <div style={styles.carouselHeader}>
-            <button
-              type="button"
-              onClick={() =>
-                setNotificationModeIndex(
-                  current =>
-                    (current -
-                      1 +
-                      notificationModes.length) %
-                    notificationModes.length
-                )
-              }
-              style={styles.carouselArrow}
-            >
-              <ArrowLeft size={16} />
-            </button>
-
-            <div
-              style={{
-                ...styles.carouselLabel,
-                color: PURPLE,
-                background:
-                  PURPLE_SOFT,
-                border: `1px solid ${PURPLE_BORDER}`,
-              }}
-            >
-              {activeNotificationMode}
-              <span style={styles.carouselCount}>
-                {activeNotificationMode ===
-                'Notifications'
-                  ? allNotifications.length
-                  : dashboardReminders.length}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setNotificationModeIndex(
-                  current =>
-                    (current + 1) %
-                    notificationModes.length
-                )
-              }
-              style={styles.carouselArrow}
-            >
-              <ArrowRight size={16} />
-            </button>
-          </div>
-
-          {visibleNotificationItems.length ===
-          0 ? (
-            <MiniEmpty
-              text={`No ${activeNotificationMode.toLowerCase()} right now.`}
-            />
-          ) : (
-            <div style={styles.previewList}>
-              {visibleNotificationItems
-                .slice(0, 4)
-                .map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        '/notifications'
-                      )
-                    }
-                    style={styles.previewRow}
-                  >
-                    <div
-                      style={{
-                        ...styles.previewIcon,
-                        background:
-                          PURPLE_SOFT,
-                        color: PURPLE,
-                        border: `1px solid ${PURPLE_BORDER}`,
-                      }}
-                    >
-                      <Bell size={16} />
-                    </div>
-
-                    <div style={styles.previewMain}>
-                      <div style={styles.previewTopLine}>
-                        <strong style={styles.previewTitle}>
+                      <span
+                        style={{
+                          ...s.previewMain,
+                          alignItems: 'center',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <strong className="stat-tile-title" style={s.previewTitle}>
                           {item.title ||
-                            'Campora update'}
+                            item.name ||
+                            item.file_name ||
+                            `${hubTab.slice(0, -1)} item`}
                         </strong>
 
-                        {activeNotificationMode ===
-                          'Notifications' &&
-                          item.read === false && (
-                            <span
-                              style={{
-                                ...styles.previewTag,
-                                color: ROSE,
-                                background:
-                                  ROSE_SOFT,
-                              }}
-                            >
-                              NEW
-                            </span>
-                          )}
-                      </div>
+                        <span className="stat-tile-desc" style={s.previewText}>
+                          {item.content ||
+                            item.description ||
+                            item.summary ||
+                            item.category ||
+                            'Open Campus Hub to view details.'}
+                        </span>
+                      </span>
 
-                      <div style={styles.previewText}>
-                        {item.message ||
-                          item.content ||
-                          'Open Notifications to view this update.'}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-            </div>
-          )}
-        </Panel>
+                      <ChevronRight
+                        size={16}
+                        className="dimmed"
+                      />
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+          </Panel>
+        </div>
+      </section>
 
-        {/* CAMPUS HUB */}
+      {/* ===================================================
+          CAMPUS MAP — LAST SECTION
+      =================================================== */}
 
-        <Panel
-          title="Campus Hub"
-          subtitle="Browse announcements, news, events and resources from the dashboard."
-          icon={Megaphone}
-          accent={GOLD}
-          soft={GOLD_SOFT}
-          border={GOLD_BORDER}
-          action="Open Campus Hub"
-          onAction={() =>
-            navigate('/announcements')
-          }
-        >
-          <div style={styles.miniTabsScroll}>
-            {HUB_TABS.map(tab => {
-              const active =
-                hubTab === tab;
+      <section>
+        <SectionHeader
+          title="Campus Map"
+          subtitle="Find your way around campus and jump to your next class."
+        />
 
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() =>
-                    setHubTab(tab)
-                  }
-                  style={{
-                    ...styles.miniPill,
-                    background: active
-                      ? GOLD
-                      : GOLD_SOFT,
-                    color: active
-                      ? '#FFFFFF'
-                      : GOLD,
-                    border: `1px solid ${GOLD_BORDER}`,
-                  }}
-                >
-                  {tab}
-                  <span style={styles.pillCount}>
-                    {
-                      (
-                        hubDataByTab[
-                          tab
-                        ] || []
-                      ).length
-                    }
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        <div style={s.mapFrame}>
+          <iframe
+            title="American University of Beirut campus map"
+            src="https://www.google.com/maps?q=American%20University%20of%20Beirut%2C%20Beirut%2C%20Lebanon&z=17&output=embed"
+            style={s.mapImg}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
 
-          {currentHubItems.length === 0 ? (
-            <MiniEmpty
-              text={`No ${hubTab.toLowerCase()} to preview right now.`}
-            />
-          ) : (
-            <div style={styles.previewList}>
-              {currentHubItems.map(
-                item => (
-                  <button
-                    key={
-                      item.id ||
-                      item.url ||
-                      item.title
-                    }
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        '/announcements'
-                      )
-                    }
-                    style={styles.previewRow}
-                  >
-                    <div
-                      style={{
-                        ...styles.previewIcon,
-                        background:
-                          GOLD_SOFT,
-                        color: GOLD,
-                        border: `1px solid ${GOLD_BORDER}`,
-                      }}
-                    >
-                      {hubTab ===
-                      'Announcements' ? (
-                        <Megaphone
-                          size={16}
-                        />
-                      ) : hubTab ===
-                        'News' ? (
-                        <BookOpen
-                          size={16}
-                        />
-                      ) : hubTab ===
-                        'Events' ? (
-                        <CalendarDays
-                          size={16}
-                        />
-                      ) : (
-                        <FolderOpen
-                          size={16}
-                        />
-                      )}
-                    </div>
+          <a
+            href="https://www.google.com/maps/dir/?api=1&destination=American+University+of+Beirut"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pill"
+            style={s.mapPill}
+          >
+            <Compass size={14} />
+            Navigate to AUB
+          </a>
+          <a
+            href="https://maps.aub.edu.lb/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pill"
+            style={s.mapAubPill}
+          >
+            <Landmark size={14} />
+            View AUB interactive map
+          </a>
+        </div>
+      </section>
 
-                    <div style={styles.previewMain}>
-                      <strong style={styles.previewTitle}>
-                        {item.title ||
-                          item.name ||
-                          item.file_name ||
-                          `${hubTab.slice(0, -1)} item`}
-                      </strong>
-
-                      <div style={styles.previewText}>
-                        {item.content ||
-                          item.description ||
-                          item.summary ||
-                          item.category ||
-                          'Open Campus Hub to view details.'}
-                      </div>
-                    </div>
-
-                    <ChevronRight
-                      size={16}
-                      color="#A4AEC0"
-                    />
-                  </button>
-                )
-              )}
-            </div>
-          )}
-        </Panel>
-      </div>
-      </div>
-    </>
+    </PageShell>
   );
 }
 // =========================================================
@@ -2785,14 +2638,14 @@ function MiniEmpty({
 }) {
   return (
     <div
+      className="empty-state"
       style={{
-        ...styles.miniEmpty,
-        minHeight: compact
-          ? '82px'
-          : '130px',
+        padding: compact
+          ? '22px 16px'
+          : '34px 16px',
       }}
     >
-      {text}
+      <p>{text}</p>
     </div>
   );
 }
@@ -2809,41 +2662,106 @@ function QuickAccessCard({
   return (
     <button
       type="button"
-      onClick={onClick}
       style={{
-        ...styles.quickAccessCard,
-        background: '#FFFFFF',
-        border: '1px solid #E5EAF1',
-        boxShadow: '0 7px 20px rgba(11,26,63,.045)',
+        ...s.quickAccessCard,
+        border: `1px solid ${border}`,
+        boxShadow: `inset 0 3px 0 ${accent}33, 0 8px 22px rgba(0,45,98,0.06)`
       }}
+      onClick={onClick}
     >
-      <div
+      <span
+        className="icon-chip"
         style={{
-          ...styles.quickAccessIcon,
-          color: NAVY,
-          background: '#F4F7FE',
-          border: '1px solid #E4EAF3',
-          boxShadow: `inset 0 -3px 0 ${accent}22`,
+          ...s.quickAccessIcon,
+          color: accent,
+          background: soft,
+          border: `1px solid ${border}`,
         }}
       >
-        <Icon size={20} />
-      </div>
+        <Icon size={20} strokeWidth={1.6} />
+      </span>
 
-      <div style={styles.quickAccessText}>
-        <div style={styles.quickAccessLabel}>
+      <span style={s.quickAccessText}>
+        <span className="stat-tile-title" style={s.quickAccessLabel}>
           {label}
-        </div>
+        </span>
 
-        <div style={styles.quickAccessDescription}>
+        <span className="stat-tile-desc" style={s.quickAccessDescription}>
           {text}
-        </div>
-      </div>
+        </span>
+      </span>
 
       <ChevronRight
         size={17}
-        color={NAVY}
+        className="dimmed"
       />
     </button>
+  );
+}
+
+
+function DashboardStatTile({
+  icon: Icon,
+  title,
+  desc,
+  accent,
+  soft,
+  border,
+}) {
+  return (
+    <div
+      style={{
+        minHeight: '150px',
+        padding: '20px 22px',
+        background: `linear-gradient(180deg, ${soft} 0%, #FCFDFE 58%)`,
+        border: `1px solid ${border}`,
+        borderRadius: '22px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        gap: '12px',
+        boxShadow: '0 6px 18px rgba(0,45,98,0.035)',
+      }}
+    >
+      <span
+        style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '15px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: accent,
+          background: '#FFFFFF',
+          border: `1px solid ${border}`,
+        }}
+      >
+        <Icon size={20} strokeWidth={1.7} />
+      </span>
+
+      <div
+        style={{
+          fontSize: '25px',
+          lineHeight: 1,
+          fontWeight: '900',
+          color: 'var(--campora-text)',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize: '14px',
+          fontWeight: '600',
+          color: 'var(--campora-muted)',
+        }}
+      >
+        {desc}
+      </div>
+    </div>
   );
 }
 
@@ -2860,58 +2778,41 @@ function Panel({
 }) {
   return (
     <section
-      style={styles.panel}
+      className="panel-low"
+      style={{
+        ...s.panel,
+        background: `linear-gradient(135deg, ${soft} 0%, var(--surface-container-lowest) 44%)`,
+        border: `1px solid ${border}`,
+      }}
     >
-      <div
-        style={
-          styles.panelHeader
-        }
-      >
-        <div
-          style={
-            styles.panelHeading
-          }
+      <div style={s.panelHeader}>
+        <span
+          className="icon-chip"
+          style={{
+            ...s.panelIcon,
+            color: accent,
+            background: soft,
+            border: `1px solid ${border}`,
+          }}
         >
-          <div
-            style={{
-              ...styles.panelIcon,
-              color: accent,
-              background: soft,
-              border: `1px solid ${border}`,
-            }}
-          >
-            <Icon size={18} />
-          </div>
+          <Icon size={18} strokeWidth={1.6} />
+        </span>
 
-          <div>
-            <h2
-              style={
-                styles.panelTitle
-              }
-            >
-              {title}
-            </h2>
+        <div style={s.panelHeading}>
+          <h2 className="stat-tile-title" style={s.panelTitle}>
+            {title}
+          </h2>
 
-            <p
-              style={
-                styles.panelSubtitle
-              }
-            >
-              {subtitle}
-            </p>
-          </div>
+          <p className="stat-tile-desc" style={s.panelSubtitle}>
+            {subtitle}
+          </p>
         </div>
 
         {action && onAction && (
           <button
             type="button"
+            className="btn btn-ghost btn-sm"
             onClick={onAction}
-            style={{
-              ...styles.panelAction,
-              color: NAVY,
-              background: '#F4F7FE',
-              border: '1px solid #E1E7F0',
-            }}
           >
             {action}
             <ArrowRight
@@ -2922,7 +2823,7 @@ function Panel({
       </div>
 
       <div
-        style={styles.panelBody}
+        style={s.panelBody}
       >
         {children}
       </div>
@@ -2940,37 +2841,36 @@ function AcademicMetric({
 }) {
   return (
     <div
+      className="panel-low"
       style={{
-        ...styles.academicMetric,
+        ...s.academicMetric,
         background: soft,
         border: `1px solid ${border}`,
       }}
     >
-      <div
+      <span
+        className="icon-chip"
         style={{
-          ...styles.academicIcon,
+          width: '40px',
+          height: '40px',
           color: accent,
-          background:
-            '#FFFFFF',
+          background: '#FAFBFD',
           border: `1px solid ${border}`,
         }}
       >
-        <Icon size={17} />
-      </div>
+        <Icon size={17} strokeWidth={1.6} />
+      </span>
 
       <div
-        style={
-          styles.academicValue
-        }
+        className="stat-tile-title"
+        style={s.academicValue}
       >
         {value}
       </div>
 
       <div
-        style={{
-          ...styles.academicLabel,
-          color: accent,
-        }}
+        className="label-caps"
+        style={{ color: accent }}
       >
         {label}
       </div>
@@ -2995,77 +2895,92 @@ function ScheduleRow({
       ? item.color
       : BLUE;
 
+  const parts =
+    timeParts(
+      item.start_time
+    );
+
+  const past =
+    isPastTime(
+      item.end_time ||
+        item.start_time
+    );
+
   return (
     <button
       type="button"
       onClick={onClick}
-      style={
-        styles.scheduleRow
-      }
+      className={past ? 'dimmed' : ''}
+      style={{
+        ...s.scheduleRow,
+        background: `linear-gradient(180deg, ${withAlpha(color, '24')} 0%, #FFFFFF 50%)`,
+        border: `1px solid ${withAlpha(color, '36')}`,
+        boxShadow: `inset 0 4px 0 ${withAlpha(color, '82')}, 0 8px 22px rgba(0,45,98,0.045)`,
+      }}
     >
       <div
         style={{
-          ...styles.scheduleAccent,
-          background: color,
+          ...s.scheduleTimeBlock,
+          background: withAlpha(color, '16'),
+          border: `1px solid ${withAlpha(color, '3A')}`,
+          color: 'var(--campora-text)',
         }}
-      />
-
-      <div
-        style={{
-          ...styles.scheduleIcon,
-          color,
-          background:
-            withAlpha(
-              color,
-              '14'
-            ),
-          border: `1px solid ${withAlpha(
-            color,
-            '24'
-          )}`,
-        }}
-      >
-        <Icon size={17} />
-      </div>
-
-      <div
-        style={
-          styles.scheduleMain
-        }
       >
         <div
-          style={
-            styles.scheduleTitle
-          }
+          style={s.scheduleTimeHour}
+        >
+          {parts.time}
+        </div>
+
+        <div
+          className="label-caps"
+          style={s.scheduleMeridian}
+        >
+          {parts.meridian}
+        </div>
+      </div>
+
+      <span style={s.scheduleMain}>
+        <span
+          className="stat-tile-title"
+          style={s.scheduleTitle}
         >
           {item.name ||
             'Planner item'}
-        </div>
+        </span>
 
-        <div
-          style={
-            styles.scheduleMeta
-          }
+        <span
+          className="stat-tile-desc"
+          style={s.scheduleMeta}
         >
-          {item.type ||
-            'Schedule'}
-        </div>
-      </div>
+          <span
+            style={{
+              ...s.scheduleTypeChip,
+              color,
+              background: withAlpha(color, '24'),
+              border: `1px solid ${withAlpha(color, '48')}`,
+              color: 'var(--campora-text)',
+            }}
+          >
+            <Icon size={12} />
+            <span>{item.type || 'Schedule'}</span>
+          </span>
 
-      <div
-        style={
-          styles.scheduleTime
-        }
-      >
-        {formatTimeRange(
-          item.start_time,
-          item.end_time
-        )}
-      </div>
+          <span style={s.scheduleTimeMeta}>
+            <Clock3 size={13} />
+            <span>
+              {formatTimeRange(
+                item.start_time,
+                item.end_time
+              )}
+            </span>
+          </span>
+        </span>
+      </span>
 
       <ChevronRight
         size={17}
-        color="#A4AEC0"
+        className="dimmed"
       />
     </button>
   );
@@ -3087,13 +3002,13 @@ function UpcomingRow({
     <button
       type="button"
       onClick={onClick}
-      style={
-        styles.upcomingRow
-      }
+      className="accent-row tone-tertiary"
+      style={s.upcomingRow}
     >
-      <div
+      <span
+        className="pill"
         style={{
-          ...styles.upcomingDate,
+          ...s.upcomingDate,
           color,
           background:
             withAlpha(
@@ -3115,26 +3030,20 @@ function UpcomingRow({
             item.date
           )
         }
-      </div>
+      </span>
 
-      <div
-        style={
-          styles.upcomingMain
-        }
-      >
-        <div
-          style={
-            styles.upcomingTitle
-          }
+      <span style={s.upcomingMain}>
+        <span
+          className="stat-tile-title"
+          style={s.upcomingTitle}
         >
           {item.name ||
             'Upcoming item'}
-        </div>
+        </span>
 
-        <div
-          style={
-            styles.upcomingMeta
-          }
+        <span
+          className="stat-tile-desc"
+          style={s.upcomingMeta}
         >
           {item.type ||
             'Planner'}
@@ -3143,12 +3052,12 @@ function UpcomingRow({
                 item.start_time
               )}`
             : ''}
-        </div>
-      </div>
+        </span>
+      </span>
 
       <ChevronRight
         size={17}
-        color="#A4AEC0"
+        className="dimmed"
       />
     </button>
   );
@@ -3163,41 +3072,27 @@ function EmptyState({
 }) {
   return (
     <div
-      style={
-        styles.emptyState
-      }
+      className="empty-state"
     >
       <div
-        style={
-          styles.emptyIcon
-        }
+        className="empty-state-icon"
       >
-        <Icon size={23} />
+        <Icon size={42} strokeWidth={1.4} />
       </div>
 
-      <div
-        style={
-          styles.emptyTitle
-        }
+      <h3
+        className="stat-tile-title"
       >
         {title}
-      </div>
+      </h3>
 
-      <div
-        style={
-          styles.emptyText
-        }
-      >
-        {text}
-      </div>
+      <p>{text}</p>
 
       {action && onAction && (
         <button
           type="button"
+          className="btn btn-tinted btn-sm"
           onClick={onAction}
-          style={
-            styles.emptyAction
-          }
         >
           {action}
           <ArrowRight
@@ -3213,176 +3108,101 @@ function EmptyState({
 // STYLES
 // =========================================================
 
-const styles = {
-  page: {
-    width: '100%',
-    maxWidth: '1200px',
-    margin: '0 auto',
-
-    minHeight: 'calc(100vh - 100px)',
-
-    padding: '4px 10px 0 0',
-
-    boxSizing: 'border-box',
-    fontFamily: 'inherit',
-
-    scrollBehavior: 'smooth',
-    scrollbarWidth: 'thin',
-  },
-
-  hero: {
-    position: 'relative',
-    overflow: 'hidden',
-    minHeight: '185px',
-    borderRadius: '24px',
-    padding: '29px 31px',
-    marginBottom: '20px',
-    boxSizing: 'border-box',
-    background:
-      'linear-gradient(135deg, #08152F 0%, #0B1A3F 52%, #142B5A 100%)',
-    boxShadow:
-      '0 16px 38px rgba(11,26,63,0.16)',
-  },
-
-  heroGlowOne: {
-    position: 'absolute',
-    width: '300px',
-    height: '300px',
-    borderRadius: '50%',
-    background:
-      'radial-gradient(circle, rgba(100,140,203,.22) 0%, rgba(100,140,203,0) 70%)',
-    top: '-190px',
-    right: '170px',
-    pointerEvents: 'none',
-  },
-
-  heroGlowTwo: {
-    position: 'absolute',
-    width: '230px',
-    height: '230px',
-    borderRadius: '50%',
-    background:
-      'radial-gradient(circle, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 70%)',
-    right: '-70px',
-    bottom: '-145px',
-    pointerEvents: 'none',
-  },
-
-  heroContent: {
-    position: 'relative',
-    zIndex: 2,
-    minHeight: '125px',
+const s = {
+  loadingCard: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent:
-      'flex-start',
-    gap: '28px',
+    gap: '14px',
+    padding: '24px',
   },
 
-  heroEyebrow: {
-    display:
-      'inline-flex',
+  loadingTitle: {
+    fontSize: '15px',
+  },
+
+  loadingText: {
+    fontSize: '13px',
+    marginTop: '3px',
+  },
+
+  greetingWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '20px',
+    flexWrap: 'wrap',
+  },
+
+  greetingEyebrow: {
+    display: 'inline-flex',
     alignItems: 'center',
     gap: '7px',
-    color: '#B9CCED',
-    fontSize: '10px',
-    fontWeight: '900',
-    letterSpacing: '1px',
-    marginBottom: '9px',
+    marginBottom: '10px',
   },
 
-  heroTitle: {
+  greeting: {
     margin: 0,
-    color: '#FFFFFF',
-    fontSize: '36px',
-    fontWeight: '950',
-    letterSpacing: '-1px',
+    color: 'var(--campora-text)',
+    fontSize: 'clamp(30px, 4vw, 42px)',
+    fontWeight: '900',
+    letterSpacing: '-0.03em',
+    lineHeight: 1.08,
+  },
+
+  greetingName: {
+    margin: '4px 0 0',
+    color: 'var(--campora-navy)',
+    fontSize: 'clamp(26px, 3vw, 34px)',
+    fontWeight: '800',
+    letterSpacing: '-0.02em',
     lineHeight: 1.1,
   },
 
-  heroSubtitle: {
-    margin: '9px 0 0',
-    maxWidth: '590px',
-    color:
-      'rgba(255,255,255,.73)',
+  greetingSub: {
+    margin: '12px 0 0',
+    maxWidth: '580px',
+    color: 'var(--campora-body)',
     fontSize: '14px',
+    fontWeight: '500',
     lineHeight: 1.55,
-    fontWeight: '600',
   },
-
-
-
-
-
 
   errorBanner: {
-    marginBottom: '18px',
-    padding: '11px 13px',
-    borderRadius: '12px',
-    background: ROSE_SOFT,
-    color: ROSE,
-    border: `1px solid ${ROSE_BORDER}`,
-    fontSize: '12px',
-    fontWeight: '800',
-  },
-
-  quickAccessSection: {
-    marginBottom: '17px',
-  },
-
-  quickAccessHeader: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: '14px',
-    marginBottom: '12px',
-    paddingLeft: '12px',
-    borderLeft: '4px solid #0B1A3F',
-  },
-
-  quickAccessTitle: {
-    margin: 0,
-    color: NAVY,
-    fontSize: '17px',
-    fontWeight: '950',
-    letterSpacing: '-.2px',
-  },
-
-  quickAccessSubtitle: {
-    margin: '4px 0 0',
-    color: '#96A1B3',
-    fontSize: '10.5px',
+    padding: '12px 16px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--tone-error-soft)',
+    color: 'var(--tone-error)',
+    fontSize: '13px',
     fontWeight: '700',
   },
 
-  quickAccessGrid: {
+  quickGrid: {
     display: 'grid',
     gridTemplateColumns:
-      'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '11px',
+      'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '16px',
+    marginTop: '6px',
   },
 
   quickAccessCard: {
     width: '100%',
-    minHeight: '86px',
-    padding: '13px 14px',
-    borderRadius: '16px',
+    minHeight: '104px',
+    padding: '18px',
     display: 'flex',
     alignItems: 'center',
-    gap: '11px',
+    gap: '15px',
     textAlign: 'left',
     cursor: 'pointer',
     fontFamily: 'inherit',
-    boxShadow:
-      '0 6px 18px rgba(45,60,95,.035)',
-    transition:
-      'transform .16s ease, box-shadow .16s ease',
+    background: 'var(--surface-container-lowest)',
+    borderRadius: '20px',
+    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
   },
 
   quickAccessIcon: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '12px',
+    width: '50px',
+    height: '50px',
+    borderRadius: '16px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3395,870 +3215,527 @@ const styles = {
   },
 
   quickAccessLabel: {
-    color: NAVY,
-    fontSize: '12.5px',
-    fontWeight: '900',
-    lineHeight: 1.3,
+    display: 'block',
+    fontSize: '16px',
+    fontWeight: '800',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
 
   quickAccessDescription: {
-    marginTop: '3px',
-    color: '#929DAF',
-    fontSize: '9px',
-    fontWeight: '700',
+    display: 'block',
+    fontSize: '12.5px',
+    marginTop: '5px',
     lineHeight: 1.35,
+    whiteSpace: 'normal',
+    color: 'var(--campora-muted)',
   },
 
-  primaryGrid: {
-    display: 'grid',
-    gridTemplateColumns:
-      'minmax(0,1.12fr) minmax(390px,.88fr)',
-    gap: '17px',
-    marginBottom: '17px',
+  todoCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '14px',
+    textAlign: 'center',
+    padding: '36px 24px',
+    borderRadius: 'var(--radius)',
+    flex: 1,
   },
 
-  secondaryGrid: {
-    display: 'grid',
-    gridTemplateColumns:
-      'minmax(0,1.12fr) minmax(330px,.88fr)',
-    gap: '17px',
-    marginBottom: '17px',
+  todoPct: {
+    fontSize: '46px',
+    fontWeight: '900',
+    letterSpacing: '-0.03em',
+    color: 'var(--campora-text)',
+  },
+
+  todoHeadline: {
+    fontSize: '18px',
+    fontWeight: '800',
+    letterSpacing: '-0.02em',
+    color: 'var(--campora-text)',
+  },
+
+  todoMeta: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: 'var(--campora-muted)',
+  },
+
+  mapFrame: {
+    position: 'relative',
+    marginTop: '10px',
+    borderRadius: 'var(--radius)',
+    overflow: 'hidden',
+    height: '400px',
+    boxShadow: 'var(--shadow-soft)',
+  },
+
+  mapImg: {
+    width: '100%',
+    height: '100%',
+    border: '0',
+    display: 'block',
+  },
+
+  mapPill: {
+    position: 'absolute',
+    textDecoration: 'none',
+    right: '16px',
+    bottom: '16px',
+    background:
+      'color-mix(in srgb, var(--surface-container-lowest) 90%, transparent)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    color: 'var(--campora-navy)',
+    boxShadow: 'var(--shadow-soft)',
+    fontSize: '12px',
+    fontWeight: '800',
+    letterSpacing: '0.01em',
+  },
+
+  mapAubPill: {
+    position: 'absolute',
+    textDecoration: 'none',
+    right: '16px',
+    bottom: '56px',
+    background:
+      'color-mix(in srgb, var(--surface-container-lowest) 90%, transparent)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    color: 'var(--campora-navy)',
+    boxShadow: 'var(--shadow-soft)',
+    fontSize: '12px',
+    fontWeight: '800',
+    letterSpacing: '0.01em',
   },
 
   panel: {
-    minWidth: 0,
-    background: '#FFFFFF',
-    border: `1px solid ${BORDER}`,
+    padding: '24px',
     borderRadius: '22px',
-    overflow: 'hidden',
-    boxShadow:
-      '0 11px 30px rgba(48,65,105,.05)',
+    boxShadow: '0 8px 24px rgba(0,45,98,0.055)',
   },
 
   panelHeader: {
-    minHeight: '82px',
-    padding: '18px 20px 15px',
     display: 'flex',
     alignItems: 'flex-start',
-    justifyContent:
-      'space-between',
-    gap: '14px',
-    borderBottom: `1px solid ${BORDER}`,
-  },
-
-  panelHeading: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '11px',
-    minWidth: 0,
+    gap: '12px',
+    marginBottom: '16px',
   },
 
   panelIcon: {
-    width: '38px',
-    height: '38px',
-    borderRadius: '11px',
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-  },
-
-  panelTitle: {
-    margin: 0,
-    color: NAVY,
-    fontSize: '17px',
-    fontWeight: '950',
-    letterSpacing:
-      '-.2px',
-  },
-
-  panelSubtitle: {
-    margin: '4px 0 0',
-    color: '#96A1B3',
-    fontSize: '10.5px',
-    lineHeight: 1.45,
-    fontWeight: '700',
-  },
-
-  panelAction: {
-    minHeight: '33px',
-    padding: '0 10px',
-    borderRadius: '9px',
-    display:
-      'inline-flex',
-    alignItems: 'center',
-    gap: '5px',
-    flexShrink: 0,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: '10px',
-    fontWeight: '900',
-  },
-
-  panelBody: {
-    padding:
-      '14px 18px 18px',
-  },
-
-  itemList: {
-    display: 'flex',
-    flexDirection:
-      'column',
-    gap: '8px',
-  },
-
-  scheduleRow: {
-    position: 'relative',
-    overflow: 'hidden',
-    width: '100%',
-    minHeight: '66px',
-    border:
-      '1px solid #E9EDF3',
-    borderRadius: '14px',
-    background: '#FFFFFF',
-    padding:
-      '10px 12px 10px 14px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    textAlign: 'left',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
-
-  scheduleAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: '3px',
-  },
-
-  scheduleIcon: {
-    width: '37px',
-    height: '37px',
-    borderRadius: '11px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
+    width: '42px',
+    height: '42px',
+    borderRadius: '13px',
     flexShrink: 0,
   },
 
-  scheduleMain: {
+  panelHeading: {
     flex: 1,
     minWidth: 0,
   },
 
-  scheduleTitle: {
-    color: NAVY,
-    fontSize: '12.5px',
-    fontWeight: '900',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow:
-      'ellipsis',
+  panelTitle: {
+    fontSize: '19px',
+    fontWeight: '800',
+    letterSpacing: '-0.02em',
+    margin: 0,
   },
 
-  scheduleMeta: {
-    marginTop: '3px',
-    color: '#96A1B3',
-    fontSize: '9px',
-    fontWeight: '700',
+  panelSubtitle: {
+    fontSize: '13px',
+    marginTop: '4px',
+    lineHeight: 1.45,
   },
 
-  scheduleTime: {
-    color: '#6F7D93',
-    fontSize: '9.5px',
-    fontWeight: '850',
-    whiteSpace: 'nowrap',
+  panelBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '18px',
   },
 
   academicGrid: {
     display: 'grid',
     gridTemplateColumns:
-      'repeat(auto-fit,minmax(105px,1fr))',
-    gap: '10px',
+      'repeat(auto-fit, minmax(150px, 1fr))',
+    gap: '12px',
   },
 
   academicMetric: {
-    minHeight: '105px',
-    padding: '13px',
-    borderRadius: '15px',
+    minHeight: '118px',
+    padding: '16px',
+    borderRadius: '18px',
     display: 'flex',
-    flexDirection:
-      'column',
-    alignItems:
-      'flex-start',
-    justifyContent:
-      'center',
-  },
-
-  academicIcon: {
-    width: '33px',
-    height: '33px',
-    borderRadius: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-    marginBottom: '9px',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: '10px',
   },
 
   academicValue: {
-    color: NAVY,
-    fontSize: '21px',
-    lineHeight: 1,
-    fontWeight: '950',
-  },
-
-  academicLabel: {
-    marginTop: '6px',
-    fontSize: '9.5px',
+    fontSize: '26px',
     fontWeight: '900',
+    letterSpacing: '-0.02em',
+    lineHeight: 1,
   },
 
   coursesFooter: {
     width: '100%',
-    marginTop: '10px',
-    minHeight: '39px',
-    padding: '0 11px',
-    borderRadius: '11px',
-    border:
-      '1px solid #E8ECF3',
-    background: '#FAFBFD',
-    color: '#66758E',
+    justifyContent: 'space-between',
+    marginTop: '4px',
+    fontSize: '13px',
+  },
+
+  scheduleRow: {
+    width: '100%',
+    minHeight: '92px',
+    padding: '17px 20px',
     display: 'flex',
     alignItems: 'center',
-    justifyContent:
-      'space-between',
-    gap: '10px',
+    gap: '16px',
+    textAlign: 'left',
     cursor: 'pointer',
     fontFamily: 'inherit',
-    fontSize: '9.5px',
+    borderRadius: '18px',
+    position: 'relative',
+    overflow: 'hidden',
+    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+  },
+
+
+  scheduleTimeBlock: {
+    minWidth: '78px',
+    textAlign: 'center',
+    flexShrink: 0,
+    padding: '10px 12px',
+    borderRadius: '16px',
+  },
+
+  scheduleTimeHour: {
+    fontSize: '21px',
+    fontWeight: '900',
+    letterSpacing: '-0.02em',
+    lineHeight: 1.1,
+    color: 'var(--campora-text)',
+  },
+
+  scheduleMeridian: {
+    marginTop: '3px',
+    fontSize: '10px',
     fontWeight: '800',
+    letterSpacing: '0.08em',
+  },
+
+  scheduleMain: {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+
+  scheduleTitle: {
+    fontSize: '17px',
+    fontWeight: '800',
+    letterSpacing: '-0.01em',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+
+  scheduleMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '9px',
+    fontSize: '12px',
+    marginTop: '7px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    color: 'var(--campora-body)',
+  },
+
+  scheduleTypeChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '5px 9px',
+    borderRadius: '999px',
+    fontSize: '11px',
+    fontWeight: '800',
+    flexShrink: 0,
+  },
+
+  scheduleTimeMeta: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    color: 'var(--campora-text)',
+    fontWeight: '650',
+  },
+
+  scheduleDot: {
+    opacity: 0.35,
+    marginLeft: '2px',
+    marginRight: '2px',
   },
 
   upcomingRow: {
     width: '100%',
-    minHeight: '60px',
-    border:
-      '1px solid #E9EDF3',
-    borderRadius: '14px',
-    background: '#FFFFFF',
-    padding: '9px 11px',
+    minHeight: '72px',
+    padding: '14px 16px',
     display: 'flex',
     alignItems: 'center',
-    gap: '9px',
+    gap: '14px',
     textAlign: 'left',
     cursor: 'pointer',
     fontFamily: 'inherit',
   },
 
   upcomingDate: {
-    minWidth: '84px',
-    minHeight: '35px',
-    padding: '0 8px',
-    borderRadius: '10px',
-    display:
-      'inline-flex',
+    minWidth: '92px',
+    height: '34px',
+    padding: '0 12px',
+    borderRadius: 'var(--radius-pill)',
+    display: 'inline-flex',
     alignItems: 'center',
-    justifyContent:
-      'center',
-    gap: '5px',
+    justifyContent: 'center',
+    gap: '6px',
     flexShrink: 0,
-    fontSize: '8.5px',
-    fontWeight: '900',
+    fontSize: '12px',
+    fontWeight: '800',
   },
 
   upcomingMain: {
     flex: 1,
     minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
   },
 
   upcomingTitle: {
-    color: NAVY,
-    fontSize: '12px',
-    fontWeight: '900',
+    fontSize: '16px',
+    fontWeight: '800',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
-    textOverflow:
-      'ellipsis',
+    textOverflow: 'ellipsis',
   },
 
   upcomingMeta: {
-    marginTop: '3px',
-    color: '#98A2B3',
-    fontSize: '9px',
-    fontWeight: '700',
-  },
-
-  todoSummary: {
-    padding: '6px 2px',
-  },
-
-  todoTop: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'space-between',
-    gap: '14px',
-  },
-
-  todoNumber: {
-    color: NAVY,
-    fontSize: '34px',
-    lineHeight: 1,
-    fontWeight: '950',
-  },
-
-  todoLabel: {
-    marginTop: '5px',
-    color: '#8E99AD',
-    fontSize: '10px',
-    fontWeight: '800',
-  },
-
-  todoPercent: {
-    minWidth: '53px',
-    minHeight: '37px',
-    padding: '0 9px',
-    borderRadius: '11px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-    fontSize: '11px',
-    fontWeight: '950',
-  },
-
-  progressTrack: {
-    height: '8px',
-    marginTop: '19px',
-    borderRadius: '999px',
-    background: '#EDF1F5',
-    overflow: 'hidden',
-  },
-
-  todoFooter: {
-    marginTop: '9px',
-    color: '#96A1B3',
-    fontSize: '9px',
-    fontWeight: '750',
-  },
-
-  campusRow: {
-    display: 'grid',
-    gridTemplateColumns:
-      'minmax(0,1.6fr) minmax(260px,.6fr)',
-    gap: '12px',
+    fontSize: '13px',
+    marginTop: '4px',
   },
 
   announcementCard: {
     width: '100%',
-    minHeight: '98px',
-    border:
-      '1px solid #E9EDF3',
-    borderRadius: '15px',
-    padding: '13px',
-    background: '#FFFFFF',
+    minHeight: '96px',
+    padding: '16px 18px',
+    borderRadius: '18px',
+    border: '1px solid var(--hairline)',
+    background: 'var(--surface-container-lowest)',
+    boxShadow: '0 5px 16px rgba(0,45,98,0.04)',
     display: 'flex',
     alignItems: 'center',
-    gap: '11px',
+    gap: '14px',
     textAlign: 'left',
     cursor: 'pointer',
     fontFamily: 'inherit',
-  },
-
-  announcementIcon: {
-    width: '42px',
-    height: '42px',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-    flexShrink: 0,
-  },
-
-  announcementBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-
-  announcementMeta: {
-    color: TERRACOTTA,
-    fontSize: '8px',
-    fontWeight: '950',
-    letterSpacing: '.6px',
-    marginBottom: '4px',
   },
 
   announcementTitle: {
-    color: NAVY,
-    fontSize: '12.5px',
-    fontWeight: '900',
-    lineHeight: 1.35,
+    display: 'block',
+    fontSize: '16px',
+    fontWeight: '800',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
 
   announcementText: {
+    display: 'block',
+    fontSize: '13px',
     marginTop: '4px',
-    color: '#8995A8',
-    fontSize: '9.5px',
     lineHeight: 1.4,
-    fontWeight: '650',
-    display:
-      '-webkit-box',
-    WebkitLineClamp: 2,
-    WebkitBoxOrient:
-      'vertical',
+    whiteSpace: 'nowrap',
     overflow: 'hidden',
-  },
-
-  notificationSummary: {
-    width: '100%',
-    minHeight: '98px',
-    border:
-      '1px solid #E9EDF3',
-    borderRadius: '15px',
-    padding: '13px',
-    background: '#FFFFFF',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '11px',
-    textAlign: 'left',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  },
-
-  notificationIcon: {
-    width: '42px',
-    height: '42px',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-    flexShrink: 0,
+    textOverflow: 'ellipsis',
   },
 
   notificationTitle: {
-    color: NAVY,
-    fontSize: '12px',
-    fontWeight: '900',
+    display: 'block',
+    fontSize: '16px',
+    fontWeight: '800',
   },
 
   notificationText: {
-    marginTop: '4px',
-    color: '#929DAF',
-    fontSize: '9.5px',
-    fontWeight: '700',
-  },
-
-  noAnnouncement: {
-    minHeight: '98px',
-    border:
-      '1px dashed #DDE3EB',
-    borderRadius: '15px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-    color: '#97A2B4',
-    fontSize: '10px',
-    fontWeight: '750',
-  },
-
-  emptyState: {
-    minHeight: '160px',
-    display: 'flex',
-    flexDirection:
-      'column',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-    textAlign: 'center',
-    padding: '18px',
-  },
-
-  emptyIcon: {
-    width: '47px',
-    height: '47px',
-    borderRadius: '14px',
-    background: '#F2F5FA',
-    border:
-      '1px solid #E6EAF0',
-    color: NAVY,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-    marginBottom: '10px',
-  },
-
-  emptyTitle: {
-    color: NAVY,
+    display: 'block',
     fontSize: '13px',
-    fontWeight: '900',
-  },
-
-  emptyText: {
-    maxWidth: '340px',
-    marginTop: '5px',
-    color: '#96A1B3',
-    fontSize: '10px',
-    fontWeight: '700',
-    lineHeight: 1.45,
-  },
-
-  emptyAction: {
-    marginTop: '11px',
-    minHeight: '31px',
-    padding: '0 10px',
-    borderRadius: '9px',
-    border:
-      '1px solid #E2E7EF',
-    background: '#FFFFFF',
-    color: NAVY,
-    display:
-      'inline-flex',
-    alignItems: 'center',
-    gap: '5px',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    fontSize: '9px',
-    fontWeight: '900',
-  },
-
-  workspaceSection: {
-    marginTop: '17px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '17px',
-  },
-
-  workspaceSectionHeader: {
-    marginTop: '3px',
-    marginBottom: '-3px',
-    padding: '14px 16px',
-    borderRadius: '16px',
-    background: '#F4F7FE',
-    border: '1px solid #E2E8F1',
-    boxShadow: 'inset 4px 0 0 #0B1A3F',
-  },
-
-  workspaceSectionTitle: {
-    margin: 0,
-    color: NAVY,
-    fontSize: '19px',
-    fontWeight: '950',
-    letterSpacing: '-.3px',
-  },
-
-  workspaceSectionSubtitle: {
-    margin: '5px 0 0',
-    color: '#96A1B3',
-    fontSize: '10.5px',
-    fontWeight: '700',
-  },
-
-  miniTabsScroll: {
-    display: 'flex',
-    gap: '7px',
-    overflowX: 'auto',
-    paddingBottom: '10px',
-    scrollbarWidth: 'none',
-  },
-
-  miniPill: {
-    minHeight: '31px',
-    padding: '0 10px',
-    borderRadius: '999px',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontFamily: 'inherit',
-    fontSize: '9px',
-    fontWeight: '900',
-  },
-
-  pillCount: {
-    minWidth: '17px',
-    height: '17px',
-    padding: '0 4px',
-    borderRadius: '999px',
-    background: 'rgba(255,255,255,.45)',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '8px',
-    fontWeight: '950',
-  },
-
-  previewList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+    marginTop: '4px',
   },
 
   previewRow: {
     width: '100%',
-    minHeight: '63px',
-    border: '1px solid #E4E9F1',
-    borderRadius: '14px',
-    background: '#FFFFFF',
-    boxShadow: '0 4px 12px rgba(11,26,63,.025)',
-    padding: '10px 11px',
+    minHeight: '78px',
+    padding: '15px 17px',
+    borderRadius: '18px',
+    border: '1px solid var(--hairline)',
+    background: 'var(--surface-container-lowest)',
+    boxShadow: '0 5px 16px rgba(0,45,98,0.035)',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '12px',
     textAlign: 'left',
     cursor: 'pointer',
     fontFamily: 'inherit',
   },
 
   previewIcon: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '11px',
+    width: '38px',
+    height: '38px',
+    borderRadius: '12px',
     flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   previewMain: {
     flex: 1,
     minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
   },
 
   previewTopLine: {
     display: 'flex',
     alignItems: 'center',
-    gap: '7px',
+    gap: '8px',
     justifyContent: 'space-between',
   },
 
   previewTitle: {
-    minWidth: 0,
-    color: NAVY,
-    fontSize: '11.5px',
-    fontWeight: '900',
+    display: 'block',
+    fontSize: '15px',
+    fontWeight: '800',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
 
   previewText: {
+    display: 'block',
+    fontSize: '13px',
     marginTop: '3px',
-    color: '#8F9AAF',
-    fontSize: '9px',
-    fontWeight: '650',
     lineHeight: 1.4,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
 
-  previewTag: {
-    flexShrink: 0,
-    padding: '3px 6px',
-    borderRadius: '6px',
-    fontSize: '7.5px',
-    fontWeight: '950',
-    textTransform: 'uppercase',
+  pillCount: {
+    minWidth: '20px',
+    height: '20px',
+    padding: '0 7px',
+    borderRadius: 'var(--radius-pill)',
+    background: 'rgba(255, 255, 255, 0.4)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '11px',
+    fontWeight: '800',
   },
 
-  chatPreviewShell: {
-    border: '1px solid #E7ECEF',
-    borderRadius: '15px',
+  chatShell: {
+    padding: '0',
     overflow: 'hidden',
-    background: '#FBFDFC',
   },
 
   chatPreviewHeader: {
-    minHeight: '53px',
-    padding: '10px 12px',
-    borderBottom: '1px solid #E4ECE9',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '12px',
-    background: TEAL_SOFT,
+    padding: '14px 16px',
+    borderBottom: '1px solid var(--divider)',
+    background: '#FBFCFD',
   },
 
   chatPreviewTitle: {
-    color: NAVY,
-    fontSize: '11.5px',
-    fontWeight: '900',
+    display: 'block',
+    fontSize: '15px',
+    fontWeight: '800',
   },
 
   chatPreviewSubtitle: {
+    fontSize: '13px',
     marginTop: '2px',
-    color: '#8C9A99',
-    fontSize: '8.5px',
-    fontWeight: '700',
-  },
-
-  chatMessages: {
-    padding: '9px 10px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '7px',
   },
 
   chatMessageRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    minHeight: '45px',
-    padding: '6px 7px',
-    borderRadius: '10px',
-    background: '#FFFFFF',
-    border: '1px solid #EDF1F0',
+    width: '100%',
+    minHeight: '52px',
+    padding: '10px 12px',
+    overflow: 'hidden',
   },
 
   chatAvatar: {
-    width: '29px',
-    height: '29px',
+    width: '32px',
+    height: '32px',
     borderRadius: '50%',
     flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '9px',
-    fontWeight: '950',
+    fontSize: '12px',
+    fontWeight: '800',
   },
 
   chatSender: {
-    color: NAVY,
-    fontSize: '9px',
-    fontWeight: '900',
+    fontSize: '13px',
+    fontWeight: '800',
   },
 
   chatText: {
+    fontSize: '12px',
     marginTop: '2px',
-    color: '#77859A',
-    fontSize: '8.5px',
-    fontWeight: '650',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
 
   chatTime: {
-    color: '#A0A9B8',
-    fontSize: '7.5px',
-    fontWeight: '700',
     flexShrink: 0,
+    alignSelf: 'flex-start',
+    marginTop: '4px',
   },
 
   carouselHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '9px',
-    marginBottom: '11px',
+    gap: '10px',
   },
 
   carouselArrow: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '10px',
-    border: '1px solid #DDE4EE',
-    background: '#F4F7FE',
-    color: NAVY,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '40px',
+    height: '40px',
+    padding: '0',
+    flexShrink: 0,
   },
 
   carouselLabel: {
-    minWidth: '165px',
-    minHeight: '34px',
-    padding: '0 11px',
-    borderRadius: '10px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    minWidth: '180px',
+    minHeight: '36px',
+    padding: '0 12px',
     gap: '8px',
-    fontSize: '10px',
-    fontWeight: '950',
+    fontSize: '13px',
+    fontWeight: '800',
   },
 
   carouselCount: {
     minWidth: '20px',
     height: '20px',
-    borderRadius: '999px',
-    background: 'rgba(255,255,255,.6)',
+    padding: '0 7px',
+    borderRadius: 'var(--radius-pill)',
+    background: 'rgba(255, 255, 255, 0.6)',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '0 5px',
-    fontSize: '8px',
-  },
-
-  priorityDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
-
-  miniEmpty: {
-    border: '1px dashed #DDE3EA',
-    borderRadius: '13px',
-    background: '#FBFCFE',
-    color: '#98A2B3',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    padding: '15px',
-    fontSize: '9.5px',
-    fontWeight: '700',
-    lineHeight: 1.45,
-  },
-
-  loadingCard: {
-    minHeight: '140px',
-    padding: '24px',
-    borderRadius: '20px',
-    background: '#FFFFFF',
-    border: `1px solid ${BORDER}`,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '13px',
-    boxShadow:
-      '0 8px 25px rgba(15,23,42,.05)',
-  },
-
-  loadingIcon: {
-    width: '47px',
-    height: '47px',
-    borderRadius: '14px',
-    background: BLUE_SOFT,
-    color: BLUE,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
-  },
-
-  loadingTitle: {
-    color: NAVY,
-    fontSize: '14px',
-    fontWeight: '900',
-  },
-
-  loadingText: {
-    marginTop: '3px',
-    color: MUTED,
-    fontSize: '10.5px',
-    fontWeight: '700',
+    fontSize: '11px',
   },
 };
