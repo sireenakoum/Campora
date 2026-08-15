@@ -14,10 +14,10 @@
 
 :root {
   /* Brand */
-  --campora-navy: #002D62;
-  --campora-navy-solid: #002D62;
-  --campora-blue: #002D62;
-  --campora-active: #001A41;
+  --campora-navy: #0B1A3F;
+  --campora-navy-solid: #0B1A3F;
+  --campora-blue: #0B1A3F;
+  --campora-active: #060D22;
 
   /* Neutrals */
   --campora-text: #1A1B1F;
@@ -30,20 +30,20 @@
   --campora-surface-low: #F4F3F8;
 
   /* Accents */
-  --campora-navy-tint: #D8E2FF;
-  --campora-navy-tint-alpha: rgba(0, 45, 98, 0.1);
+  --campora-navy-tint: #DCE4F5;
+  --campora-navy-tint-alpha: rgba(11, 26, 63, 0.1);
 
   --campora-urgent: #DC2626;
 
   /* Full Material-3-style token set */
-  --primary: #002D62;
+  --primary: #0B1A3F;
   --on-primary: #FFFFFF;
-  --primary-container: #004E9E;
+  --primary-container: #14265C;
   --on-primary-container: #FEFCFF;
-  --primary-fixed: #D8E2FF;
-  --primary-fixed-dim: #ADC6FF;
-  --on-primary-fixed: #001A41;
-  --on-primary-fixed-variant: #004493;
+  --primary-fixed: #DCE4F5;
+  --primary-fixed-dim: #A9BEE8;
+  --on-primary-fixed: #060D22;
+  --on-primary-fixed-variant: #0F1E4E;
 
   --secondary: #4C4ACA;
   --on-secondary: #FFFFFF;
@@ -89,7 +89,7 @@
 
   /* Depth */
   --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.06);
-  --shadow-lift: 0 20px 50px rgba(0, 45, 98, 0.12);
+  --shadow-lift: 0 20px 50px rgba(11, 26, 63, 0.12);
 
   /* Hairlines & dividers */
   --hairline: rgba(65, 71, 85, 0.1);
@@ -220,10 +220,10 @@ body {
 
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 255, 0.92));
-  border: 1px solid rgba(0, 45, 98, 0.07);
+  border: 1px solid rgba(11, 26, 63, 0.07);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 1),
-    0 7px 20px rgba(0, 45, 98, 0.055);
+    0 7px 20px rgba(11, 26, 63, 0.055);
 }
 
 .sidebar-brand-logo {
@@ -235,7 +235,7 @@ body {
   padding: 4px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 3px 10px rgba(0, 45, 98, 0.06);
+  box-shadow: 0 3px 10px rgba(11, 26, 63, 0.06);
   mix-blend-mode: multiply;
 }
 
@@ -319,7 +319,7 @@ body {
 /* =========================================================
    NAVIGATION ITEMS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â LIGHT NAVY PILLS
    Inactive: #414755 on transparent
-   Active:   #001A41 text Ãƒâ€šÃ‚Â· #D8E2FF bg Ãƒâ€šÃ‚Â· soft shadow
+   Active:   #060D22 text Ãƒâ€šÃ‚Â· #DCE4F5 bg Ãƒâ€šÃ‚Â· soft shadow
 ========================================================= */
 
 .nav-item {
@@ -366,7 +366,7 @@ body {
 
   background: var(--campora-navy-solid);
 
-  box-shadow: 0 5px 16px rgba(0, 45, 98, 0.20);
+  box-shadow: 0 5px 16px rgba(11, 26, 63, 0.20);
 }
 
 
@@ -376,7 +376,7 @@ body {
 
 .nav-item:hover:not(.active) {
   color: var(--campora-navy);
-  background: rgba(0, 45, 98, 0.07);
+  background: rgba(11, 26, 63, 0.07);
 }
 
 .nav-badge {
@@ -393,7 +393,7 @@ body {
 
   border-radius: 999px;
 
-  background: #002D62;
+  background: #0B1A3F;
   color: #FFFFFF;
 
   font-size: 11px;
@@ -474,7 +474,7 @@ body {
 
   border-radius: 50%;
 
-  background: #002D62;
+  background: #0B1A3F;
 
   color: #FFFFFF;
 
@@ -839,7 +839,7 @@ body {
   flex-shrink: 0;
 }
 
-/* Search pill ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â opens the ÃƒÂ¢Ã…â€™Ã‹Å“K command palette */
+/* Search pill — opens the Cmd+K command palette */
 .topbar-search {
   display: flex;
   align-items: center;
@@ -847,44 +847,64 @@ body {
   gap: 10px;
 
   height: 44px;
-  width: 200px;
+  width: 240px;
 
-  padding: 0 14px;
+  padding: 0 8px 0 16px;
 
   border: none;
   outline: none;
 
-  background: #FFFFFF;
+  background: var(--campora-surface-low, #F4F3F8);
 
-  border: 1px solid #EEF0F3;
+  border: 1px solid transparent;
 
   border-radius: 9999px;
 
-  color: #717786;
+  color: #6B7280;
 
   cursor: pointer;
 
   text-align: left;
 
+  box-shadow: 0 1px 2px rgba(11, 26, 63, 0.03);
+
   transition:
     width 0.25s ease,
-    background 0.25s ease,
-    box-shadow 0.25s ease;
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .topbar-search:hover {
-  background: #FAFBFC;
-  border-color: #E5E9EF;
+  width: 280px;
+
+  background: #FFFFFF;
+  border-color: #E4E8F0;
+
+  box-shadow: 0 6px 18px rgba(11, 26, 63, 0.08);
 }
 
 .topbar-search:focus-visible {
-  outline: 3px solid rgba(0, 45, 98, 0.25);
+  width: 280px;
+
+  background: #FFFFFF;
+  border-color: var(--campora-navy);
+
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(11, 26, 63, 0.14);
 }
 
 .topbar-search svg {
   flex-shrink: 0;
 
-  color: #717786;
+  color: #9AA1B0;
+
+  transition: color 0.2s ease;
+}
+
+.topbar-search:hover svg,
+.topbar-search:focus-visible svg {
+  color: var(--campora-navy);
 }
 
 .topbar-search-text {
@@ -906,19 +926,21 @@ body {
 
   gap: 3px;
 
-  padding: 2px 6px;
+  padding: 3px 7px;
 
-  border-radius: 6px;
+  border-radius: 7px;
 
-  background: rgba(255, 255, 255, 0.94);
+  background: #FFFFFF;
 
   border: 1px solid #E3E7ED;
 
-  color: #717786;
+  color: #8A90A0;
 
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 700;
+
+  box-shadow: 0 1px 1px rgba(11, 26, 63, 0.05);
 }
 
 .topbar-menu-btn {
@@ -980,7 +1002,7 @@ body {
 
   border-radius: 50%;
 
-  background: #002D62;
+  background: #0B1A3F;
 
   color: #FFFFFF;
 
@@ -993,7 +1015,7 @@ body {
 }
 
 .topbar-avatar:hover {
-  box-shadow: 0 6px 18px rgba(0, 45, 98, 0.25);
+  box-shadow: 0 6px 18px rgba(11, 26, 63, 0.25);
 
   transform: translateY(-1px);
 }
@@ -1234,6 +1256,21 @@ button {
   width: 100%;
 }
 
+/* Give every dashboard/page section its own breathing room instead of
+   stacking tight against the next one — this is the main lever for
+   making a page with many sections (planner, courses, notifications,
+   registration, campus pulse, study groups, campus hub...) feel calm
+   instead of crammed. */
+.main-content > *:not(header):not(:last-child) {
+  margin-bottom: 36px;
+}
+
+@media (max-width: 850px) {
+  .main-content > *:not(header):not(:last-child) {
+    margin-bottom: 28px;
+  }
+}
+
 
 /* =========================================================
    COMMAND PALETTE (ÃƒÂ¢Ã…â€™Ã‹Å“K)
@@ -1363,7 +1400,7 @@ button {
 }
 
 .palette-row:hover {
-  background: #D8E2FF;
+  background: #DCE4F5;
 
   color: var(--campora-active);
 }
@@ -2010,7 +2047,7 @@ button {
 }
 
 /* Keep navy links/buttons visible on dark surfaces */
-:root[data-theme='dark'] .main-content [style*="color: #002D62"],
+:root[data-theme='dark'] .main-content [style*="color: #0B1A3F"],
 :root[data-theme='dark'] .main-content [style*="color: rgb(0, 45, 98)"] {
   color: #79AEEB !important;
 }
@@ -2476,7 +2513,7 @@ button {
 --------------------------------------------------------- */
 
 :root[data-theme='dark'] .main-content [style*="var(--campora-navy)"] svg,
-:root[data-theme='dark'] .main-content [style*="#002D62"] svg,
+:root[data-theme='dark'] .main-content [style*="#0B1A3F"] svg,
 :root[data-theme='dark'] .main-content [style*="rgb(0, 45, 98)"] svg {
   color: #8DB8F0 !important;
   stroke: #8DB8F0 !important;
@@ -2485,7 +2522,9 @@ button {
 
 /* Navy-tinted icon circles / hero icon wrappers */
 :root[data-theme='dark'] .main-content [style*="rgba(0, 45, 98"],
-:root[data-theme='dark'] .main-content [style*="rgba(0,45,98"] {
+:root[data-theme='dark'] .main-content [style*="rgba(0,45,98"],
+:root[data-theme='dark'] .main-content [style*="rgba(11, 26, 63"],
+:root[data-theme='dark'] .main-content [style*="rgba(11,26,63"] {
   border-color: rgba(141, 184, 240, 0.28) !important;
 }
 
