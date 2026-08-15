@@ -43,29 +43,29 @@ import {
 // CAMPORA THEME
 // =========================================================
 
-const PURPLE = '#8B78B8';
-const PURPLE_SOFT = '#F7F4FC';
-const PURPLE_BORDER = '#E7E0F2';
+const PURPLE = '#6D55B7';
+const PURPLE_SOFT = '#DDD4F3';
+const PURPLE_BORDER = '#C4B4E6';
 
-const BLUE = '#648CCB';
-const BLUE_SOFT = '#F3F7FD';
-const BLUE_BORDER = '#DDE7F5';
+const BLUE = '#3E73B8';
+const BLUE_SOFT = '#D8E7F7';
+const BLUE_BORDER = '#B8D1EB';
 
-const TERRACOTTA = '#D9896A';
-const TERRACOTTA_SOFT = '#FFF6F2';
-const TERRACOTTA_BORDER = '#F3DDD4';
+const TERRACOTTA = '#C46543';
+const TERRACOTTA_SOFT = '#F2D8CC';
+const TERRACOTTA_BORDER = '#E4BBAA';
 
-const TEAL = '#5E9A8B';
-const TEAL_SOFT = '#F2F9F7';
-const TEAL_BORDER = '#D9EBE6';
+const TEAL = '#3C8775';
+const TEAL_SOFT = '#D4E8E2';
+const TEAL_BORDER = '#AED4C9';
 
-const GOLD = '#C99758';
-const GOLD_SOFT = '#FFF9F1';
-const GOLD_BORDER = '#F0E2CB';
+const GOLD = '#B77A2F';
+const GOLD_SOFT = '#F0DFBE';
+const GOLD_BORDER = '#DFC795';
 
-const ROSE = '#C76E7D';
-const ROSE_SOFT = '#FFF5F6';
-const ROSE_BORDER = '#F0DDE1';
+const ROSE = '#B84E65';
+const ROSE_SOFT = '#F0D1D8';
+const ROSE_BORDER = '#DFABB6';
 
 const CAMPUS_PULSE_CATEGORIES = [
   'All',
@@ -1316,41 +1316,41 @@ export default function Dashboard() {
 
         /* TO-DO — LIGHT MODE */
         .dashboard-todo-progress-card {
-          background: #FAFBFD;
-          border: 1px solid #EEF1F5;
+          background: #F3F6FA;
+          border: 1px solid #E3E8EF;
           box-shadow: none;
         }
 
         /* TO-DO — DARK MODE */
         :root[data-theme='dark'] .main-content .dashboard-todo-progress-card {
-          background: #1F242B !important;
-          background-color: #1F242B !important;
-          border: 1px solid #39424E !important;
+          background: #1B2531 !important;
+          background-color: #1B2531 !important;
+          border: 1px solid #344557 !important;
           box-shadow: none !important;
         }
 
         :root[data-theme='dark'] .dashboard-todo-progress-ring svg circle:first-of-type {
-          stroke: #334052 !important;
+          stroke: #35495F !important;
           opacity: 1 !important;
         }
 
         :root[data-theme='dark'] .dashboard-todo-progress-ring svg circle:last-of-type {
-          stroke: #6FA8EA !important;
+          stroke: #72A7E3 !important;
           opacity: 1 !important;
         }
 
         :root[data-theme='dark'] .dashboard-todo-progress-ring div {
-          color: #8FBCF2 !important;
+          color: #8DB5E4 !important;
           opacity: 1 !important;
         }
 
         :root[data-theme='dark'] .dashboard-todo-headline {
-          color: #F5F7FA !important;
+          color: #F3F6FA !important;
           opacity: 1 !important;
         }
 
         :root[data-theme='dark'] .dashboard-todo-meta {
-          color: #AEB8C6 !important;
+          color: #AEB9C8 !important;
           opacity: 1 !important;
         }
 
@@ -1358,77 +1358,77 @@ export default function Dashboard() {
         .dashboard-panel-study-groups {
           background: linear-gradient(
             135deg,
-            #F2F9F7 0%,
+            #E4F0EC 0%,
             var(--surface-container-lowest) 44%
           );
-          border: 1px solid #D9EBE6;
+          border: 1px solid #C6DDD6;
         }
 
         .dashboard-study-chat-shell {
           background: linear-gradient(
             180deg,
-            #F2F9F7 0%,
+            #E4F0EC 0%,
             var(--surface-container-lowest) 45%
           );
-          border: 1px solid #D9EBE6;
+          border: 1px solid #C6DDD6;
           box-shadow:
-            inset 0 4px 0 rgba(94,154,139,.33),
-            0 8px 22px rgba(0,45,98,.05);
+            inset 0 4px 0 rgba(79,142,127,.30),
+            0 8px 22px rgba(22,63,115,.06);
         }
 
         .dashboard-study-chat-message {
           background: linear-gradient(
             180deg,
-            #F2F9F7 0%,
+            #E4F0EC 0%,
             #FFFFFF 58%
           );
-          border: 1px solid #D9EBE6;
-          box-shadow: inset 0 3px 0 rgba(94,154,139,.27);
+          border: 1px solid #C6DDD6;
+          box-shadow: inset 0 3px 0 rgba(79,142,127,.24);
         }
 
         /* STUDY GROUPS — DARK MODE
            EXACTLY like Campus Pulse: neutral surface, colored icon/accent only */
         :root[data-theme='dark'] .main-content .dashboard-panel-study-groups {
-          background: #20252C !important;
-          background-color: #20252C !important;
+          background: #1D2733 !important;
+          background-color: #1D2733 !important;
           background-image: none !important;
-          border: 1px solid #3A434F !important;
-          box-shadow: 0 8px 24px rgba(0,0,0,.18) !important;
+          border: 1px solid #354555 !important;
+          box-shadow: 0 8px 24px rgba(0,0,0,.20) !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups > div:first-child .icon-chip {
-          background: rgba(94,154,139,.12) !important;
-          color: #72C1AD !important;
-          border-color: rgba(114,193,173,.34) !important;
+          background: rgba(112,184,165,.14) !important;
+          color: #70B8A5 !important;
+          border-color: rgba(112,184,165,.34) !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups > div:first-child .icon-chip svg {
-          color: #72C1AD !important;
-          stroke: #72C1AD !important;
+          color: #70B8A5 !important;
+          stroke: #70B8A5 !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups .btn {
-          color: #72C1AD !important;
+          color: #70B8A5 !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups .filter-chip {
-          background: #30353D !important;
-          color: #D8DDE4 !important;
+          background: #293643 !important;
+          color: #D7DEE7 !important;
           border-color: transparent !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups .filter-chip.active {
-          background: #30353D !important;
-          color: #D8DDE4 !important;
+          background: #293643 !important;
+          color: #D7DEE7 !important;
           border-color: transparent !important;
           box-shadow: none !important;
         }
 
         :root[data-theme='dark'] .main-content .dashboard-study-chat-shell {
-          background: #1B2027 !important;
-          background-color: #1B2027 !important;
+          background: #18222D !important;
+          background-color: #18222D !important;
           background-image: none !important;
-          border: 1px solid #37414C !important;
+          border: 1px solid #324252 !important;
           box-shadow: none !important;
         }
 
@@ -1437,38 +1437,184 @@ export default function Dashboard() {
         }
 
         :root[data-theme='dark'] .main-content .dashboard-study-chat-message {
-          background: #242A31 !important;
-          background-color: #242A31 !important;
+          background: #222D38 !important;
+          background-color: #222D38 !important;
           background-image: none !important;
-          border: 1px solid #3B4651 !important;
+          border: 1px solid #394A5A !important;
           box-shadow: none !important;
-          color: #EEF2F6 !important;
+          color: #EEF3F8 !important;
         }
 
         :root[data-theme='dark'] .dashboard-study-chat-message .icon-chip {
-          background: #2B323A !important;
-          color: #BFC8D3 !important;
-          border-color: #414C58 !important;
+          background: #273541 !important;
+          color: #C2CBD6 !important;
+          border-color: #405162 !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups .dashboard-study-chat-header {
-          background: #1B2027 !important;
-          background-color: #1B2027 !important;
-          color: #F5F7FA !important;
-          border-bottom-color: #37414C !important;
+          background: #18222D !important;
+          background-color: #18222D !important;
+          color: #F3F6FA !important;
+          border-bottom-color: #324252 !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups .dashboard-study-chat-header .stat-tile-title {
-          color: #F5F7FA !important;
+          color: #F3F6FA !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups .dashboard-study-chat-header .stat-tile-desc {
-          color: #AEB8C6 !important;
+          color: #AEB9C8 !important;
         }
 
         :root[data-theme='dark'] .dashboard-panel-study-groups .dashboard-study-chat-header svg {
-          color: #72C1AD !important;
-          stroke: #72C1AD !important;
+          color: #70B8A5 !important;
+          stroke: #70B8A5 !important;
+        }
+
+
+        /* =================================================
+           CAMPORA DASHBOARD — RICH COLOR SYSTEM
+           Keeps every color family visible in both modes.
+        ================================================= */
+
+        .dashboard-stat-tile,
+        .dashboard-quick-card,
+        .dashboard-panel,
+        .dashboard-academic-metric {
+          transition:
+            background 0.2s ease,
+            border-color 0.2s ease,
+            box-shadow 0.2s ease,
+            transform 0.2s ease;
+        }
+
+        .dashboard-stat-tile:hover,
+        .dashboard-quick-card:hover {
+          transform: translateY(-2px);
+        }
+
+        /* ---------- DARK MODE: STAT TILES ---------- */
+        :root[data-theme='dark'] .main-content .dashboard-stat-tile {
+          background:
+            color-mix(in srgb, var(--tile-accent) 34%, #131A23) !important;
+          background-color:
+            color-mix(in srgb, var(--tile-accent) 34%, #131A23) !important;
+          border-color:
+            color-mix(in srgb, var(--tile-accent) 54%, #344151) !important;
+          box-shadow:
+            0 9px 28px rgba(0,0,0,0.24) !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-stat-tile .dashboard-stat-icon {
+          background:
+            color-mix(in srgb, var(--tile-accent) 24%, #202A36) !important;
+          background-color:
+            color-mix(in srgb, var(--tile-accent) 24%, #202A36) !important;
+          border-color:
+            color-mix(in srgb, var(--tile-accent) 62%, #354050) !important;
+          color:
+            color-mix(in srgb, var(--tile-accent) 76%, white) !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-stat-tile .dashboard-stat-icon svg {
+          color:
+            color-mix(in srgb, var(--tile-accent) 76%, white) !important;
+          stroke:
+            color-mix(in srgb, var(--tile-accent) 76%, white) !important;
+          opacity: 1 !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-stat-tile .dashboard-stat-value {
+          color: #F7F9FC !important;
+          opacity: 1 !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-stat-tile .dashboard-stat-label {
+          color: #C8D0DB !important;
+          opacity: 1 !important;
+        }
+
+        /* ---------- DARK MODE: QUICK ACCESS ---------- */
+        :root[data-theme='dark'] .main-content .dashboard-quick-card {
+          background:
+            linear-gradient(
+              135deg,
+              color-mix(in srgb, var(--card-accent) 26%, #17202A) 0%,
+              color-mix(in srgb, var(--card-accent) 14%, #1C2631) 100%
+            ) !important;
+          background-color:
+            color-mix(in srgb, var(--card-accent) 20%, #18222D) !important;
+          border-color:
+            color-mix(in srgb, var(--card-accent) 48%, #3A4655) !important;
+          box-shadow:
+            inset 0 3px 0 color-mix(in srgb, var(--card-accent) 55%, transparent),
+            0 8px 24px rgba(0,0,0,0.20) !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-quick-card .dashboard-quick-icon {
+          background:
+            color-mix(in srgb, var(--card-accent) 22%, #25303C) !important;
+          border-color:
+            color-mix(in srgb, var(--card-accent) 54%, #3D4958) !important;
+          color:
+            color-mix(in srgb, var(--card-accent) 76%, white) !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-quick-card .dashboard-quick-icon svg {
+          color:
+            color-mix(in srgb, var(--card-accent) 76%, white) !important;
+          stroke:
+            color-mix(in srgb, var(--card-accent) 76%, white) !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-quick-card .stat-tile-title {
+          color: #F5F7FA !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-quick-card .stat-tile-desc {
+          color: #B9C3CF !important;
+        }
+
+        /* ---------- DARK MODE: COLORED PANELS ---------- */
+        :root[data-theme='dark'] .main-content .dashboard-panel:not(.dashboard-panel-study-groups) {
+          background:
+            linear-gradient(
+              135deg,
+              color-mix(in srgb, var(--panel-accent) 20%, #18212C) 0%,
+              color-mix(in srgb, var(--panel-accent) 9%, #1B2530) 100%
+            ) !important;
+          background-color:
+            color-mix(in srgb, var(--panel-accent) 14%, #1A2430) !important;
+          border-color:
+            color-mix(in srgb, var(--panel-accent) 42%, #3B4756) !important;
+          box-shadow:
+            0 9px 28px rgba(0,0,0,0.20) !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-panel:not(.dashboard-panel-study-groups) > div:first-child .icon-chip {
+          background:
+            color-mix(in srgb, var(--panel-accent) 22%, #25303C) !important;
+          border-color:
+            color-mix(in srgb, var(--panel-accent) 52%, #3D4958) !important;
+          color:
+            color-mix(in srgb, var(--panel-accent) 76%, white) !important;
+        }
+
+        :root[data-theme='dark'] .main-content .dashboard-panel:not(.dashboard-panel-study-groups) > div:first-child .icon-chip svg {
+          color:
+            color-mix(in srgb, var(--panel-accent) 76%, white) !important;
+          stroke:
+            color-mix(in srgb, var(--panel-accent) 76%, white) !important;
+        }
+
+        /* ---------- DARK MODE: ACADEMIC METRICS ---------- */
+        :root[data-theme='dark'] .main-content .dashboard-academic-metric {
+          background:
+            color-mix(in srgb, var(--metric-accent) 28%, #18212B) !important;
+          background-color:
+            color-mix(in srgb, var(--metric-accent) 28%, #18212B) !important;
+          border-color:
+            color-mix(in srgb, var(--metric-accent) 50%, #3A4654) !important;
         }
 
       `}</style>
@@ -1525,9 +1671,9 @@ export default function Dashboard() {
           icon={BookOpen}
           title={String(courses.length)}
           desc="Courses"
-          accent="#0B3A70"
-          soft="#F1F5FA"
-          border="#E2E8F1"
+          accent={BLUE}
+          soft={BLUE_SOFT}
+          border={BLUE_BORDER}
         />
 
         <DashboardStatTile
@@ -1535,8 +1681,8 @@ export default function Dashboard() {
           title={String(activeAssignments.length)}
           desc="Assignments"
           accent={PURPLE}
-          soft="#F5F2FA"
-          border="#E9E3F2"
+          soft={PURPLE_SOFT}
+          border={PURPLE_BORDER}
         />
 
         <DashboardStatTile
@@ -1544,8 +1690,8 @@ export default function Dashboard() {
           title={String(todaysSchedule.length)}
           desc="Schedule"
           accent={TERRACOTTA}
-          soft="#FCF4F0"
-          border="#F1E3DB"
+          soft={TERRACOTTA_SOFT}
+          border={TERRACOTTA_BORDER}
         />
 
         <DashboardStatTile
@@ -1553,8 +1699,8 @@ export default function Dashboard() {
           title={String(campusHubAnnouncements.length)}
           desc="Announcements"
           accent={ROSE}
-          soft="#FCF2F4"
-          border="#F0E2E5"
+          soft={ROSE_SOFT}
+          border={ROSE_BORDER}
         />
       </div>
 
@@ -2828,23 +2974,28 @@ function QuickAccessCard({
   return (
     <button
       type="button"
+      className="dashboard-quick-card"
       style={{
         ...s.quickAccessCard,
+        '--card-accent': accent,
+        '--card-soft': soft,
+        '--card-border': border,
+        background: `linear-gradient(135deg, ${soft} 0%, color-mix(in srgb, ${soft} 72%, white) 100%)`,
         border: `1px solid ${border}`,
-        boxShadow: `inset 0 3px 0 ${accent}33, 0 8px 22px rgba(0,45,98,0.06)`
+        boxShadow: `inset 0 3px 0 ${accent}3D, 0 8px 22px rgba(22,63,115,0.07)`,
       }}
       onClick={onClick}
     >
       <span
-        className="icon-chip"
+        className="icon-chip dashboard-quick-icon"
         style={{
           ...s.quickAccessIcon,
           color: accent,
-          background: soft,
+          background: 'rgba(255,255,255,0.62)',
           border: `1px solid ${border}`,
         }}
       >
-        <Icon size={20} strokeWidth={1.6} />
+        <Icon size={20} strokeWidth={1.7} />
       </span>
 
       <span style={s.quickAccessText}>
@@ -2876,10 +3027,14 @@ function DashboardStatTile({
 }) {
   return (
     <div
+      className="dashboard-stat-tile"
       style={{
+        '--tile-accent': accent,
+        '--tile-soft': soft,
+        '--tile-border': border,
         minHeight: '150px',
         padding: '20px 22px',
-        background: `linear-gradient(180deg, ${soft} 0%, #FCFDFE 58%)`,
+        background: soft,
         border: `1px solid ${border}`,
         borderRadius: '22px',
         display: 'flex',
@@ -2887,10 +3042,11 @@ function DashboardStatTile({
         alignItems: 'flex-start',
         justifyContent: 'center',
         gap: '12px',
-        boxShadow: '0 6px 18px rgba(0,45,98,0.035)',
+        boxShadow: '0 7px 20px rgba(22,63,115,0.07)',
       }}
     >
       <span
+        className="dashboard-stat-icon"
         style={{
           width: '48px',
           height: '48px',
@@ -2899,14 +3055,15 @@ function DashboardStatTile({
           alignItems: 'center',
           justifyContent: 'center',
           color: accent,
-          background: '#FFFFFF',
+          background: 'rgba(255,255,255,0.68)',
           border: `1px solid ${border}`,
         }}
       >
-        <Icon size={20} strokeWidth={1.7} />
+        <Icon size={20} strokeWidth={1.8} />
       </span>
 
       <div
+        className="dashboard-stat-value"
         style={{
           fontSize: '25px',
           lineHeight: 1,
@@ -2919,6 +3076,7 @@ function DashboardStatTile({
       </div>
 
       <div
+        className="dashboard-stat-label"
         style={{
           fontSize: '14px',
           fontWeight: '600',
@@ -2947,10 +3105,13 @@ function Panel({
       className={`panel-low dashboard-panel dashboard-panel-${String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
       style={{
         ...s.panel,
+        '--panel-accent': accent,
+        '--panel-soft': soft,
+        '--panel-border': border,
         ...(title === 'Study Groups'
           ? {}
           : {
-              background: `linear-gradient(135deg, ${soft} 0%, var(--surface-container-lowest) 44%)`,
+              background: `linear-gradient(135deg, ${soft} 0%, color-mix(in srgb, ${soft} 58%, var(--surface-container-lowest)) 100%)`,
               border: `1px solid ${border}`,
             }),
       }}
@@ -3011,9 +3172,12 @@ function AcademicMetric({
 }) {
   return (
     <div
-      className="panel-low"
+      className="panel-low dashboard-academic-metric"
       style={{
         ...s.academicMetric,
+        '--metric-accent': accent,
+        '--metric-soft': soft,
+        '--metric-border': border,
         background: soft,
         border: `1px solid ${border}`,
       }}
@@ -3024,7 +3188,7 @@ function AcademicMetric({
           width: '40px',
           height: '40px',
           color: accent,
-          background: '#FAFBFD',
+          background: '#F3F6FA',
           border: `1px solid ${border}`,
         }}
       >

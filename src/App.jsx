@@ -16,6 +16,7 @@ import {
   Calendar,
   User,
   Users,
+  MessageSquare,
   ChevronsLeft,
   ChevronsRight,
   CheckSquare,
@@ -48,6 +49,7 @@ import StudyGroups from './pages/StudyGroups';
 import CampusPulse from './pages/CampusPulse';
 import AdminStudyGroups from './pages/AdminStudyGroups';
 import Registration from './pages/Registration';
+import Messages from './pages/Messages';
 
 import Onboarding from './pages/Onboarding';
 import Login from './Login';
@@ -81,6 +83,7 @@ const TOPBAR_META = {
   '/planner': ['Planner', 'Your schedule and deadlines'],
   '/todo': ['To-Do', 'Your task list'],
   '/study-groups': ['Study Groups', 'Circles and direct messages'],
+  '/messages': ['Messages', 'Your direct conversations'],
   '/admin/study-groups': ['Admin Reviews', 'Moderate study groups and posts'],
   '/profile': ['Profile', 'Your account details'],
 };
@@ -90,6 +93,7 @@ const NAV_PRIMARY = [
   { to: '/courses', path: 'courses', icon: BookOpen, label: 'Courses' },
   { to: '/registration', path: 'registration', icon: UserCheck, label: 'Registration' },
   { to: '/study-groups', path: 'study-groups', icon: Users, label: 'Study Groups' },
+  { to: '/messages', path: 'messages', icon: MessageSquare, label: 'Messages' },
   { to: '/campus-pulse', path: 'campus-pulse', icon: Activity, label: 'Campus Pulse' },
 ];
 
@@ -666,6 +670,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<About />} />
         <Route path="/features" element={<Features />} />
+       
 
         <Route path="/dev-planner" element={<DevPlannerHarness />} />
         <Route path="/login" element={<Login />} />
@@ -722,6 +727,10 @@ export default function App() {
             path="/study-groups"
             element={<StudyGroups />}
           />
+          <Route
+  path="/messages"
+  element={<Messages />}
+/>
 
           <Route
             path="/admin/study-groups"
