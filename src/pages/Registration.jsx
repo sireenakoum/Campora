@@ -1113,8 +1113,9 @@ Date(a.created_at || 0));
 questionReplies]);
 return (
 
-<PageShell>
-<div className="stack" style={{ gap: 8 }}>
+<div style={registrationPageShellStyle}>
+<div style={registrationContentStyle}>
+<div className="stack" style={{ gap: 10 }}>
 <div className="label-caps">
 Home <span style={{ opacity: 0.55 }}>›</span> Academics <span style={{
 opacity: 0.55 }}>›</span> <strong className="text-primary">Registration</strong>
@@ -1129,7 +1130,21 @@ Match course sections, read course & professor reviews, manage seat
 alerts, explore curricula, and ask other students for advice.
 </p>
 </div>
-<div className="filter-row">
+<div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '10px',
+    marginTop: '6px',
+    marginBottom: '4px',
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    overflow: 'visible'
+  }}
+>
 <TabButton active={activeTab === 'match'} onClick={() =>
 setActiveTab('match')} icon={<ArrowLeftRight size={16} />} label="Course
 Match & Swap" />
@@ -3161,7 +3176,8 @@ anonymously</label>
 </div>
 </div>
 )}
-</PageShell>
+</div>
+</div>
 );
 }
 function TabButton({ active, onClick, icon, label }) {
@@ -3222,24 +3238,43 @@ const tone = tabPalette[normalizedLabel] || {
 return (
 <button
 onClick={onClick}
-className={`filter-chip ${active ? 'active' : ''}`}
-style={
-  active
-    ? {
-        background: tone.accent,
-        color: '#FFFFFF',
-        borderColor: tone.accent,
-        boxShadow: `0 5px 16px ${tone.accent}30`,
-        transform: 'translateY(-1px)'
-      }
-    : {
-        background: tone.bg,
-        color: tone.text,
-        borderColor: tone.border,
-        boxShadow: 'none',
-        transform: 'none'
-      }
-}
+className="" 
+style={{
+  minHeight: '38px',
+  padding: '0 16px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '7px',
+  flex: '0 0 auto',
+  whiteSpace: 'nowrap',
+  fontFamily: 'inherit',
+  fontSize: '13px',
+  fontWeight: 800,
+  lineHeight: 1,
+  cursor: 'pointer',
+
+  background: active ? tone.accent : tone.bg,
+  color: active ? '#FFFFFF' : tone.text,
+  border: active
+    ? `1px solid ${tone.accent}`
+    : `1px solid ${tone.border}`,
+
+  borderRadius: '9999px',
+  WebkitBorderRadius: '9999px',
+  MozBorderRadius: '9999px',
+
+  boxShadow: active
+    ? `0 5px 16px ${tone.accent}30`
+    : 'none',
+
+  transform: active ? 'translateY(-1px)' : 'none',
+  overflow: 'hidden',
+  outline: 'none',
+  WebkitAppearance: 'none',
+  appearance: 'none',
+  backgroundClip: 'padding-box'
+}}
 >
 {icon}
 {normalizedLabel}
@@ -3442,27 +3477,40 @@ fontWeight: '600', lineHeight: 1.5 }}>{reply.content}</p>
 </div>
 );
 }
+const registrationContentStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '24px'
+};
+
+const registrationPageShellStyle = {
+  width: '100%',
+  minHeight: '100%',
+  boxSizing: 'border-box',
+  background: 'transparent',
+  padding: '8px 4px 28px'
+};
+
 const registrationHeroCard = {
   width: '100%',
   minWidth: 0,
-  minHeight: '190px',
+  minHeight: '176px',
   background: '#FFFFFF',
-  border: 'none',
-  borderRadius: 0,
-  padding: '28px 30px',
+  border: '1px solid #E5EAF2',
+  borderRadius: '20px',
+  padding: '24px 26px',
   display: 'flex',
   alignItems: 'flex-start',
   gap: '20px',
   cursor: 'pointer',
   fontFamily: 'inherit',
-  boxShadow: 'none',
+  boxShadow: '0 8px 22px rgba(11,26,63,0.04)',
   color: 'var(--campora-text)',
-  transition: 'background 0.2s ease'
+  transition: 'transform 0.18s ease, box-shadow 0.18s ease'
 };
 const swapHeroCard = {
   ...registrationHeroCard,
-  background: '#FBFCFE',
-  borderLeft: '1.5px solid #E6EBF2'
+  background: '#FFFFFF'
 };
 const heroIconWrap = {
   width: '54px',
@@ -3524,16 +3572,16 @@ const primarySaveBtn = { width: '100%', background: 'var(--campora-navy)', color
 'var(--surface-container-lowest)', border: 'none', padding: '14px', borderRadius: '14px', fontWeight:
 '900', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center',
 justifyContent: 'center', gap: '8px' };
-const sectionHeading = { margin: '0 0 15px', fontSize: '20px', fontWeight: '900',
+const sectionHeading = { margin: '0 0 10px', fontSize: '20px', fontWeight: '900',
 color: 'var(--campora-text)' };
-const sectionDescription = { margin: '0 0 18px', fontSize: '13px', color:
+const sectionDescription = { margin: '0 0 22px', fontSize: '13px', color:
 'var(--campora-muted)', fontWeight: '600', lineHeight: 1.5 };
 const sectionTopRow = { display: 'flex', alignItems: 'center', justifyContent:
 'space-between', gap: '15px', flexWrap: 'wrap' };
-const swapCard = { background: 'var(--surface-container-lowest)', padding: '20px', borderRadius:
+const swapCard = { background: 'var(--surface-container-lowest)', padding: '22px', borderRadius:
 '20px', border: '1.5px solid var(--divider)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
 transition: 'all 0.2s ease' };
-const takenSwapCard = { background: '#FBFCFE', border: '1.5px solid var(--outline)' }; const reviewCard = { background: 'var(--surface-container-lowest)', padding: '22px', borderRadius:
+const takenSwapCard = { background: '#FBFCFE', border: '1.5px solid var(--outline)' }; const reviewCard = { background: 'var(--surface-container-lowest)', padding: '24px', borderRadius:
 '20px', border: '1.5px solid var(--divider)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }; const emptyCard = { background: 'var(--surface-container-lowest)', border: '1.5px dashed var(--outline)',
 padding: '30px', borderRadius: '20px', textAlign: 'center', color: 'var(--campora-muted)',
 fontWeight: '700', fontSize: '14px' };
@@ -3571,7 +3619,7 @@ const markTakenButton = { width: '100%', background: 'var(--surface-container-lo
 '11px', fontWeight: '800', fontSize: '11px', cursor: 'pointer', display: 'flex',
 alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '10px' };
 const reopenSwapButton = { ...markTakenButton, color: 'var(--campora-body)' };
-const swapFormSection = { background: '#FAFBFC', border: '1px solid var(--divider)', borderRadius: '16px', padding: '17px', display: 'flex', flexDirection: 'column', gap: '12px' };
+const swapFormSection = { background: '#FAFBFC', border: '1px solid var(--divider)', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' };
 const swapFormSectionHeader = { display: 'flex', alignItems: 'center', gap:
 '10px', marginBottom: '2px' };
 const swapFormTitle = { margin: 0, color: 'var(--campora-text)', fontSize: '14px',
@@ -3598,7 +3646,7 @@ const modalCardLarge = { width: '100%', maxWidth: '650px', maxHeight:
 const dmSearchStatus = { padding: '14px', textAlign: 'center', color: 'var(--campora-muted)',
 fontSize: '12px', fontWeight: '700' };
 
-const modalForm = { display: 'flex', flexDirection: 'column', gap: '14px' };
+const modalForm = { display: 'flex', flexDirection: 'column', gap: '18px' };
 
 const twoColumnGrid = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }; const formBottomRow = { display: 'flex', justifyContent: 'space-between',
 alignItems: 'center', gap: '15px', flexWrap: 'wrap' };

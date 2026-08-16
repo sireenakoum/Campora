@@ -25,7 +25,6 @@ import {
   Activity,
   Network,
   LogOut,
-  Command,
   Search,
   Sun,
   Moon,
@@ -76,6 +75,7 @@ import {
   ensureDmNotification,
 } from './lib/dmNotifications';
 
+const NAVY = '#0B1A3F';
 
 const NAV_PRIMARY = [
   {
@@ -116,7 +116,6 @@ const NAV_PRIMARY = [
   },
 ];
 
-
 const NAV_TOOLS = [
   {
     to: '/planner',
@@ -137,7 +136,6 @@ const NAV_TOOLS = [
     label: 'Campus Hub',
   },
 ];
-
 
 function NavRow({
   to,
@@ -169,7 +167,6 @@ function NavRow({
     </NavLink>
   );
 }
-
 
 function CommandPalette({
   items,
@@ -276,7 +273,6 @@ function CommandPalette({
   );
 }
 
-
 function ToastViewport() {
   const [items, setItems] = useState(getToasts);
 
@@ -310,7 +306,6 @@ function ToastViewport() {
     </div>
   );
 }
-
 
 function DmNotificationsListener() {
   const [userId, setUserId] = useState(null);
@@ -388,7 +383,6 @@ function DmNotificationsListener() {
   return null;
 }
 
-
 function EmailVerified() {
   const navigate = useNavigate();
 
@@ -443,7 +437,6 @@ function EmailVerified() {
   );
 }
 
-
 function DashboardLayout() {
   const [userName, setUserName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -479,7 +472,6 @@ function DashboardLayout() {
       'light'
   );
 
-
   useEffect(() => {
     document.documentElement.dataset.theme =
       theme;
@@ -490,7 +482,6 @@ function DashboardLayout() {
     );
   }, [theme]);
 
-
   const handleLogout = async () => {
     await signOut();
 
@@ -498,7 +489,6 @@ function DashboardLayout() {
       replace: true,
     });
   };
-
 
   useEffect(() => {
     const onKey = (event) => {
@@ -527,14 +517,12 @@ function DashboardLayout() {
     };
   }, []);
 
-
   useEffect(() => {
     localStorage.setItem(
       'campora_sidebar_collapsed',
       String(collapsed)
     );
   }, [collapsed]);
-
 
   useEffect(() => {
     async function init() {
@@ -596,7 +584,6 @@ function DashboardLayout() {
     init();
   }, [navigate]);
 
-
   useEffect(() => {
     let active = true;
 
@@ -639,7 +626,6 @@ function DashboardLayout() {
     };
   }, []);
 
-
   const paletteItems = [
     ...NAV_PRIMARY,
     ...NAV_TOOLS,
@@ -662,7 +648,6 @@ function DashboardLayout() {
       label: 'Profile',
     },
   ];
-
 
   useEffect(() => {
     let active = true;
@@ -692,10 +677,8 @@ function DashboardLayout() {
     };
   }, [location.pathname]);
 
-
   return (
     <div className="layout">
-
       <DmNotificationsListener />
 
       <div
@@ -709,7 +692,6 @@ function DashboardLayout() {
         }
       />
 
-
       {/* SIDEBAR */}
       <aside
         className={[
@@ -721,7 +703,6 @@ function DashboardLayout() {
             : '',
         ].join(' ')}
       >
-
         <div className="sidebar-brand">
           <img
             src={camporaLogo}
@@ -740,9 +721,7 @@ function DashboardLayout() {
           </span>
         </div>
 
-
         <nav>
-
           {NAV_PRIMARY.map((item) => (
             <NavRow
               key={item.to}
@@ -755,11 +734,9 @@ function DashboardLayout() {
             />
           ))}
 
-
           <span className="nav-section-label">
             Tools
           </span>
-
 
           {NAV_TOOLS.map((item) => (
             <NavRow
@@ -778,7 +755,6 @@ function DashboardLayout() {
             />
           ))}
 
-
           {isAdmin && (
             <NavRow
               to="/admin/study-groups"
@@ -791,12 +767,9 @@ function DashboardLayout() {
               }}
             />
           )}
-
         </nav>
 
-
         <div className="sidebar-footer">
-
           <button
             type="button"
             className="sidebar-collapse-btn"
@@ -822,15 +795,11 @@ function DashboardLayout() {
               <ChevronsLeft size={18} />
             )}
           </button>
-
         </div>
-
       </aside>
-
 
       {/* MAIN */}
       <main className="main-content">
-
 
         {/* TOP BAR */}
         <header
@@ -844,9 +813,15 @@ function DashboardLayout() {
             alignItems: 'center',
             padding: '0 28px',
             boxSizing: 'border-box',
+
+            // Removes the line under the search bar/topbar
+            border: 'none',
+            borderBottom: 'none',
+            boxShadow: 'none',
+            outline: 'none',
+            background: 'transparent',
           }}
         >
-
           {/* SEARCH */}
           <button
             type="button"
@@ -861,127 +836,54 @@ function DashboardLayout() {
               transform:
                 'translate(-50%, -50%)',
 
-              width: '590px',
-              height: '54px',
+              width: '560px',
+              height: '46px',
 
               display: 'flex',
               alignItems: 'center',
-              gap: '13px',
+              gap: '10px',
 
-              padding: '0 12px 0 10px',
+              padding: '0 17px',
 
               boxSizing: 'border-box',
 
               border:
-                '1px solid rgba(36, 59, 107, 0.16)',
+                '1px solid #E2E7EF',
 
-              borderRadius: '17px',
+              borderRadius: '999px',
 
               background:
-                'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
+                '#FFFFFF',
 
-              color: '#687184',
+              color: '#7E899A',
 
               cursor: 'pointer',
 
               boxShadow:
-                '0 8px 24px rgba(36, 59, 107, 0.08), 0 2px 5px rgba(25, 40, 70, 0.04)',
-
-              transition:
-                'all 0.2s ease',
+                '0 2px 8px rgba(11, 26, 63, 0.025)',
 
               zIndex: 5,
             }}
           >
-
-            <span
-              style={{
-                width: '38px',
-                height: '38px',
-                minWidth: '38px',
-
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-
-                borderRadius: '12px',
-
-                background:
-                  'linear-gradient(135deg, #eef3fb 0%, #e4ebf7 100%)',
-
-                border:
-                  '1px solid rgba(36, 59, 107, 0.08)',
-
-                color:
-                  '#243b6b',
-
-                boxShadow:
-                  'inset 0 1px 2px rgba(255,255,255,0.8)',
-              }}
-            >
-              <Search size={19} strokeWidth={2.2} />
-            </span>
-
+            <Search
+              size={18}
+              strokeWidth={1.9}
+              color="#7E899A"
+            />
 
             <span
               style={{
                 flex: 1,
-
                 textAlign: 'left',
-
-                fontSize: '15px',
-
-                fontWeight: 650,
-
-                letterSpacing: '0.01em',
-
-                color: '#687286',
-
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#8C96A6',
                 whiteSpace: 'nowrap',
               }}
             >
               Search Campora…
             </span>
-
-
-            <kbd
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-
-                height: '30px',
-                minWidth: '45px',
-
-                padding: '0 9px',
-
-                boxSizing: 'border-box',
-
-                border:
-                  '1px solid #dce2ec',
-
-                borderRadius: '9px',
-
-                background:
-                  '#f9fafc',
-
-                color: '#69758a',
-
-                fontSize: '11px',
-
-                fontWeight: 750,
-
-                boxShadow:
-                  '0 1px 2px rgba(36, 59, 107, 0.05)',
-              }}
-            >
-              <Command size={12} strokeWidth={2.2} />
-              K
-            </kbd>
-
           </button>
-
 
           {/* RIGHT CONTROLS */}
           <div
@@ -994,16 +896,14 @@ function DashboardLayout() {
 
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
+              gap: '15px',
 
               zIndex: 10,
             }}
           >
-
             {/* NOTIFICATIONS */}
             <button
               type="button"
-              className="topbar-icon-btn"
               title="Notifications"
               aria-label="Notifications"
               onClick={() =>
@@ -1012,65 +912,49 @@ function DashboardLayout() {
               style={{
                 position: 'relative',
 
-                width: '44px',
-                height: '44px',
+                width: '28px',
+                height: '36px',
 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
 
-                border:
-                  '1px solid #e0e4eb',
-
-                borderRadius: '13px',
+                padding: 0,
+                border: 'none',
+                outline: 'none',
 
                 background:
-                  '#ffffff',
+                  'transparent',
 
-                color: '#243b6b',
+                color: NAVY,
 
                 cursor: 'pointer',
-
-                transition:
-                  'all 0.2s ease',
-
-                boxShadow:
-                  '0 3px 10px rgba(36, 59, 107, 0.04)',
               }}
             >
-              <Bell size={20} />
+              <Bell
+                size={20}
+                strokeWidth={1.85}
+              />
 
               {unreadCount > 0 && (
                 <span
                   style={{
                     position: 'absolute',
-
-                    top: '6px',
-                    right: '6px',
-
-                    width: '8px',
-                    height: '8px',
-
+                    top: '5px',
+                    right: '1px',
+                    width: '7px',
+                    height: '7px',
                     borderRadius: '50%',
-
-                    background:
-                      '#243b6b',
-
-                    border:
-                      '2px solid #ffffff',
-
-                    boxShadow:
-                      '0 0 0 2px rgba(36, 59, 107, 0.08)',
+                    background: '#A97884',
+                    border: '2px solid #FFFFFF',
                   }}
                 />
               )}
             </button>
 
-
             {/* DARK MODE */}
             <button
               type="button"
-              className="topbar-icon-btn"
               title={
                 theme === 'dark'
                   ? 'Light mode'
@@ -1090,39 +974,37 @@ function DashboardLayout() {
                 )
               }
               style={{
-                width: '44px',
-                height: '44px',
+                width: '28px',
+                height: '36px',
 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
 
-                border:
-                  '1px solid #e0e4eb',
-
-                borderRadius: '13px',
+                padding: 0,
+                border: 'none',
+                outline: 'none',
 
                 background:
-                  '#ffffff',
+                  'transparent',
 
-                color: '#243b6b',
+                color: NAVY,
 
                 cursor: 'pointer',
-
-                transition:
-                  'all 0.2s ease',
-
-                boxShadow:
-                  '0 3px 10px rgba(36, 59, 107, 0.04)',
               }}
             >
               {theme === 'dark' ? (
-                <Sun size={20} />
+                <Sun
+                  size={20}
+                  strokeWidth={1.85}
+                />
               ) : (
-                <Moon size={20} />
+                <Moon
+                  size={20}
+                  strokeWidth={1.85}
+                />
               )}
             </button>
-
 
             {/* PROFILE */}
             <div
@@ -1131,7 +1013,6 @@ function DashboardLayout() {
                 position: 'relative',
               }}
             >
-
               <button
                 type="button"
                 className="topbar-avatar"
@@ -1147,36 +1028,41 @@ function DashboardLayout() {
                   )
                 }
                 style={{
-                  width: '44px',
-                  height: '44px',
+                  width: '40px',
+                  height: '40px',
 
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
 
-                  border:
-                    '2px solid #ffffff',
+                  padding: 0,
 
-                  borderRadius: '13px',
+                  border:
+                    '2px solid #FFFFFF',
+
+                  borderRadius:
+                    '50%',
 
                   background:
-                    'linear-gradient(145deg, #304d83 0%, #243b6b 52%, #1d315b 100%)',
+                    NAVY,
 
-                  color: '#ffffff',
+                  color:
+                    '#FFFFFF',
 
-                  fontSize: '15px',
+                  fontSize:
+                    '14px',
 
-                  fontWeight: 800,
+                  fontWeight:
+                    800,
 
-                  letterSpacing: '0.02em',
+                  letterSpacing:
+                    '0.01em',
 
-                  cursor: 'pointer',
+                  cursor:
+                    'pointer',
 
                   boxShadow:
-                    '0 4px 12px rgba(36, 59, 107, 0.22), 0 0 0 1px rgba(36, 59, 107, 0.12)',
-
-                  transition:
-                    'all 0.2s ease',
+                    '0 3px 9px rgba(11, 26, 63, 0.16)',
                 }}
               >
                 {userName
@@ -1184,10 +1070,8 @@ function DashboardLayout() {
                   .toUpperCase() || 'U'}
               </button>
 
-
               {accountOpen && (
                 <div className="topbar-avatar-menu">
-
                   <button
                     type="button"
                     className="account-pop-btn"
@@ -1210,21 +1094,14 @@ function DashboardLayout() {
                     <LogOut size={16} />
                     <span>Log out</span>
                   </button>
-
                 </div>
               )}
-
             </div>
-
           </div>
-
         </header>
 
-
         <Outlet />
-
       </main>
-
 
       {paletteOpen && (
         <CommandPalette
@@ -1236,20 +1113,15 @@ function DashboardLayout() {
         />
       )}
 
-
       <ToastViewport />
-
     </div>
   );
 }
 
-
 export default function App() {
   return (
     <Router>
-
       <Routes>
-
         <Route
           path="/"
           element={<LandingPage />}
@@ -1295,9 +1167,7 @@ export default function App() {
           element={<Onboarding />}
         />
 
-
         <Route element={<DashboardLayout />}>
-
           <Route
             path="/dashboard"
             element={<Dashboard />}
@@ -1357,11 +1227,8 @@ export default function App() {
             path="/profile"
             element={<Profile />}
           />
-
         </Route>
-
       </Routes>
-
     </Router>
   );
 }

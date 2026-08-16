@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus,
   Heart,
-  Share2,
   Search,
   X,
   MoreHorizontal,
@@ -24,10 +23,7 @@ import {
 import { supabase } from '../lib/supabase';
 
 import {
-  PageShell,
   SectionHeader,
-  SegmentedControl,
-  EmptyState
 } from '../components/luminous';
 
 // =========================================================
@@ -1575,7 +1571,7 @@ export default function CampusPulse() {
   });
 
   return (
-    <PageShell>
+    <div style={campusPulsePageShellStyle}>
       <div ref={pageTopRef}>
         <div className="stack" style={{ gap: '14px' }}>
           <span className="pill" style={{ alignSelf: 'flex-start', background: 'var(--campora-bg)', border: '1px solid var(--hairline)', color: 'var(--campora-text)' }}>
@@ -1599,20 +1595,78 @@ export default function CampusPulse() {
         </div>
 
         <div style={{ marginTop: '22px' }}>
-          <SegmentedControl
-            options={[
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: 0,
+              background: 'transparent',
+              border: 'none',
+              borderRadius: 0
+            }}
+          >
+            {[
               { value: 'feed', label: 'Feed', icon: Sparkles },
               { value: 'messages', label: 'Direct Messages', icon: MessageSquare }
-            ]}
-            value={activeView}
-            onChange={setActiveView}
-          />
+            ].map(({ value, label, icon: Icon }) => {
+              const selected = activeView === value;
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setActiveView(value)}
+                  style={{
+                    minHeight: '38px',
+                    padding: '0 16px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '7px',
+                    border: selected
+                      ? '1px solid #0B1A3F'
+                      : '1px solid transparent',
+                    borderRadius: '9999px',
+                    background: selected ? '#0B1A3F' : '#FFFFFF',
+                    color: selected ? '#FFFFFF' : '#66758E',
+                    fontFamily: 'inherit',
+                    fontSize: '12px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    outline: 'none',
+                    overflow: 'hidden',
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                    boxShadow: selected
+                      ? '0 4px 12px rgba(11,26,63,.12)'
+                      : '0 2px 7px rgba(11,26,63,.035)'
+                  }}
+                >
+                  <Icon size={15} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
       {activeView === 'feed' && (
         <>
           <div className="stack" style={{ gap: '22px', marginTop: '22px', marginBottom: '26px' }}>
-            <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              className="panel"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                background: '#FFFFFF',
+                border: '1px solid #E5EAF2',
+                borderRadius: '16px',
+                boxShadow: '0 6px 18px rgba(11,26,63,0.035)'
+              }}
+            >
               <Search size={20} className="text-primary" />
 
               <input
@@ -1644,7 +1698,18 @@ export default function CampusPulse() {
               )}
             </div>
 
-            <div className="filter-row">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '9px',
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                boxShadow: 'none'
+              }}
+            >
               {CATEGORIES.map(category => {
                 const isActive =
                   activeCategory === category;
@@ -1662,12 +1727,12 @@ export default function CampusPulse() {
                         ? {
                             background:
                               category === 'All'
-                                ? '#002D62'
+                                ? '#0B1A3F'
                                 : CATEGORY_STYLES[category]?.accent,
                             color: '#FFFFFF',
                             borderColor:
                               category === 'All'
-                                ? '#002D62'
+                                ? '#0B1A3F'
                                 : CATEGORY_STYLES[category]?.accent,
                             boxShadow: `0 5px 16px ${CATEGORY_STYLES[category]?.accent}30`,
                             transform: 'translateY(-1px)'
@@ -1679,7 +1744,7 @@ export default function CampusPulse() {
                                 : CATEGORY_STYLES[category]?.bg,
                             color:
                               category === 'All'
-                                ? '#002D62'
+                                ? '#0B1A3F'
                                 : CATEGORY_STYLES[category]?.text,
                             borderColor:
                               category === 'All'
@@ -1706,11 +1771,60 @@ export default function CampusPulse() {
                 <p className="muted" style={{ fontWeight: 700 }}>Loading latest posts...</p>
               </div>
             ) : filteredPosts.length === 0 ? (
-              <EmptyState
-                icon={MessageCircle}
-                title="No posts found"
-                text={`Be the first one to share something under ${activeCategory}!`}
-              />
+              <div
+                style={{
+                  minHeight: '220px',
+                  border: '1px dashed #D8E0EB',
+                  borderRadius: '18px',
+                  background: '#FFFFFF',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  padding: '28px'
+                }}
+              >
+                <div
+                  style={{
+                    width: '58px',
+                    height: '58px',
+                    borderRadius: '50%',
+                    background: '#FFFFFF',
+                    color: '#0B1A3F',
+                    border: '1px solid #E1E6EF',
+                    boxShadow: '0 4px 12px rgba(11,26,63,.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '14px'
+                  }}
+                >
+                  <MessageCircle size={26} />
+                </div>
+
+                <h3
+                  style={{
+                    margin: 0,
+                    color: '#0B1A3F',
+                    fontSize: '17px',
+                    fontWeight: '950'
+                  }}
+                >
+                  No posts found
+                </h3>
+
+                <p
+                  style={{
+                    margin: '7px 0 0',
+                    color: '#6F7D93',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                  }}
+                >
+                  Be the first one to share something under {activeCategory}!
+                </p>
+              </div>
             ) : (
               filteredPosts.map(post => {
                 const isOwner =
@@ -1783,10 +1897,12 @@ export default function CampusPulse() {
                     style={{
                       position: 'relative',
                       overflow: 'hidden',
-                      border: '1px solid var(--divider)',
+                      border: '1px solid #E5EAF2',
                       borderLeft: `4px solid ${categoryBadge.accent}`,
-                      boxShadow: 'var(--shadow-soft)',
-                      marginBottom: '22px'
+                      borderRadius: '18px',
+                      background: '#FFFFFF',
+                      boxShadow: '0 8px 22px rgba(11,26,63,0.04)',
+                      marginBottom: '24px'
                     }}
                   >
                     <div style={postHeaderStyle}>
@@ -2135,20 +2251,7 @@ export default function CampusPulse() {
                         </span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          navigator.clipboard.writeText(
-                            window.location.href
-                          )
-                        }
-                        style={{
-                          ...actionBtn,
-                          marginLeft: 'auto'
-                        }}
-                      >
-                        <Share2 size={18} />
-                      </button>
+
                     </div>
 
                     {postCommentState.open && (
@@ -3112,9 +3215,17 @@ export default function CampusPulse() {
         </div>
       )}
     </div>
-    </PageShell>
+    </div>
   );
 }
+
+const campusPulsePageShellStyle = {
+  width: '100%',
+  minHeight: '100%',
+  boxSizing: 'border-box',
+  background: 'transparent',
+  padding: '8px 4px 28px'
+};
 
 // =========================================================
 // COMMENT COMPONENT

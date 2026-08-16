@@ -42,7 +42,6 @@ import {
 
 import { supabase } from '../lib/supabase';
 import {
-  PageShell,
   SectionHeader,
   EmptyState,
   IconChip,
@@ -3408,12 +3407,36 @@ alignItems:
 };
 
 const STUDY_NAV_COLORS = {
-  browse: { bg: '#F3F7FD', text: '#648CCB', border: '#DDE7F5' },
-  created: { bg: '#F7F4FC', text: '#8B78B8', border: '#E7E0F2' },
-  joined: { bg: '#F2F9F7', text: '#5E9A8B', border: '#D9EBE6' },
-  dms: { bg: '#FAF9FE', text: '#002D62', border: '#DDE3EE' },
-  preferences: { bg: '#FFF9F1', text: '#C99758', border: '#F0E2CB' },
-  create: { bg: '#FFF5F6', text: '#C76E7D', border: '#F0DDE1' }
+  browse: {
+    bg: '#F3F7FD',
+    text: '#648CCB',
+    border: '#DDE7F5'
+  },
+  created: {
+    bg: '#F7F4FC',
+    text: '#8B78B8',
+    border: '#E7E0F2'
+  },
+  joined: {
+    bg: '#F2F9F7',
+    text: '#5E9A8B',
+    border: '#D9EBE6'
+  },
+  dms: {
+    bg: '#FAFBFE',
+    text: '#0B1A3F',
+    border: '#DDE3EE'
+  },
+  preferences: {
+    bg: '#FFF9F1',
+    text: '#C99758',
+    border: '#F0E2CB'
+  },
+  create: {
+    bg: '#FFF5F6',
+    text: '#C76E7D',
+    border: '#F0DDE1'
+  }
 };
 
 const addBtnStyle = {
@@ -3428,7 +3451,7 @@ border:
 'none',
 
 background:
-'#002D62',
+'#0B1A3F',
 
 color:
  'white',
@@ -3562,7 +3585,7 @@ const activeChipStyle = {
 ...chipStyle,
 
 background:
-'#002D62',
+'#0B1A3F',
 
 color:
  'white',
@@ -3583,7 +3606,7 @@ border:
 'none',
 
 background:
-'#002D62',
+'#0B1A3F',
 
 color:
  'white',
@@ -3703,6 +3726,14 @@ const instagramReplyComposerPreview = { padding: '10px 18px', borderTop:
 '1px solid #E3E2E7', background: '#E9E7ED', display: 'flex', alignItems: 'center',
 justifyContent: 'space-between', gap: '12px', color: '#1A1B1F', fontSize: '10px',
 flexShrink: 0, position: 'relative', zIndex: 3 };
+const studyGroupsPageShellStyle = {
+  width: '100%',
+  minHeight: '100%',
+  boxSizing: 'border-box',
+  background: 'transparent',
+  padding: '8px 4px 28px'
+};
+
 const instagramReplyClose = { border: 'none', background: 'transparent', color:
 '#717786', cursor: 'pointer', display: 'flex' };
 const instagramDmShell = {
@@ -4057,7 +4088,7 @@ padding:
 borderRadius:
 '10px',
 background:
-'#002D62',
+'#0B1A3F',
 
 color:
  '#FFFFFF',
@@ -4762,7 +4793,7 @@ border:
 'none',
 
 background:
-'#002D62',
+'#0B1A3F',
 
 color:
  '#FFFFFF',
@@ -4809,7 +4840,7 @@ display:
 
 return (
 
-<PageShell>
+<div style={studyGroupsPageShellStyle}>
 {/* =================================================
    HEADER + ALIGNED NAVIGATION
 ================================================= */}
@@ -4818,7 +4849,16 @@ return (
   <>
     <SectionHeader title="Study Groups" />
 
-    <div className="filter-row">
+    <div
+      className="filter-row"
+      style={{
+        marginTop: '14px',
+        marginBottom: '22px',
+        background: 'transparent',
+        border: 'none',
+        boxShadow: 'none'
+      }}
+    >
       {[
         { key: 'browse', label: 'Discover', icon: LayoutGrid },
         { key: 'created', label: `Circles Created (${createdGroups.length})`, icon: Crown },
@@ -4835,9 +4875,20 @@ return (
             type="button"
             onClick={() => setView(key)}
             className={active ? 'filter-chip active' : 'filter-chip'}
-            style={active
-              ? { background: tone.text, border: `2px solid ${tone.border}`, color: '#FFFFFF', boxShadow: `0 6px 16px ${tone.border}66` }
-              : { background: tone.bg, border: `1.5px solid ${tone.border}`, color: tone.text }}
+            style={
+              active
+                ? {
+                    background: tone.text,
+                    border: `2px solid ${tone.border}`,
+                    color: '#FFFFFF',
+                    boxShadow: `0 6px 16px ${tone.border}66`,
+                  }
+                : {
+                    background: tone.bg,
+                    border: `1.5px solid ${tone.border}`,
+                    color: tone.text,
+                  }
+            }
           >
             <Icon size={15} />
             {label}
@@ -5246,6 +5297,13 @@ gridTemplateColumns:
     )
    }
    className="btn btn-outline"
+   style={{
+     background: '#0B1A3F',
+     color: '#FFFFFF',
+     border: '1px solid #0B1A3F',
+     borderRadius: '14px',
+     fontWeight: '900'
+   }}
   >
    Explore Available Circles
   </button>
@@ -11389,7 +11447,7 @@ Send Direct Message
      </div>
     )}
 
-    </PageShell>
+    </div>
     );
 }
 
