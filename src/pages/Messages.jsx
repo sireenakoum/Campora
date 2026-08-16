@@ -21,7 +21,8 @@ const FOLDERS = [
   { key: 'inbox', label: 'Inbox', icon: Inbox },
   { key: 'sent', label: 'Sent', icon: Send },
   { key: 'drafts', label: 'Drafts', icon: FileText },
-  { key: 'groups', label: 'Groups', icon: Users },
+  { key: 'groups', label: 'Private Groups', icon: Users },
+  { key: 'study-groups', label: 'Study Groups', icon: Users },
   { key: 'mentors', label: 'Mentors', icon: UserRound },
 ];
 
@@ -357,7 +358,37 @@ export default function Messages() {
           schema: 'public',
           table: 'group_messages',
         },
-        () => loadGroupsAndMessages(currentUser.id)
+        () => {
+          loadGroupsAndMessages(
+            currentUser.id
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_members',
+        },
+        () => {
+          loadGroupsAndMessages(
+            currentUser.id
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'study_groups',
+        },
+        () => {
+          loadGroupsAndMessages(
+            currentUser.id
+          );
+        }
       )
       .subscribe();
 
@@ -468,88 +499,127 @@ export default function Messages() {
   }
 
   async function loadGroupsAndMessages(userId) {
-    const { data: membershipRows, error: membershipError } =
-      await supabase
-        .from('group_members')
-        .select('group_id')
-        .eq('user_id', userId);
+    if (!userId) return;
 
-    if (membershipError) {
-      console.error(
-        'Could not load Study Group memberships:',
-        membershipError
-      );
-    }
+    try {
+      const { data: membershipRows, error: membershipError } =
+        await supabase
+          .from('group_members')
+          .select('group_id')
+          .eq('user_id', userId);
 
-    const memberIds = (membershipRows || []).map(
-      (row) => row.group_id
-    );
-
-    const { data: ownedGroups, error: ownedError } = await supabase
-      .from('study_groups')
-      .select('*')
-      .eq('creator_id', userId);
-
-    if (ownedError) {
-      console.error('Could not load owned Study Groups:', ownedError);
-    }
-
-    let memberGroups = [];
-
-    if (memberIds.length) {
-      const { data, error } = await supabase
-        .from('study_groups')
-        .select('*')
-        .in('id', memberIds);
-
-      if (error) {
-        console.error('Could not load joined Study Groups:', error);
-      } else {
-        memberGroups = data || [];
+      if (membershipError) {
+        console.error(
+          'Could not load Study Group memberships:',
+          membershipError
+        );
       }
-    }
 
-    const uniqueMap = new Map();
+      const joinedGroupIds = [
+        ...new Set(
+          (membershipRows || [])
+            .map((row) => row.group_id)
+            .filter(Boolean)
+        ),
+      ];
 
-    [...(ownedGroups || []), ...memberGroups].forEach((group) => {
-      if (group?.id) uniqueMap.set(group.id, group);
-    });
+      const { data: ownedGroups, error: ownedError } =
+        await supabase
+          .from('study_groups')
+          .select('*')
+          .eq('creator_id', userId);
 
-    const visibleGroups = [...uniqueMap.values()];
-    setGroups(visibleGroups);
+      if (ownedError) {
+        console.error(
+          'Could not load owned Study Groups:',
+          ownedError
+        );
+      }
 
-    if (!visibleGroups.length) {
+      let joinedGroups = [];
+
+      if (joinedGroupIds.length > 0) {
+        const { data, error } = await supabase
+          .from('study_groups')
+          .select('*')
+          .in('id', joinedGroupIds);
+
+        if (error) {
+          console.error(
+            'Could not load joined Study Groups:',
+            error
+          );
+        } else {
+          joinedGroups = data || [];
+        }
+      }
+
+      const groupMap = new Map();
+
+      [...(ownedGroups || []), ...joinedGroups].forEach(
+        (group) => {
+          if (group?.id) {
+            groupMap.set(group.id, group);
+          }
+        }
+      );
+
+      const visibleGroups = [...groupMap.values()];
+
+      setGroups(visibleGroups);
+
+      if (visibleGroups.length === 0) {
+        setGroupMessages({});
+        return;
+      }
+
+      const visibleGroupIds =
+        visibleGroups.map((group) => group.id);
+
+      const { data: messages, error: messageError } =
+        await supabase
+          .from('group_messages')
+          .select('*')
+          .in('group_id', visibleGroupIds)
+          .order('created_at', {
+            ascending: true,
+          });
+
+      if (messageError) {
+        console.error(
+          'Could not load Study Group messages:',
+          messageError
+        );
+        setGroupMessages({});
+        return;
+      }
+
+      const messageMap = {};
+
+      (messages || []).forEach((message) => {
+        if (
+          !visibleGroupIds.includes(message.group_id)
+        ) {
+          return;
+        }
+
+        if (!messageMap[message.group_id]) {
+          messageMap[message.group_id] = [];
+        }
+
+        messageMap[message.group_id].push(message);
+      });
+
+      setGroupMessages(messageMap);
+    } catch (error) {
+      console.error(
+        'Study Group sync error:',
+        error
+      );
+
+      setGroups([]);
       setGroupMessages({});
-      return;
     }
-
-    const groupIds = visibleGroups.map((group) => group.id);
-
-    const { data: messages, error: groupMessageError } = await supabase
-      .from('group_messages')
-      .select('*')
-      .in('group_id', groupIds)
-      .order('created_at', { ascending: true });
-
-    if (groupMessageError) {
-      console.error(
-        'Could not load Study Group messages:',
-        groupMessageError
-      );
-      return;
-    }
-
-    const map = {};
-
-    (messages || []).forEach((message) => {
-      if (!map[message.group_id]) {
-        map[message.group_id] = [];
-      }
-
-      map[message.group_id].push(message);
-    });
-
-    setGroupMessages(map);
   }
 
   async function loadCustomGroupsAndMessages(userId) {
@@ -1160,6 +1230,26 @@ export default function Messages() {
   }
 
   function currentList() {
+    if (folder === 'study-groups') {
+      return studyGroupConversations.map((item) => {
+        const lastMessage = item.lastMessage;
+
+        return (
+          <ConversationButton
+            key={`study-group:${item.groupId}`}
+            avatar={<Users size={20} />}
+            avatarBg="#D4E8E2"
+            name={item.name}
+            meta="Study Group"
+            preview={lastMessage?.content || ''}
+            date={formatDate(item.sortDate)}
+            unread={false}
+            onClick={() => openStudyGroup(item.group)}
+          />
+        );
+      });
+    }
+
     if (folder === 'mentors') {
       if (mentorLoading) {
         return [
@@ -1411,6 +1501,10 @@ export default function Messages() {
       });
     }
 
+    if (folder !== 'all') {
+      return [];
+    }
+
     return allRows.map((item) => {
       if (item.type === 'custom-group') {
         return renderCustomGroupRow(item);
@@ -1452,7 +1546,6 @@ export default function Messages() {
   if (loading) {
     return (
       <div className="central-messages-loading">
-        <MessageSquare size={28} />
         Loading messages...
       </div>
     );
@@ -1463,164 +1556,456 @@ export default function Messages() {
       <style>{`
         .wa-messages-page {
           width: 100%;
-          height: calc(100vh - 122px);
+          height: calc(100vh - 84px);
           min-height: 0;
           overflow: hidden;
-          background:
-            radial-gradient(circle at 10% 0%, rgba(146, 190, 255, .26), transparent 26%),
-            radial-gradient(circle at 88% 4%, rgba(210, 171, 255, .24), transparent 24%),
-            radial-gradient(circle at 50% 100%, rgba(255, 196, 168, .16), transparent 30%),
-            var(--surface-container-lowest);
+          background: transparent;
           color: var(--campora-text);
+        }
+
+        .central-messages-loading {
+          min-height: calc(100vh - 122px);
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          color: #0B1A3F;
+          font-size: 15px;
+          font-weight: 900;
+          background: transparent;
         }
 
         .wa-list-screen,
         .wa-chat-screen {
           width: 100%;
           height: 100%;
+          min-width: 0;
           min-height: 0;
-          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: #FFFFFF;
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
         }
 
         .wa-list-screen {
-          max-width: 1040px;
-          margin: 0 auto;
-          padding: 34px 28px 52px;
-          overflow-y: auto;
-        }
-
-        .wa-list-hero {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 24px;
-          margin-bottom: 24px;
-          padding: 26px 28px;
-          border-radius: 28px;
-          background:
-            linear-gradient(135deg, rgba(218, 233, 249, .92), rgba(235, 243, 252, .90) 58%, rgba(245, 248, 252, .94));
-          border: 1px solid rgba(121, 149, 190, .18);
-          box-shadow: 0 18px 45px rgba(33, 70, 115, .08);
-        }
-
-        .wa-eyebrow {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          color: var(--campora-navy);
-          font-size: 11px;
-          font-weight: 950;
-          letter-spacing: .08em;
-          text-transform: uppercase;
-          margin-bottom: 8px;
-        }
-
-        .wa-list-hero h2 {
+          width: 100%;
+          max-width: none;
+          height: 100%;
+          min-height: 0;
           margin: 0;
-          font-size: clamp(34px, 4vw, 48px);
-          letter-spacing: -.05em;
-          line-height: .98;
-          font-weight: 950;
-          color: var(--campora-text);
+          padding: 10px 22px 18px;
+          overflow: hidden;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
         }
 
-        .wa-list-hero p {
-          margin: 10px 0 0;
-          color: var(--campora-muted);
-          font-size: 14px;
-          font-weight: 650;
+        .wa-page-title-line p {
+          margin: 0;
+          color: #8B97AD;
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .wa-page-title-wrap h2 {
+          margin: 0;
+          color: #0B1A3F;
+          font-size: 24px;
+          font-weight: 950;
+          line-height: 1.05;
+        }
+
+        .wa-page-title-wrap p {
+          margin: 4px 0 0;
+          color: #8B97AD;
+          font-size: 11px;
+          font-weight: 700;
         }
 
         .wa-create-btn {
-          border: 0;
-          border-radius: 18px;
-          padding: 13px 18px;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: linear-gradient(135deg, #06366B, #0B4F8A);
-          color: white;
-          font: inherit;
-          font-weight: 900;
-          cursor: pointer;
-          box-shadow: 0 10px 24px rgba(13, 58, 112, .18);
-          white-space: nowrap;
-        }
-
-        .wa-create-btn:hover {
-          transform: translateY(-1px);
-        }
-
-        .wa-filter-row {
-          display: flex;
-          gap: 8px;
-          overflow-x: auto;
-          padding-bottom: 6px;
-          margin-bottom: 16px;
-          scrollbar-width: none;
-        }
-
-        .wa-filter-row::-webkit-scrollbar {
-          display: none;
-        }
-
-        .wa-filter-chip {
-          border: 1px solid var(--outline-variant);
-          background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(245,247,251,.92));
-          color: var(--campora-body);
           min-height: 40px;
-          border-radius: 999px;
           padding: 0 14px;
+          flex-shrink: 0;
+          border: 1px solid #0B1A3F;
+          border-radius: 12px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 7px;
+          background: #0B1A3F;
+          color: #FFFFFF;
+          font: inherit;
+          font-size: 11px;
+          font-weight: 900;
+          cursor: pointer;
+          box-shadow: 0 7px 16px rgba(11,26,63,.12);
+        }
+
+        .wa-top-overview {
+          width: 100%;
+          min-height: 100px;
+          flex-shrink: 0;
+          padding: 20px 24px;
+          box-sizing: border-box;
+          border-radius: 20px;
+          background:
+            linear-gradient(
+              135deg,
+              #08152F 0%,
+              #0B1A3F 58%,
+              #142B5A 100%
+            );
+          color: #FFFFFF;
+          display: flex;
+          align-items: center;
+          box-shadow: 0 12px 30px rgba(11,26,63,.13);
+        }
+
+        .wa-top-overview-main {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          min-width: 0;
+        }
+
+        .wa-top-overview-icon {
+          width: 48px;
+          height: 48px;
+          flex-shrink: 0;
+          border-radius: 14px;
+          background: rgba(255,255,255,.10);
+          border: 1px solid rgba(255,255,255,.13);
+          color: #FFFFFF;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .wa-top-overview-copy {
+          min-width: 0;
+        }
+
+        .wa-top-title-line {
+          display: flex;
+          align-items: baseline;
+          gap: 10px;
+          min-width: 0;
+          flex-wrap: wrap;
+        }
+
+        .wa-top-title-line h2,
+        .wa-top-title-line h3 {
+          margin: 0;
+          color: #FFFFFF;
+          font-weight: 950;
+          letter-spacing: -.025em;
+        }
+
+        .wa-top-title-line h2 {
+          font-size: 24px;
+        }
+
+        .wa-top-title-line h3 {
+          font-size: 18px;
+          color: #DCE7F7;
+        }
+
+        .wa-top-divider {
+          color: #8FA8CC;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .wa-top-overview-copy p {
+          margin: 6px 0 0;
+          color: rgba(255,255,255,.66);
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.45;
+        }
+
+        .wa-top-stats {
+          width: 100%;
+          flex-shrink: 0;
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 10px;
+          margin: 12px 0 14px;
+        }
+
+        .wa-top-stat-card {
+          min-height: 62px;
+          padding: 10px 12px;
+          box-sizing: border-box;
+          border-radius: 14px;
+          background: #FFFFFF;
+          border: 1px solid #E5EAF2;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          box-shadow: 0 4px 12px rgba(11,26,63,.025);
+        }
+
+        .wa-top-stat-icon {
+          width: 35px;
+          height: 35px;
+          flex-shrink: 0;
+          border-radius: 10px;
+          background: #EEF2F7;
+          color: #0B1A3F;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .wa-top-stat-card strong {
+          display: block;
+          color: #0B1A3F;
+          font-size: 16px;
+          line-height: 1;
+          font-weight: 950;
+        }
+
+        .wa-top-stat-card span {
+          display: block;
+          margin-top: 4px;
+          color: #8B97AD;
+          font-size: 9px;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: .035em;
+        }
+
+        .wa-inbox-shell {
+          display: grid;
+          grid-template-columns: 300px minmax(0, 1fr);
+          gap: 20px;
+          width: 100%;
+          flex: 1;
+          min-height: 0;
+          padding: 0;
+          box-sizing: border-box;
+          background: transparent;
+          border: none;
+          box-shadow: none;
+          overflow: hidden;
+          align-items: stretch;
+        }
+
+        .wa-folder-panel {
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          box-sizing: border-box;
+          padding: 18px 12px 16px;
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .wa-sidebar-header h2 {
+          margin: 0;
+          font-size: 19px;
+          font-weight: 950;
+          line-height: 1.05;
+          color: #FFFFFF;
+        }
+
+        .wa-folder-heading {
+          padding: 0 8px 11px;
+          color: #8A95A7;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+        }
+
+        .wa-folder-list {
+          display: flex;
+          flex-direction: column;
+          gap: 9px;
+        }
+
+        .wa-folder-btn {
+          width: 100%;
+          min-height: 48px;
+          padding: 0 12px;
+          border: 1px solid #E7EBF1;
+          border-radius: 14px;
+          background: #FFFFFF;
+          color: #66758E;
+          display: flex;
+          align-items: center;
+          gap: 10px;
           font: inherit;
           font-size: 12px;
           font-weight: 850;
+          text-align: left;
           cursor: pointer;
-          white-space: nowrap;
+          box-shadow: 0 3px 10px rgba(11,26,63,.025);
+          transition:
+            transform .15s ease,
+            border-color .15s ease,
+            background .15s ease,
+            box-shadow .15s ease;
         }
 
-        .wa-filter-chip.active {
-          background: linear-gradient(135deg, #062F5F, #0B4F8A);
-          border-color: transparent;
-          color: white;
-          box-shadow: 0 10px 22px rgba(48, 64, 145, .18);
+        .wa-folder-btn:hover {
+          background: #F8FAFD;
+          color: #0B1A3F;
+          border-color: #D9E1EB;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 14px rgba(11,26,63,.04);
         }
 
-        .wa-filter-chip:nth-child(2):not(.active) { background: linear-gradient(180deg, #EEF8FF, #E5F2FF); }
-        .wa-filter-chip:nth-child(3):not(.active) { background: linear-gradient(180deg, #F1EDFF, #E8E1FF); }
-        .wa-filter-chip:nth-child(4):not(.active) { background: linear-gradient(180deg, #FFF2EA, #FFE8DA); }
-        .wa-filter-chip:nth-child(5):not(.active) { background: linear-gradient(180deg, #ECFAF5, #E2F4ED); }
+        .wa-folder-btn.active {
+          background: #0B1A3F;
+          color: #FFFFFF;
+          border-color: #0B1A3F;
+          box-shadow: 0 8px 18px rgba(11,26,63,.13);
+        }
+
+        .wa-folder-icon {
+          width: 27px;
+          height: 27px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(11,26,63,.05);
+          flex-shrink: 0;
+        }
+
+        .wa-folder-btn.active .wa-folder-icon {
+          background: rgba(255,255,255,.12);
+        }
+
+        .wa-sidebar-new-group {
+          width: 100%;
+          min-height: 46px;
+          margin-top: 14px;
+          padding: 0 12px;
+          border: 1px solid #0B1A3F;
+          border-radius: 14px;
+          background: #0B1A3F;
+          color: #FFFFFF;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font: inherit;
+          font-size: 11px;
+          font-weight: 900;
+          cursor: pointer;
+          box-shadow: 0 7px 16px rgba(11,26,63,.12);
+        }
+
+        .wa-folder-note {
+          margin-top: auto;
+          padding: 14px 8px 2px;
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          color: #98A3B4;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1.45;
+          background: transparent;
+        }
+
+        .wa-inbox-main {
+          width: 100%;
+          height: 100%;
+          min-width: 0;
+          min-height: 0;
+          box-sizing: border-box;
+          padding: 18px 0 22px;
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .wa-inbox-toolbar h3 {
+          margin: 0;
+          color: #0B1A3F;
+          font-size: 18px;
+          font-weight: 950;
+        }
+
+        .wa-inbox-toolbar p {
+          margin: 4px 0 0;
+          color: #8B97AD;
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .wa-section-label-row {
+          min-height: 28px;
+          display: flex;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .wa-section-label {
+          color: #0B1A3F;
+          font-size: 12px;
+          font-weight: 900;
+        }
 
         .wa-search-wrap {
           position: relative;
-          margin-bottom: 18px;
+          margin-bottom: 14px;
         }
 
         .wa-search {
+          min-height: 52px;
+          padding: 0 15px;
           display: flex;
           align-items: center;
-          gap: 11px;
-          min-height: 56px;
-          border: 1px solid rgba(104, 130, 166, .18);
-          border-radius: 22px;
-          padding: 0 16px;
-          background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(246,248,252,.94));
-          color: var(--campora-muted);
-          box-shadow: 0 7px 20px rgba(22, 63, 115, .045);
+          gap: 10px;
+          border: 1px solid #E1E7EF;
+          border-radius: 14px;
+          background: #FFFFFF;
+          color: #7D899A;
+          box-shadow: 0 4px 12px rgba(11,26,63,.025);
         }
 
         .wa-search input {
           flex: 1;
-          border: 0;
-          outline: 0;
+          min-width: 0;
+          border: none;
+          outline: none;
           background: transparent;
-          color: var(--campora-text);
+          color: #0B1A3F;
           font: inherit;
-          font-size: 14px;
-          font-weight: 720;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .wa-search-clear {
+          width: 28px;
+          height: 28px;
+          padding: 0;
+          border: none;
+          border-radius: 8px;
+          background: transparent;
+          color: #8B97AD;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
         }
 
         .wa-search-results {
@@ -1628,102 +2013,111 @@ export default function Messages() {
           left: 0;
           right: 0;
           top: calc(100% + 7px);
-          z-index: 20;
-          border: 1px solid var(--outline-variant);
-          border-radius: 18px;
-          background: var(--surface-container-lowest);
-          box-shadow: 0 18px 42px rgba(20, 43, 75, .14);
+          z-index: 40;
           overflow: hidden;
+          border: 1px solid #E1E7EF;
+          border-radius: 14px;
+          background: #FFFFFF;
+          box-shadow: 0 16px 34px rgba(11,26,63,.11);
         }
 
         .wa-search-person {
           width: 100%;
-          border: 0;
-          background: transparent;
+          border: none;
+          background: #FFFFFF;
           display: flex;
           align-items: center;
           gap: 11px;
-          padding: 11px 13px;
+          padding: 10px 12px;
           text-align: left;
-          color: var(--campora-text);
+          color: #0B1A3F;
           cursor: pointer;
+          font: inherit;
         }
 
         .wa-search-person:hover {
-          background: var(--surface-container-low);
+          background: #F7F9FC;
+        }
+
+        .wa-search-person-email {
+          margin-top: 2px;
+          font-size: 10px;
+          color: #8B97AD;
         }
 
         .wa-chat-list {
           display: flex;
           flex-direction: column;
-          gap: 10px;
-        }
-
-        .wa-chat-row {
-          width: 100%;
-          border: 1px solid rgba(116, 138, 171, .12);
-          background: rgba(255,255,255,.58);
-          backdrop-filter: blur(8px);
-          display: grid;
-          grid-template-columns: 58px minmax(0, 1fr) auto;
-          gap: 14px;
-          align-items: center;
-          padding: 13px 14px;
-          border-radius: 22px;
-          color: var(--campora-text);
-          text-align: left;
-          cursor: pointer;
-          transition: transform .15s ease, background .15s ease, border-color .15s ease;
-        }
-
-        .wa-chat-row:hover {
-          transform: translateY(-2px);
-          background: linear-gradient(135deg, rgba(234,244,255,.92), rgba(246,239,255,.90));
-          border-color: rgba(99, 127, 166, .18);
-          box-shadow: 0 12px 28px rgba(45, 70, 110, .08);
-        }
-
-        .wa-chat-row.active {
-          background: linear-gradient(135deg, rgba(220,235,250,.98), rgba(237,244,252,.98));
-          border-color: rgba(76, 93, 168, .20);
-          box-shadow: 0 14px 32px rgba(63, 76, 137, .10);
+          gap: 12px;
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 0 4px 8px 0;
         }
 
         .wa-chat-row {
           position: relative;
-          overflow: hidden;
+          width: 100%;
+          min-height: 82px;
+          padding: 12px 15px;
+          display: grid;
+          grid-template-columns: 50px minmax(0,1fr) auto;
+          align-items: center;
+          gap: 14px;
+          border: 1px solid #E7EBF1;
+          border-radius: 15px;
+          background: #FFFFFF;
+          color: #0B1A3F;
+          text-align: left;
+          cursor: pointer;
+          transition:
+            background .15s ease,
+            border-color .15s ease,
+            box-shadow .15s ease,
+            transform .15s ease;
         }
 
         .wa-chat-row::before {
           content: '';
           position: absolute;
           left: 0;
-          top: 16px;
-          bottom: 16px;
-          width: 4px;
+          top: 13px;
+          bottom: 13px;
+          width: 3px;
           border-radius: 0 999px 999px 0;
-          background: linear-gradient(180deg, #4F8FD9, #8B6CD7, #F0A779);
-          opacity: .45;
+          background: #0B1A3F;
+          opacity: 0;
         }
 
-        .wa-chat-row.active::before,
-        .wa-chat-row:hover::before {
+        .wa-chat-row:hover {
+          background: #F8FAFD;
+          border-color: #D9E1EB;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(11,26,63,.04);
+        }
+
+        .wa-chat-row:hover::before,
+        .wa-chat-row.active::before {
           opacity: 1;
         }
 
+        .wa-chat-row.active {
+          background: #F2F5F9;
+          border-color: #D3DCE8;
+        }
 
         .wa-avatar {
-          width: 56px;
-          height: 56px;
-          border-radius: 19px;
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          font-size: 15px;
+          color: #0B1A3F;
+          font-size: 13px;
           font-weight: 950;
-          color: #163F73;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+          box-shadow: inset 0 0 0 1px rgba(11,26,63,.05);
         }
 
         .wa-chat-main {
@@ -1733,37 +2127,38 @@ export default function Messages() {
         .wa-chat-name-row {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 7px;
           min-width: 0;
         }
 
         .wa-chat-name {
-          font-size: 15px;
-          font-weight: 950;
+          min-width: 0;
+          color: #0B1A3F;
+          font-size: 13px;
+          font-weight: 900;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
         .wa-chat-tag {
+          min-height: 20px;
+          padding: 0 7px;
+          border-radius: 999px;
           display: inline-flex;
           align-items: center;
-          min-height: 21px;
-          border-radius: 999px;
-          padding: 0 8px;
-          background: linear-gradient(135deg, #E2ECFF, #E8E0FF);
-          color: #234C82;
-          font-size: 9px;
-          font-weight: 950;
+          background: #EEF2F7;
+          color: #66758E;
+          font-size: 8px;
+          font-weight: 900;
           text-transform: uppercase;
-          letter-spacing: .04em;
           white-space: nowrap;
         }
 
         .wa-chat-preview {
-          margin-top: 5px;
-          color: var(--campora-muted);
-          font-size: 12px;
+          margin-top: 4px;
+          color: #8B97AD;
+          font-size: 11px;
           font-weight: 650;
           white-space: nowrap;
           overflow: hidden;
@@ -1771,70 +2166,84 @@ export default function Messages() {
         }
 
         .wa-chat-side {
-          min-width: 62px;
+          min-width: 60px;
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          gap: 7px;
-          color: var(--campora-muted);
-          font-size: 10px;
-          font-weight: 850;
+          gap: 6px;
+          color: #96A1B3;
+          font-size: 9px;
+          font-weight: 800;
         }
 
         .wa-unread {
-          min-width: 22px;
-          height: 22px;
-          padding: 0 7px;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
           border-radius: 999px;
-          background: linear-gradient(135deg, #06366B, #0B4F8A);
-          color: white;
+          background: #0B1A3F;
+          color: #FFFFFF;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 10px;
-          font-weight: 950;
+          font-size: 9px;
+          font-weight: 900;
         }
 
         .wa-empty-list {
-          min-height: 340px;
+          min-height: 285px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           text-align: center;
-          color: var(--campora-muted);
-          padding: 40px 20px;
+          color: #8B97AD;
+          padding: 34px 20px;
         }
 
         .wa-empty-list-icon {
-          width: 76px;
-          height: 76px;
-          border-radius: 26px;
-          background: linear-gradient(135deg, #DCEBFF, #E9DFFF 58%, #FFE9DD);
-          color: var(--campora-navy);
+          width: 58px;
+          height: 58px;
+          margin-bottom: 13px;
+          border-radius: 18px;
+          background: #FFFFFF;
+          border: 1px solid #E1E7EF;
+          box-shadow: 0 5px 14px rgba(11,26,63,.05);
+          color: #0B1A3F;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 14px;
         }
 
+        .wa-empty-list strong {
+          color: #0B1A3F;
+          font-size: 14px;
+          font-weight: 900;
+        }
 
+        .wa-empty-list span {
+          margin-top: 6px;
+          max-width: 330px;
+          font-size: 11px;
+          line-height: 1.5;
+        }
+
+        /* MENTOR CARDS */
         .mentor-card {
           display: grid;
-          grid-template-columns: 58px minmax(0, 1fr);
-          gap: 15px;
+          grid-template-columns: 48px minmax(0,1fr);
+          gap: 12px;
           align-items: start;
-          padding: 18px;
-          margin-bottom: 12px;
-          border: 1px solid rgba(6, 54, 107, .12);
-          border-radius: 22px;
-          background: linear-gradient(135deg, rgba(231, 241, 251, .96), rgba(249, 252, 255, .98));
-          box-shadow: 0 10px 26px rgba(6, 54, 107, .06);
+          padding: 14px;
+          margin-bottom: 8px;
+          border: 1px solid #E6EBF2;
+          border-radius: 15px;
+          background: #FFFFFF;
         }
 
         .mentor-avatar {
-          width: 56px;
-          height: 56px;
+          width: 48px;
+          height: 48px;
         }
 
         .mentor-card-main {
@@ -1845,147 +2254,122 @@ export default function Messages() {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: 14px;
+          gap: 12px;
         }
 
         .mentor-name {
-          color: var(--campora-text);
-          font-size: 16px;
-          font-weight: 950;
-        }
-
-        .mentor-role {
-          margin-top: 3px;
-          color: var(--campora-navy);
-          font-size: 11px;
+          color: #0B1A3F;
+          font-size: 14px;
           font-weight: 900;
         }
 
+        .mentor-role {
+          margin-top: 2px;
+          color: #66758E;
+          font-size: 10px;
+          font-weight: 800;
+        }
+
+        .mentor-department,
+        .mentor-bio,
+        .mentor-meta-row {
+          color: #8B97AD;
+          font-size: 10px;
+          font-weight: 700;
+        }
+
         .mentor-department {
-          margin-top: 7px;
-          color: var(--campora-muted);
-          font-size: 12px;
-          font-weight: 750;
+          margin-top: 5px;
         }
 
         .mentor-bio {
-          margin: 9px 0 0;
-          color: var(--campora-body);
-          font-size: 12px;
-          line-height: 1.5;
+          margin: 7px 0 0;
+          line-height: 1.45;
         }
 
         .mentor-chip-row {
           display: flex;
           flex-wrap: wrap;
-          gap: 7px;
-          margin-top: 11px;
+          gap: 6px;
+          margin-top: 8px;
         }
 
         .mentor-chip {
+          min-height: 23px;
+          padding: 0 8px;
+          border-radius: 999px;
           display: inline-flex;
           align-items: center;
-          min-height: 25px;
-          padding: 0 9px;
-          border-radius: 999px;
-          background: #DFECF8;
-          color: #06366B;
-          font-size: 10px;
-          font-weight: 850;
+          background: #EEF3FA;
+          color: #0B1A3F;
+          font-size: 9px;
+          font-weight: 800;
         }
 
         .mentor-chip.course {
-          background: #EDF2F8;
-          color: #42566E;
+          background: #F4F6F9;
+          color: #66758E;
         }
 
         .mentor-meta-row {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px 18px;
-          margin-top: 10px;
-          color: var(--campora-muted);
-          font-size: 10px;
-          font-weight: 750;
+          gap: 7px 14px;
+          margin-top: 8px;
         }
 
         .mentor-message-btn {
-          border: 0;
-          border-radius: 13px;
-          padding: 10px 13px;
+          min-height: 34px;
+          padding: 0 11px;
+          border: none;
+          border-radius: 10px;
           display: inline-flex;
           align-items: center;
-          gap: 7px;
-          background: linear-gradient(135deg, #052F5F, #0B4F8A);
-          color: #fff;
+          gap: 6px;
+          background: #0B1A3F;
+          color: #FFFFFF;
           font: inherit;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 900;
           cursor: pointer;
-          white-space: nowrap;
-          box-shadow: 0 8px 18px rgba(6, 54, 107, .15);
         }
 
-        .mentor-message-btn:hover {
-          transform: translateY(-1px);
-        }
-
-        :root[data-theme='dark'] .mentor-card {
-          background: linear-gradient(135deg, rgba(28, 45, 65, .96), rgba(22, 34, 49, .98));
-          border-color: rgba(139, 164, 194, .12);
-        }
-
-        :root[data-theme='dark'] .mentor-chip {
-          background: rgba(71, 111, 153, .25);
-          color: #C9E2FA;
-        }
-
-        :root[data-theme='dark'] .mentor-chip.course {
-          background: rgba(100, 113, 130, .20);
-          color: #D1DAE4;
-        }
-
-        /* Full-chat screen */
+        /* CHAT SCREEN */
         .wa-chat-screen {
           display: flex;
           flex-direction: column;
           min-height: 0;
           overflow: hidden;
-          background:
-            radial-gradient(circle at 90% 8%, rgba(221, 212, 243, .18), transparent 23%),
-            var(--surface-container-lowest);
+          background: #FFFFFF;
+          border: 1px solid #E5EAF2;
+          border-radius: 18px;
         }
 
         .wa-chat-header {
-          min-height: 78px;
+          min-height: 76px;
+          width: 100%;
+          box-sizing: border-box;
+          padding: 12px 24px;
+          flex-shrink: 0;
           display: flex;
           align-items: center;
           gap: 13px;
-          padding: 12px 24px;
-          border-bottom: 1px solid var(--outline-variant);
-          background: color-mix(in srgb, var(--surface-container-lowest) 94%, transparent);
-          position: relative;
-          z-index: 20;
-          flex-shrink: 0;
-          backdrop-filter: blur(12px);
+          border-bottom: 1px solid #E5EAF2;
+          background: #FFFFFF;
         }
 
         .wa-back-btn {
-          width: 42px;
-          height: 42px;
-          border: 1px solid var(--outline-variant);
-          border-radius: 14px;
-          background: var(--surface-container-low);
-          color: var(--campora-text);
+          width: 38px;
+          height: 38px;
+          border: 1px solid #E1E7EF;
+          border-radius: 11px;
+          background: #F8FAFD;
+          color: #0B1A3F;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           flex-shrink: 0;
-        }
-
-        .wa-back-btn:hover {
-          background: var(--surface-container-high);
         }
 
         .wa-chat-header-copy {
@@ -1995,52 +2379,46 @@ export default function Messages() {
 
         .wa-chat-header-copy h3 {
           margin: 0;
-          font-size: 17px;
-          font-weight: 950;
+          color: #0B1A3F;
+          font-size: 15px;
+          font-weight: 900;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
         .wa-chat-header-copy p {
-          margin: 4px 0 0;
-          color: var(--campora-muted);
-          font-size: 11px;
+          margin: 3px 0 0;
+          color: #8B97AD;
+          font-size: 10px;
           font-weight: 700;
         }
 
         .wa-chat-history {
+          width: 100%;
           flex: 1 1 auto;
           min-height: 0;
+          box-sizing: border-box;
           overflow-y: auto;
-          overscroll-behavior: contain;
-          padding: 30px max(24px, calc((100vw - 900px) / 2));
-          background:
-            linear-gradient(rgba(255,255,255,.70), rgba(255,255,255,.70)),
-            radial-gradient(circle at 20% 20%, rgba(202, 221, 255, .30), transparent 20%),
-            radial-gradient(circle at 80% 35%, rgba(226, 211, 252, .28), transparent 22%);
-        }
-
-        :root[data-theme='dark'] .wa-chat-history {
-          background:
-            linear-gradient(rgba(18,26,35,.86), rgba(18,26,35,.86)),
-            radial-gradient(circle at 20% 20%, rgba(39, 75, 118, .25), transparent 20%),
-            radial-gradient(circle at 80% 35%, rgba(78, 58, 112, .23), transparent 22%);
+          overflow-x: hidden;
+          padding: 28px 34px 34px;
+          background: #FBFCFE;
         }
 
         .wa-day-divider {
           width: fit-content;
-          margin: 0 auto 22px;
-          padding: 6px 10px;
+          margin: 0 auto 18px;
+          padding: 5px 9px;
           border-radius: 999px;
-          background: var(--surface-container-high);
-          color: var(--campora-muted);
-          font-size: 10px;
-          font-weight: 900;
+          background: #EEF2F7;
+          color: #8B97AD;
+          font-size: 9px;
+          font-weight: 800;
         }
 
         .wa-message-row {
           display: flex;
+          justify-content: flex-start;
           margin-bottom: 10px;
         }
 
@@ -2049,149 +2427,153 @@ export default function Messages() {
         }
 
         .wa-message-bubble {
-          max-width: min(72%, 620px);
-          padding: 10px 13px 8px;
-          border-radius: 18px 18px 18px 6px;
-          background: var(--surface-container-lowest);
-          color: var(--campora-text);
-          border: 1px solid var(--outline-variant);
-          box-shadow: 0 5px 16px rgba(15, 45, 82, .055);
+          max-width: min(72%, 760px);
+          padding: 11px 14px;
+          border-radius: 16px;
+          background: #EEF2F7;
+          color: #0B1A3F;
           font-size: 13px;
-          line-height: 1.45;
-          word-break: break-word;
-          white-space: pre-wrap;
+          font-weight: 650;
+          line-height: 1.5;
         }
 
         .wa-message-row.mine .wa-message-bubble {
-          background: linear-gradient(135deg, var(--campora-navy), #164D88);
-          color: white;
-          border-color: transparent;
-          border-radius: 18px 18px 6px 18px;
+          background: #0B1A3F;
+          color: #FFFFFF;
+          border-bottom-right-radius: 5px;
+        }
+
+        .wa-message-row:not(.mine) .wa-message-bubble {
+          border-bottom-left-radius: 5px;
         }
 
         .wa-message-sender {
-          color: var(--campora-navy);
-          font-size: 10px;
-          font-weight: 950;
           margin-bottom: 4px;
+          color: #66758E;
+          font-size: 9px;
+          font-weight: 900;
         }
 
         .wa-message-time {
-          margin-top: 5px;
-          font-size: 9px;
-          opacity: .65;
+          margin-top: 4px;
+          font-size: 8px;
+          opacity: .62;
           text-align: right;
         }
 
         .wa-chat-empty {
-          min-height: 54vh;
+          min-height: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
+          color: #8B97AD;
           text-align: center;
-          color: var(--campora-muted);
+          font-size: 11px;
         }
 
         .wa-composer {
+          width: 100%;
+          box-sizing: border-box;
+          flex-shrink: 0;
+          padding: 14px 24px 16px;
+          border-top: 1px solid #E5EAF2;
+          background: #FFFFFF;
           display: flex;
           align-items: flex-end;
           gap: 10px;
-          padding: 14px max(20px, calc((100vw - 900px) / 2));
-          border-top: 1px solid var(--outline-variant);
-          background: var(--surface-container-lowest);
-          position: relative;
-          z-index: 20;
-          flex-shrink: 0;
         }
 
         .wa-composer textarea {
           flex: 1;
-          min-height: 48px;
-          max-height: 130px;
+          min-height: 50px;
+          max-height: 150px;
           resize: none;
-          border: 1px solid var(--outline-variant);
-          border-radius: 18px;
-          outline: 0;
-          background: var(--surface-container-low);
-          color: var(--campora-text);
-          padding: 13px 15px;
+          box-sizing: border-box;
+          padding: 14px 16px;
+          border: 1px solid #E1E7EF;
+          border-radius: 15px;
+          outline: none;
+          background: #F8FAFD;
+          color: #0B1A3F;
           font: inherit;
           font-size: 13px;
+          font-weight: 650;
         }
 
         .wa-send-btn {
-          width: 48px;
-          height: 48px;
-          border: 0;
-          border-radius: 16px;
-          background: linear-gradient(135deg, var(--campora-navy), #2865A9);
-          color: white;
+          width: 46px;
+          height: 46px;
+          flex-shrink: 0;
+          border: none;
+          border-radius: 13px;
+          background: #0B1A3F;
+          color: #FFFFFF;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          flex-shrink: 0;
-          box-shadow: 0 9px 20px rgba(13, 58, 112, .20);
+          box-shadow: 0 7px 16px rgba(11,26,63,.14);
         }
 
         .wa-send-btn:disabled {
-          opacity: .45;
-          cursor: not-allowed;
-          box-shadow: none;
+          opacity: .42;
+          cursor: default;
         }
 
-        /* Create-group modal */
+        /* MODAL */
         .central-modal-backdrop {
           position: fixed;
           inset: 0;
           z-index: 9999;
-          background: rgba(12, 22, 34, .48);
+          background: rgba(11,26,63,.35);
+          backdrop-filter: blur(5px);
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 20px;
-          backdrop-filter: blur(4px);
         }
 
         .central-modal {
-          width: min(520px, 94vw);
-          max-height: 84vh;
+          width: min(520px, 100%);
+          max-height: 86vh;
           overflow-y: auto;
-          background: var(--surface-container-lowest);
-          border: 1px solid var(--outline-variant);
-          border-radius: 24px;
           padding: 24px;
-          box-shadow: 0 26px 70px rgba(0,0,0,.22);
+          border-radius: 18px;
+          background: #FFFFFF;
+          border: 1px solid #E5EAF2;
+          box-shadow: 0 24px 60px rgba(11,26,63,.18);
         }
 
         .central-modal-head {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: 16px;
+          gap: 14px;
           margin-bottom: 20px;
         }
 
         .central-modal-head h2 {
           margin: 0;
-          font-size: 22px;
-          color: var(--campora-text);
+          color: #0B1A3F;
+          font-size: 20px;
+          font-weight: 950;
         }
 
         .central-modal-head p {
           margin: 5px 0 0;
-          font-size: 12px;
-          color: var(--campora-muted);
+          color: #8B97AD;
+          font-size: 11px;
+          font-weight: 700;
         }
 
         .central-modal-close {
-          width: 36px;
-          height: 36px;
-          border-radius: 12px;
-          border: 1px solid var(--outline-variant);
-          background: var(--surface-container-low);
-          color: var(--campora-text);
+          width: 34px;
+          height: 34px;
+          border: 1px solid #E1E7EF;
+          border-radius: 10px;
+          background: #F8FAFD;
+          color: #0B1A3F;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -2200,65 +2582,69 @@ export default function Messages() {
 
         .central-modal-label {
           display: block;
-          margin-bottom: 7px;
+          margin-bottom: 6px;
+          color: #0B1A3F;
           font-size: 11px;
           font-weight: 900;
-          color: var(--campora-text);
         }
 
         .central-modal-input {
           width: 100%;
+          min-height: 45px;
           box-sizing: border-box;
-          border: 1px solid var(--outline-variant);
-          border-radius: 14px;
-          padding: 12px 14px;
-          background: var(--surface-container-low);
-          color: var(--campora-text);
-          outline: 0;
+          padding: 0 13px;
+          border: 1px solid #E1E7EF;
+          border-radius: 12px;
+          outline: none;
+          background: #F9FBFD;
+          color: #0B1A3F;
           font: inherit;
+          font-size: 12px;
+          font-weight: 700;
         }
 
         .central-search-results {
           margin-top: 8px;
-          border: 1px solid var(--outline-variant);
-          border-radius: 14px;
+          border: 1px solid #E1E7EF;
+          border-radius: 12px;
           overflow: hidden;
-          background: var(--surface-container-lowest);
         }
 
         .central-search-person {
           width: 100%;
-          border: 0;
-          background: transparent;
-          color: var(--campora-text);
+          padding: 9px 10px;
+          border: none;
+          background: #FFFFFF;
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px;
+          gap: 9px;
           text-align: left;
+          color: #0B1A3F;
           cursor: pointer;
+          font: inherit;
         }
 
         .central-search-person:hover {
-          background: var(--surface-container-low);
+          background: #F7F9FC;
         }
 
         .central-selected-members {
           display: flex;
           flex-wrap: wrap;
-          gap: 7px;
-          margin-top: 14px;
+          gap: 6px;
+          margin-top: 10px;
         }
 
         .central-member-chip {
-          border: 0;
+          min-height: 28px;
+          padding: 0 9px;
+          border: none;
           border-radius: 999px;
-          padding: 7px 10px;
-          background: var(--campora-navy-tint);
-          color: var(--campora-navy);
+          background: #EEF2F7;
+          color: #0B1A3F;
           font: inherit;
-          font-size: 11px;
-          font-weight: 850;
+          font-size: 9px;
+          font-weight: 800;
           cursor: pointer;
         }
 
@@ -2266,145 +2652,147 @@ export default function Messages() {
           display: flex;
           justify-content: flex-end;
           gap: 9px;
-          margin-top: 22px;
+          margin-top: 20px;
         }
 
-        .central-modal-actions button {
-          border-radius: 12px;
-          padding: 10px 15px;
+        .central-modal-secondary,
+        .central-modal-primary {
+          min-height: 38px;
+          padding: 0 13px;
+          border-radius: 11px;
           font: inherit;
-          font-weight: 850;
+          font-size: 11px;
+          font-weight: 900;
           cursor: pointer;
         }
 
         .central-modal-secondary {
-          border: 1px solid var(--outline-variant);
-          background: transparent;
-          color: var(--campora-text);
+          border: 1px solid #E1E7EF;
+          background: #FFFFFF;
+          color: #0B1A3F;
         }
 
         .central-modal-primary {
-          border: 0;
-          background: var(--campora-navy);
-          color: white;
-        }
-
-        .central-modal-primary:disabled {
-          opacity: .45;
-          cursor: not-allowed;
+          border: 1px solid #0B1A3F;
+          background: #0B1A3F;
+          color: #FFFFFF;
         }
 
         .central-list-empty {
-          padding: 20px;
+          padding: 14px;
           text-align: center;
-          color: var(--campora-muted);
-          font-size: 12px;
+          color: #8B97AD;
+          font-size: 11px;
           font-weight: 700;
         }
 
-        :root[data-theme='dark'] .wa-avatar {
-          color: #EAF2FC;
-          filter: saturate(.88) brightness(.78);
+        :root[data-theme='dark'] .wa-inbox-shell,
+        :root[data-theme='dark'] .wa-inbox-main,
+        :root[data-theme='dark'] .wa-chat-row,
+        :root[data-theme='dark'] .wa-search,
+        :root[data-theme='dark'] .wa-chat-screen,
+        :root[data-theme='dark'] .wa-chat-header,
+        :root[data-theme='dark'] .wa-composer,
+        :root[data-theme='dark'] .central-modal {
+          background: var(--surface-container-lowest);
         }
 
-        :root[data-theme='dark'] .wa-list-hero {
-          background:
-            linear-gradient(135deg, rgba(35, 63, 92, .88), rgba(64, 51, 92, .86) 55%, rgba(82, 58, 48, .76));
-          border-color: rgba(173, 195, 224, .10);
+        @media (max-width: 1100px) {
+          .wa-top-stats {
+            grid-template-columns: repeat(3, minmax(0,1fr));
+          }
         }
 
-        :root[data-theme='dark'] .wa-chat-row {
-          background: rgba(27, 36, 48, .72);
-          border-color: rgba(155, 175, 205, .08);
+        @media (max-width: 720px) {
+          .wa-top-stats {
+            grid-template-columns: repeat(2, minmax(0,1fr));
+          }
+
+          .wa-chat-history {
+            padding: 22px 14px 26px;
+          }
+
+          .wa-chat-header,
+          .wa-composer {
+            padding-left: 14px;
+            padding-right: 14px;
+          }
         }
 
-        :root[data-theme='dark'] .wa-chat-row:hover,
-        :root[data-theme='dark'] .wa-chat-row.active {
-          background: linear-gradient(135deg, rgba(38, 58, 79, .90), rgba(60, 47, 82, .88));
-        }
-
-        :root[data-theme='dark'] .wa-search {
-          background: rgba(28, 37, 49, .88);
-        }
-
-        :root[data-theme='dark'] .wa-filter-chip:not(.active) {
-          background: rgba(30, 40, 53, .86);
-        }
-
-
-
-        /* Navy-first Campora theme */
-        .wa-eyebrow {
-          color: #0B4F8A;
-        }
-
-        .wa-create-btn {
-          background: linear-gradient(135deg, #052F5F, #0B4F8A);
-          box-shadow: 0 12px 28px rgba(6, 54, 107, .18);
-        }
-
-        .wa-filter-chip.active {
-          background: linear-gradient(135deg, #052F5F, #0B4F8A);
-          border-color: transparent;
-          color: #fff;
-          box-shadow: 0 10px 24px rgba(6, 54, 107, .18);
-        }
-
-        .wa-chat-tag {
-          background: #E4EEF9;
-          color: #06366B;
-        }
-
-        .wa-unread {
-          background: #06366B;
-        }
-
-        .wa-chat-row::before {
-          background: linear-gradient(180deg, #0D5B9E, #06366B);
-        }
-
-        .wa-chat-row:hover {
-          background: linear-gradient(135deg, rgba(226,239,252,.96), rgba(244,248,252,.96));
-          border-color: rgba(6,54,107,.16);
-        }
-
-        .wa-chat-row.active {
-          background: linear-gradient(135deg, #DCEBFA, #EDF4FB);
-          border-color: rgba(6,54,107,.20);
-        }
-
-        .wa-send-btn {
-          background: linear-gradient(135deg, #052F5F, #0B4F8A);
-          box-shadow: 0 9px 22px rgba(6,54,107,.20);
-        }
-
-        @media (max-width: 760px) {
+        @media (max-width: 860px) {
           .wa-list-screen {
-            padding: 22px 14px 34px;
+            padding: 16px 14px 28px;
+          }
+
+          .wa-inbox-shell {
+            grid-template-columns: 1fr;
+            gap: 14px;
+            padding: 0 14px 14px;
+          }
+
+          .wa-folder-panel {
+            border: 1px solid #E5EAF2;
+          }
+
+          .wa-folder-list {
+            flex-direction: row;
+            overflow-x: auto;
+            padding-bottom: 3px;
+          }
+
+          .wa-folder-btn {
+            width: auto;
+            white-space: nowrap;
+            flex-shrink: 0;
+          }
+
+          .wa-folder-note {
+            display: none;
+          }
+        }
+
+        @media (max-width: 620px) {
+          .wa-page-topline {
+            padding-bottom: 10px;
+          }
+
+          .wa-page-title-wrap p {
+            display: none;
+          }
+
+          .wa-page-title-wrap h2 {
+            font-size: 20px;
           }
 
           .wa-list-hero {
             align-items: flex-start;
+            padding: 20px;
           }
 
-          .wa-list-hero h2 {
-            font-size: 32px;
+          .wa-list-hero-left {
+            align-items: flex-start;
+          }
+
+          .wa-list-hero p {
+            max-width: 360px;
           }
 
           .wa-create-btn span {
             display: none;
           }
 
-          .wa-chat-header {
-            padding: 10px 12px;
+          .wa-inbox-main {
+            padding: 18px 14px 22px;
           }
 
-          .wa-chat-history {
-            padding: 22px 12px;
+          .wa-chat-row {
+            grid-template-columns: 44px minmax(0,1fr) auto;
+            gap: 10px;
           }
 
-          .wa-composer {
-            padding: 10px 12px;
+          .wa-avatar {
+            width: 44px;
+            height: 44px;
           }
 
           .wa-message-bubble {
@@ -2415,132 +2803,281 @@ export default function Messages() {
 
       {!selected ? (
         <section className="wa-list-screen">
-          <div className="wa-list-hero">
-            <div>
-              <div className="wa-eyebrow">
-                <Sparkles size={13} />
-                Campora Connect
+          <div className="wa-top-overview">
+            <div className="wa-top-overview-main">
+              <div className="wa-top-overview-icon">
+                <MessageSquare size={22} strokeWidth={2.1} />
               </div>
-              <h2>Chats</h2>
-              <p>
-                Your direct messages, study groups, and private groups — all in one place.
-              </p>
-            </div>
 
-            <button
-              type="button"
-              className="wa-create-btn"
-              onClick={() => setShowCreateGroup(true)}
-            >
-              <Plus size={18} />
-              <span>New Group</span>
-            </button>
-          </div>
-
-          <div className="wa-filter-row">
-            {FOLDERS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={`wa-filter-chip ${folder === item.key ? 'active' : ''}`}
-                  onClick={() => setFolder(item.key)}
-                >
-                  <Icon size={14} />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="wa-search-wrap">
-            <div className="wa-search">
-              <Search size={18} />
-              <input
-                value={peopleSearch}
-                onChange={(event) => setPeopleSearch(event.target.value)}
-                placeholder="Search people or start a new chat..."
-              />
-            </div>
-
-            {(peopleSearching || peopleResults.length > 0) && (
-              <div className="wa-search-results">
-                {peopleSearching ? (
-                  <div className="central-list-empty">Searching...</div>
-                ) : (
-                  peopleResults.slice(0, 8).map((profile) => (
-                    <button
-                      key={profile.id}
-                      type="button"
-                      className="wa-search-person"
-                      onClick={() => openDm(profile.id, profile)}
-                    >
-                      <span
-                        className="wa-avatar"
-                        style={{
-                          width: '38px',
-                          height: '38px',
-                          borderRadius: '13px',
-                          background: avatarColor(profile.name || profile.email || ''),
-                        }}
-                      >
-                        {getInitials(profile.name || profile.email || 'Student')}
-                      </span>
-
-                      <span style={{ minWidth: 0 }}>
-                        <strong>
-                          {profile.name ||
-                            profile.full_name ||
-                            profile.email ||
-                            'Student'}
-                        </strong>
-                        {profile.email && (
-                          <div
-                            style={{
-                              marginTop: '2px',
-                              fontSize: '10px',
-                              color: 'var(--campora-muted)',
-                            }}
-                          >
-                            {profile.email}
-                          </div>
-                        )}
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="wa-chat-list">
-            {rows.length ? (
-              rows.map((row, index) =>
-                React.cloneElement(row, {
-                  key: row.key || index,
-                  __waStyle: true,
-                })
-              )
-            ) : (
-              <div className="wa-empty-list">
-                <div className="wa-empty-list-icon">
-                  <MessageSquare size={30} />
+              <div className="wa-top-overview-copy">
+                <div className="wa-top-title-line">
+                  <h2>Messages</h2>
+                  <span className="wa-top-divider">•</span>
+                  <h3>
+                    {FOLDERS.find((item) => item.key === folder)?.label ||
+                      'All Conversations'}
+                  </h3>
                 </div>
-                <strong>
+
+                <p>
                   {folder === 'groups'
-                    ? 'No groups yet'
+                    ? 'Your private message groups.'
+                    : folder === 'study-groups'
+                    ? 'Messages from the Study Groups you joined or created.'
+                    : folder === 'mentors'
+                    ? 'Connect with available mentors.'
                     : folder === 'drafts'
-                    ? 'No drafts yet'
-                    : 'No conversations yet'}
+                    ? 'Messages you started but have not sent yet.'
+                    : folder === 'inbox'
+                    ? 'Messages other Campora users sent to you.'
+                    : folder === 'sent'
+                    ? 'Messages you have sent.'
+                    : 'Direct messages, groups, drafts, mentors, and more — all in one place.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="wa-top-stats">
+            <div className="wa-top-stat-card">
+              <div className="wa-top-stat-icon">
+                <MessageSquare size={17} />
+              </div>
+
+              <div>
+                <strong>{conversations.length}</strong>
+                <span>Direct Messages</span>
+              </div>
+            </div>
+
+            <div className="wa-top-stat-card">
+              <div className="wa-top-stat-icon">
+                <Inbox size={17} />
+              </div>
+
+              <div>
+                <strong>{inboxRows.length}</strong>
+                <span>Inbox</span>
+              </div>
+            </div>
+
+            <div className="wa-top-stat-card">
+              <div className="wa-top-stat-icon">
+                <Users size={17} />
+              </div>
+
+              <div>
+                <strong>
+                  {customGroupConversations.length +
+                    studyGroupConversations.length}
                 </strong>
-                <span style={{ marginTop: '7px', fontSize: '12px' }}>
-                  {folder === 'groups'
-                    ? 'Create a private group or join a Study Group.'
-                    : 'Search for someone above to start chatting.'}
+                <span>Groups</span>
+              </div>
+            </div>
+
+            <div className="wa-top-stat-card">
+              <div className="wa-top-stat-icon">
+                <FileText size={17} />
+              </div>
+
+              <div>
+                <strong>{draftRows.length}</strong>
+                <span>Drafts</span>
+              </div>
+            </div>
+
+            <div className="wa-top-stat-card">
+              <div className="wa-top-stat-icon">
+                <UserRound size={17} />
+              </div>
+
+              <div>
+                <strong>{mentors.length}</strong>
+                <span>Mentors</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="wa-inbox-shell">
+            <aside className="wa-folder-panel">
+              <div className="wa-folder-heading">
+                <span>Mailbox</span>
+              </div>
+
+              <div className="wa-folder-list">
+                {FOLDERS.map((item) => {
+                  const Icon = item.icon;
+                  const active = folder === item.key;
+
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`wa-folder-btn ${active ? 'active' : ''}`}
+                      onClick={() => setFolder(item.key)}
+                    >
+                      <span className="wa-folder-icon">
+                        <Icon size={17} strokeWidth={2} />
+                      </span>
+
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="wa-sidebar-new-group"
+                onClick={() => setShowCreateGroup(true)}
+              >
+                <Plus size={16} />
+                <span>New Group</span>
+              </button>
+
+              <div className="wa-folder-note">
+                <Mail size={16} />
+                <span>
+                  All Campora conversations stay connected here.
                 </span>
               </div>
-            )}
+            </aside>
+
+            <div className="wa-inbox-main">
+              <div className="wa-section-label-row">
+                <span className="wa-section-label">
+                  {folder === 'all'
+                    ? 'Recent conversations'
+                    : FOLDERS.find((item) => item.key === folder)?.label ||
+                      'Conversations'}
+                </span>
+              </div>
+
+              <div className="wa-search-wrap">
+                <div className="wa-search">
+                  <Search size={18} />
+                  <input
+                    value={peopleSearch}
+                    onChange={(event) =>
+                      setPeopleSearch(event.target.value)
+                    }
+                    placeholder="Search people or start a new conversation..."
+                  />
+
+                  {peopleSearch && (
+                    <button
+                      type="button"
+                      className="wa-search-clear"
+                      onClick={() => setPeopleSearch('')}
+                      aria-label="Clear search"
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                </div>
+
+                {(peopleSearching || peopleResults.length > 0) && (
+                  <div className="wa-search-results">
+                    {peopleSearching ? (
+                      <div className="central-list-empty">
+                        Searching...
+                      </div>
+                    ) : (
+                      peopleResults.slice(0, 8).map((profile) => (
+                        <button
+                          key={profile.id}
+                          type="button"
+                          className="wa-search-person"
+                          onClick={() => openDm(profile.id, profile)}
+                        >
+                          <span
+                            className="wa-avatar"
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '13px',
+                              background: avatarColor(
+                                profile.name || profile.email || ''
+                              ),
+                            }}
+                          >
+                            {getInitials(
+                              profile.name ||
+                                profile.email ||
+                                'Student'
+                            )}
+                          </span>
+
+                          <span style={{ minWidth: 0 }}>
+                            <strong>
+                              {profile.name ||
+                                profile.full_name ||
+                                profile.email ||
+                                'Student'}
+                            </strong>
+
+                            {profile.email && (
+                              <div className="wa-search-person-email">
+                                {profile.email}
+                              </div>
+                            )}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="wa-chat-list">
+                {rows.length ? (
+                  rows.map((row, index) =>
+                    React.cloneElement(row, {
+                      key: row.key || index,
+                      __waStyle: true,
+                    })
+                  )
+                ) : (
+                  <div className="wa-empty-list">
+                    <div className="wa-empty-list-icon">
+                      {folder === 'groups' || folder === 'study-groups' ? (
+                        <Users size={28} />
+                      ) : folder === 'drafts' ? (
+                        <FileText size={28} />
+                      ) : folder === 'mentors' ? (
+                        <UserRound size={28} />
+                      ) : (
+                        <MessageSquare size={28} />
+                      )}
+                    </div>
+
+                    <strong>
+                      {folder === 'groups'
+                        ? 'No private groups yet'
+                        : folder === 'study-groups'
+                        ? 'No Study Group messages yet'
+                        : folder === 'drafts'
+                        ? 'No drafts yet'
+                        : folder === 'mentors'
+                        ? 'No mentors available yet'
+                        : 'No conversations yet'}
+                    </strong>
+
+                    <span>
+                      {folder === 'groups'
+                        ? 'Create a private message group with other Campora users.'
+                        : folder === 'study-groups'
+                        ? 'Join or create a Study Group to see its messages here.'
+                        : folder === 'drafts'
+                        ? 'Drafts will appear here automatically.'
+                        : folder === 'mentors'
+                        ? 'Approved mentors will appear here when available.'
+                        : 'Search for someone above to start chatting.'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </section>
       ) : (

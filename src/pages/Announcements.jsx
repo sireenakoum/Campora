@@ -28,10 +28,6 @@ import NewsCard from "../components/NewsCard";
 import EventCard from "../components/EventCard";
 import ResourceCard from "../components/ResourceCard";
 
-import PageShell, {
-  EmptyState,
-} from "../components/luminous";
-
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
   const [news, setNews] = useState([]);
@@ -219,9 +215,9 @@ export default function Announcements() {
     key: "announcements",
     label: "Announcements",
     icon: Megaphone,
-    color: "#D9896A",
-    softColor: "#FFF6F2",
-    borderColor: "#F3DDD4",
+    color: '#648CCB',
+    softColor: '#F3F7FD',
+    borderColor: '#DDE7F5',
     description:
       "Important notices and updates from your university.",
   },
@@ -229,9 +225,9 @@ export default function Announcements() {
     key: "news",
     label: "Campus News",
     icon: BookOpen,
-    color: "#648CCB",
-    softColor: "#F3F7FD",
-    borderColor: "#DDE7F5",
+    color: '#6F948B',
+    softColor: '#F1F7F5',
+    borderColor: '#D8E7E2',
     description:
       "The latest stories and updates from around campus.",
   },
@@ -239,9 +235,9 @@ export default function Announcements() {
     key: "events",
     label: "Events",
     icon: CalendarDays,
-    color: "#5E9A8B",
-    softColor: "#F2F9F7",
-    borderColor: "#D9EBE6",
+    color: '#C76E8A',
+    softColor: '#FFF3F7',
+    borderColor: '#F1D8E1',
     description:
       "Upcoming activities, sessions, and campus events.",
   },
@@ -249,9 +245,9 @@ export default function Announcements() {
     key: "resources",
     label: "Resources",
     icon: ExternalLink,
-    color: "#8B78B8",
-    softColor: "#F7F4FC",
-    borderColor: "#E7E0F2",
+    color: '#C6A15B',
+    softColor: '#FFF9EE',
+    borderColor: '#F0E2C1',
     description:
       "Helpful links and resources available to students.",
   },
@@ -287,16 +283,11 @@ export default function Announcements() {
 
   if (loading) {
     return (
-      <PageShell>
+      <div style={styles.page}>
         <div style={styles.loadingCard}>
-          <span
-            className="icon-chip tone-primary"
-          >
-            <Landmark
-              size={24}
-              strokeWidth={1.6}
-            />
-          </span>
+          <div style={styles.loadingIcon}>
+            <Landmark size={24} />
+          </div>
 
           <div>
             <div style={styles.loadingTitle}>
@@ -308,7 +299,7 @@ export default function Announcements() {
             </div>
           </div>
         </div>
-      </PageShell>
+      </div>
     );
   }
 
@@ -320,20 +311,11 @@ export default function Announcements() {
     !resources.length
   ) {
     return (
-      <PageShell>
+      <div style={styles.page}>
         <div style={styles.errorCard}>
-          <span
-            className="icon-chip tone-error"
-            style={{
-              width: "34px",
-              height: "34px",
-              borderRadius: "var(--radius-sm)",
-              fontWeight: "900",
-              fontSize: "14px",
-            }}
-          >
+          <div style={styles.errorIcon}>
             !
-          </span>
+          </div>
 
           <div>
             <div style={styles.errorTitle}>
@@ -345,79 +327,123 @@ export default function Announcements() {
             </div>
           </div>
         </div>
-      </PageShell>
+      </div>
     );
   }
 
   return (
-    <PageShell>
+    <div style={styles.page}>
       {/* =========================
-          CAMPUS HUB HEADER
+          NAVY CAMPUS HUB HEADER
       ========================= */}
 
-      <div style={styles.pageHeader}>
-        <div style={styles.pageHeaderMain}>
-          <div style={styles.pageHeaderIcon}>
-            <Landmark size={22} strokeWidth={2} />
+      <div style={styles.hero}>
+        <div
+          style={styles.heroGlowOne}
+        />
+
+        <div
+          style={styles.heroGlowTwo}
+        />
+
+        <div style={styles.heroContent}>
+          <div style={styles.heroLeft}>
+            <div style={styles.heroIcon}>
+              <Landmark
+                size={28}
+                strokeWidth={2.1}
+              />
+            </div>
+
+            <div>
+              <div
+                style={styles.heroEyebrow}
+              >
+                YOUR CAMPUS HUB
+              </div>
+
+              <h1 style={styles.heroTitle}>
+                Campus Hub
+              </h1>
+
+              <p
+                style={styles.heroSubtitle}
+              >
+                Everything happening around
+                campus, all in one place.
+              </p>
+            </div>
           </div>
 
-          <div style={{ minWidth: 0 }}>
-            <div style={styles.pageEyebrow}>CAMPUS HUB</div>
-            <h1 style={styles.pageTitle}>Stay connected to campus</h1>
-            <p style={styles.pageSubtitle}>
-              Announcements, news, events, and useful resources in one place.
-            </p>
+          <div style={styles.heroBadge}>
+            <Sparkles size={15} />
+            <span>Stay connected</span>
           </div>
         </div>
+      </div>
 
-        <div style={styles.overviewStats}>
-          {[
-            {
-              label: "Announcements",
-              value: announcements.length,
-              color: "#D9896A",
-              soft: "#FFF6F2"
-            },
-            {
-              label: "News",
-              value: news.length,
-              color: "#648CCB",
-              soft: "#F3F7FD"
-            },
-            {
-              label: "Events",
-              value: events.length,
-              color: "#5E9A8B",
-              soft: "#F2F9F7"
-            },
-            {
-              label: "Resources",
-              value: resources.length,
-              color: "#8B78B8",
-              soft: "#F7F4FC"
-            }
-          ].map((item) => (
-            <div
-              key={item.label}
+      {/* =========================
+          COMPACT OVERVIEW
+          New-version feature, old-version styling stays dominant
+      ========================= */}
+
+      <div style={styles.overviewStats}>
+        {[
+          {
+            label: "Announcements",
+            value: announcements.length,
+            color: "#648CCB",
+            soft: "#F3F7FD",
+            border: "#DDE7F5",
+          },
+          {
+            label: "Campus News",
+            value: news.length,
+            color: "#6F948B",
+            soft: "#F1F7F5",
+            border: "#D8E7E2",
+          },
+          {
+            label: "Events",
+            value: events.length,
+            color: "#C76E8A",
+            soft: "#FFF3F7",
+            border: "#F1D8E1",
+          },
+          {
+            label: "Resources",
+            value: resources.length,
+            color: "#C6A15B",
+            soft: "#FFF9EE",
+            border: "#F0E2C1",
+          },
+        ].map((item) => (
+          <div
+            key={item.label}
+            style={{
+              ...styles.overviewStat,
+              background: item.soft,
+              border: `1px solid ${item.border}`,
+            }}
+          >
+            <span
               style={{
-                ...styles.overviewStat,
-                background: item.soft,
-                borderColor: `${item.color}22`
+                ...styles.overviewDot,
+                background: item.color,
               }}
-            >
-              <span
-                style={{
-                  ...styles.overviewDot,
-                  background: item.color
-                }}
-              />
-              <div>
-                <div style={styles.overviewValue}>{item.value}</div>
-                <div style={styles.overviewLabel}>{item.label}</div>
+            />
+
+            <div>
+              <div style={styles.overviewValue}>
+                {item.value}
+              </div>
+
+              <div style={styles.overviewLabel}>
+                {item.label}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* =========================
@@ -470,61 +496,47 @@ export default function Announcements() {
         <div style={styles.tabsContainer}>
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
-            const isActive = activeTab === tab.key;
+
+            const isActive =
+              activeTab === tab.key;
 
             return (
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => handleTabChange(tab.key)}
+                onClick={() =>
+                  handleTabChange(tab.key)
+                }
                 style={{
-                  ...styles.tabCard,
-                  background: isActive ? tab.color : tab.softColor,
-                  borderColor: isActive ? tab.color : tab.borderColor,
+                  ...styles.tabButton,
+
+                  background: isActive
+                    ? tab.color
+                    : tab.softColor,
+
+                  color: isActive
+                    ? "#FFFFFF"
+                    : tab.color,
+
+                  border: `1px solid ${
+                    isActive
+                      ? tab.color
+                      : tab.borderColor
+                  }`,
+
                   boxShadow: isActive
-                    ? `0 8px 20px ${tab.color}30`
-                    : "0 5px 16px rgba(0,45,98,0.04)",
-                  transform: isActive ? "translateY(-1px)" : "none"
+                    ? `0 6px 16px ${tab.color}30`
+                    : "none",
                 }}
               >
-                <div
-                  style={{
-                    ...styles.tabAccent,
-                    background: isActive ? "rgba(255,255,255,0.86)" : tab.color,
-                    opacity: isActive ? 0.95 : 0.72
-                  }}
+                <TabIcon
+                  size={17}
+                  strokeWidth={2.2}
                 />
 
-                <div
-                  style={{
-                    ...styles.tabIcon,
-                    color: isActive ? "#FFFFFF" : tab.color,
-                    background: isActive ? "rgba(255,255,255,0.14)" : "#FFFFFF",
-                    borderColor: isActive ? "rgba(255,255,255,0.22)" : tab.borderColor
-                  }}
-                >
-                  <TabIcon size={18} strokeWidth={2.2} />
-                </div>
-
-                <div style={{ minWidth: 0, textAlign: "left" }}>
-                  <div
-                    style={{
-                      ...styles.tabLabel,
-                      color: isActive ? "#FFFFFF" : tab.color
-                    }}
-                  >
-                    {tab.label}
-                  </div>
-
-                  <div
-                    style={{
-                      ...styles.tabDescription,
-                      color: isActive ? "rgba(255,255,255,0.82)" : styles.tabDescription.color
-                    }}
-                  >
-                    {tab.description}
-                  </div>
-                </div>
+                <span>
+                  {tab.label}
+                </span>
               </button>
             );
           })}
@@ -576,7 +588,6 @@ export default function Announcements() {
           </div>
 
           <div
-            className="pill"
             style={{
               ...styles.countBadge,
 
@@ -685,10 +696,16 @@ export default function Announcements() {
             (announcements.length > 0 ? (
               announcements.map(
                 (item) => (
-                  <AnnouncementCard
+                  <CampusHubCardAccent
                     key={item.id}
-                    announcement={item}
-                  />
+                    color="#648CCB"
+                    soft="#F3F7FD"
+                    border="#DDE7F5"
+                  >
+                    <AnnouncementCard
+                      announcement={item}
+                    />
+                  </CampusHubCardAccent>
                 )
               )
             ) : (
@@ -696,38 +713,68 @@ export default function Announcements() {
                 icon={Megaphone}
                 title="No announcements found"
                 text="There aren't any announcements matching your search right now."
+                color={
+                  activeTabData.color
+                }
+                softColor={
+                  activeTabData.softColor
+                }
               />
             ))}
 
           {activeTab === "news" &&
             (news.length > 0 ? (
               news.map((item) => (
-                <NewsCard
+                <CampusHubCardAccent
                   key={item.id}
-                  news={item}
-                />
+                  color="#6F948B"
+                  soft="#F1F7F5"
+                  border="#D8E7E2"
+                >
+                  <NewsCard
+                    news={item}
+                  />
+                </CampusHubCardAccent>
               ))
             ) : (
               <EmptyState
                 icon={BookOpen}
                 title="No campus news found"
                 text="There aren't any news posts matching your search right now."
+                color={
+                  activeTabData.color
+                }
+                softColor={
+                  activeTabData.softColor
+                }
               />
             ))}
 
           {activeTab === "events" &&
             (events.length > 0 ? (
               events.map((item) => (
-                <EventCard
+                <CampusHubCardAccent
                   key={item.id}
-                  event={item}
-                />
+                  color="#C76E8A"
+                  soft="#FFF3F7"
+                  border="#F1D8E1"
+                >
+                  <EventCard
+                    event={item}
+                  />
+                </CampusHubCardAccent>
               ))
             ) : (
               <EmptyState
                 icon={CalendarDays}
                 title="No events found"
                 text="There aren't any upcoming events matching your search."
+                color={
+                  activeTabData.color
+                }
+                softColor={
+                  activeTabData.softColor
+                }
               />
             ))}
 
@@ -735,10 +782,16 @@ export default function Announcements() {
             (resources.length > 0 ? (
               resources.map(
                 (item) => (
-                  <ResourceCard
+                  <CampusHubCardAccent
                     key={item.id}
-                    resource={item}
-                  />
+                    color="#C6A15B"
+                    soft="#FFF9EE"
+                    border="#F0E2C1"
+                  >
+                    <ResourceCard
+                      resource={item}
+                    />
+                  </CampusHubCardAccent>
                 )
               )
             ) : (
@@ -746,82 +799,278 @@ export default function Announcements() {
                 icon={ExternalLink}
                 title="No resources found"
                 text="There aren't any resources matching your search right now."
+                color={
+                  activeTabData.color
+                }
+                softColor={
+                  activeTabData.softColor
+                }
               />
             ))}
         </div>
       </div>
-    </PageShell>
+    </div>
+  );
+}
+
+function CampusHubCardAccent({
+  children,
+  color,
+  soft,
+  border,
+}) {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        marginBottom: '14px',
+        borderRadius: '18px',
+        background: '#FFFFFF',
+        border: `1px solid ${border}`,
+        boxShadow: '0 7px 20px rgba(11,26,63,0.035)',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '4px',
+          background: color,
+          zIndex: 2,
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div
+        style={{
+          background: `linear-gradient(90deg, ${soft} 0%, #FFFFFF 18%)`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  text,
+  color,
+  softColor,
+}) {
+  return (
+    <div style={styles.emptyState}>
+      <div
+        style={{
+          ...styles.emptyIcon,
+          color,
+          background: softColor,
+        }}
+      >
+        <Icon
+          size={25}
+          strokeWidth={1.9}
+        />
+      </div>
+
+      <h3 style={styles.emptyTitle}>
+        {title}
+      </h3>
+
+      <p style={styles.emptyText}>
+        {text}
+      </p>
+    </div>
   );
 }
 
 const styles = {
+  page: {
+    width: "100%",
+    padding: "8px 0 40px",
+    boxSizing: "border-box",
+  },
+
   /* =========================
-     CAMPUS HUB HEADER
+     CAMPUS HUB - NAVY ONLY
   ========================= */
 
-  pageHeader: {
+  hero: {
+    position: "relative",
+    overflow: "hidden",
+
     width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: "18px",
-    padding: "22px",
+    minHeight: "150px",
+
+    borderRadius: "22px",
+
+    padding: "26px 29px",
+    marginBottom: "22px",
+
     boxSizing: "border-box",
-    borderRadius: "var(--radius-secondary)",
+
     background:
-      "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(244,247,252,0.94))",
-    border: "1px solid rgba(0,45,98,0.08)",
-    boxShadow: "0 10px 28px rgba(0,45,98,0.06)",
+      "linear-gradient(135deg, #08152F 0%, #0B1A3F 52%, #142B5A 100%)",
+
+    boxShadow:
+      "0 15px 35px rgba(11, 26, 63, 0.16)",
   },
 
-  pageHeaderMain: {
+  heroGlowOne: {
+    position: "absolute",
+
+    width: "260px",
+    height: "260px",
+
+    borderRadius: "50%",
+
+    background:
+      "radial-gradient(circle, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0) 70%)",
+
+    right: "90px",
+    top: "-165px",
+
+    pointerEvents: "none",
+  },
+
+  heroGlowTwo: {
+    position: "absolute",
+
+    width: "210px",
+    height: "210px",
+
+    borderRadius: "50%",
+
+    background:
+      "radial-gradient(circle, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 70%)",
+
+    right: "-45px",
+    bottom: "-125px",
+
+    pointerEvents: "none",
+  },
+
+  heroContent: {
+    position: "relative",
+    zIndex: 2,
+
+    minHeight: "98px",
+
+    display: "flex",
+    justifyContent:
+      "space-between",
+    alignItems: "center",
+
+    gap: "20px",
+  },
+
+  heroLeft: {
     display: "flex",
     alignItems: "center",
-    gap: "14px",
+    gap: "17px",
+    minWidth: 0,
   },
 
-  pageHeaderIcon: {
-    width: "46px",
-    height: "46px",
+  heroIcon: {
+    width: "58px",
+    height: "58px",
+
     flexShrink: 0,
-    borderRadius: "15px",
+
+    borderRadius: "17px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: "var(--campora-navy)",
-    background: "rgba(216,226,255,0.62)",
-    border: "1px solid rgba(0,45,98,0.08)",
-    boxShadow: "0 6px 16px rgba(0,45,98,0.06)",
+
+    color: "#FFFFFF",
+
+    background:
+      "rgba(255,255,255,0.11)",
+
+    border:
+      "1px solid rgba(255,255,255,0.18)",
+
+    boxShadow:
+      "0 8px 22px rgba(0,0,0,0.12)",
+
+    backdropFilter:
+      "blur(10px)",
+
+    WebkitBackdropFilter:
+      "blur(10px)",
   },
 
-  pageEyebrow: {
-    marginBottom: "3px",
-    color: "var(--campora-navy)",
-    fontSize: "10px",
-    fontWeight: "900",
-    letterSpacing: "0.12em",
-  },
+  heroEyebrow: {
+    color: "#AFC6F2",
 
-  pageTitle: {
-    margin: 0,
-    color: "var(--campora-text)",
-    fontSize: "24px",
-    lineHeight: 1.15,
+    fontSize: "10.5px",
     fontWeight: "800",
-    letterSpacing: "-0.4px",
+
+    letterSpacing: "1.6px",
+
+    marginBottom: "5px",
   },
 
-  pageSubtitle: {
-    margin: "5px 0 0",
-    color: "var(--campora-muted)",
-    fontSize: "13px",
+  heroTitle: {
+    margin: 0,
+
+    color: "#FFFFFF",
+
+    fontSize: "31px",
+    lineHeight: 1.1,
+
+    fontWeight: "900",
+
+    letterSpacing: "-0.7px",
+  },
+
+  heroSubtitle: {
+    margin: "7px 0 0",
+
+    color:
+      "rgba(255,255,255,0.76)",
+
+    fontSize: "14px",
     lineHeight: 1.5,
+
     fontWeight: "500",
+  },
+
+  heroBadge: {
+    display: "flex",
+
+    alignItems: "center",
+
+    gap: "7px",
+
+    padding: "9px 14px",
+
+    borderRadius: "999px",
+
+    color: "#FFFFFF",
+
+    background:
+      "rgba(255,255,255,0.10)",
+
+    border:
+      "1px solid rgba(255,255,255,0.16)",
+
+    fontSize: "12px",
+    fontWeight: "700",
+
+    whiteSpace: "nowrap",
   },
 
   overviewStats: {
     display: "grid",
     gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
     gap: "10px",
+    marginBottom: "20px",
   },
 
   overviewStat: {
@@ -831,7 +1080,7 @@ const styles = {
     gap: "9px",
     padding: "11px 12px",
     borderRadius: "14px",
-    border: "1px solid",
+    boxShadow: "0 4px 14px rgba(11,26,63,0.025)",
   },
 
   overviewDot: {
@@ -842,7 +1091,7 @@ const styles = {
   },
 
   overviewValue: {
-    color: "var(--campora-text)",
+    color: "#0B1A3F",
     fontSize: "14px",
     fontWeight: "900",
     lineHeight: 1.1,
@@ -850,7 +1099,7 @@ const styles = {
 
   overviewLabel: {
     marginTop: "2px",
-    color: "var(--campora-muted)",
+    color: "#8490A3",
     fontSize: "10px",
     fontWeight: "700",
     whiteSpace: "nowrap",
@@ -871,15 +1120,18 @@ const styles = {
 
     padding: "18px 20px",
 
-    borderRadius: "var(--radius-secondary)",
+    borderRadius: "17px",
 
     background:
-      "linear-gradient(135deg, var(--campora-navy-tint-alpha), var(--surface-container-low))",
+      "linear-gradient(135deg, #FFF7ED, #FFFBF5)",
 
     border:
-      "1px solid var(--hairline)",
+      '1px solid #DDE7F5',
 
-    boxShadow: "var(--shadow-soft)",
+    boxShadow:
+      "0 6px 18px rgba(124,45,18,0.05)",
+
+    marginBottom: "20px",
   },
 
   pinnedIconWrap: {
@@ -888,15 +1140,15 @@ const styles = {
 
     flexShrink: 0,
 
-    borderRadius: "var(--radius-sm)",
+    borderRadius: "11px",
 
     display: "flex",
 
     alignItems: "center",
     justifyContent: "center",
 
-    background: "var(--campora-navy-tint)",
-    color: "var(--campora-navy)",
+    background: '#F3F7FD',
+    color: '#648CCB',
   },
 
   pinnedContent: {
@@ -904,7 +1156,7 @@ const styles = {
   },
 
   pinnedLabel: {
-    color: "var(--campora-navy)",
+    color: '#648CCB',
 
     fontSize: "10px",
     fontWeight: "900",
@@ -915,7 +1167,7 @@ const styles = {
   },
 
   pinnedTitle: {
-    color: "var(--campora-text)",
+    color: "#431407",
 
     fontSize: "16px",
     fontWeight: "800",
@@ -924,7 +1176,7 @@ const styles = {
   },
 
   pinnedText: {
-    color: "var(--campora-body)",
+    color: "#7C2D12",
 
     fontSize: "13px",
     lineHeight: 1.55,
@@ -938,95 +1190,57 @@ const styles = {
 
   mainCard: {
     width: "100%",
-
-    background: "var(--surface-container-lowest)",
-
-    border:
-      "1px solid var(--divider)",
-
-    borderRadius: "var(--radius-secondary)",
-
-    boxShadow: "var(--shadow-soft)",
-
-    overflow: "hidden",
-
+    background: "transparent",
+    border: "none",
+    borderRadius: 0,
+    boxShadow: "none",
+    overflow: "visible",
     boxSizing: "border-box",
   },
 
   /* =========================
-     CAMPUS HUB CATEGORY CARDS
+     COLORFUL TABS
   ========================= */
 
   tabsContainer: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: "12px",
-    padding: "18px 18px 20px",
-    background: "transparent",
-    borderBottom: "1px solid var(--divider)",
-  },
-
-  tabCard: {
-    position: "relative",
-    minHeight: "126px",
-    overflow: "hidden",
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "11px",
-    padding: "20px 16px 16px",
-    border: "1px solid",
-    borderRadius: "18px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    transition:
-      "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
-  },
-
-  tabAccent: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    height: "5px",
-  },
-
-  activePill: {
-    position: "absolute",
-    right: "10px",
-    top: "11px",
-    padding: "3px 7px",
-    borderRadius: "999px",
-    background: "rgba(255,255,255,0.82)",
-    border: "1px solid",
-    fontSize: "8.5px",
-    fontWeight: "900",
-    letterSpacing: "0.04em",
-    textTransform: "uppercase",
-  },
-
-  tabIcon: {
-    width: "34px",
-    height: "34px",
-    flexShrink: 0,
-    borderRadius: "11px",
     display: "flex",
     alignItems: "center",
+    gap: "9px",
+    padding: "14px",
+    overflowX: "auto",
+    background: "#FFFFFF",
+    border: "1px solid #E5EAF2",
+    borderRadius: "18px",
+    boxShadow: "0 7px 20px rgba(11,26,63,0.035)",
+    marginBottom: "14px",
+  },
+
+  tabButton: {
+    border: "none",
+    outline: "none",
+
+    padding: "10px 15px",
+
+    borderRadius: "12px",
+
+    display: "flex",
+
+    alignItems: "center",
     justifyContent: "center",
-    border: "1px solid rgba(0,0,0,0.04)",
-  },
 
-  tabLabel: {
+    gap: "7px",
+
+    fontFamily: "inherit",
+
     fontSize: "13px",
-    fontWeight: "850",
-    lineHeight: 1.25,
-    marginBottom: "4px",
-  },
+    fontWeight: "750",
 
-  tabDescription: {
-    color: "var(--campora-muted)",
-    fontSize: "10.5px",
-    fontWeight: "600",
-    lineHeight: 1.4,
+    cursor: "pointer",
+
+    whiteSpace: "nowrap",
+
+    transition:
+      "all 0.18s ease",
   },
 
   /* =========================
@@ -1035,16 +1249,15 @@ const styles = {
 
   sectionHeadingRow: {
     display: "flex",
-
-    justifyContent:
-      "space-between",
-
+    justifyContent: "space-between",
     alignItems: "flex-start",
-
     gap: "20px",
-
-    padding:
-      "24px 25px 18px",
+    padding: "20px 22px",
+    background: "#FFFFFF",
+    border: "1px solid #E5EAF2",
+    borderRadius: "18px",
+    boxShadow: "0 7px 20px rgba(11,26,63,0.035)",
+    marginBottom: "12px",
   },
 
   sectionTitleRow: {
@@ -1059,7 +1272,7 @@ const styles = {
     width: "35px",
     height: "35px",
 
-    borderRadius: "var(--radius-sm)",
+    borderRadius: "10px",
 
     display: "flex",
 
@@ -1070,7 +1283,7 @@ const styles = {
   sectionTitle: {
     margin: 0,
 
-    color: "var(--campora-text)",
+    color: "#0B1A3F",
 
     fontSize: "19px",
 
@@ -1081,7 +1294,7 @@ const styles = {
   },
 
   sectionSubtitle: {
-    color: "var(--campora-muted)",
+    color: "#8490A3",
 
     fontSize: "12.5px",
 
@@ -1093,6 +1306,8 @@ const styles = {
 
   countBadge: {
     padding: "7px 11px",
+
+    borderRadius: "999px",
 
     fontSize: "11px",
 
@@ -1107,13 +1322,14 @@ const styles = {
 
   controls: {
     display: "grid",
-
     gap: "11px",
-
     alignItems: "center",
-
-    padding:
-      "0 25px 22px",
+    padding: "14px",
+    background: "#FFFFFF",
+    border: "1px solid #E5EAF2",
+    borderRadius: "18px",
+    boxShadow: "0 7px 20px rgba(11,26,63,0.035)",
+    marginBottom: "16px",
   },
 
   searchWrap: {
@@ -1125,12 +1341,12 @@ const styles = {
 
     alignItems: "center",
 
-    background: "var(--surface-container-lowest)",
+    background: "#FFFFFF",
 
     border:
-      "1px solid var(--divider)",
+      "1px solid #E2E8F0",
 
-    borderRadius: "var(--radius-sm)",
+    borderRadius: "12px",
 
     boxSizing: "border-box",
   },
@@ -1140,7 +1356,7 @@ const styles = {
 
     left: "13px",
 
-    color: "var(--campora-muted)",
+    color: "#94A3B8",
 
     pointerEvents: "none",
   },
@@ -1158,7 +1374,7 @@ const styles = {
     padding:
       "0 14px 0 41px",
 
-    color: "var(--campora-text)",
+    color: "#0F172A",
 
     fontFamily: "inherit",
 
@@ -1174,12 +1390,12 @@ const styles = {
 
     position: "relative",
 
-    background: "var(--surface-container-lowest)",
+    background: "#FFFFFF",
 
     border:
-      "1px solid var(--divider)",
+      "1px solid #E2E8F0",
 
-    borderRadius: "var(--radius-sm)",
+    borderRadius: "12px",
   },
 
   select: {
@@ -1194,7 +1410,7 @@ const styles = {
 
     background: "transparent",
 
-    color: "var(--campora-body)",
+    color: "#334155",
 
     padding:
       "0 38px 0 13px",
@@ -1218,7 +1434,7 @@ const styles = {
     transform:
       "translateY(-50%)",
 
-    color: "var(--campora-muted)",
+    color: "#94A3B8",
 
     pointerEvents: "none",
   },
@@ -1239,18 +1455,82 @@ const styles = {
     padding:
       "10px 12px",
 
-    borderRadius: "var(--radius-sm)",
+    borderRadius: "10px",
 
-    background: "var(--tone-error-soft)",
+    background: "#FEF2F2",
 
-    color: "var(--tone-error)",
+    color: "#B91C1C",
 
     border:
-      "1px solid var(--tone-error-soft)",
+      "1px solid #FECACA",
 
     fontSize: "12px",
 
     fontWeight: "600",
+  },
+
+  /* =========================
+     EMPTY STATE
+  ========================= */
+
+  emptyState: {
+    minHeight: "220px",
+
+    borderRadius: "16px",
+
+    border:
+      "1px dashed #CBD5E1",
+
+    background: "#FAFCFF",
+
+    display: "flex",
+
+    flexDirection: "column",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    padding: "30px",
+
+    textAlign: "center",
+  },
+
+  emptyIcon: {
+    width: "50px",
+    height: "50px",
+
+    borderRadius: "15px",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    marginBottom: "12px",
+  },
+
+  emptyTitle: {
+    margin: 0,
+
+    color: "#172554",
+
+    fontSize: "15px",
+
+    fontWeight: "800",
+  },
+
+  emptyText: {
+    maxWidth: "370px",
+
+    margin:
+      "6px 0 0",
+
+    color: "#94A3B8",
+
+    fontSize: "12px",
+
+    lineHeight: 1.55,
   },
 
   /* =========================
@@ -1268,18 +1548,35 @@ const styles = {
 
     padding: "24px",
 
-    borderRadius: "var(--radius-secondary)",
+    borderRadius: "18px",
 
-    background: "var(--surface-container-lowest)",
+    background: "#FFFFFF",
 
     border:
-      "1px solid var(--divider)",
+      "1px solid #E5E7EB",
 
-    boxShadow: "var(--shadow-soft)",
+    boxShadow:
+      "0 8px 25px rgba(15,23,42,0.06)",
+  },
+
+  loadingIcon: {
+    width: "46px",
+    height: "46px",
+
+    borderRadius: "14px",
+
+    background: "#EEF3FB",
+
+    color: "#0B1A3F",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   loadingTitle: {
-    color: "var(--campora-text)",
+    color: "#0B1A3F",
 
     fontSize: "15px",
 
@@ -1287,7 +1584,7 @@ const styles = {
   },
 
   loadingText: {
-    color: "var(--campora-muted)",
+    color: "#94A3B8",
 
     fontSize: "12px",
 
@@ -1303,20 +1600,38 @@ const styles = {
 
     gap: "13px",
 
-    alignItems: "center",
-
     padding: "20px",
 
-    borderRadius: "var(--radius-secondary)",
+    borderRadius: "16px",
 
-    background: "var(--tone-error-soft)",
+    background: "#FFF7F7",
 
     border:
-      "1px solid var(--tone-error-soft)",
+      "1px solid #FECACA",
+  },
+
+  errorIcon: {
+    width: "34px",
+    height: "34px",
+
+    flexShrink: 0,
+
+    borderRadius: "10px",
+
+    background: "#FEE2E2",
+
+    color: "#B91C1C",
+
+    display: "flex",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    fontWeight: "900",
   },
 
   errorTitle: {
-    color: "var(--tone-error)",
+    color: "#991B1B",
 
     fontWeight: "800",
 
@@ -1324,7 +1639,7 @@ const styles = {
   },
 
   errorText: {
-    color: "var(--tone-error)",
+    color: "#B91C1C",
 
     fontSize: "12px",
 

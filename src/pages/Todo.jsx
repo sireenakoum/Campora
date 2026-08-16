@@ -27,11 +27,20 @@ import {
   deleteTodo,
 } from '../lib/queries';
 
-import PageShell, {
+import {
   SectionHeader,
-  StatTile,
-  EmptyState,
 } from '../components/luminous';
+
+const todoPageShellStyle = {
+  width: '100%',
+  minHeight: '100%',
+  boxSizing: 'border-box',
+  background: 'transparent',
+  padding: '8px 4px 28px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '22px',
+};
 
 const NAVY = 'var(--campora-navy)';
 
@@ -588,7 +597,7 @@ const priorityGroups = useMemo(() => {
 }, [activeTasks]);
 
 return (
- <PageShell>
+ <div style={todoPageShellStyle}>
 
  {/* HEADER */}
 
@@ -613,26 +622,32 @@ return (
 
  {/* SUMMARY */}
 
- <div className="grid-3">
-  <StatTile
+ <div className="grid-3" style={{ gap: '16px' }}>
+  <SummaryStat
    icon={ListTodo}
-   title={String(tasks.length)}
-   desc="Total Tasks"
-   tone="secondary"
+   value={tasks.length}
+   label="Total Tasks"
+   accent="#6684AE"
+   soft="#F1F5FA"
+   border="#D9E2ED"
   />
 
-  <StatTile
+  <SummaryStat
    icon={Target}
-   title={String(remainingCount)}
-   desc="Remaining"
-   tone="primary"
+   value={remainingCount}
+   label="Remaining"
+   accent="#7F7897"
+   soft="#F4F2F8"
+   border="#E4DFEC"
   />
 
-  <StatTile
+  <SummaryStat
    icon={Trophy}
-   title={String(completedCount)}
-   desc="Completed"
-   tone="success"
+   value={completedCount}
+   label="Completed"
+   accent="#6F948B"
+   soft="#F1F7F5"
+   border="#D8E7E2"
   />
  </div>
 
@@ -779,16 +794,35 @@ return (
 
  {/* YOUR TASKS */}
 
- <div className="panel" style={{ boxShadow: 'var(--shadow-soft)' }}>
+ <div
+   className="panel"
+   style={{
+    background: '#FFFFFF',
+    border: '1px solid #E5EAF2',
+    borderRadius: '20px',
+    boxShadow: '0 8px 22px rgba(11,26,63,0.04)',
+   }}
+  >
   <SectionHeader
    title="Your Tasks"
    subtitle="Keep track of what matters most."
    action={
     <span
-     className="pill"
      style={{
-      background: 'var(--campora-navy-tint)',
-      color: 'var(--campora-navy)',
+      minWidth: '64px',
+      height: '32px',
+      padding: '0 12px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '999px',
+      background: '#FFFFFF',
+      color: '#0B1A3F',
+      border: '1px solid #D8E0EB',
+      boxShadow: '0 3px 9px rgba(11, 26, 63, 0.05)',
+      fontSize: '11px',
+      fontWeight: '900',
+      whiteSpace: 'nowrap',
      }}
     >
      {remainingCount} left
@@ -797,11 +831,56 @@ return (
   />
 
   {activeTasks.length === 0 ? (
-   <EmptyState
-    icon={CheckCircle2}
-    title="Your list is clear"
-    text="Add a task when you have something to get done."
-   />
+   <div
+    style={{
+     minHeight: '210px',
+     display: 'flex',
+     flexDirection: 'column',
+     alignItems: 'center',
+     justifyContent: 'center',
+     textAlign: 'center',
+     padding: '28px 20px',
+    }}
+   >
+    <div
+     style={{
+      width: '58px',
+      height: '58px',
+      borderRadius: '50%',
+      background: '#FFFFFF',
+      border: '1px solid #E2E7EF',
+      boxShadow: '0 5px 14px rgba(11,26,63,0.05)',
+      color: '#0B1A3F',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '14px',
+     }}
+    >
+     <CheckCircle2 size={27} strokeWidth={2} />
+    </div>
+
+    <div
+     style={{
+      color: '#0B1A3F',
+      fontSize: '16px',
+      fontWeight: '900',
+     }}
+    >
+     Your list is clear
+    </div>
+
+    <div
+     style={{
+      marginTop: '6px',
+      color: '#8B97AD',
+      fontSize: '11px',
+      fontWeight: '700',
+     }}
+    >
+     Add a task when you have something to get done.
+    </div>
+   </div>
   ) : (
    <div
     style={{
@@ -849,7 +928,15 @@ return (
  {/* COMPLETED */}
 
  {completedTasks.length > 0 && (
-  <div className="panel" style={{ boxShadow: 'var(--shadow-soft)' }}>
+  <div
+    className="panel"
+    style={{
+     background: '#FFFFFF',
+     border: '1px solid #E5EAF2',
+     borderRadius: '20px',
+     boxShadow: '0 8px 22px rgba(11,26,63,0.04)',
+    }}
+   >
    <div
     style={{
      display: 'flex',
@@ -1371,8 +1458,74 @@ return (
    </div>
   </div>
  )}
- </PageShell>
+ </div>
 );
+}
+
+function SummaryStat({
+ icon: Icon,
+ value,
+ label,
+ accent,
+ soft,
+ border,
+}) {
+ return (
+  <div
+   style={{
+    minHeight: '92px',
+    padding: '17px 18px',
+    borderRadius: '18px',
+    background: soft,
+    border: `1px solid ${border}`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+    boxShadow: '0 6px 18px rgba(11,26,63,0.03)',
+   }}
+  >
+   <div
+    style={{
+     width: '42px',
+     height: '42px',
+     borderRadius: '13px',
+     background: '#FFFFFF',
+     border: `1px solid ${border}`,
+     color: accent,
+     display: 'flex',
+     alignItems: 'center',
+     justifyContent: 'center',
+     flexShrink: 0,
+    }}
+   >
+    <Icon size={20} strokeWidth={2} />
+   </div>
+
+   <div>
+    <div
+     style={{
+      color: '#0B1A3F',
+      fontSize: '23px',
+      lineHeight: 1,
+      fontWeight: '950',
+     }}
+    >
+     {value}
+    </div>
+
+    <div
+     style={{
+      marginTop: '6px',
+      color: accent,
+      fontSize: '10px',
+      fontWeight: '900',
+     }}
+    >
+     {label}
+    </div>
+   </div>
+  </div>
+ );
 }
 
 function PriorityOverviewCard({ priority, count }) {
@@ -1384,8 +1537,9 @@ function PriorityOverviewCard({ priority, count }) {
       style={{
        background: config.background,
        border: `1px solid ${config.border}`,
-       borderRadius: 'var(--radius-secondary)',
-       padding: '14px 16px',
+       borderRadius: '16px',
+       padding: '16px 18px',
+       boxShadow: '0 5px 14px rgba(11,26,63,0.025)',
        display: 'flex',
        alignItems: 'center',
        justifyContent: 'space-between',

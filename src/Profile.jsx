@@ -32,7 +32,7 @@ const PROFILE_CSS = `
   .profile-identity { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
   .profile-avatar-wrap { position: relative; width: 128px; height: 128px; margin-bottom: 8px; }
   .profile-avatar-wrap:hover .profile-avatar { transform: scale(1.045); }
-  .profile-avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; box-shadow: var(--shadow-soft); background: var(--surface-container-high); transition: transform 0.25s ease; }
+  .profile-avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; box-shadow: var(--shadow-soft); background: #F7F9FC; transition: transform 0.25s ease; }
   .profile-avatar-placeholder { display: flex; align-items: center; justify-content: center; font-size: 46px; font-weight: 800; color: var(--campora-navy); }
   .profile-avatar-edit { position: absolute; right: 3px; bottom: 3px; width: 38px; height: 38px; border: none; border-radius: 50%; background: var(--campora-navy-solid); color: var(--on-primary); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 45, 98, 0.3); transition: transform 0.2s ease; }
   .profile-avatar-edit:hover { transform: scale(1.08); }
@@ -40,10 +40,10 @@ const PROFILE_CSS = `
   .profile-name { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; color: var(--campora-text); }
   .profile-degree { margin: 0; font-size: 16px; font-weight: 500; color: var(--campora-muted); }
   .profile-chip-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
-  .profile-chip-neutral { background: var(--surface-container-high); color: var(--campora-body); }
-  .profile-chip-active { background: var(--tone-success-soft); color: var(--tone-success); }
+  .profile-chip-neutral { background: #F7F9FC; color: var(--campora-body); }
+  .profile-chip-active { background: #EAF4EF; color: #3F7668; }
 
-  .profile-onboard-card { display: flex; flex-direction: column; background: var(--surface-container-low); border-radius: var(--radius); padding: 8px; }
+  .profile-onboard-card { display: flex; flex-direction: column; background: #FBFCFE; border: 1px solid #EEF1F5; border-radius: var(--radius); padding: 8px; }
   .profile-onboard-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px; border: none; background: transparent; text-align: left; cursor: pointer; color: inherit; font: inherit; border-radius: 16px; transition: background 0.2s ease; }
   .profile-onboard-row + .profile-onboard-row { border-top: 1px solid var(--hairline); }
   .profile-onboard-row:hover { background: var(--surface-container-high); }
@@ -52,9 +52,9 @@ const PROFILE_CSS = `
   .profile-onboard-desc { font-size: 13px; font-weight: 500; color: var(--campora-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .profile-onboard-chevron { color: var(--campora-muted); flex-shrink: 0; transition: color 0.2s ease; }
   .profile-onboard-row:hover .profile-onboard-chevron { color: var(--campora-navy); }
-  .profile-pill-done { background: var(--tone-success-soft); color: var(--tone-success); white-space: nowrap; }
+  .profile-pill-done { background: #EAF4EF; color: #3F7668; white-space: nowrap; }
 
-  .profile-details-card { display: flex; flex-direction: column; gap: 20px; background: var(--surface-container-low); border-radius: var(--radius); padding: 20px; }
+  .profile-details-card { display: flex; flex-direction: column; gap: 20px; background: #FBFCFE; border: 1px solid #EEF1F5; border-radius: var(--radius); padding: 20px; }
   .profile-details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
   .profile-detail-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .profile-detail-value { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--radius-sm); background: var(--surface-container-lowest); border: 1px solid var(--hairline); color: var(--campora-text); font-size: 14px; font-weight: 600; }
@@ -79,6 +79,15 @@ const PROFILE_CSS = `
   .profile-schedule-upload-meta { font-size: 12px; color: var(--campora-muted); }
   .profile-schedule-remove { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: none; border-radius: 6px; background: transparent; color: var(--campora-urgent); font-size: 12px; font-weight: 700; cursor: pointer; }
   .profile-schedule-remove:hover { background: var(--tone-error-soft); }
+
+  .profile-schedule-option { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 10px; padding: 12px 14px; border: 1px solid #E5EAF2; border-radius: 12px; background: #FFFFFF; }
+  .profile-schedule-option-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .profile-schedule-option-title { color: #0B1A3F; font-size: 12px; font-weight: 900; }
+  .profile-schedule-option-desc { color: var(--campora-muted); font-size: 10px; font-weight: 700; line-height: 1.4; }
+  .profile-schedule-toggle { appearance: none; width: 42px; height: 24px; flex-shrink: 0; border-radius: 999px; background: #DCE2EA; position: relative; cursor: pointer; transition: background .18s ease; }
+  .profile-schedule-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 2px 6px rgba(11,26,63,.16); transition: transform .18s ease; }
+  .profile-schedule-toggle:checked { background: #0B1A3F; }
+  .profile-schedule-toggle:checked::after { transform: translateX(18px); }
 
   .profile-signout-wrap { display: flex; justify-content: center; margin-top: 24px; }
   .profile-loading { display: flex; justify-content: center; align-items: center; min-height: 200px; font-size: 16px; font-weight: 600; color: var(--campora-muted); }
@@ -124,6 +133,7 @@ export default function Profile() {
   const [scheduleFile, setScheduleFile] = useState(null);
   const [schedulePreview, setSchedulePreview] = useState(null);
   const [scheduleDragging, setScheduleDragging] = useState(false);
+  const [addScheduleToPlanner, setAddScheduleToPlanner] = useState(true);
 
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -167,6 +177,12 @@ export default function Profile() {
           setFullName(data.name || '');
           setAvatarUrl(data.avatar_url || '');
           setSavedAvatarUrl(data.avatar_url || '');
+
+          if (data.avatar_url) {
+            localStorage.setItem('campora_avatar_url', data.avatar_url);
+          } else {
+            localStorage.removeItem('campora_avatar_url');
+          }
           setAccountType(data.account_type || 'Student');
           setMajor(data.major || '');
           setYear(data.year || '');
@@ -264,6 +280,7 @@ export default function Profile() {
     e?.stopPropagation?.();
     setScheduleFile(null);
     setSchedulePreview(null);
+    setAddScheduleToPlanner(true);
     setError(null);
   };
 
@@ -473,6 +490,24 @@ export default function Profile() {
         setFullName(updatedProfile.name || '');
         setAvatarUrl(updatedProfile.avatar_url || '');
         setSavedAvatarUrl(updatedProfile.avatar_url || '');
+
+        if (updatedProfile.avatar_url) {
+          localStorage.setItem(
+            'campora_avatar_url',
+            updatedProfile.avatar_url
+          );
+        } else {
+          localStorage.removeItem('campora_avatar_url');
+        }
+
+        window.dispatchEvent(
+          new CustomEvent('campora-avatar-updated', {
+            detail: {
+              avatarUrl: updatedProfile.avatar_url || '',
+              name: updatedProfile.name || cleanedName,
+            },
+          })
+        );
         setAccountType(updatedProfile.account_type || 'Student');
         setMajor(updatedProfile.major || '');
         setYear(updatedProfile.year || '');
@@ -493,8 +528,8 @@ export default function Profile() {
 
       setAvatarFile(null);
 
-      // Add uploaded class schedule to the Planner
-      if (scheduleFile) {
+      // Add uploaded class schedule to the Planner only when selected
+      if (scheduleFile && addScheduleToPlanner) {
         const events = await parseScheduleFile(scheduleFile);
         const rows = expandScheduleEvents(events);
 
@@ -511,6 +546,7 @@ export default function Profile() {
 
         setScheduleFile(null);
         setSchedulePreview(null);
+        setAddScheduleToPlanner(true);
       }
 
       setMessage('Profile updated successfully!');
@@ -831,8 +867,7 @@ export default function Profile() {
                         {schedulePreview.events}{' '}
                         event{schedulePreview.events === 1 ? '' : 's'} →{' '}
                         {schedulePreview.entries}{' '}
-                        Planner entr{schedulePreview.entries === 1 ? 'y' : 'ies'}{' '}
-                        on save
+                        Planner entr{schedulePreview.entries === 1 ? 'y' : 'ies'}
                       </span>
                       <button
                         type="button"
@@ -846,8 +881,7 @@ export default function Profile() {
                     <>
                       <Upload size={20} />
                       <span>
-                        Upload a .pdf, .ics or .csv schedule — it will be added to
-                        your Planner automatically
+                        Upload a .pdf, .ics or .csv class schedule
                       </span>
                     </>
                   )}
@@ -863,6 +897,28 @@ export default function Profile() {
                     e.target.value = '';
                   }}
                 />
+                {scheduleFile && schedulePreview && (
+                  <label className="profile-schedule-option">
+                    <span className="profile-schedule-option-copy">
+                      <span className="profile-schedule-option-title">
+                        Add this schedule to Planner
+                      </span>
+                      <span className="profile-schedule-option-desc">
+                        Turn this off if you only want to keep the file selected
+                        without creating Planner entries.
+                      </span>
+                    </span>
+
+                    <input
+                      type="checkbox"
+                      className="profile-schedule-toggle"
+                      checked={addScheduleToPlanner}
+                      onChange={(e) =>
+                        setAddScheduleToPlanner(e.target.checked)
+                      }
+                    />
+                  </label>
+                )}
               </div>
 
               <button

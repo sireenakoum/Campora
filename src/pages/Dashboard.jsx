@@ -47,6 +47,10 @@ const TEAL = '#6F948B';
 const TEAL_SOFT = '#F1F7F5';
 const TEAL_BORDER = '#D8E7E2';
 
+const PINK = '#C76E8A';
+const PINK_SOFT = '#FFF3F7';
+const PINK_BORDER = '#F1D8E1';
+
 const GOLD = '#B09262';
 const GOLD_SOFT = '#FAF7F0';
 const GOLD_BORDER = '#E9DFCC';
@@ -633,9 +637,9 @@ export default function Dashboard() {
             <QuickLink
               icon={Users}
               label="Study Groups"
-              accent={TEAL}
-              soft={TEAL_SOFT}
-              border={TEAL_BORDER}
+              accent={PINK}
+              soft={PINK_SOFT}
+              border={PINK_BORDER}
               onClick={() => navigate('/study-groups')}
             />
 

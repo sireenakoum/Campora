@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-const NAVY = '#002D62';
+const ADMIN_NAVY = '#0B1A3F';
+const ADMIN_NAVY_SOFT = '#F1F4F8';
+const ADMIN_NAVY_BORDER = '#D8E0EB';
+
+const NAVY = '#0B1A3F';
 const MUTED = '#717786';
 const TEXT = '#1A1B1F';
 
@@ -604,34 +608,46 @@ function AdminTab({ active, icon, label, count, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      style={{
-        border: active ? `1px solid ${NAVY}` : '1px solid #E2E7EF',
-        background: active ? NAVY : '#FFFFFF',
-        color: active ? '#FFFFFF' : '#42506D',
-        borderRadius: 14,
-        padding: '11px 15px',
-        fontWeight: 900,
-        cursor: 'pointer',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-      }}
+      className={`filter-chip ${active ? 'active' : ''}`}
+      style={
+        active
+          ? {
+              background: '#0B1A3F',
+              color: '#FFFFFF',
+              borderColor: '#0B1A3F',
+              boxShadow: '0 5px 16px rgba(11,26,63,.18)',
+              transform: 'translateY(-1px)',
+            }
+          : {
+              background: '#EEF3FB',
+              color: '#0B1A3F',
+              borderColor: '#D8E2FF',
+              boxShadow: 'none',
+            }
+      }
     >
       {icon}
       {label}
+
       {typeof count === 'number' && count > 0 && (
         <span
           style={{
-            minWidth: 21,
-            height: 21,
-            borderRadius: 999,
+            minWidth: '22px',
+            height: '22px',
             padding: '0 6px',
+            borderRadius: '999px',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: active ? 'rgba(255,255,255,.18)' : '#E8F0FA',
-            color: active ? '#FFFFFF' : NAVY,
-            fontSize: 11,
+            background: active
+              ? 'rgba(255,255,255,.18)'
+              : '#FFFFFF',
+            color: active ? '#FFFFFF' : '#0B1A3F',
+            border: active
+              ? '1px solid rgba(255,255,255,.14)'
+              : '1px solid #D8E2FF',
+            fontSize: '10px',
+            fontWeight: '900',
           }}
         >
           {count}
@@ -783,7 +799,14 @@ function MentorSection({ applications, profiles, actionLoading, onReview }) {
 
           {reviewed.length > 0 && (
             <div style={{ marginTop: pending.length ? 36 : 0 }}>
-              <h3 style={{ color: TEXT, margin: '0 0 14px', fontSize: 18 }}>
+              <h3
+                style={{
+                  color: TEXT,
+                  margin: '0 0 16px',
+                  fontSize: 22,
+                  fontWeight: 900,
+                }}
+              >
                 Reviewed Applications
               </h3>
               <div style={cardGrid}>
@@ -1051,10 +1074,18 @@ function SectionIntro({ icon, title, description }) {
     <div style={sectionIntro}>
       <div style={sectionIcon}>{icon}</div>
       <div>
-        <p style={{ margin: 0, color: TEXT, fontWeight: 900, fontSize: 14 }}>
+        <p style={{ margin: 0, color: TEXT, fontWeight: 900, fontSize: 17 }}>
           {title}
         </p>
-        <p style={{ margin: '3px 0 0', color: MUTED, fontWeight: 700, fontSize: 13 }}>
+        <p
+          style={{
+            margin: '5px 0 0',
+            color: MUTED,
+            fontWeight: 700,
+            fontSize: 14,
+            lineHeight: 1.5,
+          }}
+        >
           {description}
         </p>
       </div>
@@ -1104,7 +1135,7 @@ function StatusBadge({ status }) {
         gap: 6,
         padding: '7px 10px',
         borderRadius: 10,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 900,
         textTransform: 'uppercase',
         background: item.background,
@@ -1164,7 +1195,7 @@ const largeIcon = {
   width: 70,
   height: 70,
   borderRadius: 22,
-  background: '#D8E2FF',
+  background: '#D8E0EB',
   color: NAVY,
   display: 'flex',
   alignItems: 'center',
@@ -1184,7 +1215,7 @@ const adminBadge = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: 8,
-  background: '#D8E2FF',
+  background: '#D8E0EB',
   color: NAVY,
   padding: '8px 13px',
   borderRadius: 999,
@@ -1254,7 +1285,7 @@ const sectionIcon = {
   width: 46,
   height: 46,
   borderRadius: 14,
-  background: '#D8E2FF',
+  background: '#D8E0EB',
   color: NAVY,
   display: 'flex',
   alignItems: 'center',
@@ -1307,7 +1338,9 @@ const cardTitle = {
 const cardSubtitle = {
   margin: 0,
   color: MUTED,
+  fontSize: 15,
   fontWeight: 800,
+  lineHeight: 1.45,
 };
 
 const smallIcon = {
@@ -1332,7 +1365,7 @@ const infoItem = {
   background: '#F5F7FA',
   border: '1px solid #EDF1F7',
   borderRadius: 14,
-  padding: 12,
+  padding: '15px 14px',
 };
 
 const infoLabel = {
@@ -1340,23 +1373,24 @@ const infoLabel = {
   alignItems: 'center',
   gap: 7,
   color: MUTED,
-  fontSize: 10,
+  fontSize: 12,
   fontWeight: 900,
   textTransform: 'uppercase',
-  marginBottom: 4,
+  marginBottom: 6,
 };
 
 const infoValue = {
   color: TEXT,
-  fontSize: 13,
+  fontSize: 15,
   fontWeight: 800,
+  lineHeight: 1.45,
   wordBreak: 'break-word',
 };
 
 const descriptionBox = {
   background: '#F5F7FA',
   borderRadius: 14,
-  padding: 14,
+  padding: 16,
   marginBottom: 14,
 };
 

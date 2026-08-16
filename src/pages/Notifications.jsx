@@ -19,41 +19,63 @@ import {
 } from 'lucide-react';
 
 import {
-  PageShell,
   SectionHeader,
-  SegmentedControl,
-  EmptyState as LuminousEmptyState,
 } from '../components/luminous';
 
 import { supabase } from '../lib/supabase';
-import { getAnnouncements } from '../lib/campusHub';
+import {
+  getAnnouncements,
+  getCampusNews,
+  getEvents,
+} from '../lib/campusHub';
 
 const CATEGORY_STYLES = {
   Announcements: {
-    main: '#D9896A',
-    soft: '#FFF6F2',
-    border: '#F3DDD4',
-    icon: Megaphone,
-  },
-
-  Courses: {
     main: '#648CCB',
     soft: '#F3F7FD',
     border: '#DDE7F5',
+    icon: Megaphone,
+  },
+
+  'Campus News': {
+    main: '#6F948B',
+    soft: '#F1F7F5',
+    border: '#D8E7E2',
+    icon: Megaphone,
+  },
+
+  News: {
+    main: '#6F948B',
+    soft: '#F1F7F5',
+    border: '#D8E7E2',
+    icon: Megaphone,
+  },
+
+  Events: {
+    main: '#C76E8A',
+    soft: '#FFF3F7',
+    border: '#F1D8E1',
+    icon: CalendarDays,
+  },
+
+  Courses: {
+    main: '#7D86B5',
+    soft: '#F4F5FB',
+    border: '#E1E3F0',
     icon: GraduationCap,
   },
 
   Registration: {
-    main: '#8B78B8',
-    soft: '#F7F4FC',
-    border: '#E7E0F2',
+    main: '#D47B6A',
+    soft: '#FFF5F2',
+    border: '#F1D9D3',
     icon: ClipboardCheck,
   },
 
   Planner: {
-    main: '#5E9A8B',
-    soft: '#F2F9F7',
-    border: '#D9EBE6',
+    main: '#8B78B8',
+    soft: '#F7F4FC',
+    border: '#E7E0F2',
     icon: CalendarDays,
   },
 
@@ -143,6 +165,21 @@ function getSystemCategory(item) {
   ).toLowerCase();
 
   const fullText = `${category} ${title} ${message}`;
+
+  if (
+    fullText.includes('campus news') ||
+    category === 'news'
+  ) {
+    return 'Campus News';
+  }
+
+  if (
+    fullText.includes('campus event') ||
+    category === 'events' ||
+    category === 'event'
+  ) {
+    return 'Events';
+  }
 
   if (
     fullText.includes('study group') ||
@@ -547,6 +584,167 @@ export default function Notifications() {
       }
 
       // ===================================================
+      // CAMPUS HUB NEWS
+      // ===================================================
+
+      try {
+        const campusNewsData =
+          await getCampusNews();
+
+        if (Array.isArray(campusNewsData)) {
+          campusNewsData.forEach((newsItem) => {
+            const id = `campus-news-${newsItem.id}`;
+
+            if (
+              hiddenAnnouncementIds.includes(id)
+            ) {
+              return;
+            }
+
+            const title =
+              newsItem.title ||
+              newsItem.name ||
+              'Campus News';
+
+            const message =
+              newsItem.summary ||
+              newsItem.description ||
+              newsItem.content ||
+              '';
+
+            const alreadyExists =
+              combined.some((item) => {
+                if (
+                  item.section !== 'Notifications'
+                ) {
+                  return false;
+                }
+
+                return (
+                  normalizeText(item.title) ===
+                    normalizeText(title) &&
+                  normalizeText(item.message) ===
+                    normalizeText(message)
+                );
+              });
+
+            if (alreadyExists) {
+              return;
+            }
+
+            combined.push({
+              id,
+              rawId: newsItem.id,
+              title,
+              message,
+              category: 'Campus News',
+              section: 'Notifications',
+              source: 'campus_news',
+              created_at: getSafeDate(
+                newsItem.created_at ||
+                  newsItem.published_at ||
+                  newsItem.date
+              ),
+              read: savedReadIds.includes(id),
+            });
+          });
+        }
+      } catch (error) {
+        console.log(
+          'Campus Hub news could not be loaded:',
+          error
+        );
+      }
+
+      // ===================================================
+      // CAMPUS HUB EVENTS
+      // ===================================================
+
+      try {
+        const campusEventsData =
+          await getEvents({
+            upcoming: true,
+          });
+
+        if (Array.isArray(campusEventsData)) {
+          campusEventsData.forEach((eventItem) => {
+            const id = `campus-event-${eventItem.id}`;
+
+            if (
+              hiddenAnnouncementIds.includes(id)
+            ) {
+              return;
+            }
+
+            const title =
+              eventItem.title ||
+              eventItem.name ||
+              'Campus Event';
+
+            const eventDate =
+              eventItem.event_date ||
+              eventItem.date ||
+              eventItem.start_date ||
+              '';
+
+            const message = [
+              eventDate
+                ? `Event date: ${eventDate}`
+                : '',
+              eventItem.description ||
+                eventItem.summary ||
+                eventItem.content ||
+                '',
+            ]
+              .filter(Boolean)
+              .join(' • ');
+
+            const alreadyExists =
+              combined.some((item) => {
+                if (
+                  item.section !== 'Notifications'
+                ) {
+                  return false;
+                }
+
+                return (
+                  normalizeText(item.title) ===
+                    normalizeText(title) &&
+                  normalizeText(item.message) ===
+                    normalizeText(message)
+                );
+              });
+
+            if (alreadyExists) {
+              return;
+            }
+
+            combined.push({
+              id,
+              rawId: eventItem.id,
+              title,
+              message,
+              category: 'Events',
+              section: 'Notifications',
+              source: 'campus_events',
+              created_at: getSafeDate(
+                eventItem.created_at ||
+                  eventItem.published_at ||
+                  eventItem.date ||
+                  eventItem.event_date
+              ),
+              read: savedReadIds.includes(id),
+            });
+          });
+        }
+      } catch (error) {
+        console.log(
+          'Campus Hub events could not be loaded:',
+          error
+        );
+      }
+
+      // ===================================================
       // REGISTRATION REMINDERS
       // ===================================================
 
@@ -832,8 +1030,11 @@ export default function Notifications() {
   const notificationFilters = [
     'All',
     'Announcements',
+    'Campus News',
+    'Events',
     'Courses',
     'Planner',
+    'Registration',
     'To-Do',
     'Study Groups',
   ];
@@ -1274,8 +1475,9 @@ export default function Notifications() {
         currentItems
           .filter(
             (item) =>
-              item.source ===
-              'campus_announcements'
+              item.source === 'campus_announcements' ||
+              item.source === 'campus_news' ||
+              item.source === 'campus_events'
           )
           .forEach((item) => {
             hideCampusAnnouncement(
@@ -1393,7 +1595,7 @@ export default function Notifications() {
   // =======================================================
 
   return (
-    <PageShell>
+    <div style={notificationsPageStyle}>
       {/* HEADER CONTROL ZONE */}
 
       <div
@@ -1401,6 +1603,7 @@ export default function Notifications() {
           display: 'flex',
           flexDirection: 'column',
           gap: 18,
+          marginBottom: 26,
         }}
       >
         <div
@@ -1411,8 +1614,10 @@ export default function Notifications() {
             gap: 7,
             padding: '8px 14px',
             borderRadius: '999px',
-            background: 'var(--campora-navy-tint-alpha)',
-            color: 'var(--campora-navy)',
+            background: '#FFFFFF',
+            color: '#0B1A3F',
+            border: '1px solid #E3E8F0',
+            boxShadow: '0 2px 8px rgba(11,26,63,0.03)',
             fontSize: '11px',
             fontWeight: '800',
             letterSpacing: '.35px',
@@ -1438,14 +1643,10 @@ export default function Notifications() {
               <span
                 className="pill"
                 style={{
-                  background:
-                    unreadCount > 0
-                      ? 'var(--campora-navy-tint)'
-                      : 'var(--surface-container-highest)',
-                  color:
-                    unreadCount > 0
-                      ? 'var(--campora-navy)'
-                      : 'var(--campora-muted)',
+                  background: '#FFFFFF',
+                  color: '#0B1A3F',
+                  border: '1px solid #FFFFFF',
+                  boxShadow: '0 5px 16px rgba(11,26,63,0.08)',
                 }}
               >
                 <span
@@ -1453,7 +1654,7 @@ export default function Notifications() {
                     width: 7,
                     height: 7,
                     borderRadius: '50%',
-                    background: unreadCount > 0 ? '#D9896A' : '#5E9A8B',
+                    background: '#0B1A3F',
                   }}
                 />
 
@@ -1493,8 +1694,15 @@ export default function Notifications() {
             flexWrap: 'wrap',
           }}
         >
-          <SegmentedControl
-            options={[
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '9px',
+              background: 'transparent',
+            }}
+          >
+            {[
               {
                 value: 'Notifications',
                 label: 'Notifications',
@@ -1505,10 +1713,46 @@ export default function Notifications() {
                 label: 'Reminders',
                 icon: AlarmClock,
               },
-            ]}
-            value={activeSection}
-            onChange={changeSection}
-          />
+            ].map(({ value, label, icon: Icon }) => {
+              const selected = activeSection === value;
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => changeSection(value)}
+                  style={{
+                    minHeight: '38px',
+                    padding: '0 15px',
+                    borderRadius: '999px',
+                    border: selected
+                      ? '1px solid #0B1A3F'
+                      : '1px solid #D8E0EB',
+                    background: selected
+                      ? '#0B1A3F'
+                      : '#FFFFFF',
+                    color: selected
+                      ? '#FFFFFF'
+                      : '#0B1A3F',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '7px',
+                    fontFamily: 'inherit',
+                    fontSize: '12px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                    boxShadow: selected
+                      ? '0 4px 12px rgba(11,26,63,.16)'
+                      : '0 2px 6px rgba(11,26,63,.025)',
+                  }}
+                >
+                  <Icon size={15} strokeWidth={2} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
 
           <div
             style={{
@@ -1519,11 +1763,20 @@ export default function Notifications() {
             }}
           >
             <span
-              className="muted"
               style={{
-                fontSize: '13px',
-                fontWeight: '700',
-whiteSpace: 'nowrap',
+                minHeight: '32px',
+                padding: '0 12px',
+                borderRadius: '999px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#FFFFFF',
+                color: '#0B1A3F',
+                border: '1px solid #FFFFFF',
+                boxShadow: '0 6px 18px rgba(11,26,63,0.08)',
+                fontSize: '12px',
+                fontWeight: '900',
+                whiteSpace: 'nowrap',
               }}
             >
               {currentItems.length}{' '}
@@ -1554,6 +1807,10 @@ whiteSpace: 'nowrap',
                   currentItems.length === 0
                     ? 'default'
                     : 'pointer',
+                background: '#FFFFFF',
+                color: '#0B1A3F',
+                border: '1px solid #FFFFFF',
+                boxShadow: '0 5px 16px rgba(11,26,63,0.08)',
               }}
             >
               {currentAllRead ? (
@@ -1637,34 +1894,25 @@ whiteSpace: 'nowrap',
                 }
                 className="filter-chip"
                 style={{
-                  background:
-                    filter === 'All'
-                      ? active
-                        ? 'var(--campora-navy)'
-                        : 'var(--campora-navy-tint-alpha)'
-                      : active
-                      ? filterStyle.main
-                      : filterStyle.soft,
-                  color:
-                    active
-                      ? 'var(--on-primary)'
-                      : filter === 'All'
-                      ? 'var(--campora-navy)'
-                      : filterStyle.main,
-                  borderColor:
-                    filter === 'All'
-                      ? active
-                        ? 'var(--campora-navy)'
-                        : 'var(--campora-navy-tint)'
-                      : active
-                      ? filterStyle.main
-                      : filterStyle.border,
+                  background: active
+                    ? filter === 'All'
+                      ? '#0B1A3F'
+                      : filterStyle.main
+                    : '#FFFFFF',
+                  color: active
+                    ? '#FFFFFF'
+                    : filter === 'All'
+                    ? '#0B1A3F'
+                    : filterStyle.main,
+                  borderColor: active
+                    ? filter === 'All'
+                      ? '#0B1A3F'
+                      : filterStyle.main
+                    : '#E2E7EF',
                   boxShadow: active
-                    ? `0 5px 15px ${
-                        filter === 'All'
-                          ? 'rgba(0,45,98,.18)'
-                          : `${filterStyle.main}2E`
-                      }`
+                    ? filter === 'All'
+                      ? '0 4px 12px rgba(11,26,63,.16)'
+                      : `0 4px 12px ${filterStyle.main}2A`
                     : 'none',
                 }}
               >
@@ -1673,9 +1921,9 @@ whiteSpace: 'nowrap',
                   strokeWidth={2}
                   color={
                     active
-                      ? 'var(--on-primary)'
+                      ? '#FFFFFF'
                       : filter === 'All'
-                      ? 'var(--campora-navy)'
+                      ? '#0B1A3F'
                       : filterStyle.main
                   }
                 />
@@ -1695,11 +1943,11 @@ whiteSpace: 'nowrap',
                     fontWeight: '800',
                     background: active
                       ? 'rgba(255,255,255,.18)'
-                      : 'rgba(255,255,255,.72)',
+                      : '#F7F9FC',
                     color: active
-                      ? 'var(--on-primary)'
+                      ? '#FFFFFF'
                       : filter === 'All'
-                      ? 'var(--campora-navy)'
+                      ? '#0B1A3F'
                       : filterStyle.main,
                   }}
                 >
@@ -1713,7 +1961,12 @@ whiteSpace: 'nowrap',
 
       {/* LIST */}
 
-      <div style={{ minHeight: 350 }}>
+      <div
+        style={{
+          minHeight: 350,
+          background: 'transparent',
+        }}
+      >
         {loading ? (
           <div
             style={{
@@ -1731,7 +1984,7 @@ whiteSpace: 'nowrap',
         ) : filteredItems.length === 0 ? (
           <EmptyState section={activeSection} />
         ) : (
-          <div className="stack">
+          <div className="stack" style={{ gap: '14px' }}>
             {filteredItems.map((item) => (
               <ItemCard
                 key={item.id}
@@ -1747,9 +2000,17 @@ whiteSpace: 'nowrap',
           </div>
         )}
       </div>
-    </PageShell>
+    </div>
   );
 }
+
+const notificationsPageStyle = {
+  width: '100%',
+  minHeight: '100%',
+  boxSizing: 'border-box',
+  background: 'transparent',
+  padding: '8px 4px 28px',
+};
 
 // =========================================================
 // ITEM CARD
@@ -1774,13 +2035,11 @@ function ItemCard({ item, onToggleRead, onClear }) {
         width: '100%',
         padding: '16px 18px',
         borderRadius: '18px',
-        background: item.read
-          ? 'linear-gradient(180deg, #FAFBFC 0%, #FFFFFF 58%)'
-          : `linear-gradient(180deg, ${style.soft} 0%, #FFFFFF 48%)`,
-        border: `1px solid ${item.read ? '#E9EDF2' : style.border}`,
+        background: '#FFFFFF',
+        border: '1px solid #E5EAF2',
         boxShadow: item.read
-          ? '0 5px 16px rgba(0,45,98,0.025)'
-          : `inset 0 4px 0 ${style.main}55, 0 8px 22px rgba(0,45,98,0.045)`,
+          ? '0 3px 10px rgba(11,26,63,0.02)'
+          : '0 6px 18px rgba(11,26,63,0.035)',
       }}
     >
       <span
@@ -1791,11 +2050,11 @@ function ItemCard({ item, onToggleRead, onClear }) {
           flexShrink: 0,
           background: item.read
             ? '#F7F9FC'
-            : style.soft,
+            : '#F7F9FC',
           color: item.read
             ? '#8792A2'
             : style.main,
-          border: `1px solid ${item.read ? '#E7EBF0' : style.border}`,
+          border: '1px solid #E7EBF0',
           borderRadius: '14px',
         }}
       >
@@ -1816,13 +2075,11 @@ function ItemCard({ item, onToggleRead, onClear }) {
             style={{
               padding: '4px 9px',
               borderRadius: '999px',
-              background: item.read
-                ? '#F7F9FC'
-                : style.soft,
+              background: '#FFFFFF',
               color: item.read
                 ? '#8792A2'
                 : style.main,
-              border: `1px solid ${item.read ? '#E7EBF0' : style.border}`,
+              border: '1px solid #E5EAF2',
               fontSize: '10px',
               fontWeight: '800',
               textTransform: 'uppercase',
@@ -1835,9 +2092,9 @@ function ItemCard({ item, onToggleRead, onClear }) {
           {!item.read && (
             <span
               style={{
-                color: style.main,
-                background: style.soft,
-                border: `1px solid ${style.border}`,
+                color: '#648CCB',
+                background: '#F3F7FD',
+                border: '1px solid #DDE7F5',
                 borderRadius: '999px',
                 padding: '4px 8px',
                 fontSize: '9px',
@@ -1967,18 +2224,62 @@ function EmptyState({
     : Bell;
 
   return (
-    <LuminousEmptyState
-      icon={Icon}
-      title={
-        isReminder
+    <div
+      style={{
+        minHeight: '260px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        padding: '32px 20px',
+      }}
+    >
+      <div
+        style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '50%',
+          background: '#FFFFFF',
+          border: '1px solid #FFFFFF',
+          boxShadow: '0 8px 22px rgba(11,26,63,0.10)',
+          color: isReminder ? '#8B78B8' : '#0B1A3F',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '16px',
+        }}
+      >
+        <Icon size={28} strokeWidth={1.9} />
+      </div>
+
+      <h3
+        style={{
+          margin: 0,
+          color: '#0B1A3F',
+          fontSize: '17px',
+          fontWeight: '950',
+        }}
+      >
+        {isReminder
           ? 'No reminders right now'
-          : 'You’re all caught up!'
-      }
-      text={
-        isReminder
+          : 'You’re all caught up!'}
+      </h3>
+
+      <p
+        style={{
+          margin: '7px 0 0',
+          maxWidth: '470px',
+          color: '#7E8A9E',
+          fontSize: '12px',
+          fontWeight: '700',
+          lineHeight: 1.5,
+        }}
+      >
+        {isReminder
           ? 'Assignment, planner, registration and To-Do reminders will appear here when you set them.'
-          : 'Campus announcements, course updates and study group activity will appear here.'
-      }
-    />
+          : 'Campus announcements, course updates and study group activity will appear here.'}
+      </p>
+    </div>
   );
 }

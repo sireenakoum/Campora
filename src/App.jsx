@@ -439,6 +439,15 @@ function EmailVerified() {
 
 function DashboardLayout() {
   const [userName, setUserName] = useState('');
+
+  // NEW: the topbar now uses the saved profile picture when available.
+  const [userAvatarUrl, setUserAvatarUrl] = useState(
+    () =>
+      localStorage.getItem(
+        'campora_avatar_url'
+      ) || ''
+  );
+
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [collapsed, setCollapsed] = useState(
@@ -482,7 +491,41 @@ function DashboardLayout() {
     );
   }, [theme]);
 
+  // NEW: listen for Profile.jsx avatar updates immediately.
+  useEffect(() => {
+    const handleAvatarUpdated = (event) => {
+      const nextUrl =
+        event?.detail?.avatarUrl ||
+        localStorage.getItem(
+          'campora_avatar_url'
+        ) ||
+        '';
+
+      setUserAvatarUrl(nextUrl);
+
+      if (event?.detail?.name) {
+        setUserName(event.detail.name);
+      }
+    };
+
+    window.addEventListener(
+      'campora-avatar-updated',
+      handleAvatarUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        'campora-avatar-updated',
+        handleAvatarUpdated
+      );
+    };
+  }, []);
+
   const handleLogout = async () => {
+    localStorage.removeItem(
+      'campora_avatar_url'
+    );
+
     await signOut();
 
     navigate('/login', {
@@ -579,6 +622,23 @@ function DashboardLayout() {
           user.email?.split('@')[0] ||
           'Student'
       );
+
+      // NEW: load the avatar from the same profile row.
+      const nextAvatarUrl =
+        profile.avatar_url || '';
+
+      setUserAvatarUrl(nextAvatarUrl);
+
+      if (nextAvatarUrl) {
+        localStorage.setItem(
+          'campora_avatar_url',
+          nextAvatarUrl
+        );
+      } else {
+        localStorage.removeItem(
+          'campora_avatar_url'
+        );
+      }
     }
 
     init();
@@ -813,8 +873,6 @@ function DashboardLayout() {
             alignItems: 'center',
             padding: '0 28px',
             boxSizing: 'border-box',
-
-            // Removes the line under the search bar/topbar
             border: 'none',
             borderBottom: 'none',
             boxShadow: 'none',
@@ -1063,11 +1121,27 @@ function DashboardLayout() {
 
                   boxShadow:
                     '0 3px 9px rgba(11, 26, 63, 0.16)',
+
+                  overflow: 'hidden',
                 }}
               >
-                {userName
-                  .charAt(0)
-                  .toUpperCase() || 'U'}
+                {userAvatarUrl ? (
+                  <img
+                    src={userAvatarUrl}
+                    alt={userName || 'Profile'}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                ) : (
+                  userName
+                    .charAt(0)
+                    .toUpperCase() || 'U'
+                )}
               </button>
 
               {accountOpen && (
