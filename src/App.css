@@ -1,7 +1,7 @@
 /* =========================================================
-   CAMPORA ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â APP.CSS
-   LUMINOUS iOS (NAVY EDITION) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â TECHNICAL SPEC v2
-   INTER TYPE SCALE Ãƒâ€šÃ‚Â· LAYERED SURFACES Ãƒâ€šÃ‚Â· GLASS SIDEBAR
+   CAMPORA ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â APP.CSS
+   LUMINOUS iOS (NAVY EDITION) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â TECHNICAL SPEC v2
+   INTER TYPE SCALE ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· LAYERED SURFACES ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· GLASS SIDEBAR
    FIXED SIDEBAR + SCROLLABLE APP CONTENT
 ========================================================= */
 
@@ -159,8 +159,8 @@ body {
 
 
 /* =========================================================
-   SIDEBAR ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â DESKTOP iOS CHROME
-   blur(40px) Ãƒâ€šÃ‚Â· rgba(244,243,248,0.6) Ãƒâ€šÃ‚Â· border-right
+   SIDEBAR ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â DESKTOP iOS CHROME
+   blur(40px) ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· rgba(244,243,248,0.6) ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· border-right
 ========================================================= */
 
 .sidebar {
@@ -317,9 +317,9 @@ body {
 
 
 /* =========================================================
-   NAVIGATION ITEMS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â LIGHT NAVY PILLS
+   NAVIGATION ITEMS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â LIGHT NAVY PILLS
    Inactive: #414755 on transparent
-   Active:   #060D22 text Ãƒâ€šÃ‚Â· #DCE4F5 bg Ãƒâ€šÃ‚Â· soft shadow
+   Active:   #060D22 text ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· #DCE4F5 bg ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· soft shadow
 ========================================================= */
 
 .nav-item {
@@ -720,7 +720,7 @@ body {
 
 
 /* =========================================================
-   COLLAPSED SIDEBAR ÃƒÂ¢Ã¢â‚¬ Ã¢â‚¬â„¢ EXPAND PAGE
+   COLLAPSED SIDEBAR ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬ ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ EXPAND PAGE
 ========================================================= */
 
 .sidebar.collapsed + .main-content {
@@ -767,7 +767,7 @@ body {
 
 
 /* =========================================================
-   TOP GLASS BAR ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â iOS CHROME
+   TOP GLASS BAR ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â iOS CHROME
    Sticky, translucent, blurs content scrolling beneath it.
 ========================================================= */
 
@@ -839,7 +839,7 @@ body {
   flex-shrink: 0;
 }
 
-/* Search pill — opens the Cmd+K command palette */
+/* Search pill â€” opens the Cmd+K command palette */
 .topbar-search {
   display: flex;
   align-items: center;
@@ -1051,9 +1051,9 @@ body {
 
 
 /* =========================================================
-   TYPOGRAPHY ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â INTER TYPE SCALE
-   Display 34/700/-0.04em Ãƒâ€šÃ‚Â· H2 22/600/-0.03em
-   H3 20/600/-0.02em Ãƒâ€šÃ‚Â· H4 17/600/-0.02em
+   TYPOGRAPHY ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â INTER TYPE SCALE
+   Display 34/700/-0.04em ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· H2 22/600/-0.03em
+   H3 20/600/-0.02em ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· H4 17/600/-0.02em
 ========================================================= */
 
 h1 {
@@ -1086,7 +1086,7 @@ h4 {
 
 
 /* =========================================================
-   SURFACES ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SQUIRCLE GEOMETRY
+   SURFACES ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â SQUIRCLE GEOMETRY
 ========================================================= */
 
 .card {
@@ -1114,7 +1114,7 @@ h4 {
 
 
 /* =========================================================
-   ICONS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â 1.5px OUTLINED STROKE
+   ICONS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â 1.5px OUTLINED STROKE
 ========================================================= */
 
 .lucide {
@@ -1135,7 +1135,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â MEDIUM SCREENS
+   RESPONSIVE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â MEDIUM SCREENS
 ========================================================= */
 
 @media (max-width: 1100px) {
@@ -1148,7 +1148,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SMALLER SCREENS
+   RESPONSIVE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â SMALLER SCREENS
 ========================================================= */
 
 @media (max-width: 850px) {
@@ -1169,7 +1169,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â VERY SMALL SCREENS
+   RESPONSIVE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â VERY SMALL SCREENS
 ========================================================= */
 
 @media (max-width: 650px) {
@@ -1257,7 +1257,7 @@ button {
 }
 
 /* Give every dashboard/page section its own breathing room instead of
-   stacking tight against the next one — this is the main lever for
+   stacking tight against the next one â€” this is the main lever for
    making a page with many sections (planner, courses, notifications,
    registration, campus pulse, study groups, campus hub...) feel calm
    instead of crammed. */
@@ -1273,7 +1273,7 @@ button {
 
 
 /* =========================================================
-   COMMAND PALETTE (ÃƒÂ¢Ã…â€™Ã‹Å“K)
+   COMMAND PALETTE (ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬â„¢Ãƒâ€¹Ã…â€œK)
 ========================================================= */
 
 .palette-backdrop {
@@ -1522,7 +1522,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â [data-theme='dark']
+   DARK MODE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â [data-theme='dark']
 ========================================================= */
 
 :root[data-theme='dark'] {
@@ -1752,7 +1752,7 @@ button {
 
 
 /* =========================================================
-   CAMPORA DARK MODE â€” FULL DARK + READABLE
+   CAMPORA DARK MODE Ã¢â‚¬â€ FULL DARK + READABLE
 ========================================================= */
 
 :root[data-theme='dark'] {
@@ -2006,7 +2006,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE â€” CONTRAST + DASHBOARD COLOR POLISH
+   DARK MODE Ã¢â‚¬â€ CONTRAST + DASHBOARD COLOR POLISH
 ========================================================= */
 
 /* Stronger readable text hierarchy inside all dark content */
@@ -2059,7 +2059,7 @@ button {
    Assignments, Schedule, and Announcements.
 --------------------------------------------------------- */
 
-/* Courses â€” blue */
+/* Courses Ã¢â‚¬â€ blue */
 :root[data-theme='dark'] .main-content [style*="background: #F3F7FD"],
 :root[data-theme='dark'] .main-content [style*="background: rgb(243, 247, 253)"],
 :root[data-theme='dark'] .main-content [style*="background: #EFF6FF"],
@@ -2068,7 +2068,7 @@ button {
   border-color: #29496D !important;
 }
 
-/* Assignments â€” purple */
+/* Assignments Ã¢â‚¬â€ purple */
 :root[data-theme='dark'] .main-content [style*="background: #F7F4FC"],
 :root[data-theme='dark'] .main-content [style*="background: rgb(247, 244, 252)"],
 :root[data-theme='dark'] .main-content [style*="background: #F3E8FF"],
@@ -2077,7 +2077,7 @@ button {
   border-color: #4B3D69 !important;
 }
 
-/* Schedule â€” peach/orange */
+/* Schedule Ã¢â‚¬â€ peach/orange */
 :root[data-theme='dark'] .main-content [style*="background: #FFF6F2"],
 :root[data-theme='dark'] .main-content [style*="background: rgb(255, 246, 242)"],
 :root[data-theme='dark'] .main-content [style*="background: #FFF4DA"],
@@ -2086,7 +2086,7 @@ button {
   border-color: #684838 !important;
 }
 
-/* Announcements â€” pink */
+/* Announcements Ã¢â‚¬â€ pink */
 :root[data-theme='dark'] .main-content [style*="background: #FFF5F6"],
 :root[data-theme='dark'] .main-content [style*="background: rgb(255, 245, 246)"],
 :root[data-theme='dark'] .main-content [style*="background: #FBF5F9"],
@@ -2141,7 +2141,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE â€” FINAL DASHBOARD READABILITY FIX
+   DARK MODE Ã¢â‚¬â€ FINAL DASHBOARD READABILITY FIX
    Fix progress card + schedule-row contrast only
 ========================================================= */
 
@@ -2225,12 +2225,12 @@ button {
 
 
 /* =========================================================
-   DASHBOARD DARK MODE â€” COLORED DARK CARDS
+   DASHBOARD DARK MODE Ã¢â‚¬â€ COLORED DARK CARDS
    White/light dashboard cards become dark versions
    of their assigned light-mode colors.
 ========================================================= */
 
-/* COURSE â€” blue family */
+/* COURSE Ã¢â‚¬â€ blue family */
 :root[data-theme='dark'] .main-content [style*="#F3F7FD"],
 :root[data-theme='dark'] .main-content [style*="#EFF6FF"],
 :root[data-theme='dark'] .main-content [style*="rgb(243, 247, 253)"],
@@ -2240,7 +2240,7 @@ button {
   color: #EAF3FF !important;
 }
 
-/* ASSIGNMENTS â€” purple family */
+/* ASSIGNMENTS Ã¢â‚¬â€ purple family */
 :root[data-theme='dark'] .main-content [style*="#F7F4FC"],
 :root[data-theme='dark'] .main-content [style*="#F3E8FF"],
 :root[data-theme='dark'] .main-content [style*="rgb(247, 244, 252)"],
@@ -2250,7 +2250,7 @@ button {
   color: #F2ECFF !important;
 }
 
-/* SCHEDULE â€” peach/orange family */
+/* SCHEDULE Ã¢â‚¬â€ peach/orange family */
 :root[data-theme='dark'] .main-content [style*="#FFF6F2"],
 :root[data-theme='dark'] .main-content [style*="#FFF4DA"],
 :root[data-theme='dark'] .main-content [style*="rgb(255, 246, 242)"],
@@ -2260,7 +2260,7 @@ button {
   color: #FFF0E9 !important;
 }
 
-/* ANNOUNCEMENTS â€” pink family */
+/* ANNOUNCEMENTS Ã¢â‚¬â€ pink family */
 :root[data-theme='dark'] .main-content [style*="#FFF5F6"],
 :root[data-theme='dark'] .main-content [style*="#FBF5F9"],
 :root[data-theme='dark'] .main-content [style*="rgb(255, 245, 246)"],
@@ -2293,7 +2293,7 @@ button {
   opacity: 1 !important;
 }
 
-/* Large dashboard percentages/numbers â€” blue so they stand out */
+/* Large dashboard percentages/numbers Ã¢â‚¬â€ blue so they stand out */
 :root[data-theme='dark'] .main-content [style*="fontSize: 48"],
 :root[data-theme='dark'] .main-content [style*="fontSize: 52"],
 :root[data-theme='dark'] .main-content [style*="fontSize: 56"],
@@ -2429,7 +2429,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE â€” FINAL POLISH
+   DARK MODE Ã¢â‚¬â€ FINAL POLISH
    Dashboard icon colors + Planner cells + Campus Hub accent
 ========================================================= */
 
@@ -2537,7 +2537,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE â€” LAST THREE FIXES
+   DARK MODE Ã¢â‚¬â€ LAST THREE FIXES
    Progress ring + Planner Up Next + Campus Hub Events count
 ========================================================= */
 
@@ -2584,7 +2584,7 @@ button {
 }
 
 /* ---------------------------------------------------------
-   PLANNER â€” UP NEXT DETAILS
+   PLANNER Ã¢â‚¬â€ UP NEXT DETAILS
 --------------------------------------------------------- */
 
 /* Light detail panels inside Up Next -> dark panel */
@@ -2627,7 +2627,7 @@ button {
 }
 
 /* ---------------------------------------------------------
-   CAMPUS HUB â€” EVENTS COUNT
+   CAMPUS HUB Ã¢â‚¬â€ EVENTS COUNT
 --------------------------------------------------------- */
 
 /* Events stat card light mint -> dark green */
@@ -2655,12 +2655,12 @@ button {
 
 
 /* =========================================================
-   DARK MODE â€” EXACT FIXES
+   DARK MODE Ã¢â‚¬â€ EXACT FIXES
    Catch backgroundColor-based inline styles too.
 ========================================================= */
 
 /* ---------------------------------------------------------
-   1) TO-DO PROGRESS â€” NO MORE WHITE CARD
+   1) TO-DO PROGRESS Ã¢â‚¬â€ NO MORE WHITE CARD
 --------------------------------------------------------- */
 
 /* Any pure-white progress/card surface using background-color */
@@ -2712,7 +2712,7 @@ button {
 }
 
 /* ---------------------------------------------------------
-   2) PLANNER UP NEXT â€” DETAILS BOX + TEXT
+   2) PLANNER UP NEXT Ã¢â‚¬â€ DETAILS BOX + TEXT
 --------------------------------------------------------- */
 
 /* Catch the actual light-gray panel whether it uses background or backgroundColor */
@@ -2792,4 +2792,243 @@ button {
   background: #1D2229 !important;
   background-color: #1D2229 !important;
   border-color: #39434F !important;
+}
+
+
+/* =========================================================
+   SIDEBAR VISIBILITY UPDATE
+   - Inactive navigation = Campora navy
+   - Active navigation stays navy with white text
+   - Collapse / expand control is easier to see
+========================================================= */
+
+.nav-item:not(.active) {
+  color: var(--campora-navy);
+}
+
+.nav-item:not(.active) svg {
+  color: var(--campora-navy);
+}
+
+.nav-item:hover:not(.active) {
+  color: var(--campora-navy);
+  background: rgba(11, 26, 63, 0.07);
+}
+
+.nav-item:hover:not(.active) svg {
+  color: var(--campora-navy);
+}
+
+.nav-item.active {
+  color: #FFFFFF !important;
+  background: var(--campora-navy-solid);
+  box-shadow: 0 5px 16px rgba(11, 26, 63, 0.20);
+}
+
+.nav-item.active svg {
+  color: #FFFFFF !important;
+}
+
+.sidebar-collapse-btn {
+  width: calc(100% - 28px);
+  height: 42px;
+  margin: 7px 14px 12px;
+
+  border: 1px solid rgba(11, 26, 63, 0.13);
+  border-radius: 12px;
+
+  background: rgba(11, 26, 63, 0.075);
+  color: var(--campora-navy);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 3px 10px rgba(11, 26, 63, 0.05);
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.sidebar-collapse-btn svg {
+  width: 20px;
+  height: 20px;
+  color: var(--campora-navy);
+  stroke-width: 2.4;
+}
+
+.sidebar-collapse-btn:hover {
+  color: #FFFFFF;
+  background: var(--campora-navy-solid);
+  border-color: var(--campora-navy-solid);
+  box-shadow: 0 6px 16px rgba(11, 26, 63, 0.18);
+  transform: translateY(-1px);
+}
+
+.sidebar-collapse-btn:hover svg {
+  color: #FFFFFF;
+}
+
+.sidebar.collapsed .sidebar-collapse-btn {
+  width: 48px;
+  height: 42px;
+  margin: 7px auto 12px;
+
+  background: rgba(11, 26, 63, 0.09);
+  border: 1px solid rgba(11, 26, 63, 0.14);
+}
+
+.sidebar.collapsed .sidebar-collapse-btn:hover {
+  background: var(--campora-navy-solid);
+  border-color: var(--campora-navy-solid);
+}
+
+/* Dark mode */
+:root[data-theme='dark'] .nav-item:not(.active) {
+  color: #D5DAE2;
+}
+
+:root[data-theme='dark'] .nav-item:not(.active) svg {
+  color: #AFC8F4;
+}
+
+:root[data-theme='dark'] .nav-item:hover:not(.active) {
+  color: #FFFFFF;
+  background: #252930;
+}
+
+:root[data-theme='dark'] .nav-item:hover:not(.active) svg {
+  color: #FFFFFF;
+}
+
+:root[data-theme='dark'] .nav-item.active {
+  color: #FFFFFF !important;
+  background: #274A78 !important;
+}
+
+:root[data-theme='dark'] .nav-item.active svg {
+  color: #FFFFFF !important;
+}
+
+:root[data-theme='dark'] .sidebar-collapse-btn {
+  color: #AFC8F4;
+  background: rgba(115, 167, 232, 0.10);
+  border-color: rgba(115, 167, 232, 0.20);
+}
+
+:root[data-theme='dark'] .sidebar-collapse-btn svg {
+  color: #AFC8F4;
+}
+
+:root[data-theme='dark'] .sidebar-collapse-btn:hover {
+  color: #FFFFFF;
+  background: #274A78;
+  border-color: #4D75A6;
+}
+
+:root[data-theme='dark'] .sidebar-collapse-btn:hover svg {
+  color: #FFFFFF;
+}
+
+
+/* =========================================================
+   FINAL SIDEBAR COLLAPSE BUTTON
+   White pop-out control with navy arrows
+========================================================= */
+
+.sidebar-collapse-btn,
+.sidebar.collapsed .sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 44px;
+
+  background: #FFFFFF !important;
+  color: #0B1A3F !important;
+
+  border: 1px solid #E3E8F0 !important;
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 5px 16px rgba(11, 26, 63, 0.11),
+    0 1px 3px rgba(11, 26, 63, 0.06) !important;
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.sidebar-collapse-btn {
+  width: calc(100% - 28px);
+  margin: 7px 14px 12px;
+}
+
+.sidebar.collapsed .sidebar-collapse-btn {
+  width: 48px;
+  margin: 7px auto 12px;
+}
+
+.sidebar-collapse-btn svg,
+.sidebar.collapsed .sidebar-collapse-btn svg {
+  width: 20px;
+  height: 20px;
+
+  color: #0B1A3F !important;
+  stroke: #0B1A3F !important;
+  stroke-width: 2.5;
+}
+
+.sidebar-collapse-btn:hover,
+.sidebar.collapsed .sidebar-collapse-btn:hover {
+  background: #FFFFFF !important;
+  color: #0B1A3F !important;
+
+  border-color: rgba(11, 26, 63, 0.20) !important;
+
+  box-shadow:
+    0 8px 22px rgba(11, 26, 63, 0.16),
+    0 2px 5px rgba(11, 26, 63, 0.07) !important;
+
+  transform: translateY(-2px);
+}
+
+.sidebar-collapse-btn:hover svg,
+.sidebar.collapsed .sidebar-collapse-btn:hover svg {
+  color: #0B1A3F !important;
+  stroke: #0B1A3F !important;
+}
+
+/* Keep the white pop-out appearance in dark mode too */
+:root[data-theme='dark'] .sidebar-collapse-btn,
+:root[data-theme='dark'] .sidebar.collapsed .sidebar-collapse-btn {
+  background: #FFFFFF !important;
+  color: #0B1A3F !important;
+  border-color: #DCE3EC !important;
+
+  box-shadow:
+    0 5px 16px rgba(0, 0, 0, 0.22),
+    0 1px 3px rgba(0, 0, 0, 0.12) !important;
+}
+
+:root[data-theme='dark'] .sidebar-collapse-btn svg,
+:root[data-theme='dark'] .sidebar.collapsed .sidebar-collapse-btn svg {
+  color: #0B1A3F !important;
+  stroke: #0B1A3F !important;
+}
+
+:root[data-theme='dark'] .sidebar-collapse-btn:hover,
+:root[data-theme='dark'] .sidebar.collapsed .sidebar-collapse-btn:hover {
+  background: #FFFFFF !important;
+  border-color: #BFCBDA !important;
+
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.28),
+    0 2px 5px rgba(0, 0, 0, 0.14) !important;
 }

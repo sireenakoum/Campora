@@ -1116,33 +1116,47 @@ return (
 <div style={registrationPageShellStyle}>
 <div style={registrationContentStyle}>
 <div className="stack" style={{ gap: 10 }}>
-<div className="label-caps">
-Home <span style={{ opacity: 0.55 }}>›</span> Academics <span style={{
-opacity: 0.55 }}>›</span> <strong className="text-primary">Registration</strong>
-</div>
-<h1 style={{ fontSize: '38px', fontWeight: '900', color: 'var(--campora-text)',
-margin: 0, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-Registration & Swap Hub
+
+<h1 style={{
+  fontSize: '26px',
+  fontWeight: '600',
+  color: 'var(--campora-text)',
+  margin: 0,
+  letterSpacing: '-0.3px',
+  lineHeight: 1.2
+}}>
+Registration
 </h1>
-<p style={{ color: 'var(--campora-muted)', fontWeight: '600', margin: 0,
-fontSize: '17px', lineHeight: 1.6, maxWidth: '640px' }}>
-Match course sections, read course & professor reviews, manage seat
-alerts, explore curricula, and ask other students for advice.
+<p style={{
+  color: 'var(--campora-muted)',
+  fontWeight: '600',
+  margin: 0,
+  fontSize: '13px',
+  lineHeight: 1.55,
+  maxWidth: '640px'
+}}>
+Course registration, swaps, reviews, seat alerts, and student guidance.
 </p>
 </div>
 <div
   style={{
     display: 'flex',
     alignItems: 'center',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: '10px',
     marginTop: '6px',
     marginBottom: '4px',
     width: '100%',
+    maxWidth: '100%',
     background: 'transparent',
     border: 'none',
     boxShadow: 'none',
-    overflow: 'visible'
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    WebkitOverflowScrolling: 'touch',
+    scrollbarWidth: 'thin',
+    paddingBottom: '6px',
+    touchAction: 'pan-x'
   }}
 >
 <TabButton active={activeTab === 'match'} onClick={() =>
@@ -1243,9 +1257,10 @@ label="Direct Messages"
 <div
   style={{
     minHeight: '220px',
-    background: '#FAFBFC',
-    border: '1.5px dashed #DCE3EC',
+    background: '#FFFFFF',
+    border: '1px solid #E5EAF2',
     borderRadius: '20px',
+    boxShadow: '0 6px 18px rgba(11,26,63,0.035)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -1260,12 +1275,13 @@ label="Direct Messages"
       width: 68,
       height: 68,
       borderRadius: '50%',
-      background: '#F4F7FA',
-      border: '1px solid #E7ECF2',
+      background: '#FFFFFF',
+      border: '1px solid #E3E8F0',
+      boxShadow: '0 6px 18px rgba(11,26,63,0.08)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: '#8B96A6'
+      color: '#0B1A3F'
     }}
   >
     <ArrowLeftRight size={30} />
@@ -1496,10 +1512,27 @@ style={selectInputStyle}
 style={{ ...modalInput, marginBottom: '10px' }} value={newQuestion.title}
 onChange={event => setNewQuestion({ ...newQuestion, title:
 event.target.value })} />
-<textarea placeholder="Write your question or explain what advice you need..."
-required style={{ ...modalInput, height: '95px', resize: 'vertical',
-marginBottom: '12px' }} value={newQuestion.content} onChange={event =>
-setNewQuestion({ ...newQuestion, content: event.target.value })} />
+<textarea
+placeholder="Write your question or explain what advice you need..."
+required
+style={{
+  ...modalInput,
+  height: '110px',
+  minHeight: '110px',
+  resize: 'vertical',
+  marginBottom: '12px',
+  borderRadius: '14px',
+  padding: '14px 15px',
+  lineHeight: 1.5
+}}
+value={newQuestion.content}
+onChange={event =>
+  setNewQuestion({
+    ...newQuestion,
+    content: event.target.value
+  })
+}
+/>
 <div style={formBottomRow}>
 <label style={checkboxLabel}><input type="checkbox"
 checked={newQuestion.is_anonymous} onChange={event =>
@@ -1829,7 +1862,7 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
    style={{
      margin: '0 14px 12px',
      padding: '6px',
-     borderRadius: '14px',
+     borderRadius: '999px',
      border: '1px solid var(--divider)',
      background: 'var(--surface-container-lowest)',
      maxHeight: '220px',
@@ -3240,40 +3273,48 @@ return (
 onClick={onClick}
 className="" 
 style={{
-  minHeight: '38px',
-  padding: '0 16px',
+  flex: '0 0 auto',
+  flexShrink: 0,
+
+  height: '40px',
+  minHeight: '40px',
+  padding: '0 17px',
+
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
   gap: '7px',
-  flex: '0 0 auto',
+
   whiteSpace: 'nowrap',
   fontFamily: 'inherit',
   fontSize: '13px',
   fontWeight: 800,
-  lineHeight: 1,
+  lineHeight: '40px',
+
   cursor: 'pointer',
 
-  background: active ? tone.accent : tone.bg,
+  backgroundColor: active ? tone.accent : tone.bg,
   color: active ? '#FFFFFF' : tone.text,
-  border: active
-    ? `1px solid ${tone.accent}`
-    : `1px solid ${tone.border}`,
 
+  /* Use an inset outline instead of a real border.
+     This keeps the pill perfectly smooth in Safari/Chrome. */
+  border: '0',
   borderRadius: '9999px',
   WebkitBorderRadius: '9999px',
-  MozBorderRadius: '9999px',
+  clipPath: 'inset(0 round 9999px)',
+  WebkitClipPath: 'inset(0 round 9999px)',
 
   boxShadow: active
-    ? `0 5px 16px ${tone.accent}30`
-    : 'none',
+    ? `inset 0 0 0 1px ${tone.accent}`
+    : `inset 0 0 0 1px ${tone.border}`,
 
-  transform: active ? 'translateY(-1px)' : 'none',
-  overflow: 'hidden',
   outline: 'none',
   WebkitAppearance: 'none',
   appearance: 'none',
-  backgroundClip: 'padding-box'
+
+  backgroundClip: 'padding-box',
+  overflow: 'hidden',
+  transform: 'none'
 }}
 >
 {icon}
@@ -3562,14 +3603,14 @@ const heroCardCta = {
   paddingTop: '3px'
 };
 const primaryActionBtn = { background: 'var(--campora-navy)', color: 'var(--surface-container-lowest)', border:
-'none', padding: '10px 16px', borderRadius: '12px', fontWeight: '800', fontSize:
+'none', padding: '10px 16px', borderRadius: '999px', fontWeight: '800', fontSize:
 '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent:
 'center', gap: '6px' };
 const secondaryActionBtn = { background: 'var(--surface-container-lowest)', color: 'var(--campora-text)', border:
-'1.5px solid var(--divider)', padding: '10px 16px', borderRadius: '12px', fontWeight:
+'1.5px solid var(--divider)', padding: '10px 16px', borderRadius: '999px', fontWeight:
 '800', fontSize: '13px', cursor: 'pointer' };
 const primarySaveBtn = { width: '100%', background: 'var(--campora-navy)', color:
-'var(--surface-container-lowest)', border: 'none', padding: '14px', borderRadius: '14px', fontWeight:
+'var(--surface-container-lowest)', border: 'none', padding: '14px', borderRadius: '999px', fontWeight:
 '900', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center',
 justifyContent: 'center', gap: '8px' };
 const sectionHeading = { margin: '0 0 10px', fontSize: '20px', fontWeight: '900',
@@ -3626,11 +3667,11 @@ const swapFormTitle = { margin: 0, color: 'var(--campora-text)', fontSize: '14px
 fontWeight: '900' };
 const swapFormSubtitle = { margin: '2px 0 0', color: 'var(--campora-muted)', fontSize:
 '10px', fontWeight: '700' };
-const badgeRed = { background: '#FFF6F2', color: '#D9896A', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900' }; const badgeGreen = { background: '#F2F9F7', color: '#5E9A8B', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const badgeGray = { background: '#FBFCFE', color: 'var(--campora-muted)', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const reviewTag = { background: '#FFF9F1', color: '#D97706', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '800' }; const dmBtnStyle = { width: '100%', background: 'var(--surface-container-lowest)', border: '1.5px solid var(--divider)', color: 'var(--campora-text)', padding: '10px', borderRadius: '12px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' };
+const badgeRed = { background: '#FFF6F2', color: '#D9896A', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900' }; const badgeGreen = { background: '#F2F9F7', color: '#5E9A8B', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const badgeGray = { background: '#FBFCFE', color: 'var(--campora-muted)', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const reviewTag = { background: '#FFF9F1', color: '#D97706', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '800' }; const dmBtnStyle = { width: '100%', background: 'var(--surface-container-lowest)', border: '1.5px solid var(--divider)', color: 'var(--campora-text)', padding: '10px', borderRadius: '999px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' };
 
-const modalInput = { width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: '12px', border: '1.5px solid var(--divider)', fontSize: '13px', fontWeight: '700', color: 'var(--campora-text)', outline: 'none', background: 'var(--surface-container-lowest)' };
+const modalInput = { width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: '999px', border: '1.5px solid var(--divider)', fontSize: '13px', fontWeight: '700', color: 'var(--campora-text)', outline: 'none', background: 'var(--surface-container-lowest)' };
 const selectInputStyle = { width: '100%', boxSizing: 'border-box', padding:
-'12px 14px', borderRadius: '12px', border: '1.5px solid var(--divider)', fontSize:
+'12px 14px', borderRadius: '999px', border: '1.5px solid var(--divider)', fontSize:
 '14px', fontWeight: '800', color: 'var(--campora-text)', outline: 'none', background:
 'var(--surface-container-lowest)' };
 const fieldLabel = { fontSize: '10px', fontWeight: '900', color: 'var(--campora-text)',
@@ -3657,7 +3698,7 @@ padding: '7px', borderRadius: '8px', cursor: 'pointer', color: 'var(--campora-mu
 const closeModalBtn = { background: 'transparent', border: 'none', color:
 'var(--campora-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent:
 'center', padding: '4px' };
-const courseInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', padding: '15px', margin: '15px 0', background: '#FAFBFC', borderRadius: '14px', border: '1px solid var(--divider)' };
+const courseInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', padding: '15px', margin: '15px 0', background: '#FAFBFC', borderRadius: '999px', border: '1px solid var(--divider)' };
 const infoLabel = { display: 'block', color: 'var(--campora-muted)', fontSize: '9px',
 fontWeight: '900', letterSpacing: '0.6px', marginBottom: '3px' };
 const infoValue = { margin: 0, color: 'var(--campora-text)', fontSize: '12px', fontWeight:
@@ -3673,7 +3714,7 @@ const replyButton = { background: 'none', border: 'none', padding: 0, color:
 alignItems: 'center', gap: '5px' };
 const reminderFormGrid = { display: 'grid', gridTemplateColumns:
 'repeat(autofit, minmax(180px, 1fr))', gap: '10px' };
-const bellCircle = { width: '38px', height: '38px', borderRadius: '12px',
+const bellCircle = { width: '38px', height: '38px', borderRadius: '999px',
 background: '#FAFBFC', color: 'var(--campora-text)', display: 'flex', alignItems: 'center',
 justifyContent: 'center', border: '1px solid var(--divider)' };
 const smallOutlineBtn = { background: 'var(--surface-container-lowest)', border: '1px solid var(--divider)',

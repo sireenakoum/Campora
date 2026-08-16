@@ -16,6 +16,8 @@ import {
   MessageSquare,
   Sparkles,
   Users,
+  UserCheck,
+  Activity,
   MapPin,
   Navigation,
 } from 'lucide-react';
@@ -599,15 +601,6 @@ export default function Dashboard() {
             style={styles.quickGrid}
           >
             <QuickLink
-              icon={CalendarDays}
-              label="Planner"
-              accent={BLUE}
-              soft={BLUE_SOFT}
-              border={BLUE_BORDER}
-              onClick={() => navigate('/planner')}
-            />
-
-            <QuickLink
               icon={BookOpen}
               label="Courses"
               accent={PURPLE}
@@ -617,12 +610,21 @@ export default function Dashboard() {
             />
 
             <QuickLink
-              icon={CheckCircle2}
-              label="To-Do"
-              accent={TEAL}
-              soft={TEAL_SOFT}
-              border={TEAL_BORDER}
-              onClick={() => navigate('/todo')}
+              icon={UserCheck}
+              label="Registration"
+              accent={ROSE}
+              soft={ROSE_SOFT}
+              border={ROSE_BORDER}
+              onClick={() => navigate('/registration')}
+            />
+
+            <QuickLink
+              icon={Users}
+              label="Study Groups"
+              accent={PINK}
+              soft={PINK_SOFT}
+              border={PINK_BORDER}
+              onClick={() => navigate('/study-groups')}
             />
 
             <QuickLink
@@ -635,12 +637,30 @@ export default function Dashboard() {
             />
 
             <QuickLink
-              icon={Users}
-              label="Study Groups"
-              accent={PINK}
-              soft={PINK_SOFT}
-              border={PINK_BORDER}
-              onClick={() => navigate('/study-groups')}
+              icon={Activity}
+              label="Campus Pulse"
+              accent={TERRACOTTA}
+              soft={TERRACOTTA_SOFT}
+              border={TERRACOTTA_BORDER}
+              onClick={() => navigate('/campus-pulse')}
+            />
+
+            <QuickLink
+              icon={CalendarDays}
+              label="Planner"
+              accent={BLUE}
+              soft={BLUE_SOFT}
+              border={BLUE_BORDER}
+              onClick={() => navigate('/planner')}
+            />
+
+            <QuickLink
+              icon={CheckCircle2}
+              label="To-Do"
+              accent={TEAL}
+              soft={TEAL_SOFT}
+              border={TEAL_BORDER}
+              onClick={() => navigate('/todo')}
             />
 
             <QuickLink
@@ -1328,12 +1348,12 @@ const styles = {
   heroEyebrow: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '7px',
-    color: '#B9CCED',
-    fontSize: '10px',
+    gap: '8px',
+    color: '#FFFFFF',
+    fontSize: '13px',
     fontWeight: '900',
-    letterSpacing: '1px',
-    marginBottom: '9px',
+    letterSpacing: '0.7px',
+    marginBottom: '10px',
   },
 
   heroTitle: {
@@ -1346,10 +1366,10 @@ const styles = {
   },
 
   heroSubtitle: {
-    margin: '8px 0 0',
-    color: 'rgba(255,255,255,.70)',
-    fontSize: '14px',
-    fontWeight: '600',
+    margin: '9px 0 0',
+    color: '#FFFFFF',
+    fontSize: '16px',
+    fontWeight: '700',
   },
 
   errorBanner: {

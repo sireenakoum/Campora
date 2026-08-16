@@ -3736,6 +3736,90 @@ const studyGroupsPageShellStyle = {
 
 const instagramReplyClose = { border: 'none', background: 'transparent', color:
 '#717786', cursor: 'pointer', display: 'flex' };
+
+function WhiteStudyEmptyState({
+ icon: Icon,
+ title,
+ text,
+ action
+}) {
+ return (
+  <div
+   style={{
+    width: '100%',
+    minHeight: '220px',
+    boxSizing: 'border-box',
+    background: '#FFFFFF',
+    border: '1px solid #E5EAF2',
+    borderRadius: '22px',
+    boxShadow: '0 7px 22px rgba(11,26,63,0.045)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    padding: '30px 24px'
+   }}
+  >
+   <div
+    style={{
+     width: '66px',
+     height: '66px',
+     borderRadius: '50%',
+     background: '#FFFFFF',
+     border: '1px solid #E2E8F0',
+     boxShadow: '0 5px 16px rgba(11,26,63,0.08)',
+     color: '#0B1A3F',
+     display: 'flex',
+     alignItems: 'center',
+     justifyContent: 'center',
+     marginBottom: '15px'
+    }}
+   >
+    <Icon size={29} strokeWidth={1.9} />
+   </div>
+
+   <h3
+    style={{
+     margin: 0,
+     color: '#0B1A3F',
+     fontSize: '17px',
+     fontWeight: '900'
+    }}
+   >
+    {title}
+   </h3>
+
+   {text && (
+    <p
+     style={{
+      maxWidth: '520px',
+      margin: '7px 0 0',
+      color: '#7A879A',
+      fontSize: '12px',
+      fontWeight: '700',
+      lineHeight: 1.55
+     }}
+    >
+     {text}
+    </p>
+   )}
+
+   {action && (
+    <div
+     style={{
+      marginTop: '18px',
+      display: 'flex',
+      justifyContent: 'center'
+     }}
+    >
+     {action}
+    </div>
+   )}
+  </div>
+ );
+}
+
 const instagramDmShell = {
   display: 'grid',
   gridTemplateColumns: '390px minmax(0, 1fr)',
@@ -5097,7 +5181,7 @@ gridTemplateColumns:
 
 ):(
 
-<EmptyState
+<WhiteStudyEmptyState
  icon={Users}
  title="Find your study circle."
  text="There are no approved circles available yet. Create one and submit it for Campora review."
@@ -5108,21 +5192,13 @@ gridTemplateColumns:
       'create'
     )
    }
-  style={{
-   ...addBtnStyle,
-
-  margin:
-    '0 auto'
- }}
+   style={{
+    ...addBtnStyle,
+    margin: '0 auto'
+   }}
   >
-
-   <Plus
-   size={18}
-
-   />
-
+   <Plus size={18} />
    Create a Circle
-
   </button>
  )}
 />
@@ -5227,7 +5303,7 @@ style={{
 
 ):(
 
-<EmptyState
+<WhiteStudyEmptyState
  icon={Crown}
  title="You haven't created any study circles yet."
  action={(
@@ -5285,7 +5361,7 @@ gridTemplateColumns:
 
 ):(
 
-<EmptyState
+<WhiteStudyEmptyState
  icon={BookmarkCheck}
  title="You haven't joined any study groups yet."
  action={(
@@ -7278,13 +7354,16 @@ style={{
  '20px',
 
 background:
-'#E9E7ED',
+'#FFFFFF',
 
 borderRadius:
 '18px',
 
  border:
-   '1px solid #E3E2E7'
+   '1px solid #E5EAF2',
+
+ boxShadow:
+   '0 5px 16px rgba(11,26,63,0.04)'
 }}
 >
 
@@ -7412,10 +7491,13 @@ style={{
  '14px',
 
 background:
-'#E9E7ED',
+'#FFFFFF',
 
   border:
-'1px solid #E3E2E7',
+'1px solid #E5EAF2',
+
+boxShadow:
+'0 4px 13px rgba(11,26,63,0.04)',
 
 display:
 'flex',
@@ -7665,10 +7747,13 @@ style={{
       '16px',
 
       background:
-      '#E9E7ED',
+      '#FFFFFF',
 
  border:
-   '1px solid #E3E2E7'
+   '1px solid #E5EAF2',
+
+ boxShadow:
+   '0 5px 16px rgba(11,26,63,0.04)'
 }}
 >
 
@@ -8635,15 +8720,70 @@ gap:
  0?(
 
 <div
-style={{
-  margin:
-  'auto'
-}}
+ style={{
+  margin: 'auto',
+  width: '100%',
+  maxWidth: '520px'
+ }}
 >
-<EmptyState
- icon={MessageCircle}
- title="No messages yet. Say hello to start the discussion!"
-/>
+ <div
+  style={{
+   width: '100%',
+   minHeight: '190px',
+   boxSizing: 'border-box',
+   background: '#FFFFFF',
+   border: '1px solid #E5EAF2',
+   borderRadius: '22px',
+   boxShadow: '0 7px 22px rgba(11,26,63,0.045)',
+   display: 'flex',
+   flexDirection: 'column',
+   alignItems: 'center',
+   justifyContent: 'center',
+   textAlign: 'center',
+   padding: '28px 22px'
+  }}
+ >
+  <div
+   style={{
+    width: '64px',
+    height: '64px',
+    borderRadius: '50%',
+    background: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    boxShadow: '0 5px 16px rgba(11,26,63,0.08)',
+    color: '#0B1A3F',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '14px'
+   }}
+  >
+   <MessageCircle size={28} strokeWidth={1.9} />
+  </div>
+
+  <h3
+   style={{
+    margin: 0,
+    color: '#0B1A3F',
+    fontSize: '16px',
+    fontWeight: '900'
+   }}
+  >
+   No messages yet
+  </h3>
+
+  <p
+   style={{
+    margin: '7px 0 0',
+    color: '#7A879A',
+    fontSize: '12px',
+    fontWeight: '700',
+    lineHeight: 1.5
+   }}
+  >
+   Say hello to start the discussion!
+  </p>
+ </div>
 </div>
 
 ):(

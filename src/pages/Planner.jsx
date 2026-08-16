@@ -18,7 +18,7 @@ import {
 
 import { supabase } from '../lib/supabase';
 
-import { ProgressRing, EmptyState } from '../components/luminous';
+import { ProgressRing } from '../components/luminous';
 
 // =========================================================
 // AUTOMATIC TEXT CONTRAST
@@ -741,6 +741,57 @@ export default function Planner() {
   };
 
 
+
+  const confirmDuplicatePlannerEntries = async (entries = []) => {
+    if (!user || !entries.length) return true;
+
+    const dates = [...new Set(entries.map((entry) => entry.date).filter(Boolean))];
+
+    if (!dates.length) return true;
+
+    const { data: existingEntries, error } = await supabase
+      .from('planner_courses')
+      .select('id, name, date, start_time, end_time, type')
+      .eq('user_id', user.id)
+      .in('date', dates);
+
+    if (error) {
+      console.error('Duplicate planner check error:', error);
+
+      // Do not block saving just because the duplicate check failed.
+      return true;
+    }
+
+    const duplicates = entries.filter((entry) =>
+      (existingEntries || []).some((existing) => {
+        const sameName =
+          String(existing.name || '').trim().toLowerCase() ===
+          String(entry.name || '').trim().toLowerCase();
+
+        const sameDate = existing.date === entry.date;
+        const sameStart =
+          String(existing.start_time || '').slice(0, 5) ===
+          String(entry.start_time || '').slice(0, 5);
+
+        const sameEnd =
+          String(existing.end_time || '').slice(0, 5) ===
+          String(entry.end_time || '').slice(0, 5);
+
+        return sameName && sameDate && sameStart && sameEnd;
+      })
+    );
+
+    if (!duplicates.length) {
+      return true;
+    }
+
+    return window.confirm(
+      duplicates.length === 1
+        ? 'A very similar planner entry already exists at this time. Add it anyway?'
+        : `${duplicates.length} similar planner entries already exist. Add them anyway?`
+    );
+  };
+
   const createEntryOrSeries = async () => {
     const groupId = crypto.randomUUID();
 
@@ -977,7 +1028,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         }
 
         if (newEntry.alertType === 'notification') {
-          await saveNotificationsForEntries([data]);
+          savePlannerAlertChoice([data], 'notification');
         }
       }
 
@@ -2336,19 +2387,66 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     flex: 1,
                     minHeight: '250px',
                     borderRadius: '18px',
-                    background: 'var(--surface-container-low)',
-                    border: '1px solid var(--hairline)',
+                    background: '#FFFFFF',
+                    border: '1px solid #E5EAF2',
+                    boxShadow: '0 6px 18px rgba(11,26,63,0.035)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '18px'
                   }}
                 >
-                  <EmptyState
-                    icon={CalIcon}
-                    title="Free Day"
-                    text="Nothing coming up yet. Use the button above to plan something."
-                  />
+                  <div
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '62px',
+                        height: '62px',
+                        borderRadius: '50%',
+                        background: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        boxShadow: '0 5px 16px rgba(11,26,63,0.08)',
+                        color: '#0B1A3F',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: '14px'
+                      }}
+                    >
+                      <CalIcon size={27} strokeWidth={1.9} />
+                    </div>
+
+                    <h3
+                      style={{
+                        margin: 0,
+                        color: '#0B1A3F',
+                        fontSize: '16px',
+                        fontWeight: '900'
+                      }}
+                    >
+                      Free Day
+                    </h3>
+
+                    <p
+                      style={{
+                        margin: '7px 0 0',
+                        color: '#7A879A',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        lineHeight: 1.5
+                      }}
+                    >
+                      Nothing coming up yet. Use the button above to plan something.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

@@ -24,8 +24,8 @@ export default function About() {
       style={{
         minHeight: '100vh',
         background:
-          'linear-gradient(180deg, #FAF9FE 0%, #F4F7FC 100%)',
-        color: '#1A1B1F',
+          'linear-gradient(180deg, #FBFCFE 0%, #F5F8FC 100%)',
+        color: '#172033',
         padding: '20px 48px 70px',
       }}
     >
@@ -42,7 +42,7 @@ export default function About() {
             alignItems: 'center',
             gap: '8px',
             textDecoration: 'none',
-            color: '#1A1B1F',
+            color: '#172033',
             fontWeight: '800',
             marginBottom: '34px',
           }}
@@ -65,13 +65,13 @@ export default function About() {
               gap: '9px',
               padding: '10px 16px',
               borderRadius: '999px',
-              background: '#EEF3FB',
-              color: '#002D62',
+              background: '#F3F7FD',
+              color: '#0B1A3F',
               fontWeight: '800',
               marginBottom: '20px',
             }}
           >
-            <GraduationCap size={18} />
+            <GraduationCap size={18} color="#648CCB" />
             About Campora
           </div>
 
@@ -86,7 +86,7 @@ export default function About() {
           >
             More than a platform.
             <br />
-            <span style={{ color: '#002D62' }}>
+            <span style={{ color: '#0B1A3F' }}>
               Built from the student experience.
             </span>
           </h1>
@@ -97,7 +97,7 @@ export default function About() {
               margin: '0 auto',
               fontSize: '18px',
               lineHeight: '1.8',
-              color: '#667085',
+              color: '#6F7B90',
               fontWeight: '600',
             }}
           >
@@ -117,32 +117,41 @@ export default function About() {
         >
           <div
             style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '17px',
-              background: '#EEF3FB',
-              color: '#002D62',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '12px',
               marginBottom: '18px',
             }}
           >
-            <Lightbulb size={29} />
-          </div>
+            <div
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '16px',
+                background: '#F3F7FD',
+                color: '#648CCB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Lightbulb size={27} />
+            </div>
 
-          <p
-            style={{
-              color: '#002D62',
-              fontWeight: '900',
-              fontSize: '13px',
-              letterSpacing: '1.4px',
-              textTransform: 'uppercase',
-              marginBottom: '10px',
-            }}
-          >
-            Our Story
-          </p>
+            <p
+              style={{
+                color: '#0B1A3F',
+                fontWeight: '900',
+                fontSize: '13px',
+                letterSpacing: '1.4px',
+                textTransform: 'uppercase',
+                margin: 0,
+              }}
+            >
+              Our Story
+            </p>
+          </div>
 
           <h2
             style={{
@@ -157,7 +166,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#667085',
+              color: '#6F7B90',
               fontSize: '17px',
               lineHeight: '1.85',
               fontWeight: '600',
@@ -170,7 +179,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#667085',
+              color: '#6F7B90',
               fontSize: '17px',
               lineHeight: '1.85',
               fontWeight: '600',
@@ -184,7 +193,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#667085',
+              color: '#6F7B90',
               fontSize: '17px',
               lineHeight: '1.85',
               fontWeight: '600',
@@ -207,7 +216,7 @@ export default function About() {
             <p
               style={{
                 margin: 0,
-                color: '#1A1B1F',
+                color: '#172033',
                 fontSize: '21px',
                 lineHeight: '1.6',
                 fontWeight: '950',
@@ -221,39 +230,59 @@ export default function About() {
         {/* FROM IDEA TO REALITY */}
         <section
           style={{
-            background:
-              'linear-gradient(135deg, #F3F0FF 0%, #D8E2FF 100%)',
+            background: '#0B1A3F',
             borderRadius: '34px',
             padding: '52px',
             marginBottom: '110px',
             textAlign: 'center',
-            border: '1px solid #E5E7FF',
+            border: '1px solid #0B1A3F',
+            boxShadow: '0 22px 55px rgba(11,26,63,0.14)',
           }}
         >
-          <Rocket
-            size={36}
-            color="#648CCB"
-            style={{ marginBottom: '16px' }}
-          />
-
-          <p
+          <div
             style={{
-              color: '#002D62',
-              fontWeight: '900',
-              fontSize: '13px',
-              letterSpacing: '1.4px',
-              textTransform: 'uppercase',
-              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '11px',
+              marginBottom: '16px',
             }}
           >
-            From Idea to Reality
-          </p>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '14px',
+                background: 'rgba(255,255,255,0.10)',
+                color: '#9DBCE7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Rocket size={25} />
+            </div>
+
+            <p
+              style={{
+                color: '#D7E5F7',
+                fontWeight: '900',
+                fontSize: '13px',
+                letterSpacing: '1.4px',
+                textTransform: 'uppercase',
+                margin: 0,
+              }}
+            >
+              From Idea to Reality
+            </p>
+          </div>
 
           <h2
             style={{
               fontSize: '38px',
               fontWeight: '950',
               marginBottom: '22px',
+              color: '#FFFFFF',
             }}
           >
             We decided to make it real.
@@ -263,7 +292,7 @@ export default function About() {
             style={{
               maxWidth: '790px',
               margin: '0 auto 20px',
-              color: '#667085',
+              color: 'rgba(255,255,255,0.74)',
               fontSize: '17px',
               lineHeight: '1.85',
               fontWeight: '600',
@@ -278,7 +307,7 @@ export default function About() {
             style={{
               maxWidth: '790px',
               margin: '0 auto 32px',
-              color: '#667085',
+              color: 'rgba(255,255,255,0.74)',
               fontSize: '17px',
               lineHeight: '1.85',
               fontWeight: '600',
@@ -310,11 +339,11 @@ export default function About() {
                 key={item}
                 style={{
                   background: '#FFFFFF',
-                  border: '1px solid #E3E6FA',
+                  border: '1px solid rgba(255,255,255,0.18)',
                   padding: '12px 18px',
                   borderRadius: '999px',
                   fontWeight: '900',
-                  color: '#1A1B1F',
+                  color: '#172033',
                   fontSize: '14px',
                 }}
               >
@@ -327,7 +356,7 @@ export default function About() {
             style={{
               margin: '32px auto 0',
               maxWidth: '760px',
-              color: '#002D62',
+              color: '#FFFFFF',
               fontSize: '22px',
               lineHeight: '1.6',
               fontWeight: '950',
@@ -350,7 +379,7 @@ export default function About() {
           <div
             style={{
               minHeight: '330px',
-              background: '#002D62',
+              background: '#0B1A3F',
               borderRadius: '32px',
               padding: '42px',
               display: 'flex',
@@ -362,7 +391,7 @@ export default function About() {
           >
             <Heart
               size={34}
-              color="#FFFFFF"
+              color="#BFD4F2"
               style={{ marginBottom: '20px' }}
             />
 
@@ -409,7 +438,7 @@ export default function About() {
           <div>
             <p
               style={{
-                color: '#667085',
+                color: '#6F7B90',
                 fontSize: '17px',
                 lineHeight: '1.85',
                 fontWeight: '600',
@@ -422,7 +451,7 @@ export default function About() {
 
             <p
               style={{
-                color: '#667085',
+                color: '#6F7B90',
                 fontSize: '17px',
                 lineHeight: '1.85',
                 fontWeight: '600',
@@ -435,7 +464,7 @@ export default function About() {
 
             <div
               style={{
-                background: '#EEF3FB',
+                background: '#F3F7FD',
                 borderRadius: '26px',
                 padding: '30px',
                 border: '1px solid #DDE7F5',
@@ -447,7 +476,7 @@ export default function About() {
                   fontSize: '27px',
                   lineHeight: '1.35',
                   fontWeight: '950',
-                  color: '#002D62',
+                  color: '#0B1A3F',
                 }}
               >
                 “This is where my campus life comes together.”
@@ -465,32 +494,41 @@ export default function About() {
         >
           <div
             style={{
-              width: '58px',
-              height: '58px',
-              borderRadius: '18px',
-              background: '#EEF3FB',
-              color: '#002D62',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 18px',
+              gap: '12px',
+              marginBottom: '18px',
             }}
           >
-            <Users size={30} />
-          </div>
+            <div
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '16px',
+                background: '#F3F7FD',
+                color: '#648CCB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Users size={28} />
+            </div>
 
-          <p
-            style={{
-              color: '#002D62',
-              fontWeight: '900',
-              fontSize: '13px',
-              letterSpacing: '1.4px',
-              textTransform: 'uppercase',
-              marginBottom: '10px',
-            }}
-          >
-            The People Behind Campora
-          </p>
+            <p
+              style={{
+                color: '#0B1A3F',
+                fontWeight: '900',
+                fontSize: '13px',
+                letterSpacing: '1.4px',
+                textTransform: 'uppercase',
+                margin: 0,
+              }}
+            >
+              The People Behind Campora
+            </p>
+          </div>
 
           <h2
             style={{
@@ -506,7 +544,7 @@ export default function About() {
             style={{
               maxWidth: '760px',
               margin: '0 auto 42px',
-              color: '#667085',
+              color: '#6F7B90',
               fontSize: '17px',
               lineHeight: '1.8',
               fontWeight: '600',
@@ -553,7 +591,7 @@ export default function About() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 15px',
-                    color: '#002D62',
+                    color: '#0B1A3F',
                     fontWeight: '950',
                     fontSize: '18px',
                   }}
@@ -574,7 +612,7 @@ export default function About() {
                 <p
                   style={{
                     margin: 0,
-                    color: '#667085',
+                    color: '#6F7B90',
                     fontSize: '14px',
                     fontWeight: '700',
                   }}
@@ -590,7 +628,7 @@ export default function About() {
               fontSize: '24px',
               fontWeight: '950',
               marginTop: '34px',
-              color: '#002D62',
+              color: '#0B1A3F',
             }}
           >
             Five students. Different disciplines. One shared idea.
@@ -605,24 +643,43 @@ export default function About() {
             margin: '0 auto 100px',
           }}
         >
-          <Sparkles
-            size={34}
-            color="#648CCB"
-            style={{ marginBottom: '16px' }}
-          />
-
-          <p
+          <div
             style={{
-              color: '#002D62',
-              fontWeight: '900',
-              fontSize: '13px',
-              letterSpacing: '1.4px',
-              textTransform: 'uppercase',
-              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              marginBottom: '18px',
             }}
           >
-            Our Vision
-          </p>
+            <div
+              style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '15px',
+                background: '#F3F7FD',
+                color: '#648CCB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Sparkles size={26} />
+            </div>
+
+            <p
+              style={{
+                color: '#0B1A3F',
+                fontWeight: '900',
+                fontSize: '13px',
+                letterSpacing: '1.4px',
+                textTransform: 'uppercase',
+                margin: 0,
+              }}
+            >
+              Our Vision
+            </p>
+          </div>
 
           <h2
             style={{
@@ -637,7 +694,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#667085',
+              color: '#6F7B90',
               fontSize: '17px',
               lineHeight: '1.85',
               fontWeight: '600',
@@ -650,7 +707,7 @@ export default function About() {
 
           <p
             style={{
-              color: '#667085',
+              color: '#6F7B90',
               fontSize: '17px',
               lineHeight: '1.85',
               fontWeight: '600',
@@ -668,7 +725,7 @@ export default function About() {
         <section
           style={{
             background:
-              'linear-gradient(135deg, #002D62 0%, #17295A 100%)',
+              'linear-gradient(135deg, #0B1A3F 0%, #17295A 100%)',
             color: '#FFFFFF',
             borderRadius: '34px',
             padding: '52px 40px',
