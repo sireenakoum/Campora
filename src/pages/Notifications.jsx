@@ -16,6 +16,7 @@ import {
   AlarmClock,
   RotateCcw,
   Eraser,
+  MessageSquare,
 } from 'lucide-react';
 
 import {
@@ -86,6 +87,20 @@ const CATEGORY_STYLES = {
     icon: Users,
   },
 
+  Direct: {
+    main: '#648CCB',
+    soft: '#F3F7FD',
+    border: '#DDE7F5',
+    icon: MessageSquare,
+  },
+
+  Mentors: {
+    main: '#8B78B8',
+    soft: '#F7F4FC',
+    border: '#E7E0F2',
+    icon: GraduationCap,
+  },
+
   'To-Do': {
     main: '#A87695',
     soft: '#FBF5F9',
@@ -107,6 +122,64 @@ const DEFAULT_STYLE = {
 
 function getCategoryStyle(category) {
   return CATEGORY_STYLES[category] || DEFAULT_STYLE;
+}
+
+function getStudyGroupStatus(item) {
+  if (item.category !== 'Study Groups') {
+    return null;
+  }
+
+  const fullText = `${item.title || ''} ${item.message || ''}`.toLowerCase();
+
+  if (
+    fullText.includes('accepted') ||
+    fullText.includes('approved')
+  ) {
+    return {
+      label: 'Accepted',
+      color: '#5E9A8B',
+      background: '#F2F9F7',
+      border: '#D9EBE6',
+    };
+  }
+
+  if (
+    fullText.includes('declined') ||
+    fullText.includes('rejected')
+  ) {
+    return {
+      label: 'Declined',
+      color: '#C76E7D',
+      background: '#FFF5F6',
+      border: '#F0DDE1',
+    };
+  }
+
+  if (
+    fullText.includes('request') ||
+    fullText.includes('pending')
+  ) {
+    return {
+      label: 'Pending',
+      color: '#C99758',
+      background: '#FFF9F1',
+      border: '#F0E2CB',
+    };
+  }
+
+  if (
+    fullText.includes('public') &&
+    fullText.includes('joined')
+  ) {
+    return {
+      label: 'Joined',
+      color: '#648CCB',
+      background: '#F3F7FD',
+      border: '#DDE7F5',
+    };
+  }
+
+  return null;
 }
 
 function getSafeDate(value) {
@@ -231,6 +304,77 @@ function normalizeText(value) {
     .replace(/\s+/g, ' ');
 }
 
+function getNotificationPlacement(item) {
+  const category = String(item.category || '').toLowerCase();
+  const title = String(item.title || '').toLowerCase();
+  const message = String(
+    item.message || item.content || ''
+  ).toLowerCase();
+
+  const fullText = `${category} ${title} ${message}`;
+
+  const hasMessageSignal =
+    fullText.includes('message') ||
+    fullText.includes('messaged') ||
+    fullText.includes('chat') ||
+    fullText.includes('replied') ||
+    fullText.includes('reply');
+
+  const isDirect =
+    fullText.includes('direct message') ||
+    fullText.includes('direct chat') ||
+    fullText.includes(' dm ') ||
+    category === 'direct' ||
+    category === 'dm';
+
+  const isMentor =
+    fullText.includes('mentor');
+
+  const isStudyGroup =
+    fullText.includes('study group') ||
+    fullText.includes('studygroup');
+
+  // Keep membership / request decisions in normal Notifications.
+  // Only actual group conversations belong in Messages.
+  const isMembershipUpdate =
+    fullText.includes('accepted') ||
+    fullText.includes('approved') ||
+    fullText.includes('declined') ||
+    fullText.includes('rejected') ||
+    fullText.includes('join request') ||
+    fullText.includes('membership');
+
+  if (isDirect) {
+    return {
+      section: 'Messages',
+      category: 'Direct',
+    };
+  }
+
+  if (isMentor && hasMessageSignal) {
+    return {
+      section: 'Messages',
+      category: 'Mentors',
+    };
+  }
+
+  if (
+    isStudyGroup &&
+    hasMessageSignal &&
+    !isMembershipUpdate
+  ) {
+    return {
+      section: 'Messages',
+      category: 'Study Groups',
+    };
+  }
+
+  return {
+    section: 'Notifications',
+    category: getSystemCategory(item),
+  };
+}
+
 // =========================================================
 // MAIN COMPONENT
 // =========================================================
@@ -334,6 +478,8 @@ export default function Notifications() {
           combined.push(
             ...data.map((notification) => {
               const id = `notification-${notification.id}`;
+              const placement =
+                getNotificationPlacement(notification);
 
               return {
                 id,
@@ -349,9 +495,10 @@ export default function Notifications() {
                   '',
 
                 category:
-                  getSystemCategory(notification),
+                  placement.category,
 
-                section: 'Notifications',
+                section:
+                  placement.section,
 
                 source: 'notifications',
 
@@ -1018,9 +1165,20 @@ export default function Notifications() {
     [items]
   );
 
+  const messages = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.section === 'Messages'
+      ),
+    [items]
+  );
+
   const currentItems =
     activeSection === 'Notifications'
       ? notifications
+      : activeSection === 'Messages'
+      ? messages
       : reminders;
 
   // =======================================================
@@ -1039,6 +1197,13 @@ export default function Notifications() {
     'Study Groups',
   ];
 
+  const messageFilters = [
+    'All',
+    'Direct',
+    'Study Groups',
+    'Mentors',
+  ];
+
   const reminderFilters = [
     'All',
     'Courses',
@@ -1050,6 +1215,8 @@ export default function Notifications() {
   const availableFilters =
     activeSection === 'Notifications'
       ? notificationFilters
+      : activeSection === 'Messages'
+      ? messageFilters
       : reminderFilters;
 
   const filteredItems =
@@ -1092,6 +1259,11 @@ export default function Notifications() {
 
   const notificationUnread =
     notifications.filter(
+      (item) => !item.read
+    ).length;
+
+  const messageUnread =
+    messages.filter(
       (item) => !item.read
     ).length;
 
@@ -1273,22 +1445,29 @@ export default function Notifications() {
     saveReadState(updated);
 
     if (
-      activeSection ===
-        'Notifications' &&
+      (activeSection === 'Notifications' ||
+        activeSection === 'Messages') &&
       user
     ) {
-      try {
-        await supabase
-          .from('notifications')
-          .update({
-            read: nextValue,
-          })
-          .eq(
-            'user_id',
-            user.id
-          );
-      } catch (error) {
-        console.log(error);
+      const notificationIds =
+        currentItems
+          .filter(
+            (item) =>
+              item.source === 'notifications'
+          )
+          .map((item) => item.rawId);
+
+      if (notificationIds.length > 0) {
+        try {
+          await supabase
+            .from('notifications')
+            .update({
+              read: nextValue,
+            })
+            .in('id', notificationIds);
+        } catch (error) {
+          console.log(error);
+        }
       }
     }
   }
@@ -1465,52 +1644,57 @@ export default function Notifications() {
 
     try {
       if (
-        activeSection ===
-        'Notifications'
+        activeSection === 'Notifications' ||
+        activeSection === 'Messages'
       ) {
         /*
-          First hide Campus Hub announcements locally.
-          We NEVER delete them from Campus Hub.
+          Campus Hub content is only hidden locally.
+          We never delete the real Campus Hub content.
         */
-        currentItems
-          .filter(
-            (item) =>
-              item.source === 'campus_announcements' ||
-              item.source === 'campus_news' ||
-              item.source === 'campus_events'
-          )
-          .forEach((item) => {
-            hideCampusAnnouncement(
-              item
-            );
-          });
+        if (activeSection === 'Notifications') {
+          currentItems
+            .filter(
+              (item) =>
+                item.source === 'campus_announcements' ||
+                item.source === 'campus_news' ||
+                item.source === 'campus_events'
+            )
+            .forEach((item) => {
+              hideCampusAnnouncement(item);
+            });
+        }
 
         /*
-          Normal notifications belong to this user,
-          so they can be removed from the notifications table.
+          Delete only the notification rows shown in the
+          current section. This keeps Messages and
+          Notifications independent from each other.
         */
-        if (user) {
+        const notificationIds =
+          currentItems
+            .filter(
+              (item) =>
+                item.source === 'notifications'
+            )
+            .map((item) => item.rawId);
+
+        if (
+          user &&
+          notificationIds.length > 0
+        ) {
           await supabase
             .from('notifications')
             .delete()
-            .eq(
-              'user_id',
-              user.id
-            );
+            .in('id', notificationIds);
         }
 
         const remaining =
           items.filter(
             (item) =>
-              item.section !==
-              'Notifications'
+              item.section !== activeSection
           );
 
         setItems(remaining);
-
-        saveReadState(
-          remaining
-        );
+        saveReadState(remaining);
       }
 
       if (
@@ -1629,8 +1813,8 @@ export default function Notifications() {
         </div>
 
         <SectionHeader
-          title="Notifications & Reminders"
-          subtitle="Your updates and reminders, organised by where they actually come from."
+          title="Notifications, Messages & Reminders"
+          subtitle="Keep campus updates, conversations and reminders organised in one place."
           action={
             <div
               style={{
@@ -1709,6 +1893,11 @@ export default function Notifications() {
                 icon: Bell,
               },
               {
+                value: 'Messages',
+                label: 'Messages',
+                icon: MessageSquare,
+              },
+              {
                 value: 'Reminders',
                 label: 'Reminders',
                 icon: AlarmClock,
@@ -1784,9 +1973,10 @@ export default function Notifications() {
                 ? 'item'
                 : 'items'}{' '}
               ·{' '}
-              {activeSection ===
-              'Notifications'
+              {activeSection === 'Notifications'
                 ? notificationUnread
+                : activeSection === 'Messages'
+                ? messageUnread
                 : reminderUnread}{' '}
               unread
             </span>
@@ -1866,9 +2056,10 @@ export default function Notifications() {
                     main:
                       'var(--campora-navy)',
                     icon:
-                      activeSection ===
-                      'Notifications'
+                      activeSection === 'Notifications'
                         ? Bell
+                        : activeSection === 'Messages'
+                        ? MessageSquare
                         : AlarmClock,
                   }
                 : getCategoryStyle(filter);
@@ -2023,6 +2214,7 @@ function ItemCard({ item, onToggleRead, onClear }) {
     );
 
   const Icon = style.icon;
+  const studyGroupStatus = getStudyGroupStatus(item);
 
   return (
     <div
@@ -2103,6 +2295,24 @@ function ItemCard({ item, onToggleRead, onClear }) {
               }}
             >
               NEW
+            </span>
+          )}
+
+          {studyGroupStatus && (
+            <span
+              style={{
+                color: studyGroupStatus.color,
+                background: studyGroupStatus.background,
+                border: `1px solid ${studyGroupStatus.border}`,
+                borderRadius: '999px',
+                padding: '4px 8px',
+                fontSize: '9px',
+                fontWeight: '900',
+                letterSpacing: '.45px',
+                textTransform: 'uppercase',
+              }}
+            >
+              {studyGroupStatus.label}
             </span>
           )}
 
@@ -2219,8 +2429,13 @@ function EmptyState({
   const isReminder =
     section === 'Reminders';
 
+  const isMessages =
+    section === 'Messages';
+
   const Icon = isReminder
     ? AlarmClock
+    : isMessages
+    ? MessageSquare
     : Bell;
 
   return (
@@ -2243,7 +2458,11 @@ function EmptyState({
           background: '#FFFFFF',
           border: '1px solid #FFFFFF',
           boxShadow: '0 8px 22px rgba(11,26,63,0.10)',
-          color: isReminder ? '#8B78B8' : '#0B1A3F',
+          color: isReminder
+            ? '#8B78B8'
+            : isMessages
+            ? '#648CCB'
+            : '#0B1A3F',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -2263,6 +2482,8 @@ function EmptyState({
       >
         {isReminder
           ? 'No reminders right now'
+          : isMessages
+          ? 'No new messages'
           : 'You’re all caught up!'}
       </h3>
 
@@ -2278,6 +2499,8 @@ function EmptyState({
       >
         {isReminder
           ? 'Assignment, planner, registration and To-Do reminders will appear here when you set them.'
+          : isMessages
+          ? 'Direct messages, study group conversations and mentor messages will appear here.'
           : 'Campus announcements, course updates and study group activity will appear here.'}
       </p>
     </div>

@@ -37,7 +37,11 @@ import {
   Loader2,
   FileText,
   Calendar,
-  Clock
+  Clock,
+  Lock,
+  Globe2,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -144,7 +148,7 @@ const GROUP_COLORS = [
   { bg: '#CFFAFE', name: 'Light Blue' },
   { bg: '#D1FAE5', name: 'Mint' },
   { bg: '#E0E7FF', name: 'Periwinkle' },
-  { bg: '#002D62', name: 'Navy' }
+  { bg: '#0B1A3F', name: 'Navy' }
 ];
 
 
@@ -218,6 +222,45 @@ const getContrastBorder = (backgroundColor) => {
    ? 'rgba(255,255,255,0.24)'
    : 'rgba(0,45,98,0.10)';
 };
+
+const getReadableAccentColor = (backgroundColor) => {
+  const hex = normalizeHex(backgroundColor).replace('#', '');
+  const red = parseInt(hex.substring(0, 2), 16);
+  const green = parseInt(hex.substring(2, 4), 16);
+  const blue = parseInt(hex.substring(4, 6), 16);
+
+  const luminance =
+    (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+
+  if (luminance < 0.58) {
+    return `#${hex}`;
+  }
+
+  const darken = (value) =>
+    Math.max(0, Math.round(value * 0.58))
+      .toString(16)
+      .padStart(2, '0');
+
+  return `#${darken(red)}${darken(green)}${darken(blue)}`;
+};
+
+const generateStudyGroupCode = () => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const values = new Uint32Array(6);
+    crypto.getRandomValues(values);
+
+    return Array.from(values)
+      .map((value) => alphabet[value % alphabet.length])
+      .join('');
+  }
+
+  return Math.random()
+    .toString(36)
+    .slice(2, 8)
+    .toUpperCase();
+};
 // =====================================================
 // USER HELPERS
 // =====================================================
@@ -269,6 +312,11 @@ const [groups, setGroups] = useState([]);
 
 const [joinedGroupIds, setJoinedGroupIds] =
  useState([]);
+
+const [joinRequests, setJoinRequests] = useState([]);
+const [privateCode, setPrivateCode] = useState('');
+const [privateJoinMessage, setPrivateJoinMessage] = useState('');
+const [requestActionLoading, setRequestActionLoading] = useState(null);
 
 /*
  * IMPORTANT:
@@ -681,8 +729,15 @@ major:
 'All Majors Welcome',
 
  goal:
-    'Exam Prep'
+    'Exam Prep',
+
+ visibility:
+   'public'
 });
+
+const [customStudyGoal, setCustomStudyGoal] = useState('');
+const [customNoiseVibe, setCustomNoiseVibe] = useState('');
+
 
 
 
@@ -817,6 +872,78 @@ useEffect(() => {
 fetchData();
 
 }, []);
+
+useEffect(() => {
+  if (!currentUser?.id) {
+    setJoinRequests([]);
+    return;
+  }
+
+  const loadJoinRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('group_join_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('JOIN REQUESTS ERROR:', error);
+        return;
+      }
+
+      const rows = data || [];
+      const requesterIds = [
+        ...new Set(
+          rows
+            .map((request) => request.requester_id)
+            .filter(Boolean)
+        ),
+      ];
+
+      let profilesById = {};
+
+      if (requesterIds.length > 0) {
+        const { data: profileRows } = await supabase
+          .from('profiles')
+          .select('id, full_name, name, email, major, academic_year')
+          .in('id', requesterIds);
+
+        profilesById = Object.fromEntries(
+          (profileRows || []).map((profile) => [profile.id, profile])
+        );
+      }
+
+      setJoinRequests(
+        rows.map((request) => ({
+          ...request,
+          requester_profile:
+            profilesById[request.requester_id] || null,
+        }))
+      );
+    } catch (error) {
+      console.error('Could not load private circle requests:', error);
+    }
+  };
+
+  loadJoinRequests();
+
+  const channel = supabase
+    .channel(`study-group-join-requests-${currentUser.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'group_join_requests',
+      },
+      loadJoinRequests
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [currentUser?.id]);
 
 
 
@@ -1467,6 +1594,24 @@ if (!user) {
      return;
 }
 
+if (
+  newGroup.goal === 'Other' &&
+  !customStudyGoal.trim()
+) {
+  alert('Please write your study goal.');
+  setActionLoading(false);
+  return;
+}
+
+if (
+  newGroup.environment === 'Other' &&
+  !customNoiseVibe.trim()
+) {
+  alert('Please describe your noise vibe.');
+  setActionLoading(false);
+  return;
+}
+
 const {
  data,
  error
@@ -1479,11 +1624,29 @@ const {
     {
       ...newGroup,
 
-    creator_id:
-     user.id,
+      goal:
+        newGroup.goal === 'Other'
+          ? customStudyGoal.trim()
+          : newGroup.goal,
+
+      environment:
+        newGroup.environment === 'Other'
+          ? customNoiseVibe.trim()
+          : newGroup.environment,
+
+      creator_id:
+        user.id,
+
+      visibility:
+        newGroup.visibility || 'public',
+
+      join_code:
+        newGroup.visibility === 'private'
+          ? generateStudyGroupCode()
+          : null,
 
       approval_status:
-       'pending'
+        'pending'
       }
     ])
     .select();
@@ -1540,11 +1703,17 @@ if (
    major:
    'All Majors Welcome',
    goal:
-      'Exam Prep'
+      'Exam Prep',
+
+   visibility:
+      'public'
   });
 
 
 
+
+   setCustomStudyGoal('');
+   setCustomNoiseVibe('');
 
    await fetchData();
 setView(
@@ -1552,8 +1721,17 @@ setView(
 );
 
 
-   alert(
-     'Your study circle has been submitted for review!\n\nThe Campora team will review it before it appears publicly.' );
+   const createdCircle = data[0];
+
+   if (createdCircle.visibility === 'private') {
+     alert(
+       `Your private study circle has been submitted for Campora review!\n\nYour invite code is: ${createdCircle.join_code}\n\nOnce Campora approves the circle, people with this code can request access and you can accept or decline them.`
+     );
+   } else {
+     alert(
+       'Your public study circle has been submitted for review!\n\nOnce approved, it will appear on Discover and anyone can join instantly.'
+     );
+   }
  }
 
 } catch (error) {
@@ -1776,6 +1954,259 @@ setPinnedGroupMessages(
 // JOIN GROUP
 // =====================================================
 
+const getMyJoinRequest = (groupId) =>
+  joinRequests.find(
+    (request) =>
+      request.group_id === groupId &&
+      request.requester_id === currentUser?.id
+  );
+
+const getPendingRequestsForGroup = (groupId) =>
+  joinRequests.filter(
+    (request) =>
+      request.group_id === groupId &&
+      request.status === 'pending'
+  );
+
+const createStudyGroupNotification = async ({
+  userId,
+  title,
+  message,
+}) => {
+  if (!userId) return;
+
+  try {
+    await supabase
+      .from('notifications')
+      .insert([
+        {
+          user_id: userId,
+          title,
+          message,
+          category: 'Study Groups',
+          read: false,
+        },
+      ]);
+  } catch (error) {
+    console.error('STUDY GROUP NOTIFICATION ERROR:', error);
+  }
+};
+
+const notifyStudyGroupMembersAboutMessage = async ({
+  group,
+  senderId,
+  senderName,
+  content,
+}) => {
+  if (!group?.id || !senderId) return;
+
+  try {
+    const { data: memberRows, error: memberError } = await supabase
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', group.id);
+
+    if (memberError) {
+      console.error('GROUP MESSAGE MEMBER LOOKUP ERROR:', memberError);
+      return;
+    }
+
+    const recipientIds = new Set(
+      (memberRows || [])
+        .map((member) => member.user_id)
+        .filter(Boolean)
+    );
+
+    if (group.creator_id) {
+      recipientIds.add(group.creator_id);
+    }
+
+    recipientIds.delete(senderId);
+
+    if (recipientIds.size === 0) {
+      return;
+    }
+
+    const preview =
+      String(content || '').length > 90
+        ? `${String(content).slice(0, 87)}...`
+        : String(content || '');
+
+    const notificationRows = Array.from(recipientIds).map((userId) => ({
+      user_id: userId,
+      title: `New message in ${group.name || 'Study Group'}`,
+      message: `${senderName || 'A member'} sent a message: ${preview}`,
+      category: 'Study Groups',
+      read: false,
+    }));
+
+    const { error: notificationError } = await supabase
+      .from('notifications')
+      .insert(notificationRows);
+
+    if (notificationError) {
+      console.error(
+        'GROUP MESSAGE NOTIFICATION ERROR:',
+        notificationError
+      );
+    }
+  } catch (error) {
+    console.error(
+      'COULD NOT CREATE GROUP MESSAGE NOTIFICATIONS:',
+      error
+    );
+  }
+};
+
+const handlePrivateCodeJoin = async () => {
+  const code = privateCode.trim().toUpperCase();
+
+  if (!code) {
+    setPrivateJoinMessage('Enter the private circle code first.');
+    return;
+  }
+
+  if (!currentUser?.id) {
+    setPrivateJoinMessage('You must be logged in to request access.');
+    return;
+  }
+
+  setRequestActionLoading('code');
+  setPrivateJoinMessage('');
+
+  try {
+    const { data, error } = await supabase.rpc(
+      'request_private_study_group_join',
+      {
+        p_code: code,
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    const result = Array.isArray(data) ? data[0] : data;
+
+    if (!result) {
+      setPrivateJoinMessage('That private circle code was not found.');
+      return;
+    }
+
+    if (result.request_status === 'already_member') {
+      setPrivateJoinMessage(`You're already a member of ${result.group_name}.`);
+      await fetchData();
+      return;
+    }
+
+    if (result.request_status === 'pending') {
+      setPrivateJoinMessage(
+        `Request sent to ${result.group_name}. The creator can now accept or decline it.`
+      );
+    } else if (result.request_status === 'approved') {
+      setPrivateJoinMessage(`Your request for ${result.group_name} is already approved.`);
+      await fetchData();
+    } else if (result.request_status === 'declined') {
+      setPrivateJoinMessage(
+        `Your previous request for ${result.group_name} was declined.`
+      );
+    }
+
+    setPrivateCode('');
+  } catch (error) {
+    console.error('PRIVATE JOIN CODE ERROR:', error);
+    setPrivateJoinMessage(
+      error?.message || 'Could not request access to that private circle.'
+    );
+  } finally {
+    setRequestActionLoading(null);
+  }
+};
+
+const handlePrivateRequestDecision = async (
+  request,
+  decision
+) => {
+  if (!request?.id) return;
+
+  setRequestActionLoading(request.id);
+
+  try {
+    if (decision === 'approved') {
+      const { error: memberError } = await supabase
+        .from('group_members')
+        .upsert(
+          [
+            {
+              group_id: request.group_id,
+              user_id: request.requester_id,
+            },
+          ],
+          {
+            onConflict: 'group_id,user_id',
+          }
+        );
+
+      if (memberError) {
+        throw memberError;
+      }
+    }
+
+    const { error: requestError } = await supabase
+      .from('group_join_requests')
+      .update({
+        status: decision,
+        decided_at: new Date().toISOString(),
+        decided_by: currentUser?.id,
+      })
+      .eq('id', request.id);
+
+    if (requestError) {
+      throw requestError;
+    }
+
+    const group = groups.find(
+      (groupItem) => groupItem.id === request.group_id
+    );
+
+    await createStudyGroupNotification({
+      userId: request.requester_id,
+      title:
+        decision === 'approved'
+          ? 'Private study group request accepted'
+          : 'Private study group request declined',
+      message:
+        decision === 'approved'
+          ? `Your request has been accepted. You are now in ${group?.name || 'the private study circle'} and can open the group chat.`
+          : `Your request to join ${group?.name || 'the private study circle'} was declined.`,
+    });
+
+    setJoinRequests((previous) =>
+      previous.map((item) =>
+        item.id === request.id
+          ? {
+              ...item,
+              status: decision,
+              decided_at: new Date().toISOString(),
+              decided_by: currentUser?.id,
+            }
+          : item
+      )
+    );
+
+    await fetchData();
+  } catch (error) {
+    console.error('PRIVATE REQUEST DECISION ERROR:', error);
+    alert(
+      `Could not ${decision === 'approved' ? 'accept' : 'decline'} request: ${
+        error?.message || 'Please try again.'
+      }`
+    );
+  } finally {
+    setRequestActionLoading(null);
+  }
+};
+
 const handleJoin = async (
   groupId
 ) => {
@@ -1801,6 +2232,15 @@ if (
 
 
 
+
+if (
+  group.visibility === 'private'
+) {
+  alert(
+    'Private circles can only be joined with their invite code. Enter the code from Discover to send an access request.'
+  );
+  return;
+}
 
 if (
   getGroupMemberCount(
@@ -1862,8 +2302,13 @@ if (user) {
             );
           }
       }
-         await fetchData();
+         await createStudyGroupNotification({
+           userId: group.creator_id,
+           title: 'New member joined your public study group',
+           message: `A student joined ${group.name}. Public circles allow approved users to join instantly.`,
+         });
 
+         await fetchData();
 
           setView(
             'joined'
@@ -2180,6 +2625,13 @@ if (data) {
              );
          }
        );
+
+    await notifyStudyGroupMembersAboutMessage({
+      group: selectedGroup,
+      senderId: currentUser.id,
+      senderName,
+      content: trimmed,
+    });
    }
 };
 // =====================================================
@@ -3160,8 +3612,12 @@ const discoverGroups =
 
 
 
+       const isPublic =
+         (group.visibility || 'public') === 'public';
+
        return (
-         isApproved
+         isApproved &&
+         isPublic
        );
   }
 );
@@ -3962,6 +4418,14 @@ const count =
    group
 );
 
+const groupAccent =
+ getReadableAccentColor(
+   group.color || '#E0F2FE'
+ );
+
+const myJoinRequest =
+ getMyJoinRequest(group.id);
+
 
 const isCreator =
  group.creator_id ===
@@ -4152,6 +4616,73 @@ fontWeight:
  'All Majors Welcome'}
 
 </span>
+
+<span
+style={{
+ display: 'inline-flex',
+ alignItems: 'center',
+ gap: '6px',
+ padding: '7px 11px',
+ borderRadius: '10px',
+ background: group.color || '#0B1A3F',
+ border: 'none',
+ color: getContrastColor(group.color || '#0B1A3F'),
+ fontSize: '11px',
+ fontWeight: '900',
+ textTransform: 'uppercase'
+}}
+>
+{(group.visibility || 'public') === 'private' ? (
+  <Lock size={13} color={getContrastColor(group.color || '#0B1A3F')} />
+) : (
+  <Globe2 size={13} color={getContrastColor(group.color || '#0B1A3F')} />
+)}
+{(group.visibility || 'public') === 'private'
+  ? 'Private'
+  : 'Public'}
+</span>
+
+{myJoinRequest &&
+ !isMember &&
+ (group.visibility || 'public') === 'private' && (
+<span
+style={{
+ display: 'inline-flex',
+ alignItems: 'center',
+ gap: '6px',
+ padding: '7px 11px',
+ borderRadius: '10px',
+ background:
+   myJoinRequest.status === 'approved'
+     ? '#F2F9F7'
+     : myJoinRequest.status === 'declined'
+     ? '#FFF5F6'
+     : '#FFF9F1',
+ border:
+   myJoinRequest.status === 'approved'
+     ? '1px solid #D9EBE6'
+     : myJoinRequest.status === 'declined'
+     ? '1px solid #F0DDE1'
+     : '1px solid #F0E2CB',
+ color:
+   myJoinRequest.status === 'approved'
+     ? '#5E9A8B'
+     : myJoinRequest.status === 'declined'
+     ? '#C76E7D'
+     : '#C99758',
+ fontSize: '11px',
+ fontWeight: '900',
+ textTransform: 'uppercase'
+}}
+>
+<ShieldCheck size={13} />
+{myJoinRequest.status === 'approved'
+  ? 'Accepted'
+  : myJoinRequest.status === 'declined'
+  ? 'Declined'
+  : 'Request Pending'}
+</span>
+)}
 
 
 {isCreator && (
@@ -4418,7 +4949,7 @@ alignItems:
 
 <Edit3
  size={16}
- color="#002D62"
+ color={selectedGroup.color || '#0B1A3F'}
 />
 
 </button>
@@ -4483,7 +5014,7 @@ margin:
 '28px 0 16px',
 
 color:
- '#1A1B1F',
+ group.color || '#0B1A3F',
  fontWeight:
    '900'
 }}
@@ -4542,7 +5073,7 @@ color:
 
 <Target
 size={17}
- color="#002D62"
+ color={group.color || '#0B1A3F'}
 />
 
 <span
@@ -4590,7 +5121,7 @@ color:
 
 <Volume2
  size={17}
- color="#002D62"
+ color={group.color || '#0B1A3F'}
 />
 
 <span
@@ -4638,7 +5169,7 @@ color:
 >
  <Users
   size={17}
-  color="#002D62"
+  color={group.color || '#0B1A3F'}
  />
 
 <span
@@ -5111,6 +5642,173 @@ Discover.
 
 <div>
 
+{/* PRIVATE CIRCLE ENTRY */}
+<div
+style={{
+ marginBottom: '24px',
+ padding: '20px',
+ borderRadius: '22px',
+ background: '#FFFFFF',
+ border: '1.5px solid #E5EAF2',
+ boxShadow: '0 8px 24px rgba(11,26,63,0.05)'
+}}
+>
+<div
+style={{
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'space-between',
+ gap: '16px',
+ flexWrap: 'wrap'
+}}
+>
+<div
+style={{
+ display: 'flex',
+ alignItems: 'center',
+ gap: '12px',
+ minWidth: '240px',
+ flex: '1 1 320px'
+}}
+>
+<div
+style={{
+ width: '44px',
+ height: '44px',
+ borderRadius: '14px',
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'center',
+ background: '#F7F4FC',
+ color: '#8B78B8',
+ flexShrink: 0
+}}
+>
+<KeyRound size={20} />
+</div>
+<div>
+<h3
+style={{
+ margin: 0,
+ color: '#1A1B1F',
+ fontSize: '15px',
+ fontWeight: '900'
+}}
+>
+Join a Private Circle
+</h3>
+<p
+style={{
+ margin: '4px 0 0',
+ color: '#717786',
+ fontSize: '12px',
+ lineHeight: 1.5,
+ fontWeight: '700'
+}}
+>
+Private circles do not appear on Discover. Enter the code shared by the creator, then wait for them to accept or decline your request.
+</p>
+</div>
+</div>
+
+<div
+style={{
+ display: 'flex',
+ alignItems: 'center',
+ gap: '9px',
+ flex: '1 1 360px',
+ justifyContent: 'flex-end',
+ flexWrap: 'wrap'
+}}
+>
+<style>{`
+  input.private-circle-code-input::placeholder {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    color: #9AA1AF !important;
+    opacity: 1 !important;
+  }
+`}</style>
+
+<div
+ style={{
+   position: 'relative',
+   flex: '1 1 220px',
+   maxWidth: '320px',
+   minWidth: '210px'
+ }}
+>
+<input
+ className="private-circle-code-input"
+ value={privateCode}
+ onChange={(event) => {
+   setPrivateCode(event.target.value.toUpperCase());
+   setPrivateJoinMessage('');
+ }}
+ onKeyDown={(event) => {
+   if (event.key === 'Enter') {
+     event.preventDefault();
+     handlePrivateCodeJoin();
+   }
+ }}
+ placeholder="Enter private circle code"
+ maxLength={12}
+ style={{
+   ...inputStyle,
+   width: '100%',
+   boxSizing: 'border-box',
+   textTransform: 'none',
+   letterSpacing: '0',
+   fontSize: '14px',
+   fontWeight: '600',
+   background: '#FFFFFF'
+ }}
+/>
+</div>
+
+<button
+ type="button"
+ onClick={handlePrivateCodeJoin}
+ disabled={requestActionLoading === 'code'}
+ style={{
+   ...saveBtn,
+   minWidth: '150px',
+   display: 'inline-flex',
+   alignItems: 'center',
+   justifyContent: 'center',
+   gap: '8px'
+ }}
+>
+{requestActionLoading === 'code' ? (
+  <Loader2 size={17} className="animate-spin" />
+) : (
+  <Lock size={16} />
+)}
+Request Access
+</button>
+</div>
+</div>
+
+{privateJoinMessage && (
+<div
+style={{
+ marginTop: '12px',
+ padding: '11px 13px',
+ borderRadius: '12px',
+ background: '#F7F9FC',
+ border: '1px solid #E5EAF2',
+ color: '#42506D',
+ fontSize: '11px',
+ fontWeight: '800'
+}}
+>
+{privateJoinMessage}
+</div>
+)}
+</div>
+
 {loading ? (
 
 <div
@@ -5214,6 +5912,18 @@ gridTemplateColumns:
 {view === 'created' && (
 
 <div>
+
+
+<style>{`
+  .private-circle-code-input::placeholder {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    color: #9AA1AF !important;
+    opacity: 1 !important;
+  }
+`}</style>
 
 <h2
 style={{
@@ -5433,7 +6143,7 @@ one place.
     <h4 style={instagramDmSidebarTitle}>Messages</h4>
     <p style={instagramDmSidebarSubtitle}>Your conversations</p>
   </div>
-  <MessageCircle size={20} color="#002D62" />
+  <MessageCircle size={20} color={selectedGroup.color || '#0B1A3F'} />
   </div>
 
    <div style={instagramSearchWrap}>
@@ -6266,8 +6976,7 @@ marginTop:
     '15px'
  }}
  >
- Build your circle and submit it for Campora review before it appears
-publicly.
+ Choose whether your circle is public or private. Public circles appear on Discover after review; private circles stay hidden and use an invite code.
  </p>
 
 </div>
@@ -6286,6 +6995,115 @@ style={{
      '28px'
   }}
   >
+
+  {/* PUBLIC / PRIVATE */}
+
+  <div style={formSectionStyle}>
+    <label style={labelStyle}>CIRCLE ACCESS</label>
+
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))',
+        gap: '12px'
+      }}
+    >
+      {[
+        {
+          value: 'public',
+          title: 'Public Circle',
+          text: 'Appears on Discover after Campora approval. Anyone can join instantly.',
+          icon: Globe2
+        },
+        {
+          value: 'private',
+          title: 'Private Circle',
+          text: 'Hidden from Discover. People need the code, then you accept or decline them.',
+          icon: Lock
+        }
+      ].map((option) => {
+        const Icon = option.icon;
+        const active = newGroup.visibility === option.value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() =>
+              setNewGroup({
+                ...newGroup,
+                visibility: option.value
+              })
+            }
+            style={{
+              padding: '16px',
+              borderRadius: '16px',
+              border: 'none',
+              background: active
+                ? '#0B1A3F'
+                : '#FFFFFF',
+              cursor: 'pointer',
+              textAlign: 'left',
+              display: 'flex',
+              gap: '12px',
+              alignItems: 'flex-start',
+              boxShadow: active
+                ? '0 6px 16px rgba(0,45,98,0.10)'
+                : 'none'
+            }}
+          >
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '12px',
+                background: active
+                  ? 'rgba(255,255,255,0.12)'
+                  : '#F7F9FC',
+                color: active
+                  ? '#FFFFFF'
+                  : '#0B1A3F',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <Icon size={18} />
+            </div>
+
+            <div>
+              <div
+                style={{
+                  color: active
+                    ? '#FFFFFF'
+                    : '#1A1B1F',
+                  fontSize: '13px',
+                  fontWeight: '900'
+                }}
+              >
+                {option.title}
+              </div>
+
+              <div
+                style={{
+                  marginTop: '4px',
+                  color: active
+                    ? 'rgba(255,255,255,0.75)'
+                    : '#717786',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  lineHeight: 1.45
+                }}
+              >
+                {option.text}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  </div>
 
   {/* NAME + MAJOR */}
 
@@ -6530,110 +7348,138 @@ flexWrap:
 
 {/* STUDY GOAL */}
 
-<div
-style={
-  formSectionStyle
-}
->
+<div style={formSectionStyle}>
+  <label style={labelStyle}>STUDY GOAL</label>
 
-<label
-style={
-  labelStyle
-}
+  <select
+    value={newGroup.goal}
+    onChange={(event) => {
+      const value = event.target.value;
 
->
-STUDY GOAL
-</label>
-
-
-<div
-style={
-  chipGridStyle
-}
->
- {STUDY_GOALS.map(
-  (goal) => (
-
-     <button
-     key={goal}
-     type="button"
-     onClick={() =>
-       setNewGroup({
+      setNewGroup({
         ...newGroup,
-        goal
-       })
-     }
-     style={
-       newGroup.goal ===
-       goal
-       ? activeChipStyle
-       : chipStyle
-     }
-     >
-     {goal}
-     </button>
- )
-)}
+        goal: value
+      });
 
-</div>
+      if (value !== 'Other') {
+        setCustomStudyGoal('');
+      }
+    }}
+    style={{
+      ...inputStyle,
+      width: '100%',
+      height: '46px',
+      borderRadius: '12px',
+      background: '#FFFFFF',
+      border: '1.5px solid #E3E8F2',
+      color: '#0B1A3F',
+      fontSize: '13px',
+      fontWeight: '700',
+      padding: '0 14px',
+      cursor: 'pointer'
+    }}
+  >
+    <option value="Exam Prep">Exam Prep</option>
+    <option value="Weekly Review">Weekly Review</option>
+    <option value="Assignments">Assignments</option>
+    <option value="Problem Solving">Problem Solving</option>
+    <option value="Project Work">Project Work</option>
+    <option value="Accountability">Accountability</option>
+    <option value="Other">Other</option>
+  </select>
 
+  {newGroup.goal === 'Other' && (
+    <input
+      value={customStudyGoal}
+      onChange={(event) =>
+        setCustomStudyGoal(event.target.value)
+      }
+      placeholder="Write your study goal"
+      style={{
+        ...inputStyle,
+        width: '100%',
+        height: '44px',
+        marginTop: '10px',
+        borderRadius: '12px',
+        border: '1.5px solid #E3E8F2',
+        color: '#0B1A3F',
+        fontSize: '13px',
+        fontWeight: '600',
+        padding: '0 14px',
+        boxSizing: 'border-box'
+      }}
+    />
+  )}
 </div>
 
 
 {/* NOISE */}
 
-<div
-style={
-  formSectionStyle
-}
->
-<label
+<div style={formSectionStyle}>
+  <label style={labelStyle}>NOISE VIBE</label>
 
-style={
-  labelStyle
-}
->
-NOISE VIBE
-</label>
+  <select
+    value={newGroup.environment}
+    onChange={(event) => {
+      const value = event.target.value;
 
-
-<div
-style={
-  chipGridStyle
-}
->
-
-{NOISE_LEVELS.map(
- (environment) => (
-
-     <button
-     key={
-       environment
-     }
-     type="button"
-     onClick={() =>
       setNewGroup({
-       ...newGroup,
+        ...newGroup,
+        environment: value
+      });
 
-       environment
-      })
-     }
-     style={
-       newGroup.environment ===
-       environment
-       ? activeChipStyle
-       : chipStyle
-     }
-     >
-     {environment}
-     </button>
- )
-)}
+      if (value !== 'Other') {
+        setCustomNoiseVibe('');
+      }
+    }}
+    style={{
+      ...inputStyle,
+      width: '100%',
+      height: '46px',
+      borderRadius: '12px',
+      background: '#FFFFFF',
+      border: '1.5px solid #E3E8F2',
+      color: '#0B1A3F',
+      fontSize: '13px',
+      fontWeight: '700',
+      padding: '0 14px',
+      cursor: 'pointer'
+    }}
+  >
+    <option value="Library Soft">Library Soft</option>
+    <option value="Silent Focus">Silent Focus</option>
+    <option value="Low Conversation">Low Conversation</option>
+    <option value="Collaborative">Collaborative</option>
+    <option value="Energetic">Energetic</option>
+    <option value="Online">Online</option>
+    <option value="Other">Other</option>
+  </select>
 
+  {newGroup.environment === 'Other' && (
+    <input
+      value={customNoiseVibe}
+      onChange={(event) =>
+        setCustomNoiseVibe(event.target.value)
+      }
+      placeholder="Describe the noise vibe"
+      style={{
+        ...inputStyle,
+        width: '100%',
+        height: '44px',
+        marginTop: '10px',
+        borderRadius: '12px',
+        border: '1.5px solid #E3E8F2',
+        color: '#0B1A3F',
+        fontSize: '13px',
+        fontWeight: '600',
+        padding: '0 14px',
+        boxSizing: 'border-box'
+      }}
+    />
+  )}
 </div>
 
-</div>
- {/* DESCRIPTION */}
+{/* DESCRIPTION */}
 
      <div
 
@@ -6961,100 +7807,72 @@ Current circle color
 </div>
 
 
-{/* LIVE DARK/LIGHT PREVIEW */}
+{/* LIVE COLOR PREVIEW */}
 
 <div
 style={{
- marginTop:
- '14px',
-
-padding:
-'18px 20px',
-
-borderRadius:
-'16px',
-
-background:
-newGroup.color ||
-'#E0F2FE',
-
- border:
- `1px solid ${getContrastBorder(
-   newGroup.color
- )}`
+ marginTop: '14px',
+ padding: '18px 20px',
+ borderRadius: '16px',
+ background: `linear-gradient(135deg, #FFFFFF 0%, ${newGroup.color || '#E0F2FE'}18 100%)`,
+ border: 'none',
+ boxShadow: '0 6px 18px rgba(11,26,63,0.05)'
 }}
 >
+<div
+style={{
+ display: 'flex',
+ alignItems: 'center',
+ gap: '10px',
+ marginBottom: '7px'
+}}
+>
+<div
+style={{
+ width: '12px',
+ height: '12px',
+ borderRadius: '50%',
+ background: newGroup.color || '#E0F2FE',
+ boxShadow: `0 0 0 5px ${newGroup.color || '#E0F2FE'}22`,
+ flexShrink: 0
+}}
+/>
 
 <p
 style={{
- margin:
- 0,
-
-  fontSize:
-   '10px',
-
-  fontWeight:
-   '900',
-
-  letterSpacing:
-    '0.5px',
-
-  textTransform:
-   'uppercase',
-
- color:
-   getMutedContrastColor(
-     newGroup.color
-   )
+ margin: 0,
+ fontSize: '10px',
+ fontWeight: '900',
+ letterSpacing: '0.5px',
+ textTransform: 'uppercase',
+ color: '#717786'
 }}
 >
 PREVIEW
 </p>
-
+</div>
 
 <h3
 style={{
-
-margin:
-'5px 0 3px',
-
-  fontSize:
-   '18px',
-  fontWeight:
-   '900',
-
- color:
-   getContrastColor(
-     newGroup.color
-   )
+ margin: '5px 0 3px',
+ fontSize: '18px',
+ fontWeight: '900',
+ color: '#0B1A3F'
 }}
 >
- {newGroup.name ||
-  'Your Study Circle'}
+{newGroup.name || 'Your Study Circle'}
 </h3>
-
 
 <p
 style={{
- margin:
- 0,
-
-fontSize:
- '12px',
-
-fontWeight:
- '700',
-
- color:
-   getMutedContrastColor(
-     newGroup.color
-   )
+ margin: 0,
+ fontSize: '12px',
+ fontWeight: '700',
+ color: '#717786'
 }}
 >
-{newGroup.major ||
- 'All Majors Welcome'}
+{newGroup.major || 'All Majors Welcome'}
 </p>
-
 </div>
 
 </div>
@@ -7098,879 +7916,906 @@ actionLoading
 
 <div
 style={{
- maxWidth:
- '1180px',
+ maxWidth: '1180px',
+ width: '100%',
+ margin: '0 auto',
+ display: 'flex',
+ flexDirection: 'column',
+ gap: '18px'
+}}
+>
 
-width:
-'100%',
-
-margin:
-'0 auto',
-
-background:
-
-'white',
-
-borderRadius:
-'32px',
-border:
-'1px solid #E3E2E7',
-
-padding:
-'30px 34px',
-
-   boxShadow:
-     '0 20px 30px -10px rgba(0,0,0,0.05)'
-  }}
- >
-{/* BACK BUTTON */}
-
+{/* TOP NAV */}
+<div
+style={{
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'space-between',
+ gap: '12px',
+ flexWrap: 'wrap'
+}}
+>
 <button
 onClick={() =>
   setView(
-    selectedGroup.creator_id ===
-     currentUser?.id
-     ? 'created'
-     : joinedGroupIds.includes(
-         selectedGroup.id
-       )
-       ? 'joined'
-       : 'browse'
+    selectedGroup.creator_id === currentUser?.id
+      ? 'created'
+      : joinedGroupIds.includes(selectedGroup.id)
+      ? 'joined'
+      : 'browse'
   )
 }
 className="btn btn-ghost"
 >
-<ArrowLeft
- size={16}
-/>
-
+<ArrowLeft size={16} />
 Back
-
 </button>
 
-
-{/* =================================================
-  GROUP COLOR HERO
-================================================= */}
-
 <div
 style={{
- margin:
- '24px 0',
-
-padding:
-'28px',
-
-borderRadius:
-'24px',
-
-background:
-selectedGroup.color ||
-'#E0F2FE',
-
-border:
- `1px solid ${getContrastBorder(
-    selectedGroup.color ||
-     '#E0F2FE'
-   )}`
+ display: 'flex',
+ alignItems: 'center',
+ gap: '8px',
+ flexWrap: 'wrap'
 }}
 >
-
-<div
-style={{
- display:
- 'flex',
-
-justifyContent:
-  'space-between',
-
-alignItems:
- 'center',
-
-gap:
-'12px',
-
- flexWrap:
-   'wrap'
-}}
->
-
-{/* MAJOR TAG */}
-
 <span
 style={{
-
-...tagStyle,
-
-background:
-isDarkColor(
-  selectedGroup.color ||
-   '#E0F2FE'
-)
-  ? 'rgba(255,255,255,0.16)'
-  : 'rgba(255,255,255,0.8)',
-
-border:
-isDarkColor(
-  selectedGroup.color ||
-   '#E0F2FE'
-  )
-    ? '1px solid rgba(255,255,255,0.22)'
-    : 'none',
- color:
-   '#1A1B1F'
+ display: 'inline-flex',
+ alignItems: 'center',
+ gap: '6px',
+ padding: '7px 10px',
+ borderRadius: '999px',
+ background: selectedGroup.color || '#0B1A3F',
+ border: 'none',
+ color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+ fontSize: '10px',
+ fontWeight: '900',
+ textTransform: 'uppercase',
+ letterSpacing: '.35px'
 }}
 >
-{selectedGroup.major ||
- 'All Majors Welcome'}
-</span>
-
-
-{/* COMPATIBILITY */}
-
-<span
-style={{
- fontSize:
-  '13px',
-
-fontWeight:
- '900',
-
- color:
-   getContrastColor(
-     selectedGroup.color ||
-      '#E0F2FE'
-   )
-}}
->
-Compatibility Score:{' '}
-
-{calculateMatch(
- selectedGroup
+{(selectedGroup.visibility || 'public') === 'private' ? (
+  <Lock size={12} color={getContrastColor(selectedGroup.color || '#0B1A3F')} />
+) : (
+  <Globe2 size={12} color={getContrastColor(selectedGroup.color || '#0B1A3F')} />
 )}
-%
+{(selectedGroup.visibility || 'public') === 'private' ? 'Private Circle' : 'Public Circle'}
 </span>
 
+<span
+style={{
+ display: 'inline-flex',
+ alignItems: 'center',
+ gap: '6px',
+ padding: '7px 10px',
+ borderRadius: '999px',
+ background:
+   selectedGroup.approval_status === 'approved'
+     ? '#F2F9F7'
+     : selectedGroup.approval_status === 'rejected'
+     ? '#FFF5F6'
+     : '#FFF9F1',
+ border:
+   selectedGroup.approval_status === 'approved'
+     ? 'none'
+     : selectedGroup.approval_status === 'rejected'
+     ? 'none'
+     : 'none',
+ color:
+   selectedGroup.approval_status === 'approved'
+     ? '#5E9A8B'
+     : selectedGroup.approval_status === 'rejected'
+     ? '#C76E7D'
+     : '#C99758',
+ fontSize: '10px',
+ fontWeight: '900',
+ textTransform: 'uppercase',
+ letterSpacing: '.35px'
+}}
+>
+<ShieldCheck size={12} />
+{selectedGroup.approval_status === 'approved'
+  ? 'Approved'
+  : selectedGroup.approval_status === 'rejected'
+  ? 'Declined'
+  : 'In Review'}
+</span>
+</div>
 </div>
 
+{/* MAIN SUMMARY CARD */}
+<div
+style={{
+ position: 'relative',
+ overflow: 'hidden',
+ background: `linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 68%, ${selectedGroup.color || '#E0F2FE'}24 100%)`,
+ borderRadius: '26px',
+ border: 'none',
+ boxShadow: '0 14px 34px rgba(11,26,63,0.07)',
+ padding: '28px 30px'
+}}
+>
+<div
+style={{
+ position: 'absolute',
+ top: 0,
+ left: 0,
+ right: 0,
+ height: '6px',
+ background: selectedGroup.color || '#E0F2FE'
+}}
+/>
 
-{/* GROUP NAME */}
+<div
+style={{
+ position: 'absolute',
+ top: '26px',
+ right: '28px',
+ width: '22px',
+ height: '22px',
+ borderRadius: '50%',
+ background: selectedGroup.color || '#E0F2FE',
+ boxShadow: `0 0 0 9px ${selectedGroup.color || '#E0F2FE'}22`,
+ pointerEvents: 'none'
+}}
+/>
+
+<div
+style={{
+ position: 'relative',
+ zIndex: 1,
+ display: 'grid',
+ gridTemplateColumns: 'minmax(0,1fr) auto',
+ gap: '24px',
+ alignItems: 'start'
+}}
+>
+<div>
+<div
+style={{
+ display: 'flex',
+ gap: '8px',
+ flexWrap: 'wrap',
+ marginBottom: '13px'
+}}
+>
+<span
+style={{
+ ...tagStyle,
+ background: selectedGroup.color || '#0B1A3F',
+ border: 'none',
+ color: getContrastColor(selectedGroup.color || '#0B1A3F')
+}}
+>
+{selectedGroup.major || 'All Majors Welcome'}
+</span>
+
+<span
+style={{
+ ...tagStyle,
+ background: '#F7F9FC',
+ border: 'none',
+ color: '#42506D'
+}}
+>
+{selectedGroup.course_code || selectedGroup.course || 'Study Circle'}
+</span>
+</div>
 
 <h1
 style={{
- fontSize:
-  '36px',
-fontWeight:
- '900',
-
-color:
- getContrastColor(
-   selectedGroup.color ||
-    '#E0F2FE'
- ),
-
- margin:
-   '16px 0 8px'
+ margin: 0,
+ fontSize: '34px',
+ lineHeight: 1.1,
+ fontWeight: '950',
+ color: selectedGroup.color || '#0B1A3F'
 }}
 >
 {selectedGroup.name}
 </h1>
 
-
-
-
-{/* DESCRIPTION */}
-
 <p
 style={{
- margin:
- 0,
-
-fontWeight:
- '700',
-
-color:
- getMutedContrastColor(
-
-    selectedGroup.color ||
-     '#E0F2FE'
-  ),
- lineHeight:
-   '1.55'
+ margin: '12px 0 0',
+ maxWidth: '760px',
+ color: '#626A79',
+ fontSize: '14px',
+ lineHeight: 1.65,
+ fontWeight: '650'
 }}
 >
-{selectedGroup.description ||
- 'No description provided.'}
+{selectedGroup.description || 'No description provided.'}
 </p>
-
 </div>
-{/* =================================================
-  GROUP INFORMATION
-================================================= */}
+
 <div
 style={{
- display:
- 'grid',
-
-gridTemplateColumns:
-'repeat(auto-fit,minmax(200px,1fr))',
-
-gap:
-'20px',
-
- marginBottom:
-   '32px'
+ minWidth: '150px',
+ padding: '16px',
+ borderRadius: '18px',
+ background: selectedGroup.color || '#0B1A3F',
+ border: 'none',
+ textAlign: 'center'
 }}
 >
-
-{[
- [
-  'GOAL',
-  selectedGroup.goal
-],
-
-[
-  'ENVIRONMENT',
-  selectedGroup.environment
-],
-
-[
-    'MODE',
-    selectedGroup.mode
-  ]
-].map(
-
- ([
- label,
- value
-]) => (
-
-  <div
-  key={
-    label
-  }
+<div
 style={{
- padding:
- '20px',
-
-background:
-'#FFFFFF',
-
-borderRadius:
-'18px',
-
- border:
-   '1px solid #E5EAF2',
-
- boxShadow:
-   '0 5px 16px rgba(11,26,63,0.04)'
+ color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+ fontSize: '26px',
+ fontWeight: '950'
 }}
 >
-
-<p
+{calculateMatch(selectedGroup)}%
+</div>
+<div
 style={{
- margin:
- 0,
-
-fontSize:
- '11px',
-
-fontWeight:
- '900',
-
-  color:
-   '#717786'
+ marginTop: '3px',
+ color: getMutedContrastColor(selectedGroup.color || '#0B1A3F'),
+ fontSize: '10px',
+ fontWeight: '900',
+ textTransform: 'uppercase',
+ letterSpacing: '.45px'
 }}
 >
-{label}
-</p>
-
-
-
-
-<p
-style={{
-
-margin:
-'6px 0 0',
-fontWeight:
- '800',
-
- color:
-   '#1A1B1F'
-}}
->
-{value ||
-    'Not specified'}
-    </p>
-
-     </div>
- )
-)}
-
+Compatibility
+</div>
+</div>
+</div>
 </div>
 
+{/* INFORMATION + MEMBERSHIP */}
+<div
+style={{
+ display: 'grid',
+ gridTemplateColumns: 'minmax(0,1.7fr) minmax(280px,.8fr)',
+ gap: '18px',
+ alignItems: 'start'
+}}
+>
+<div
+style={{
+ display: 'flex',
+ flexDirection: 'column',
+ gap: '18px'
+}}
+>
 
+<section
+style={{
+ background: `linear-gradient(135deg, #FFFFFF 0%, ${selectedGroup.color || '#E0F2FE'}10 100%)`,
+ borderRadius: '22px',
+ border: 'none',
+ padding: '22px',
+ boxShadow: '0 10px 26px rgba(11,26,63,0.055)'
+}}
+>
+<div
+style={{
+ display: 'flex',
+ alignItems: 'center',
+ gap: '9px',
+ marginBottom: '16px'
+}}
+>
+<div
+style={{
+ width: '34px',
+ height: '34px',
+ borderRadius: '11px',
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'center',
+ background: selectedGroup.color || '#0B1A3F',
+ color: getContrastColor(selectedGroup.color || '#0B1A3F')
+}}
+>
+<Target size={17} />
+</div>
+<h3
+style={{
+ margin: 0,
+ color: '#1A1B1F',
+ fontSize: '16px',
+ fontWeight: '900'
+}}
+>
+Circle Details
+</h3>
+</div>
 
+<div
+style={{
+ display: 'grid',
+ gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))',
+ gap: '12px'
+}}
+>
+{[
+  ['GOAL', selectedGroup.goal, Target],
+  ['ENVIRONMENT', selectedGroup.environment, Volume2],
+  ['MODE', selectedGroup.mode, Users],
+  ['MEMBERS', `${getGroupMemberCount(selectedGroup)} / ${selectedGroup.max_size}`, Users]
+].map(([label, value, Icon]) => (
+  <div
+    key={label}
+    style={{
+      minHeight: '92px',
+      padding: '15px',
+      borderRadius: '15px',
+      background: selectedGroup.color || '#0B1A3F',
+      border: 'none',
+      boxShadow: `0 6px 16px ${selectedGroup.color || '#0B1A3F'}24`
+    }}
+  >
+    <Icon
+      size={16}
+      color={getContrastColor(selectedGroup.color || '#0B1A3F')}
+    />
+    <div
+      style={{
+        marginTop: '10px',
+        color: getMutedContrastColor(selectedGroup.color || '#0B1A3F'),
+        fontSize: '9px',
+        fontWeight: '900',
+        letterSpacing: '.5px'
+      }}
+    >
+      {label}
+    </div>
+    <div
+      style={{
+        marginTop: '4px',
+        color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+        fontSize: '12px',
+        fontWeight: '850'
+      }}
+    >
+      {value || 'Not specified'}
+    </div>
+  </div>
+))}
+</div>
+</section>
 
-{/* =================================================
-  CIRCLE MEMBERS — ONLY VISIBLE AFTER JOINING
-================================================= */}
+{/* PRIVATE ACCESS */}
+{(selectedGroup.visibility || 'public') === 'private' &&
+ selectedGroup.creator_id === currentUser?.id && (
+<section
+style={{
+ background: '#FFFFFF',
+ borderRadius: '22px',
+ border: 'none',
+ padding: '22px',
+ boxShadow: '0 10px 26px rgba(11,26,63,0.055)'
+}}
+>
+<div
+style={{
+ display: 'flex',
+ justifyContent: 'space-between',
+ alignItems: 'flex-start',
+ gap: '14px',
+ flexWrap: 'wrap'
+}}
+>
+<div>
+<div
+style={{
+ display: 'flex',
+ alignItems: 'center',
+ gap: '9px'
+}}
+>
+<div
+style={{
+ width: '34px',
+ height: '34px',
+ borderRadius: '11px',
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'center',
+ background: `${selectedGroup.color || '#E0F2FE'}22`,
+ color: '#0B1A3F'
+}}
+>
+<KeyRound size={17} />
+</div>
+<div>
+<h3
+style={{
+ margin: 0,
+ color: '#1A1B1F',
+ fontSize: '16px',
+ fontWeight: '900'
+}}
+>
+Private Access
+</h3>
+<p
+style={{
+ margin: '3px 0 0',
+ color: '#717786',
+ fontSize: '11px',
+ fontWeight: '700'
+}}
+>
+Share the code. Students still need your approval.
+</p>
+</div>
+</div>
+</div>
+
+<div
+style={{
+ display: 'inline-flex',
+ alignItems: 'center',
+ gap: '8px',
+ padding: '11px 14px',
+ borderRadius: '12px',
+ background: `${selectedGroup.color || '#E0F2FE'}1F`,
+ border: 'none',
+ color: selectedGroup.color || '#0B1A3F',
+ fontWeight: '950',
+ letterSpacing: '2px'
+}}
+>
+<KeyRound size={15} />
+{selectedGroup.join_code || 'NO CODE'}
+</div>
+</div>
+
+<div
+style={{
+ marginTop: '17px',
+ display: 'flex',
+ flexDirection: 'column',
+ gap: '9px'
+}}
+>
+{getPendingRequestsForGroup(selectedGroup.id).length > 0 ? (
+  getPendingRequestsForGroup(selectedGroup.id).map((request) => {
+    const profile = request.requester_profile || {};
+    const displayName =
+      profile.full_name ||
+      profile.name ||
+      profile.email?.split('@')[0] ||
+      'Student';
+
+    return (
+      <div
+        key={request.id}
+        style={{
+          padding: '13px 14px',
+          borderRadius: '14px',
+          border: 'none',
+          background: '#FAFBFD',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          flexWrap: 'wrap'
+        }}
+      >
+        <div>
+          <div
+            style={{
+              color: '#1A1B1F',
+              fontSize: '12px',
+              fontWeight: '900'
+            }}
+          >
+            {displayName}
+          </div>
+          <div
+            style={{
+              marginTop: '3px',
+              color: '#717786',
+              fontSize: '10px',
+              fontWeight: '700'
+            }}
+          >
+            {[profile.major, profile.academic_year].filter(Boolean).join(' · ') ||
+              'Requested access'}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '7px' }}>
+          <button
+            type="button"
+            disabled={requestActionLoading === request.id}
+            onClick={() => handlePrivateRequestDecision(request, 'approved')}
+            style={{
+              border: 'none',
+              background: '#F2F9F7',
+              color: '#5E9A8B',
+              borderRadius: '9px',
+              padding: '8px 11px',
+              fontWeight: '900',
+              cursor: 'pointer'
+            }}
+          >
+            Accept
+          </button>
+
+          <button
+            type="button"
+            disabled={requestActionLoading === request.id}
+            onClick={() => handlePrivateRequestDecision(request, 'declined')}
+            style={{
+              border: 'none',
+              background: '#FFF5F6',
+              color: '#C76E7D',
+              borderRadius: '9px',
+              padding: '8px 11px',
+              fontWeight: '900',
+              cursor: 'pointer'
+            }}
+          >
+            Decline
+          </button>
+        </div>
+      </div>
+    );
+  })
+) : (
+  <div
+    style={{
+      padding: '13px',
+      borderRadius: '13px',
+      background: '#FFFFFF',
+      border: 'none',
+      color: '#717786',
+      fontSize: '11px',
+      fontWeight: '700'
+    }}
+  >
+    No pending access requests.
+  </div>
+)}
+</div>
+</section>
+)}
+
+{(selectedGroup.visibility || 'public') === 'private' &&
+ selectedGroup.creator_id !== currentUser?.id &&
+ !joinedGroupIds.includes(selectedGroup.id) &&
+ getMyJoinRequest(selectedGroup.id) && (
+<div
+style={{
+ padding: '14px 16px',
+ borderRadius: '14px',
+ background:
+   getMyJoinRequest(selectedGroup.id)?.status === 'declined'
+     ? '#FFF5F6'
+     : '#FFF9F1',
+ border:
+   getMyJoinRequest(selectedGroup.id)?.status === 'declined'
+     ? 'none'
+     : 'none',
+ color:
+   getMyJoinRequest(selectedGroup.id)?.status === 'declined'
+     ? '#C76E7D'
+     : '#C99758',
+ fontSize: '12px',
+ fontWeight: '900'
+}}
+>
+{getMyJoinRequest(selectedGroup.id)?.status === 'declined'
+  ? 'Your request to join this private circle was declined.'
+  : 'Your request is pending. The creator still needs to accept or decline it.'}
+</div>
+)}
+</div>
+
+{/* RIGHT SIDE */}
+<aside
+style={{
+ display: 'flex',
+ flexDirection: 'column',
+ gap: '18px'
+}}
+>
+<section
+style={{
+ background: '#FFFFFF',
+ borderRadius: '22px',
+ border: 'none',
+ padding: '20px',
+ boxShadow: '0 10px 26px rgba(11,26,63,0.055)'
+}}
+>
+<h3
+style={{
+ margin: '0 0 14px',
+ color: selectedGroup.color || '#0B1A3F',
+ fontSize: '15px',
+ fontWeight: '900'
+}}
+>
+Circle Access
+</h3>
+
+{selectedGroup.approval_status !== 'approved' ? (
+<div
+style={{
+ padding: '13px',
+ borderRadius: '13px',
+ background:
+   selectedGroup.approval_status === 'rejected' ? '#FFF5F6' : '#FFF9F1',
+ border:
+   selectedGroup.approval_status === 'rejected'
+     ? 'none'
+     : 'none',
+ color:
+   selectedGroup.approval_status === 'rejected' ? '#C76E7D' : '#C99758',
+ fontSize: '11px',
+ fontWeight: '850',
+ lineHeight: 1.45
+}}
+>
+{selectedGroup.approval_status === 'rejected'
+  ? 'This circle was declined by Campora and is not active.'
+  : 'This circle is currently waiting for Campora admin review.'}
+</div>
+) : joinedGroupIds.includes(selectedGroup.id) ||
+  selectedGroup.creator_id === currentUser?.id ? (
+<button
+onClick={() => setView('chat')}
+style={{
+ ...saveBtn,
+ width: '100%',
+ minHeight: '48px',
+ margin: 0,
+ padding: '0 18px',
+ boxSizing: 'border-box',
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'center',
+ alignSelf: 'stretch',
+ gap: '8px',
+ background: selectedGroup.color || '#0B1A3F',
+ color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+ boxShadow: 'none'
+}}
+>
+<MessageSquare size={17} />
+Open Group Chat
+</button>
+) : (selectedGroup.visibility || 'public') === 'private' ? (
+<div
+style={{
+ padding: '13px',
+ borderRadius: '13px',
+ background: '#F7F9FC',
+ border: 'none',
+ color: '#42506D',
+ fontSize: '11px',
+ fontWeight: '800',
+ lineHeight: 1.45,
+ textAlign: 'center'
+}}
+>
+Private circle — use its invite code from Discover to request access.
+</div>
+) : (
+<button
+onClick={() => handleJoin(selectedGroup.id)}
+disabled={
+  actionLoading ||
+  getGroupMemberCount(selectedGroup) >= selectedGroup.max_size
+}
+style={{
+ ...saveBtn,
+ width: '100%',
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'center',
+ gap: '8px',
+ background: '#0B1A3F',
+ color: '#FFFFFF',
+ boxShadow: `inset 5px 0 0 ${selectedGroup.color || '#E0F2FE'}`
+,
+ opacity:
+   getGroupMemberCount(selectedGroup) >= selectedGroup.max_size ? 0.55 : 1
+}}
+>
+<UserPlus size={17} />
+{getGroupMemberCount(selectedGroup) >= selectedGroup.max_size
+  ? 'Group Full'
+  : 'Join Study Circle'}
+</button>
+)}
+
+{selectedGroup.approval_status === 'approved' &&
+ joinedGroupIds.includes(selectedGroup.id) &&
+ selectedGroup.creator_id !== currentUser?.id && (
+<button
+onClick={() => handleLeaveGroup(selectedGroup.id)}
+disabled={actionLoading}
+className="btn btn-danger"
+style={{ width: '100%', marginTop: '9px' }}
+>
+<LogOut size={16} />
+Leave Circle
+</button>
+)}
+</section>
 
 {(joinedGroupIds.includes(selectedGroup.id) ||
   selectedGroup.creator_id === currentUser?.id) && (
-<div
+<section
 style={{
- marginBottom:
-   '32px'
+ background: '#FFFFFF',
+ borderRadius: '22px',
+ border: 'none',
+ padding: '20px',
+ boxShadow: '0 7px 20px rgba(11,26,63,0.045)'
 }}
 >
-
+<div
+style={{
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'space-between',
+ gap: '10px',
+ marginBottom: '13px'
+}}
+>
 <h3
 style={{
- fontSize:
-  '18px',
-
-      fontWeight:
-       '900',
-
-      color:
-       '#1A1B1F',
-
- marginBottom:
-   '16px'
-}}
-
->
-Circle Members (
-{getGroupMemberCount(
-  selectedGroup
-)}{' '}
-/{' '}
-{selectedGroup.max_size}
-
- )
- </h3>
-{groupMembers.length > 0 ? (
-
-<div
-style={{
-display:
-'flex',
-
-gap:
-'12px',
-
- flexWrap:
-   'wrap'
+ margin: 0,
+ color: '#1A1B1F',
+ fontSize: '15px',
+ fontWeight: '900'
 }}
 >
-
-{groupMembers.map(
- (member) => (
-
-<div
-key={
-  member.user_id
-}
-onClick={() => {
-
-if (
-  member.user_id !==
-  currentUser?.id
-){
-
-  openMemberProfile(member);
- }
-}}
-style={{
- padding:
-   '10px 14px',
-
- borderRadius:
- '14px',
-
-background:
-'#FFFFFF',
-
-  border:
-'1px solid #E5EAF2',
-
-boxShadow:
-'0 4px 13px rgba(11,26,63,0.04)',
-
-display:
-'flex',
-
-alignItems:
- 'center',
-gap:
-'10px',
-
-cursor:
- member.user_id ===
- currentUser?.id
-  ? 'default'
-  : 'pointer',
-
- transition:
-   'all 0.15s ease'
-}}
->
-
-{/* AVATAR */}
-
-<div
-style={{
- width:
- '34px',
-
-height:
-'34px',
-
-borderRadius:
-'50%',
-
-background:
-getAvatarColor(
-member
-.profiles
- ?.full_name ||
- member
-
-     .profiles
-     ?.email
-),
-
-color:
- '#1A1B1F',
-display:
-'flex',
-
-alignItems:
- 'center',
-
-justifyContent:
-  'center',
-
-fontWeight:
- '900',
-
-fontSize:
- '12px',
-
- flexShrink:
-   0
-}}
->
-{getInitials(
- member
-   .profiles
-   ?.full_name ||
- member
-   .profiles
-   ?.email ||
- 'Student'
-)}
-</div>
-
-
-{/* NAME + DETAILS */}
-
-<div>
-
-<div
-style={{
- display:
- 'flex',
- alignItems:
-  'center',
-
-  gap:
-   '6px',
- flexWrap:
-   'wrap'
-}}
->
-
+Members
+</h3>
 <span
 style={{
- fontWeight:
-  '800',
-fontSize:
- '13px',
-
- color:
-   '#1A1B1F'
+ color: selectedGroup.color || '#0B1A3F',
+ fontSize: '11px',
+ fontWeight: '900'
 }}
 >
-{member
- .profiles
- ?.full_name ||
- member
-   .profiles
-   ?.email
-   ?.split('@')[0] ||
- 'Student'}
-
-{member.user_id ===
- currentUser?.id
- ? ' (You)'
- : ''}
+{getGroupMemberCount(selectedGroup)} / {selectedGroup.max_size}
 </span>
-
-
-
-
-{member.user_id ===
- selectedGroup.creator_id && (
-
-<span
-style={{
- fontSize:
-  '9px',
- background:
- PIN_COLORS.bg,
-
-border:
-`1px solid ${PIN_COLORS.border}`,
- color:
-  PIN_COLORS.icon,
-
-    padding:
-    '2px 6px',
-
-    borderRadius:
-    '6px',
-
- fontWeight:
-      '900'
-   }}
- >
-   Creator
- </span>
-)}
-
 </div>
 
-
-<p
+<div
 style={{
- margin:
- '2px 0 0',
-
-     fontSize:
-      '11px',
-
-     color:
-      '#717786',
-
- fontWeight:
-   '700'
+ display: 'flex',
+ flexDirection: 'column',
+ gap: '8px',
+ maxHeight: '350px',
+ overflowY: 'auto'
 }}
 >
-{[
- member
-   .profiles
-   ?.major,
-
-     member
-     .profiles
-     ?.academic_year
-]
-
-    .filter(
-      (value) =>
-      value &&
-      value !==
-       'Not specified'
-)
-.join(' · ') ||
-'Student'}
-</p>
-
-</div>
-{/* MORE BUTTON */}
-
-{member.user_id !==
- currentUser?.id && (
-
-<button
-type="button"
-onClick={(event) => {
-
-    event.stopPropagation();
-
- openMemberProfile(member);
-}}
-style={{
- border:
-   'none',
-
-    background:
-    'none',
-
-    cursor:
-     'pointer',
-
-    padding:
-    '2px',
-
-    display:
-    'flex',
- marginLeft:
-   '2px'
-}}
->
-      <MoreVertical
-       size={14}
-
-       color="#717786"
-      />
-
-       </button>
-      )}
-
+{groupMembers.length > 0 ? (
+  groupMembers.map((member) => (
+    <div
+      key={member.user_id}
+      onClick={() => {
+        if (member.user_id !== currentUser?.id) {
+          openMemberProfile(member);
+        }
+      }}
+      style={{
+        padding: '10px',
+        borderRadius: '13px',
+        background: '#FAFBFD',
+        border: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '9px',
+        cursor: member.user_id === currentUser?.id ? 'default' : 'pointer'
+      }}
+    >
+      <div
+        style={{
+          width: '32px',
+          height: '32px',
+          borderRadius: '50%',
+          background: getAvatarColor(
+            member.profiles?.full_name || member.profiles?.email
+          ),
+          color: '#1A1B1F',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: '900',
+          fontSize: '11px',
+          flexShrink: 0,
+          border: `2px solid ${selectedGroup.color || '#E0F2FE'}`
+        }}
+      >
+        {getInitials(
+          member.profiles?.full_name ||
+            member.profiles?.email ||
+            'Student'
+        )}
       </div>
- )
+
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            minWidth: 0
+          }}
+        >
+          <span
+            style={{
+              color: '#1A1B1F',
+              fontSize: '11px',
+              fontWeight: '850',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {member.profiles?.full_name ||
+              member.profiles?.email?.split('@')[0] ||
+              'Student'}
+            {member.user_id === currentUser?.id ? ' (You)' : ''}
+          </span>
+          {member.user_id === selectedGroup.creator_id && (
+            <span
+              style={{
+                padding: '2px 5px',
+                borderRadius: '6px',
+                background: `${selectedGroup.color || '#0B1A3F'}18`,
+                color: selectedGroup.color || '#0B1A3F',
+                fontSize: '8px',
+                fontWeight: '900'
+              }}
+            >
+              Creator
+            </span>
+          )}
+        </div>
+        <div
+          style={{
+            marginTop: '2px',
+            color: '#8A909D',
+            fontSize: '9px',
+            fontWeight: '700',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {[member.profiles?.major, member.profiles?.academic_year]
+            .filter((value) => value && value !== 'Not specified')
+            .join(' · ') || 'Student'}
+        </div>
+      </div>
+    </div>
+  ))
+) : (
+  <div
+    style={{
+      padding: '13px',
+      borderRadius: '13px',
+      background: '#FAFBFD',
+      color: '#717786',
+      fontSize: '10px',
+      fontWeight: '700'
+    }}
+  >
+    Member information is loading...
+  </div>
 )}
 </div>
-
-):(
-
-<div
-style={{
- padding:
- '18px',
-
-      borderRadius:
-      '16px',
-
-      background:
-      '#FFFFFF',
-
- border:
-   '1px solid #E5EAF2',
-
- boxShadow:
-   '0 5px 16px rgba(11,26,63,0.04)'
-}}
->
-
-<p
-style={{
- margin:
- 0,
-
-      color:
-       '#717786',
-
-   fontWeight:
-    '700',
- fontSize:
-   '13px'
-}}
->
-Member information is loading...
-</p>
-
-</div>
-
+</section>
 )}
-
-</div>
-)}
-
-
-
-{/* =================================================
-  GROUP ACTIONS
-================================================= */}
-
-<div
-style={{
- display:
- 'flex',
-
-gap:
-'16px',
-
- flexWrap:
-   'wrap'
-}}
->
-
-{selectedGroup.approval_status !==
-'approved' ? (
-
-<div
-style={{
- flex:
-   1,
-
-padding:
-'14px 18px',
-
-borderRadius:
-'14px',
-
- background:
- selectedGroup.approval_status ===
-  'rejected'
-    ? '#FEE2E2'
-    : '#FFF4D8',
-color:
- selectedGroup.approval_status ===
- 'rejected'
-   ? '#B91C1C'
-
-  : '#B7791F',
-
-fontWeight:
- '900',
-
- textAlign:
-   'center'
-}}
->
-{selectedGroup.approval_status ===
-'rejected'
-  ? 'This circle was declined and is not visible publicly.'
-  : 'This circle is waiting for Campora review.'}
-
-</div>
-
-) : joinedGroupIds.includes(
-    selectedGroup.id
-  ) ||
-  selectedGroup.creator_id ===
-    currentUser?.id ? (
-
-<button
-onClick={() =>
-  setView(
-    'chat'
-  )
-}
-style={{
-  ...saveBtn,
-
-flex:
-  1,
-
-display:
-'flex',
-
-alignItems:
- 'center',
- justifyContent:
-   'center',
-
- gap:
-   '8px'
-}}
->
-
-<MessageSquare
- size={18}
-/>
-
-Open Group Chat
-
-</button>
-):(
-
-<button
-onClick={() =>
-  handleJoin(
-    selectedGroup.id
-  )
-}
-disabled={
-  actionLoading ||
-  getGroupMemberCount(
-    selectedGroup
-  ) >=
-    selectedGroup.max_size
-}
-style={{
-  ...saveBtn,
-
-   flex:
-     1,
-
-   display:
-   'flex',
-
-   alignItems:
-    'center',
-
-      justifyContent:
-        'center',
-    gap:
-     '8px',
- opacity:
-   getGroupMemberCount(
-     selectedGroup
-   ) >=
-   selectedGroup.max_size
-     ? 0.55
-     :1
-}}
-
->
-
-<UserPlus
- size={18}
-/>
-{getGroupMemberCount(
-  selectedGroup
-) >=
-selectedGroup.max_size
-  ? 'Group Full'
-  : 'Join Study Circle'}
-
- </button>
-)}
-
-
-
-
-{/* LEAVE */}
-
-{selectedGroup.approval_status ===
- 'approved' &&
- joinedGroupIds.includes(
-   selectedGroup.id
- ) &&
- selectedGroup.creator_id !==
-   currentUser?.id && (
-
- <button
- onClick={() =>
-   handleLeaveGroup(
-     selectedGroup.id
-   )
- }
- disabled={
- actionLoading
-}
-className="btn btn-danger"
->
-<LogOut
- size={18}
-/>
-
-Leave
-
- </button>
-)}
+</aside>
 </div>
 
 </div>
 )}
-
-
 
 
 {/* =================================================
@@ -8044,11 +8889,11 @@ style={{
  '16px 24px',
 
 background:
-'#FFFFFF',
+`linear-gradient(90deg, #FFFFFF 0%, ${selectedGroup.color || '#E0F2FE'}12 100%)`,
 borderBottom:
 '1px solid #E3E2E7',
 borderTop:
-`5px solid ${selectedGroup.color || '#E0F2FE'}`,
+'none',
 
 display:
 'flex',
@@ -8086,7 +8931,7 @@ alignItems:
 }
 style={{
   border:
-   `1px solid ${selectedGroup.color || '#E0F2FE'}`,
+   '1px solid #E3E8F2',
 background:
 '#FFFFFF',
 
@@ -8134,10 +8979,7 @@ style={{
   '900',
 
  color:
-   getContrastColor(
-     selectedGroup.color ||
-      '#E0F2FE'
-   )
+   selectedGroup.color || '#0B1A3F'
 }}
 >
 {selectedGroup.name}
@@ -8296,7 +9138,7 @@ style={{
 {chatFullscreen ? (
  <Minimize2
   size={18}
-  color="#002D62"
+  color={selectedGroup.color || '#0B1A3F'}
  />
 ) : (
  <Maximize2
@@ -9121,12 +9963,12 @@ fontSize:
 
     background:
     isMe
-      ? (selectedGroup.color || '#002D62')
+      ? '#0B1A3F'
       : '#F1F5F9',
 
 color:
  isMe
-   ? getContrastColor(selectedGroup.color || '#002D62')
+   ? '#FFFFFF'
    : '#1A1B1F',
 
 fontWeight:
@@ -9137,10 +9979,12 @@ fontSize:
 
 border:
 isMe
-  ? `1px solid ${getContrastBorder(selectedGroup.color || '#002D62')}`
+  ? 'none'
   : '1px solid #E3E2E7',
  boxShadow:
-   '0 2px 8px rgba(0,0,0,0.03)'
+   isMe
+     ? `inset 4px 0 0 ${selectedGroup.color || '#E0F2FE'}, 0 2px 8px rgba(0,0,0,0.03)`
+     : '0 2px 8px rgba(0,0,0,0.03)'
 }}
 >
 
@@ -9773,18 +10617,15 @@ onSubmit={
   handleSendMessage
 }
 style={{
-  padding:
-   '20px',
- background:
-  'white',
-
-borderTop:
-'1px solid #E3E2E7',
-
- display:
- 'flex',
- gap:
-   '12px'
+ padding: '16px 20px',
+ background: '#FFFFFF',
+ borderTop: '1px solid #E3E2E7',
+ display: 'flex',
+ alignItems: 'center',
+ gap: '10px',
+ width: '100%',
+ boxSizing: 'border-box',
+ flexShrink: 0
 }}
 >
 
@@ -9804,16 +10645,17 @@ onChange={(event) =>
   )
 }
 style={{
-  ...inputStyle,
-
-flex:
-  1,
-
-  background:
-    '#F7F8FA',
-  border:
-    `1.5px solid ${selectedGroup.color || '#E3E2E7'}`
- }}
+ ...inputStyle,
+ flex: '1 1 auto',
+ minWidth: 0,
+ height: '48px',
+ margin: 0,
+ padding: '0 16px',
+ background: '#F7F8FA',
+ border: '1.5px solid #E3E8F2',
+ borderRadius: '14px',
+ boxSizing: 'border-box'
+}}
 />
 
 
@@ -9826,13 +10668,24 @@ type="submit"
   }
   className="btn"
   style={{
-   background: selectedGroup.color || '#002D62',
-   color: getContrastColor(selectedGroup.color || '#002D62'),
-   border: 'none',
-   opacity:
-    newMessage.trim()
-    ?1
-    : 0.5
+ width: '48px',
+ height: '48px',
+ minWidth: '48px',
+ margin: 0,
+ padding: 0,
+ borderRadius: '14px',
+ border: 'none',
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'center',
+ alignSelf: 'center',
+ boxSizing: 'border-box',
+ background: selectedGroup.color || '#0B1A3F',
+ color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+ boxShadow: 'none',
+ cursor: newMessage.trim() ? 'pointer' : 'default',
+ flexShrink: 0,
+ opacity: newMessage.trim() ? 1 : 0.5
 }}
 >
 
@@ -11213,7 +12066,7 @@ onClick={(event) => {
       >
        <MessageSquare
         size={18}
-        color="#002D62"
+        color={selectedGroup.color || '#0B1A3F'}
        />
       </button>
 
@@ -11552,7 +12405,7 @@ style={{
    padding: '12px 14px',
    borderRadius: '12px',
    color: '#717786',
-   fontSize: '12px',
+   fontSize: '13px',
    fontWeight: '700',
    border: '1px solid #E3E2E7'
   }}>
