@@ -208,10 +208,10 @@ export default function LandingPage() {
 
         .public-window {
           width: 100%;
-          max-width: 650px;
-          height: 455px;
-          border: 1px solid ${BORDER};
-          border-radius: 22px;
+          max-width: 680px;
+          height: 470px;
+          border: 1px solid #E5EAF2;
+          border-radius: 24px;
           background: #FFFFFF;
           box-shadow: 0 28px 70px rgba(11,26,63,.10);
           overflow: hidden;
@@ -219,23 +219,123 @@ export default function LandingPage() {
           z-index: 2;
         }
 
-        .preview-topbar {
-          height: 52px;
+        .preview-app {
           display: grid;
-          grid-template-columns: 138px minmax(0,1fr);
-          border-bottom: 1px solid #EEF1F5;
-          background: #FFFFFF;
+          grid-template-columns: 142px minmax(0,1fr);
+          height: 100%;
+          background: #FCFDFE;
+          filter: blur(.55px);
+          transform: scale(1.002);
         }
 
-        .preview-brand-space {
+        .preview-sidebar {
+          height: 100%;
+          background: #F8FAFD;
+          border-right: 1px solid #EDF1F5;
+          padding: 10px 8px;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .preview-brand-card {
+          min-height: 43px;
+          border-radius: 12px;
+          background: #FFFFFF;
+          border: 1px solid #E8ECF2;
           display: flex;
           align-items: center;
-          padding: 0 12px;
-          border-right: 1px solid #EEF1F5;
-          background: #FAFBFD;
+          gap: 7px;
+          padding: 0 8px;
+          box-shadow: 0 4px 12px rgba(11,26,63,.04);
+          margin-bottom: 12px;
         }
 
-        .preview-top-content {
+        .preview-brand-card img {
+          width: 23px;
+          height: 23px;
+          object-fit: contain;
+        }
+
+        .preview-brand-lines {
+          display: grid;
+          gap: 3px;
+        }
+
+        .preview-brand-title {
+          width: 48px;
+          height: 6px;
+          border-radius: 999px;
+          background: #0B1A3F;
+          filter: blur(1.6px);
+        }
+
+        .preview-brand-sub {
+          width: 38px;
+          height: 3px;
+          border-radius: 999px;
+          background: #B9C3D2;
+          filter: blur(1.5px);
+        }
+
+        .preview-nav-item {
+          height: 29px;
+          border-radius: 8px;
+          margin-bottom: 3px;
+          padding: 0 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #0B1A3F;
+        }
+
+        .preview-nav-item.active {
+          background: #0B1A3F;
+          color: #FFFFFF;
+          box-shadow: 0 5px 12px rgba(11,26,63,.10);
+        }
+
+        .preview-nav-line {
+          width: 54px;
+          height: 5px;
+          border-radius: 999px;
+          background: #C8D0DB;
+          filter: blur(1.8px);
+        }
+
+        .preview-nav-item.active .preview-nav-line {
+          background: rgba(255,255,255,.88);
+        }
+
+        .preview-tools-label {
+          width: 26px;
+          height: 4px;
+          border-radius: 999px;
+          background: #C7CFDB;
+          filter: blur(1.6px);
+          margin: 8px 8px 6px;
+        }
+
+        .preview-sidebar-bottom {
+          margin-top: auto;
+          height: 28px;
+          border-radius: 8px;
+          background: #FFFFFF;
+          border: 1px solid #E7EBF1;
+        }
+
+        .preview-right {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          background: #FCFDFE;
+        }
+
+        .preview-topbar {
+          height: 56px;
+          flex-shrink: 0;
+          background: #FFFFFF;
+          border-bottom: none;
           position: relative;
           display: flex;
           align-items: center;
@@ -243,27 +343,26 @@ export default function LandingPage() {
         }
 
         .preview-search {
-          width: 250px;
-          height: 28px;
+          width: 58%;
+          max-width: 310px;
+          height: 34px;
           border-radius: 999px;
-          border: 1px solid #E2E7EF;
+          border: 1px solid #E1E6EE;
           background: #FFFFFF;
           display: flex;
           align-items: center;
-          gap: 7px;
-          padding: 0 10px;
+          gap: 8px;
+          padding: 0 12px;
           box-sizing: border-box;
-          color: #8390A2;
-          box-shadow: 0 2px 6px rgba(11,26,63,.025);
+          color: #7F8A9C;
         }
 
-        .preview-search-text {
-          width: 82px;
+        .preview-search-line {
+          width: 105px;
           height: 5px;
           border-radius: 999px;
-          background: #D6DDE6;
-          filter: blur(2px);
-          opacity: .65;
+          background: #CDD5E0;
+          filter: blur(1.8px);
         }
 
         .preview-top-actions {
@@ -274,166 +373,82 @@ export default function LandingPage() {
           display: flex;
           align-items: center;
           gap: 10px;
-          color: ${NAVY};
+          color: #0B1A3F;
         }
 
-        .preview-profile {
-          width: 25px;
-          height: 25px;
-          border-radius: 50%;
-          background: ${NAVY};
-          border: 2px solid #FFFFFF;
-          box-shadow: 0 2px 7px rgba(11,26,63,.14);
-        }
-
-        .preview-body {
-          display: grid;
-          grid-template-columns: 138px minmax(0,1fr);
-          height: calc(100% - 52px);
-        }
-
-        .preview-sidebar {
-          background: #FAFBFD;
-          border-right: 1px solid #EEF1F5;
-          padding: 12px 9px;
-          box-sizing: border-box;
-        }
-
-        .preview-logo-row {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          padding: 5px 6px 12px;
-          color: ${NAVY};
-          font-size: 9px;
-          font-weight: 950;
-        }
-
-        .preview-logo-row img {
+        .preview-avatar {
           width: 23px;
           height: 23px;
-          object-fit: contain;
-          display: block;
-        }
-
-        .preview-logo-sub {
-          display: block;
-          width: 44px;
-          height: 4px;
-          margin-top: 3px;
-          border-radius: 999px;
-          background: #D8DFE8;
-          filter: blur(1.7px);
-          opacity: .65;
-        }
-
-        .preview-nav-item {
-          height: 29px;
-          border-radius: 8px;
-          margin-bottom: 4px;
-          padding: 0 8px;
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          color: #778396;
-        }
-
-        .preview-nav-item.active {
-          background: ${NAVY};
-          color: #FFFFFF;
-          box-shadow: 0 4px 10px rgba(11,26,63,.10);
-        }
-
-        .preview-nav-blur {
-          width: 55px;
-          height: 5px;
-          border-radius: 999px;
-          background: #CBD3DE;
-          filter: blur(2.4px);
-          opacity: .55;
-        }
-
-        .preview-nav-item.active .preview-nav-blur {
-          background: rgba(255,255,255,.82);
-          opacity: .7;
-        }
-
-        .preview-tools {
-          width: 34px;
-          height: 5px;
-          margin: 9px 8px 8px;
-          border-radius: 999px;
-          background: #D2D9E3;
-          filter: blur(2.5px);
-          opacity: .55;
+          border-radius: 50%;
+          background: #0B1A3F;
+          border: 2px solid #FFFFFF;
+          box-shadow: 0 2px 8px rgba(11,26,63,.12);
         }
 
         .preview-main {
-          padding: 13px;
-          background: #FCFDFE;
+          flex: 1;
+          min-height: 0;
           overflow: hidden;
+          padding: 14px;
           box-sizing: border-box;
         }
 
         .preview-hero-card {
-          height: 86px;
+          height: 87px;
           border-radius: 15px;
-          background: linear-gradient(135deg, #0B1A3F 0%, #102A5A 100%);
-          padding: 15px 16px;
+          background: linear-gradient(135deg,#0B1A3F 0%,#17366A 100%);
+          padding: 16px;
           box-sizing: border-box;
-          margin-bottom: 12px;
           color: #FFFFFF;
           box-shadow: 0 8px 20px rgba(11,26,63,.10);
+          margin-bottom: 10px;
         }
 
         .preview-hero-date {
-          width: 78px;
+          width: 80px;
           height: 5px;
           border-radius: 999px;
-          background: rgba(255,255,255,.60);
-          filter: blur(1.8px);
-          margin-bottom: 10px;
+          background: rgba(255,255,255,.70);
+          filter: blur(1.7px);
         }
 
         .preview-hero-title {
           width: 215px;
           height: 12px;
           border-radius: 999px;
-          background: rgba(255,255,255,.94);
-          filter: blur(2px);
+          background: rgba(255,255,255,.95);
+          filter: blur(1.7px);
+          margin-top: 10px;
         }
 
         .preview-hero-subtitle {
-          width: 112px;
+          width: 110px;
           height: 5px;
           border-radius: 999px;
-          background: rgba(255,255,255,.58);
-          filter: blur(2px);
+          background: rgba(255,255,255,.62);
+          filter: blur(1.6px);
           margin-top: 8px;
         }
 
-        .preview-section-head {
-          margin-bottom: 8px;
-        }
-
-        .preview-section-title {
-          width: 78px;
+        .preview-section-heading {
+          width: 74px;
           height: 7px;
           border-radius: 999px;
-          background: ${NAVY};
-          filter: blur(1.7px);
+          background: #0B1A3F;
+          filter: blur(1.5px);
         }
 
         .preview-section-sub {
-          width: 94px;
+          width: 88px;
           height: 4px;
-          margin-top: 5px;
           border-radius: 999px;
-          background: #CFD7E2;
-          filter: blur(1.8px);
+          background: #C9D2DE;
+          filter: blur(1.6px);
+          margin-top: 5px;
         }
 
         .preview-quick-grid {
+          margin-top: 8px;
           display: grid;
           grid-template-columns: repeat(5, minmax(0,1fr));
           gap: 6px;
@@ -441,15 +456,15 @@ export default function LandingPage() {
         }
 
         .preview-quick-card {
-          min-height: 45px;
-          border-radius: 10px;
-          border: 1px solid #E7EBF1;
+          min-height: 42px;
+          border-radius: 9px;
+          border: 1px solid #E6EAF0;
           background: #FFFFFF;
-          padding: 7px;
-          box-sizing: border-box;
           display: flex;
           align-items: center;
           gap: 6px;
+          padding: 6px;
+          box-sizing: border-box;
         }
 
         .preview-quick-icon {
@@ -462,21 +477,20 @@ export default function LandingPage() {
           flex-shrink: 0;
         }
 
-        .preview-quick-icon.blue { background: #F3F7FD; color: #648CCB; }
-        .preview-quick-icon.purple { background: #F5F2FB; color: #8B78B8; }
-        .preview-quick-icon.green { background: #EEF7F3; color: #5E9A8B; }
-        .preview-quick-icon.pink { background: #FFF2F6; color: #C76E8A; }
+        .preview-quick-icon.purple { background:#F5F2FB; color:#8B78B8; }
+        .preview-quick-icon.pink { background:#FFF2F6; color:#C76E8A; }
+        .preview-quick-icon.blue { background:#F2F6FC; color:#648CCB; }
+        .preview-quick-icon.peach { background:#FFF4EE; color:#D9896A; }
 
-        .preview-card-blur {
-          width: 42px;
+        .preview-quick-line {
+          width: 44px;
           height: 5px;
           border-radius: 999px;
-          background: #CAD3DF;
-          filter: blur(2px);
-          opacity: .58;
+          background: #C8D1DC;
+          filter: blur(1.7px);
         }
 
-        .preview-main-grid {
+        .preview-two-col {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 8px;
@@ -484,20 +498,21 @@ export default function LandingPage() {
         }
 
         .preview-panel {
-          min-height: 93px;
+          min-height: 94px;
           border-radius: 12px;
-          border: 1px solid #E7EBF1;
           background: #FFFFFF;
+          border: 1px solid #E7EBF1;
           overflow: hidden;
         }
 
         .preview-panel-head {
-          min-height: 32px;
+          min-height: 34px;
+          border-bottom: 1px solid #EDF1F5;
           padding: 7px 9px;
-          border-bottom: 1px solid #EEF1F5;
           display: flex;
           align-items: center;
           justify-content: space-between;
+          box-sizing: border-box;
         }
 
         .preview-panel-title-wrap {
@@ -513,91 +528,37 @@ export default function LandingPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #F3F7FD;
-          color: #648CCB;
         }
 
         .preview-panel-title {
-          width: 55px;
+          width: 54px;
           height: 6px;
           border-radius: 999px;
-          background: ${NAVY};
-          filter: blur(1.8px);
+          background: #0B1A3F;
+          filter: blur(1.6px);
         }
 
         .preview-panel-sub {
-          width: 68px;
+          width: 66px;
           height: 4px;
-          margin-top: 4px;
           border-radius: 999px;
-          background: #D2D9E2;
-          filter: blur(1.8px);
+          background: #CDD5E0;
+          filter: blur(1.6px);
+          margin-top: 4px;
         }
 
         .preview-panel-btn {
-          width: 36px;
-          height: 17px;
+          width: 34px;
+          height: 16px;
           border-radius: 6px;
-          background: #F6F8FB;
-          border: 1px solid #E7EBF1;
+          border: 1px solid #E3E7ED;
+          background: #FAFBFD;
         }
 
-        .preview-panel-body {
-          padding: 7px 9px;
-        }
-
-        .preview-class-row {
-          min-height: 26px;
-          border: 1px solid #EDF0F5;
-          border-radius: 8px;
-          margin-bottom: 5px;
-          padding: 5px 7px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .preview-row-left {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .preview-row-icon {
-          width: 17px;
-          height: 17px;
-          border-radius: 6px;
-          background: #F3F7FD;
-        }
-
-        .preview-row-lines {
-          width: 58px;
-        }
-
-        .preview-row-line {
-          height: 4px;
-          border-radius: 999px;
-          background: #CAD3DE;
-          filter: blur(1.8px);
-        }
-
-        .preview-row-line.short {
-          width: 62%;
-          margin-top: 4px;
-          background: #D7DDE6;
-        }
-
-        .preview-time {
-          width: 46px;
-          height: 5px;
-          border-radius: 999px;
-          background: #CAD3DE;
-          filter: blur(1.8px);
-        }
-
-        .preview-empty {
-          height: 47px;
-          border: 1px dashed #DEE5EE;
+        .preview-empty-box {
+          height: 46px;
+          margin: 7px 9px;
+          border: 1px dashed #DCE3EC;
           border-radius: 9px;
           background: #FBFCFE;
           display: flex;
@@ -606,94 +567,100 @@ export default function LandingPage() {
         }
 
         .preview-empty-line {
-          width: 82px;
-          height: 5px;
+          width: 76px;
+          height: 4px;
           border-radius: 999px;
-          background: #D4DBE5;
-          filter: blur(2px);
-        }
-
-        .preview-bottom-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
+          background: #D0D8E2;
+          filter: blur(1.6px);
         }
 
         .preview-snapshot {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(3,1fr);
           gap: 6px;
-          padding: 7px 9px;
+          padding: 8px 9px;
         }
 
         .preview-stat {
-          min-height: 42px;
+          min-height: 40px;
           border-radius: 8px;
           padding: 7px;
           box-sizing: border-box;
         }
 
-        .preview-stat.one { background: #F6F3FB; }
-        .preview-stat.two { background: #FBF7EF; }
-        .preview-stat.three { background: #F1F6FC; }
+        .preview-stat.one { background:#F4F1F8; }
+        .preview-stat.two { background:#FBF6EC; }
+        .preview-stat.three { background:#EFF4FB; }
 
-        .preview-stat-number {
+        .preview-stat-num {
           width: 16px;
           height: 9px;
           border-radius: 999px;
-          background: ${NAVY};
-          filter: blur(1.6px);
+          background: #0B1A3F;
+          filter: blur(1.5px);
         }
 
         .preview-stat-label {
-          width: 35px;
+          width: 34px;
           height: 4px;
-          border-radius: 999px;
-          background: #BFC9D6;
-          filter: blur(1.8px);
           margin-top: 8px;
+          border-radius: 999px;
+          background: #C1CBD8;
+          filter: blur(1.6px);
         }
 
-        .preview-progress-body {
-          padding: 8px 9px 9px;
+        .preview-progress {
+          padding: 9px;
         }
 
         .preview-progress-number {
-          width: 16px;
+          width: 18px;
           height: 12px;
           border-radius: 999px;
-          background: ${NAVY};
-          filter: blur(1.7px);
+          background: #0B1A3F;
+          filter: blur(1.5px);
         }
 
-        .preview-progress-sub {
-          width: 40px;
+        .preview-progress-line {
+          width: 38px;
           height: 4px;
           border-radius: 999px;
-          background: #C9D2DD;
-          filter: blur(1.8px);
+          background: #CBD3DE;
+          filter: blur(1.5px);
           margin-top: 6px;
         }
 
         .preview-progress-track {
           height: 5px;
           border-radius: 999px;
-          background: #E9EDF2;
+          background: #E8EDF3;
           margin-top: 12px;
+        }
+
+        .preview-frost {
+          position: absolute;
+          inset: 0;
+          z-index: 4;
+          pointer-events: none;
+          backdrop-filter: blur(.7px);
+          -webkit-backdrop-filter: blur(.7px);
+          background: rgba(255,255,255,.025);
         }
 
         .preview-fade {
           position: absolute;
-          inset: auto 0 0 0;
-          height: 78px;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 72px;
+          z-index: 5;
+          pointer-events: none;
           background: linear-gradient(
             to bottom,
             rgba(255,255,255,0),
-            rgba(255,255,255,.52) 55%,
+            rgba(255,255,255,.45) 55%,
             #FFFFFF 100%
           );
-          pointer-events: none;
-          z-index: 5;
         }
 
         @media (max-width: 900px) {
@@ -816,282 +783,249 @@ export default function LandingPage() {
           <div className="public-product-glow" />
 
           <div className="public-window">
-            <div className="preview-topbar">
-              <div className="preview-brand-space" />
-
-              <div className="preview-top-content">
-                <div className="preview-search">
-                  <Search size={9} />
-                  <span className="preview-search-text" />
-                </div>
-
-                <div className="preview-top-actions">
-                  <Bell size={10} />
-                  <Moon size={10} />
-                  <div className="preview-profile" />
-                </div>
-              </div>
-            </div>
-
-            <div className="preview-body">
+            <div className="preview-app">
               <aside className="preview-sidebar">
-                <div className="preview-logo-row">
+                <div className="preview-brand-card">
                   <img src={camporaLogo} alt="Campora logo" />
-                  <div>
-                    Campora
-                    <span className="preview-logo-sub" />
+                  <div className="preview-brand-lines">
+                    <div className="preview-brand-title" />
+                    <div className="preview-brand-sub" />
                   </div>
                 </div>
 
                 <div className="preview-nav-item active">
                   <LayoutDashboard size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
                 <div className="preview-nav-item">
                   <BookOpen size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
                 <div className="preview-nav-item">
                   <UserCheck size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
                 <div className="preview-nav-item">
                   <Users size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
                 <div className="preview-nav-item">
                   <MessageSquare size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
                 <div className="preview-nav-item">
                   <Activity size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
-                <div className="preview-tools" />
+                <div className="preview-tools-label" />
 
                 <div className="preview-nav-item">
                   <CalendarDays size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
                 <div className="preview-nav-item">
                   <CheckSquare size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
                 <div className="preview-nav-item">
                   <Network size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
 
                 <div className="preview-nav-item">
                   <ShieldCheck size={10} />
-                  <span className="preview-nav-blur" />
+                  <div className="preview-nav-line" />
                 </div>
+
+                <div className="preview-sidebar-bottom" />
               </aside>
 
-              <div className="preview-main">
-                <div className="preview-hero-card">
-                  <div className="preview-hero-date" />
-                  <div className="preview-hero-title" />
-                  <div className="preview-hero-subtitle" />
+              <div className="preview-right">
+                <div className="preview-topbar">
+                  <div className="preview-search">
+                    <Search size={10} />
+                    <div className="preview-search-line" />
+                  </div>
+
+                  <div className="preview-top-actions">
+                    <Bell size={10} />
+                    <Moon size={10} />
+                    <div className="preview-avatar" />
+                  </div>
                 </div>
 
-                <div className="preview-section-head">
-                  <div className="preview-section-title" />
+                <div className="preview-main">
+                  <div className="preview-hero-card">
+                    <div className="preview-hero-date" />
+                    <div className="preview-hero-title" />
+                    <div className="preview-hero-subtitle" />
+                  </div>
+
+                  <div className="preview-section-heading" />
                   <div className="preview-section-sub" />
-                </div>
 
-                <div className="preview-quick-grid">
-                  <div className="preview-quick-card">
-                    <div className="preview-quick-icon blue">
-                      <CalendarDays size={11} />
-                    </div>
-                    <div className="preview-card-blur" />
-                  </div>
-
-                  <div className="preview-quick-card">
-                    <div className="preview-quick-icon purple">
-                      <BookOpen size={11} />
-                    </div>
-                    <div className="preview-card-blur" />
-                  </div>
-
-                  <div className="preview-quick-card">
-                    <div className="preview-quick-icon green">
-                      <CheckSquare size={11} />
-                    </div>
-                    <div className="preview-card-blur" />
-                  </div>
-
-                  <div className="preview-quick-card">
-                    <div className="preview-quick-icon blue">
-                      <MessageSquare size={11} />
-                    </div>
-                    <div className="preview-card-blur" />
-                  </div>
-
-                  <div className="preview-quick-card">
-                    <div className="preview-quick-icon pink">
-                      <Users size={11} />
-                    </div>
-                    <div className="preview-card-blur" />
-                  </div>
-                </div>
-
-                <div className="preview-main-grid">
-                  <div className="preview-panel">
-                    <div className="preview-panel-head">
-                      <div className="preview-panel-title-wrap">
-                        <div className="preview-panel-icon">
-                          <CalendarDays size={10} />
-                        </div>
-
-                        <div>
-                          <div className="preview-panel-title" />
-                          <div className="preview-panel-sub" />
-                        </div>
+                  <div className="preview-quick-grid">
+                    <div className="preview-quick-card">
+                      <div className="preview-quick-icon purple">
+                        <BookOpen size={10} />
                       </div>
-
-                      <div className="preview-panel-btn" />
+                      <div className="preview-quick-line" />
                     </div>
 
-                    <div className="preview-panel-body">
-                      <div className="preview-class-row">
-                        <div className="preview-row-left">
-                          <div className="preview-row-icon" />
-                          <div className="preview-row-lines">
-                            <div className="preview-row-line" />
-                            <div className="preview-row-line short" />
+                    <div className="preview-quick-card">
+                      <div className="preview-quick-icon pink">
+                        <UserCheck size={10} />
+                      </div>
+                      <div className="preview-quick-line" />
+                    </div>
+
+                    <div className="preview-quick-card">
+                      <div className="preview-quick-icon pink">
+                        <Users size={10} />
+                      </div>
+                      <div className="preview-quick-line" />
+                    </div>
+
+                    <div className="preview-quick-card">
+                      <div className="preview-quick-icon blue">
+                        <MessageSquare size={10} />
+                      </div>
+                      <div className="preview-quick-line" />
+                    </div>
+
+                    <div className="preview-quick-card">
+                      <div className="preview-quick-icon peach">
+                        <Activity size={10} />
+                      </div>
+                      <div className="preview-quick-line" />
+                    </div>
+                  </div>
+
+                  <div className="preview-two-col">
+                    <div className="preview-panel">
+                      <div className="preview-panel-head">
+                        <div className="preview-panel-title-wrap">
+                          <div
+                            className="preview-panel-icon"
+                            style={{ background: '#F2F6FC', color: '#648CCB' }}
+                          >
+                            <CalendarDays size={10} />
+                          </div>
+
+                          <div>
+                            <div className="preview-panel-title" />
+                            <div className="preview-panel-sub" />
                           </div>
                         </div>
 
-                        <div className="preview-time" />
+                        <div className="preview-panel-btn" />
                       </div>
 
-                      <div className="preview-class-row">
-                        <div className="preview-row-left">
-                          <div className="preview-row-icon" />
-                          <div className="preview-row-lines">
-                            <div className="preview-row-line" />
-                            <div className="preview-row-line short" />
+                      <div className="preview-empty-box">
+                        <div className="preview-empty-line" />
+                      </div>
+                    </div>
+
+                    <div className="preview-panel">
+                      <div className="preview-panel-head">
+                        <div className="preview-panel-title-wrap">
+                          <div
+                            className="preview-panel-icon"
+                            style={{ background: '#FFF4EE', color: '#D9896A' }}
+                          >
+                            <Clock3 size={10} />
+                          </div>
+
+                          <div>
+                            <div className="preview-panel-title" />
+                            <div className="preview-panel-sub" />
                           </div>
                         </div>
 
-                        <div className="preview-time" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="preview-panel">
-                    <div className="preview-panel-head">
-                      <div className="preview-panel-title-wrap">
-                        <div
-                          className="preview-panel-icon"
-                          style={{
-                            background: '#FFF4EE',
-                            color: '#D9896A',
-                          }}
-                        >
-                          <Clock3 size={10} />
-                        </div>
-
-                        <div>
-                          <div className="preview-panel-title" />
-                          <div className="preview-panel-sub" />
-                        </div>
+                        <div className="preview-panel-btn" />
                       </div>
 
-                      <div className="preview-panel-btn" />
-                    </div>
-
-                    <div className="preview-panel-body">
-                      <div className="preview-empty">
+                      <div className="preview-empty-box">
                         <div className="preview-empty-line" />
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="preview-bottom-grid">
-                  <div className="preview-panel">
-                    <div className="preview-panel-head">
-                      <div className="preview-panel-title-wrap">
-                        <div
-                          className="preview-panel-icon"
-                          style={{
-                            background: '#F5F2FB',
-                            color: '#8B78B8',
-                          }}
-                        >
-                          <BookOpen size={10} />
+                  <div className="preview-two-col">
+                    <div className="preview-panel">
+                      <div className="preview-panel-head">
+                        <div className="preview-panel-title-wrap">
+                          <div
+                            className="preview-panel-icon"
+                            style={{ background: '#F5F2FB', color: '#8B78B8' }}
+                          >
+                            <BookOpen size={10} />
+                          </div>
+
+                          <div>
+                            <div className="preview-panel-title" />
+                            <div className="preview-panel-sub" />
+                          </div>
                         </div>
 
-                        <div>
-                          <div className="preview-panel-title" />
-                          <div className="preview-panel-sub" />
-                        </div>
+                        <div className="preview-panel-btn" />
                       </div>
 
-                      <div className="preview-panel-btn" />
+                      <div className="preview-snapshot">
+                        <div className="preview-stat one">
+                          <div className="preview-stat-num" />
+                          <div className="preview-stat-label" />
+                        </div>
+                        <div className="preview-stat two">
+                          <div className="preview-stat-num" />
+                          <div className="preview-stat-label" />
+                        </div>
+                        <div className="preview-stat three">
+                          <div className="preview-stat-num" />
+                          <div className="preview-stat-label" />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="preview-snapshot">
-                      <div className="preview-stat one">
-                        <div className="preview-stat-number" />
-                        <div className="preview-stat-label" />
-                      </div>
+                    <div className="preview-panel">
+                      <div className="preview-panel-head">
+                        <div className="preview-panel-title-wrap">
+                          <div
+                            className="preview-panel-icon"
+                            style={{ background: '#EEF7F3', color: '#5E9A8B' }}
+                          >
+                            <CheckSquare size={10} />
+                          </div>
 
-                      <div className="preview-stat two">
-                        <div className="preview-stat-number" />
-                        <div className="preview-stat-label" />
-                      </div>
-
-                      <div className="preview-stat three">
-                        <div className="preview-stat-number" />
-                        <div className="preview-stat-label" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="preview-panel">
-                    <div className="preview-panel-head">
-                      <div className="preview-panel-title-wrap">
-                        <div
-                          className="preview-panel-icon"
-                          style={{
-                            background: '#EEF7F3',
-                            color: '#5E9A8B',
-                          }}
-                        >
-                          <CheckSquare size={10} />
+                          <div>
+                            <div className="preview-panel-title" />
+                            <div className="preview-panel-sub" />
+                          </div>
                         </div>
 
-                        <div>
-                          <div className="preview-panel-title" />
-                          <div className="preview-panel-sub" />
-                        </div>
+                        <div className="preview-panel-btn" />
                       </div>
 
-                      <div className="preview-panel-btn" />
-                    </div>
-
-                    <div className="preview-progress-body">
-                      <div className="preview-progress-number" />
-                      <div className="preview-progress-sub" />
-                      <div className="preview-progress-track" />
+                      <div className="preview-progress">
+                        <div className="preview-progress-number" />
+                        <div className="preview-progress-line" />
+                        <div className="preview-progress-track" />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
+            <div className="preview-frost" />
             <div className="preview-fade" />
           </div>
         </section>

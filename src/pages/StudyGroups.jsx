@@ -4949,7 +4949,7 @@ alignItems:
 
 <Edit3
  size={16}
- color={selectedGroup.color || '#0B1A3F'}
+ color={group.color || '#0B1A3F'}
 />
 
 </button>
