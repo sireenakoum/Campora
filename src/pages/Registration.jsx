@@ -56,8 +56,25 @@ meeting_days: '', meeting_time: '',
 semester: '', rating: 5, difficulty: 3, comment: '', is_anonymous: false
 };
 const EMPTY_QUESTION = { title: '', content: '', is_anonymous: false };
-const EMPTY_REMINDER = { crn: '', course_code: '', course_name: '', section: '',
-professor: '' };
+const EMPTY_REMINDER = {
+crn: '', course_code: '', course_name: '', section: '', professor: '',
+meeting_days: '', meeting_time: ''
+};
+
+const MEETING_PATTERN_OPTIONS = [
+'MWF', 'TTH', 'MW', 'TR', 'Recitation', 'Lab', 'Tutorial', 'Seminar'
+];
+const SINGLE_DAY_SCHEDULE_TYPES = new Set(['Recitation', 'Lab', 'Tutorial', 'Seminar']);
+const WEEKDAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+const MEETING_TIME_OPTIONS = [
+'8:00 AM - 9:00 AM', '9:00 AM - 10:00 AM', '10:00 AM - 11:00 AM',
+'11:00 AM - 12:00 PM', '12:00 PM - 1:00 PM', '1:00 PM - 2:00 PM',
+'2:00 PM - 3:00 PM', '3:00 PM - 4:00 PM', '4:00 PM - 5:00 PM',
+'5:00 PM - 6:00 PM', '8:00 AM - 9:15 AM', '9:30 AM - 10:45 AM',
+'11:00 AM - 12:15 PM', '12:30 PM - 1:45 PM', '2:00 PM - 3:15 PM',
+'3:30 PM - 4:45 PM'
+];
 
 const AVATAR_PALETTE = [
 '#E0F2FE', '#FCE7F3', '#F3E8FF', '#F2F9F7',
@@ -779,6 +796,8 @@ course_code: newReminder.course_code.trim().toUpperCase(),
 course_name: newReminder.course_name.trim(),
 section: newReminder.section.trim(),
 professor: newReminder.professor.trim(),
+meeting_days: newReminder.meeting_days.trim(),
+meeting_time: newReminder.meeting_time.trim(),
 is_active: true
 };
 if (editingReminderId) {
@@ -802,7 +821,8 @@ setEditingReminderId(reminder.id);
 setNewReminder({
 crn: reminder.crn || '', course_code: reminder.course_code || '',
 course_name: reminder.course_name || '',
-section: reminder.section || '', professor: reminder.professor || ''
+section: reminder.section || '', professor: reminder.professor || '',
+meeting_days: reminder.meeting_days || '', meeting_time: reminder.meeting_time || ''
 });
 window.scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -1637,6 +1657,14 @@ setNewReminder({ ...newReminder, section: event.target.value })} />
 <input type="text" placeholder="Professor" style={modalInput}
 value={newReminder.professor} onChange={event =>
 setNewReminder({ ...newReminder, professor: event.target.value })} />
+<ScheduleTypePicker
+value={newReminder.meeting_days}
+onChange={value => setNewReminder({ ...newReminder, meeting_days: value })}
+/>
+<EditablePresetTimeInput
+value={newReminder.meeting_time}
+onChange={value => setNewReminder({ ...newReminder, meeting_time: value })}
+/>
 <div style={{ display: 'flex', gap: '8px' }}>
 {editingReminderId && <button type="button"
 style={{ ...secondaryActionBtn, flex: 1 }} onClick={() =>
@@ -1674,6 +1702,8 @@ onDelete={() => handleDeleteReminder(reminder.id)} />
 <InfoItem label="CRN" value={reminder.crn} />
 <InfoItem label="SECTION" value={reminder.section} />
 <InfoItem label="PROFESSOR" value={reminder.professor} />
+<InfoItem label="SCHEDULE / TYPE" value={reminder.meeting_days} />
+<InfoItem label="TIME" value={reminder.meeting_time} />
 </div>
 <div style={{ display: 'flex', justifyContent: 'space-between',
 alignItems: 'center', gap: '10px' }}>
@@ -3325,6 +3355,67 @@ style={{
 function Field({ label, children }) {
 return <div><label style={fieldLabel}>{label}</label>{children}</div>;
 }
+function ScheduleTypePicker({ value, onChange }) {
+const [savedType = '', savedDay = ''] = String(value || '').split(' · ');
+const scheduleType = MEETING_PATTERN_OPTIONS.includes(savedType) ? savedType : '';
+const needsDay = SINGLE_DAY_SCHEDULE_TYPES.has(scheduleType);
+
+const handleTypeChange = event => {
+const nextType = event.target.value;
+if (SINGLE_DAY_SCHEDULE_TYPES.has(nextType)) {
+onChange(`${nextType} · ${savedDay || 'Monday'}`);
+} else {
+onChange(nextType);
+}
+};
+
+const handleDayChange = event => {
+if (!scheduleType) return;
+onChange(`${scheduleType} · ${event.target.value}`);
+};
+
+return (
+<div style={{ display: 'grid', gridTemplateColumns: needsDay ? '1fr 1fr' : '1fr', gap: '8px', width: '100%' }}>
+<select style={scheduleSelectStyle} value={scheduleType} onChange={handleTypeChange}>
+<option value="">Choose schedule</option>
+{MEETING_PATTERN_OPTIONS.map(option => (
+<option key={option} value={option}>{option}</option>
+))}
+</select>
+{needsDay && (
+<select style={scheduleSelectStyle} value={savedDay || 'Monday'} onChange={handleDayChange}>
+{WEEKDAY_OPTIONS.map(day => <option key={day} value={day}>{day}</option>)}
+</select>
+)}
+</div>
+);
+}
+
+function EditablePresetTimeInput({ value, onChange }) {
+const selectedPreset = MEETING_TIME_OPTIONS.includes(value) ? value : '';
+return (
+<div style={editableTimeWrapperStyle}>
+<input
+ type="text"
+ placeholder="e.g. 9:00 AM - 10:00 AM"
+ style={editableTimeInputStyle}
+ value={value}
+ onChange={event => onChange(event.target.value)}
+/>
+<select
+ aria-label="Choose a preset class time"
+ value={selectedPreset}
+ onChange={event => {
+ if (event.target.value) onChange(event.target.value);
+ }}
+ style={editableTimeSelectStyle}
+>
+<option value=""></option>
+{MEETING_TIME_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
+</select>
+</div>
+);
+}
 function SwapPreferenceSection({ mode, pref, setPref }) {
 const isHave = mode === 'HAVE';
 const prefix = isHave ? 'have' : 'want';
@@ -3370,15 +3461,17 @@ event.target.value)} />
 </Field>
 </div>
 <div style={twoColumnGrid}>
-<Field label="DAYS">
-<input type="text" placeholder="e.g. MWF" style={modalInput}
-value={pref[`${prefix}Days`]} onChange={event => set('Days',
-event.target.value)} />
+<Field label="SCHEDULE / TYPE">
+<ScheduleTypePicker
+value={pref[`${prefix}Days`]}
+onChange={value => set('Days', value)}
+/>
 </Field>
 <Field label="TIME">
-<input type="text" placeholder="e.g. 10:00 AM - 10:50 AM"
-style={modalInput} value={pref[`${prefix}Time`]} onChange={event =>
-set('Time', event.target.value)} />
+<EditablePresetTimeInput
+value={pref[`${prefix}Time`]}
+onChange={value => set('Time', value)}
+/>
 </Field>
 </div>
 </div>
@@ -3670,6 +3763,66 @@ const swapFormSubtitle = { margin: '2px 0 0', color: 'var(--campora-muted)', fon
 const badgeRed = { background: '#FFF6F2', color: '#D9896A', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900' }; const badgeGreen = { background: '#F2F9F7', color: '#5E9A8B', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const badgeGray = { background: '#FBFCFE', color: 'var(--campora-muted)', padding: '4px 9px', borderRadius: '7px', fontSize: '10px', fontWeight: '900' }; const reviewTag = { background: '#FFF9F1', color: '#D97706', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '800' }; const dmBtnStyle = { width: '100%', background: 'var(--surface-container-lowest)', border: '1.5px solid var(--divider)', color: 'var(--campora-text)', padding: '10px', borderRadius: '999px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' };
 
 const modalInput = { width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: '999px', border: '1.5px solid var(--divider)', fontSize: '13px', fontWeight: '700', color: 'var(--campora-text)', outline: 'none', background: 'var(--surface-container-lowest)' };
+const scheduleSelectStyle = {
+  ...modalInput,
+  height: '44px',
+  minHeight: '44px',
+  padding: '0 42px 0 14px',
+  borderRadius: '999px',
+  WebkitBorderRadius: '999px',
+  appearance: 'none',
+  WebkitAppearance: 'none',
+  MozAppearance: 'none',
+  cursor: 'pointer',
+  lineHeight: 'normal',
+  backgroundColor: 'var(--surface-container-lowest)',
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235B667A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 14px center',
+  backgroundSize: '14px 14px',
+  overflow: 'hidden'
+};
+const editableTimeWrapperStyle = {
+  position: 'relative',
+  width: '100%',
+  height: '44px',
+  minHeight: '44px',
+  boxSizing: 'border-box'
+};
+const editableTimeInputStyle = {
+  ...modalInput,
+  width: '100%',
+  height: '44px',
+  minHeight: '44px',
+  boxSizing: 'border-box',
+  padding: '0 42px 0 14px',
+  borderRadius: '999px',
+  fontSize: '13px',
+  fontWeight: '700',
+  lineHeight: '44px'
+};
+const editableTimeSelectStyle = {
+  position: 'absolute',
+  right: '1.5px',
+  top: '1.5px',
+  width: '40px',
+  height: '41px',
+  boxSizing: 'border-box',
+  border: 'none',
+  borderRadius: '999px',
+  WebkitBorderRadius: '999px',
+  backgroundColor: 'transparent',
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235B667A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'center',
+  backgroundSize: '14px 14px',
+  color: 'transparent',
+  appearance: 'none',
+  WebkitAppearance: 'none',
+  MozAppearance: 'none',
+  cursor: 'pointer',
+  outline: 'none'
+};
 const selectInputStyle = { width: '100%', boxSizing: 'border-box', padding:
 '12px 14px', borderRadius: '999px', border: '1.5px solid var(--divider)', fontSize:
 '14px', fontWeight: '800', color: 'var(--campora-text)', outline: 'none', background:
