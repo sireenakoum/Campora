@@ -30,6 +30,37 @@ import {
   getEvents,
 } from '../lib/campusHub';
 
+
+const notificationEmptyPanel = {
+  width: '100%',
+  minHeight: '360px',
+  background: '#FFFFFF',
+  border: '1px solid #E2E8F0',
+  borderRadius: '24px',
+  boxShadow: '0 14px 34px rgba(11,26,63,0.07)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textAlign: 'center',
+  padding: '42px 28px',
+  boxSizing: 'border-box'
+};
+
+const notificationEmptyIcon = {
+  width: '92px',
+  height: '92px',
+  borderRadius: '50%',
+  background: '#FFFFFF',
+  border: '1.5px solid #D9E2EE',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 8px 22px rgba(11,26,63,0.06)',
+  marginBottom: '20px',
+  color: 'var(--campora-navy)'
+};
+
 const CATEGORY_STYLES = {
   Announcements: {
     main: '#648CCB',
@@ -1891,18 +1922,27 @@ export default function Notifications() {
                 value: 'Notifications',
                 label: 'Notifications',
                 icon: Bell,
+                main: '#648CCB',
+                soft: '#F3F7FD',
+                border: '#DDE7F5',
               },
               {
                 value: 'Messages',
                 label: 'Messages',
                 icon: MessageSquare,
+                main: '#0B1A3F',
+                soft: '#FFFFFF',
+                border: '#D8E0EB',
               },
               {
                 value: 'Reminders',
                 label: 'Reminders',
                 icon: AlarmClock,
+                main: '#8B78B8',
+                soft: '#F7F4FC',
+                border: '#E7E0F2',
               },
-            ].map(({ value, label, icon: Icon }) => {
+            ].map(({ value, label, icon: Icon, main, soft, border }) => {
               const selected = activeSection === value;
 
               return (
@@ -1914,15 +1954,13 @@ export default function Notifications() {
                     minHeight: '38px',
                     padding: '0 15px',
                     borderRadius: '999px',
-                    border: selected
-                      ? '1px solid #0B1A3F'
-                      : '1px solid #D8E0EB',
+                    border: `1px solid ${selected ? main : border}`,
                     background: selected
-                      ? '#0B1A3F'
-                      : '#FFFFFF',
+                      ? main
+                      : soft,
                     color: selected
                       ? '#FFFFFF'
-                      : '#0B1A3F',
+                      : main,
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1932,7 +1970,7 @@ export default function Notifications() {
                     fontWeight: '900',
                     cursor: 'pointer',
                     boxShadow: selected
-                      ? '0 4px 12px rgba(11,26,63,.16)'
+                      ? `0 4px 12px ${main}30`
                       : '0 2px 6px rgba(11,26,63,.025)',
                   }}
                 >
@@ -2247,7 +2285,7 @@ function ItemCard({ item, onToggleRead, onClear }) {
             ? '#8792A2'
             : style.main,
           border: '1px solid #E7EBF0',
-          borderRadius: '14px',
+          borderRadius: '50%',
         }}
       >
         <Icon size={18} strokeWidth={1.8} />
@@ -2441,43 +2479,60 @@ function EmptyState({
   return (
     <div
       style={{
-        minHeight: '260px',
+        width: '100%',
+        minHeight: '410px',
+        background: '#FFFFFF',
+        border: '1px solid #E1E7EF',
+        borderRadius: '24px',
+        boxShadow: '0 14px 34px rgba(11,26,63,0.07)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
-        padding: '32px 20px',
+        padding: '48px 30px',
+        boxSizing: 'border-box',
       }}
     >
       <div
         style={{
-          width: '64px',
-          height: '64px',
+          width: '78px',
+          height: '78px',
           borderRadius: '50%',
-          background: '#FFFFFF',
-          border: '1px solid #FFFFFF',
-          boxShadow: '0 8px 22px rgba(11,26,63,0.10)',
+          background: isMessages
+            ? '#FFFFFF'
+            : isReminder
+            ? '#FAF8FD'
+            : '#F7FAFE',
+          border: `1.5px solid ${
+            isMessages
+              ? '#D9E2EE'
+              : isReminder
+              ? '#E7E0F2'
+              : '#DDE7F5'
+          }`,
+          boxShadow: '0 8px 22px rgba(11,26,63,0.06)',
           color: isReminder
             ? '#8B78B8'
             : isMessages
-            ? '#648CCB'
-            : '#0B1A3F',
+            ? '#0B1A3F'
+            : '#648CCB',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '16px',
+          marginBottom: '24px',
         }}
       >
-        <Icon size={28} strokeWidth={1.9} />
+        <Icon size={30} strokeWidth={1.8} />
       </div>
 
       <h3
         style={{
           margin: 0,
-          color: '#0B1A3F',
-          fontSize: '17px',
+          color: '#111827',
+          fontSize: '25px',
           fontWeight: '950',
+          lineHeight: 1.2,
         }}
       >
         {isReminder
@@ -2489,12 +2544,12 @@ function EmptyState({
 
       <p
         style={{
-          margin: '7px 0 0',
-          maxWidth: '470px',
+          margin: '12px 0 0',
+          maxWidth: '520px',
           color: '#7E8A9E',
-          fontSize: '12px',
+          fontSize: '14px',
           fontWeight: '700',
-          lineHeight: 1.5,
+          lineHeight: 1.55,
         }}
       >
         {isReminder

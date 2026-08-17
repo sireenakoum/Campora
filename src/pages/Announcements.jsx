@@ -1140,7 +1140,7 @@ const styles = {
 
     flexShrink: 0,
 
-    borderRadius: "11px",
+    borderRadius: '50%',
 
     display: "flex",
 
@@ -1478,8 +1478,7 @@ const styles = {
 
     borderRadius: "16px",
 
-    border:
-      "1px dashed #CBD5E1",
+    border: '1px solid #E5EAF0',
 
     background: "#FAFCFF",
 
@@ -1500,7 +1499,7 @@ const styles = {
     width: "50px",
     height: "50px",
 
-    borderRadius: "15px",
+    borderRadius: '50%',
 
     display: "flex",
 
@@ -1563,7 +1562,7 @@ const styles = {
     width: "46px",
     height: "46px",
 
-    borderRadius: "14px",
+    borderRadius: '50%',
 
     background: "#EEF3FB",
 

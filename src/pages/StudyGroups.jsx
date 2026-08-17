@@ -6143,7 +6143,7 @@ one place.
     <h4 style={instagramDmSidebarTitle}>Messages</h4>
     <p style={instagramDmSidebarSubtitle}>Your conversations</p>
   </div>
-  <MessageCircle size={20} color={selectedGroup.color || '#0B1A3F'} />
+  <MessageCircle size={20} color={selectedGroup?.color || '#0B1A3F'} />
   </div>
 
    <div style={instagramSearchWrap}>
@@ -7966,9 +7966,9 @@ style={{
  gap: '6px',
  padding: '7px 10px',
  borderRadius: '999px',
- background: selectedGroup.color || '#0B1A3F',
+ background: selectedGroup?.color || '#0B1A3F',
  border: 'none',
- color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+ color: getContrastColor(selectedGroup?.color || '#0B1A3F'),
  fontSize: '10px',
  fontWeight: '900',
  textTransform: 'uppercase',
@@ -7976,9 +7976,9 @@ style={{
 }}
 >
 {(selectedGroup.visibility || 'public') === 'private' ? (
-  <Lock size={12} color={getContrastColor(selectedGroup.color || '#0B1A3F')} />
+  <Lock size={12} color={getContrastColor(selectedGroup?.color || '#0B1A3F')} />
 ) : (
-  <Globe2 size={12} color={getContrastColor(selectedGroup.color || '#0B1A3F')} />
+  <Globe2 size={12} color={getContrastColor(selectedGroup?.color || '#0B1A3F')} />
 )}
 {(selectedGroup.visibility || 'public') === 'private' ? 'Private Circle' : 'Public Circle'}
 </span>
@@ -8029,7 +8029,7 @@ style={{
 style={{
  position: 'relative',
  overflow: 'hidden',
- background: `linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 68%, ${selectedGroup.color || '#E0F2FE'}24 100%)`,
+ background: `linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 68%, ${selectedGroup?.color || '#E0F2FE'}24 100%)`,
  borderRadius: '26px',
  border: 'none',
  boxShadow: '0 14px 34px rgba(11,26,63,0.07)',
@@ -8043,7 +8043,7 @@ style={{
  left: 0,
  right: 0,
  height: '6px',
- background: selectedGroup.color || '#E0F2FE'
+ background: selectedGroup?.color || '#E0F2FE'
 }}
 />
 
@@ -8055,8 +8055,8 @@ style={{
  width: '22px',
  height: '22px',
  borderRadius: '50%',
- background: selectedGroup.color || '#E0F2FE',
- boxShadow: `0 0 0 9px ${selectedGroup.color || '#E0F2FE'}22`,
+ background: selectedGroup?.color || '#E0F2FE',
+ boxShadow: `0 0 0 9px ${selectedGroup?.color || '#E0F2FE'}22`,
  pointerEvents: 'none'
 }}
 />
@@ -8083,9 +8083,9 @@ style={{
 <span
 style={{
  ...tagStyle,
- background: selectedGroup.color || '#0B1A3F',
+ background: selectedGroup?.color || '#0B1A3F',
  border: 'none',
- color: getContrastColor(selectedGroup.color || '#0B1A3F')
+ color: getContrastColor(selectedGroup?.color || '#0B1A3F')
 }}
 >
 {selectedGroup.major || 'All Majors Welcome'}
@@ -8109,7 +8109,7 @@ style={{
  fontSize: '34px',
  lineHeight: 1.1,
  fontWeight: '950',
- color: selectedGroup.color || '#0B1A3F'
+ color: selectedGroup?.color || '#0B1A3F'
 }}
 >
 {selectedGroup.name}
@@ -8134,14 +8134,14 @@ style={{
  minWidth: '150px',
  padding: '16px',
  borderRadius: '18px',
- background: selectedGroup.color || '#0B1A3F',
+ background: selectedGroup?.color || '#0B1A3F',
  border: 'none',
  textAlign: 'center'
 }}
 >
 <div
 style={{
- color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+ color: getContrastColor(selectedGroup?.color || '#0B1A3F'),
  fontSize: '26px',
  fontWeight: '950'
 }}
@@ -8151,7 +8151,7 @@ style={{
 <div
 style={{
  marginTop: '3px',
- color: getMutedContrastColor(selectedGroup.color || '#0B1A3F'),
+ color: getMutedContrastColor(selectedGroup?.color || '#0B1A3F'),
  fontSize: '10px',
  fontWeight: '900',
  textTransform: 'uppercase',
@@ -8183,7 +8183,7 @@ style={{
 
 <section
 style={{
- background: `linear-gradient(135deg, #FFFFFF 0%, ${selectedGroup.color || '#E0F2FE'}10 100%)`,
+ background: `linear-gradient(135deg, #FFFFFF 0%, ${selectedGroup?.color || '#E0F2FE'}10 100%)`,
  borderRadius: '22px',
  border: 'none',
  padding: '22px',
@@ -8206,8 +8206,8 @@ style={{
  display: 'flex',
  alignItems: 'center',
  justifyContent: 'center',
- background: selectedGroup.color || '#0B1A3F',
- color: getContrastColor(selectedGroup.color || '#0B1A3F')
+ background: selectedGroup?.color || '#0B1A3F',
+ color: getContrastColor(selectedGroup?.color || '#0B1A3F')
 }}
 >
 <Target size={17} />
@@ -8243,19 +8243,19 @@ style={{
       minHeight: '92px',
       padding: '15px',
       borderRadius: '15px',
-      background: selectedGroup.color || '#0B1A3F',
+      background: selectedGroup?.color || '#0B1A3F',
       border: 'none',
-      boxShadow: `0 6px 16px ${selectedGroup.color || '#0B1A3F'}24`
+      boxShadow: `0 6px 16px ${selectedGroup?.color || '#0B1A3F'}24`
     }}
   >
     <Icon
       size={16}
-      color={getContrastColor(selectedGroup.color || '#0B1A3F')}
+      color={getContrastColor(selectedGroup?.color || '#0B1A3F')}
     />
     <div
       style={{
         marginTop: '10px',
-        color: getMutedContrastColor(selectedGroup.color || '#0B1A3F'),
+        color: getMutedContrastColor(selectedGroup?.color || '#0B1A3F'),
         fontSize: '9px',
         fontWeight: '900',
         letterSpacing: '.5px'
@@ -8266,7 +8266,7 @@ style={{
     <div
       style={{
         marginTop: '4px',
-        color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+        color: getContrastColor(selectedGroup?.color || '#0B1A3F'),
         fontSize: '12px',
         fontWeight: '850'
       }}
@@ -8315,7 +8315,7 @@ style={{
  display: 'flex',
  alignItems: 'center',
  justifyContent: 'center',
- background: `${selectedGroup.color || '#E0F2FE'}22`,
+ background: `${selectedGroup?.color || '#E0F2FE'}22`,
  color: '#0B1A3F'
 }}
 >
@@ -8353,9 +8353,9 @@ style={{
  gap: '8px',
  padding: '11px 14px',
  borderRadius: '12px',
- background: `${selectedGroup.color || '#E0F2FE'}1F`,
+ background: `${selectedGroup?.color || '#E0F2FE'}1F`,
  border: 'none',
- color: selectedGroup.color || '#0B1A3F',
+ color: selectedGroup?.color || '#0B1A3F',
  fontWeight: '950',
  letterSpacing: '2px'
 }}
@@ -8528,7 +8528,7 @@ style={{
 <h3
 style={{
  margin: '0 0 14px',
- color: selectedGroup.color || '#0B1A3F',
+ color: selectedGroup?.color || '#0B1A3F',
  fontSize: '15px',
  fontWeight: '900'
 }}
@@ -8574,8 +8574,8 @@ style={{
  justifyContent: 'center',
  alignSelf: 'stretch',
  gap: '8px',
- background: selectedGroup.color || '#0B1A3F',
- color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+ background: selectedGroup?.color || '#0B1A3F',
+ color: getContrastColor(selectedGroup?.color || '#0B1A3F'),
  boxShadow: 'none'
 }}
 >
@@ -8614,7 +8614,7 @@ style={{
  gap: '8px',
  background: '#0B1A3F',
  color: '#FFFFFF',
- boxShadow: `inset 5px 0 0 ${selectedGroup.color || '#E0F2FE'}`
+ boxShadow: `inset 5px 0 0 ${selectedGroup?.color || '#E0F2FE'}`
 ,
  opacity:
    getGroupMemberCount(selectedGroup) >= selectedGroup.max_size ? 0.55 : 1
@@ -8674,7 +8674,7 @@ Members
 </h3>
 <span
 style={{
- color: selectedGroup.color || '#0B1A3F',
+ color: selectedGroup?.color || '#0B1A3F',
  fontSize: '11px',
  fontWeight: '900'
 }}
@@ -8727,7 +8727,7 @@ style={{
           fontWeight: '900',
           fontSize: '11px',
           flexShrink: 0,
-          border: `2px solid ${selectedGroup.color || '#E0F2FE'}`
+          border: `2px solid ${selectedGroup?.color || '#E0F2FE'}`
         }}
       >
         {getInitials(
@@ -8766,8 +8766,8 @@ style={{
               style={{
                 padding: '2px 5px',
                 borderRadius: '6px',
-                background: `${selectedGroup.color || '#0B1A3F'}18`,
-                color: selectedGroup.color || '#0B1A3F',
+                background: `${selectedGroup?.color || '#0B1A3F'}18`,
+                color: selectedGroup?.color || '#0B1A3F',
                 fontSize: '8px',
                 fontWeight: '900'
               }}
@@ -8889,7 +8889,7 @@ style={{
  '16px 24px',
 
 background:
-`linear-gradient(90deg, #FFFFFF 0%, ${selectedGroup.color || '#E0F2FE'}12 100%)`,
+`linear-gradient(90deg, #FFFFFF 0%, ${selectedGroup?.color || '#E0F2FE'}12 100%)`,
 borderBottom:
 '1px solid #E3E2E7',
 borderTop:
@@ -8979,7 +8979,7 @@ style={{
   '900',
 
  color:
-   selectedGroup.color || '#0B1A3F'
+   selectedGroup?.color || '#0B1A3F'
 }}
 >
 {selectedGroup.name}
@@ -9076,7 +9076,7 @@ pinnedChats.groups.includes(
    )
      ? `1px solid ${PIN_COLORS.border}`
      : `1px solid ${getContrastBorder(
-        selectedGroup.color ||
+        selectedGroup?.color ||
          '#E0F2FE'
        )}`
 }}
@@ -9129,7 +9129,7 @@ style={{
   chatFullscreen
    ? '1px solid #C7D2FE'
    : `1px solid ${getContrastBorder(
-      selectedGroup.color ||
+      selectedGroup?.color ||
        '#E0F2FE'
      )}`
 }}
@@ -9138,7 +9138,7 @@ style={{
 {chatFullscreen ? (
  <Minimize2
   size={18}
-  color={selectedGroup.color || '#0B1A3F'}
+  color={selectedGroup?.color || '#0B1A3F'}
  />
 ) : (
  <Maximize2
@@ -9166,7 +9166,7 @@ background:
 
  border:
    `1px solid ${getContrastBorder(
-    selectedGroup.color ||
+    selectedGroup?.color ||
      '#E0F2FE'
    )}`
 }}
@@ -9195,7 +9195,7 @@ background:
 
  border:
    `1px solid ${getContrastBorder(
-    selectedGroup.color ||
+    selectedGroup?.color ||
      '#E0F2FE'
    )}`
 }}
@@ -9223,7 +9223,7 @@ background:
 
  border:
    `1px solid ${getContrastBorder(
-    selectedGroup.color ||
+    selectedGroup?.color ||
      '#E0F2FE'
    )}`
 }}
@@ -9983,7 +9983,7 @@ isMe
   : '1px solid #E3E2E7',
  boxShadow:
    isMe
-     ? `inset 4px 0 0 ${selectedGroup.color || '#E0F2FE'}, 0 2px 8px rgba(0,0,0,0.03)`
+     ? `inset 4px 0 0 ${selectedGroup?.color || '#E0F2FE'}, 0 2px 8px rgba(0,0,0,0.03)`
      : '0 2px 8px rgba(0,0,0,0.03)'
 }}
 >
@@ -10002,19 +10002,19 @@ fontWeight:
 
 color:
  isMe
-   ? getMutedContrastColor(selectedGroup.color || '#002D62')
+   ? getMutedContrastColor(selectedGroup?.color || '#002D62')
    : '#717786',
 
 background:
 isMe
-  ? getSoftContrastColor(selectedGroup.color || '#002D62')
+  ? getSoftContrastColor(selectedGroup?.color || '#002D62')
   : '#FFFFFF',
 
 borderLeft:
   `3px solid ${
    isMe
-     ? getContrastColor(selectedGroup.color || '#002D62')
-     : (selectedGroup.color || '#002D62')
+     ? getContrastColor(selectedGroup?.color || '#002D62')
+     : (selectedGroup?.color || '#002D62')
   }`,
 
        padding:
@@ -10509,7 +10509,7 @@ alignItems:
 <div
 style={{
  borderLeft:
- `3px solid ${selectedGroup.color || '#002D62'}`,
+ `3px solid ${selectedGroup?.color || '#002D62'}`,
 
 paddingLeft:
 '10px',
@@ -10680,8 +10680,8 @@ type="submit"
  justifyContent: 'center',
  alignSelf: 'center',
  boxSizing: 'border-box',
- background: selectedGroup.color || '#0B1A3F',
- color: getContrastColor(selectedGroup.color || '#0B1A3F'),
+ background: selectedGroup?.color || '#0B1A3F',
+ color: getContrastColor(selectedGroup?.color || '#0B1A3F'),
  boxShadow: 'none',
  cursor: newMessage.trim() ? 'pointer' : 'default',
  flexShrink: 0,
@@ -12066,7 +12066,7 @@ onClick={(event) => {
       >
        <MessageSquare
         size={18}
-        color={selectedGroup.color || '#0B1A3F'}
+        color={selectedGroup?.color || '#0B1A3F'}
        />
       </button>
 

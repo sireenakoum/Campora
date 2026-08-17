@@ -5893,7 +5893,7 @@ const emptyIconCircle = {
   width: '94px',
   height: '94px',
   borderRadius: '50%',
-  background: '#EEF4FB',
+  background: '#FFFFFF',
   border: '1.5px solid #D7E2F0',
   display: 'flex',
   alignItems: 'center',

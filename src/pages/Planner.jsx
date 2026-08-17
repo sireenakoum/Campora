@@ -353,6 +353,12 @@ export default function Planner() {
   const plannerAlertKey = (userId) =>
     `campora-planner-alert-links-${userId}`;
 
+  const hasReminderAlert = (alertType) =>
+    alertType === 'reminder' || alertType === 'both';
+
+  const hasNotificationAlert = (alertType) =>
+    alertType === 'notification' || alertType === 'both';
+
   const readPlannerAlertLinks = () => {
     if (!user) return {};
 
@@ -388,7 +394,10 @@ export default function Planner() {
       }
 
       links[entry.id] = {
-        type: alertType,
+        type: alertType === 'both' ? 'notification' : alertType,
+        alertMode: alertType,
+        notification: hasNotificationAlert(alertType),
+        reminder: hasReminderAlert(alertType),
         title: entry.name || 'Planner entry',
         entryType: entry.type || '',
         date: entry.date || '',
@@ -658,9 +667,15 @@ export default function Planner() {
       color: entry.color || '#E1F2FF',
       repeat: repeatPattern,
       reminder: !!entry.reminder,
-      alertType:
-        readPlannerAlertLinks()[entry.id]?.type ||
-        (entry.reminder ? 'reminder' : 'none')
+      alertType: (() => {
+        const savedAlert = readPlannerAlertLinks()[entry.id];
+
+        if (savedAlert?.alertMode === 'both') return 'both';
+        if (entry.reminder && savedAlert?.type === 'notification') return 'both';
+
+        return savedAlert?.type ||
+          (entry.reminder ? 'reminder' : 'none');
+      })()
     });
 
     setIsModalOpen(true);
@@ -824,13 +839,13 @@ export default function Planner() {
     }
 
     if (savedEntries?.length) {
-      if (newEntry.alertType === 'reminder') {
+      if (hasReminderAlert(newEntry.alertType)) {
         await saveRemindersForEntries(savedEntries);
-        savePlannerAlertChoice(savedEntries, 'reminder');
+        savePlannerAlertChoice(savedEntries, newEntry.alertType);
       }
 
-      if (newEntry.alertType === 'notification') {
-        savePlannerAlertChoice(savedEntries, 'notification');
+      if (hasNotificationAlert(newEntry.alertType)) {
+        savePlannerAlertChoice(savedEntries, newEntry.alertType);
       }
     }
 
@@ -854,7 +869,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       start_time: newEntry.start_time,
       end_time: newEntry.end_time,
       color: newEntry.color,
-      reminder: newEntry.alertType === 'reminder'
+      reminder: hasReminderAlert(newEntry.alertType)
     };
 
     const { data, error } = await supabase
@@ -879,12 +894,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         deletePlannerAlertChoices([data.id]);
       }
 
-      if (newEntry.alertType === 'reminder') {
+      if (hasReminderAlert(newEntry.alertType)) {
         await saveRemindersForEntries([data]);
       }
 
-      if (newEntry.alertType === 'notification') {
-        savePlannerAlertChoice([data], 'notification');
+      if (hasNotificationAlert(newEntry.alertType)) {
+        savePlannerAlertChoice([data], newEntry.alertType);
       }
     }
 
@@ -949,13 +964,13 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     }
 
     if (savedEntries?.length) {
-      if (newEntry.alertType === 'reminder') {
+      if (hasReminderAlert(newEntry.alertType)) {
         await saveRemindersForEntries(savedEntries);
-        savePlannerAlertChoice(savedEntries, 'reminder');
+        savePlannerAlertChoice(savedEntries, newEntry.alertType);
       }
 
-      if (newEntry.alertType === 'notification') {
-        savePlannerAlertChoice(savedEntries, 'notification');
+      if (hasNotificationAlert(newEntry.alertType)) {
+        savePlannerAlertChoice(savedEntries, newEntry.alertType);
       }
     }
 
@@ -991,7 +1006,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         start_time: newEntry.start_time,
         end_time: newEntry.end_time,
         color: newEntry.color,
-        reminder: newEntry.alertType === 'reminder',
+        reminder: hasReminderAlert(newEntry.alertType),
         group_id: null,
         user_id: user.id
       };
@@ -1022,13 +1037,13 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       }
 
       if (data) {
-        if (newEntry.alertType === 'reminder') {
+        if (hasReminderAlert(newEntry.alertType)) {
           await saveRemindersForEntries([data]);
-          savePlannerAlertChoice([data], 'reminder');
+          savePlannerAlertChoice([data], newEntry.alertType);
         }
 
-        if (newEntry.alertType === 'notification') {
-          savePlannerAlertChoice([data], 'notification');
+        if (hasNotificationAlert(newEntry.alertType)) {
+          savePlannerAlertChoice([data], newEntry.alertType);
         }
       }
 
@@ -1072,13 +1087,13 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     }
 
     if (savedEntries?.length) {
-      if (newEntry.alertType === 'reminder') {
+      if (hasReminderAlert(newEntry.alertType)) {
         await saveRemindersForEntries(savedEntries);
-        savePlannerAlertChoice(savedEntries, 'reminder');
+        savePlannerAlertChoice(savedEntries, newEntry.alertType);
       }
 
-      if (newEntry.alertType === 'notification') {
-        savePlannerAlertChoice(savedEntries, 'notification');
+      if (hasNotificationAlert(newEntry.alertType)) {
+        savePlannerAlertChoice(savedEntries, newEntry.alertType);
       }
     }
 
@@ -1505,14 +1520,36 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               margin: 0
             }}
           >
-            {viewType === 'Month'
-              ? viewDate.toLocaleString('default', {
-                  month: 'long',
-                  year: 'numeric'
-                })
-              : viewType === 'Week'
-              ? `Week of ${dateArray[0].toLocaleDateString()}`
-              : selectedDate.toDateString()}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{
+                fontSize: '13px',
+                fontWeight: '800',
+                color: 'var(--campora-muted)',
+                letterSpacing: '0.04em'
+              }}>
+                {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: '900',
+                  color: 'var(--campora-text)',
+                  lineHeight: 1.15
+                }}>
+                  {selectedDate.toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '800',
+                  color: 'var(--campora-muted)'
+                }}>
+                  {selectedDate.getFullYear()}
+                </span>
+              </div>
+            </div>
           </h1>
 
           <div
@@ -1623,10 +1660,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     borderRadius: '14px',
                     cursor: 'pointer',
                     transition: '0.2s',
-                    border: isSelected
-                      ? '2px solid #0B1A3F'
-                      : '1px solid #F1F4F9',
-                    background: isSelected ? '#F8FAFF' : 'white',
+                    border: '1px solid #F1F4F9',
+                    background: 'white',
                     display: 'flex',
                     flexDirection: 'column',
                     boxSizing: 'border-box'
@@ -1906,20 +1941,30 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                         fontSize: '11px',
                         fontWeight:
                           dayIsToday || dayIsSelected ? 800 : 600,
-                        background: dayIsToday
-                          ? 'var(--campora-navy)'
-                          : dayIsSelected
-                          ? '#EAF4FC'
-                          : 'transparent',
-                        color: dayIsToday
-                          ? '#ffffff'
-                          : dayIsSelected
-                          ? 'var(--campora-navy)'
-                          : 'var(--campora-body)',
+                        background:
+                          dayIsSelected && !dayIsToday
+                            ? 'var(--campora-navy)'
+                            : dayIsToday
+                            ? '#FFFFFF'
+                            : 'transparent',
+                        color:
+                          dayIsSelected && !dayIsToday
+                            ? '#FFFFFF'
+                            : dayIsToday
+                            ? 'var(--campora-navy)'
+                            : 'var(--campora-body)',
                         boxShadow:
                           dayIsSelected && !dayIsToday
-                            ? '0 0 0 1px rgba(0,45,98,0.22), 0 2px 6px rgba(0,45,98,0.06)'
-                            : 'none'
+                            ? '0 4px 12px rgba(11,26,63,0.18)'
+                            : dayIsToday
+                            ? '0 3px 10px rgba(11,26,63,0.10)'
+                            : 'none',
+                        border:
+                          dayIsSelected && !dayIsToday
+                            ? '1px solid var(--campora-navy)'
+                            : dayIsToday
+                            ? '1px solid rgba(11,26,63,0.14)'
+                            : '1px solid transparent'
                       }}
                     >
                       {dayObject.getDate()}
@@ -1936,8 +1981,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             border: '1.5px solid #E9EDF7',
               display: 'flex',
               flexDirection: 'column',
-              height: '420px',
-              minHeight: '420px',
+              height: '340px',
+              minHeight: '340px',
               overflow: 'hidden'
             }}
           >
@@ -2067,9 +2112,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                         overflow: 'hidden',
                         borderRadius: '16px',
                         padding: '20px 18px 18px',
-                        background: event.is_completed
-                          ? 'var(--surface-container-low)'
-                          : `${barColor}18`,
+                        background: '#FFFFFF',
                         border: '1px solid var(--hairline)',
                         boxShadow: '0 6px 18px rgba(0, 45, 98, 0.05)',
                         display: 'flex',
@@ -2103,8 +2146,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                           left: 0,
                           right: 0,
                           top: 0,
-                          height: '5px',
-                          background: barColor
+                          height: '3px',
+                          background: event.is_completed
+                            ? '#E5EAF0'
+                            : darkModeColor(event.color || '#0B1A3F'),
+                          opacity: 0.75
                         }}
                       />
 
@@ -2147,7 +2193,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                                   fontWeight: '900',
                                   color: event.is_completed
                                     ? 'var(--campora-muted)'
-                                    : 'var(--campora-text)',
+                                    : darkModeColor(event.color || '#0B1A3F'),
                                   textDecoration: event.is_completed
                                     ? 'line-through'
                                     : 'none',
@@ -2460,8 +2506,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             display: 'flex',
             flexDirection: 'column',
             padding: '16px',
-            minHeight: '255px',
-            height: '255px',
+            minHeight: '335px',
+            height: '335px',
             flexShrink: 0,
             overflow: 'visible'
           }}
@@ -2633,8 +2679,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             style={{
               background: stickyColor,
               flex: 1,
-              minHeight: '150px',
-              padding: '14px',
+              minHeight: '225px',
+              padding: '16px',
               borderRadius: '2px 2px 25px 2px',
               boxShadow:
                 '0 8px 16px -8px rgba(0,0,0,0.15)',
@@ -2657,8 +2703,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 fontWeight: '800',
                 color: getContrastText(stickyColor),
                 caretColor: getContrastText(stickyColor),
-                fontSize: '12px',
-                lineHeight: '1.4',
+                fontSize: '13px',
+                lineHeight: '1.45',
                 fontFamily: 'inherit'
               }}
             />
@@ -2846,11 +2892,14 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           <div
             className="card"
             style={{
-              width: '430px',
-              maxHeight: '88vh',
+              width: 'min(540px, calc(100vw - 32px))',
+              maxHeight: '90vh',
               overflowY: 'auto',
-              border: '1.5px solid #0B1A3F',
-              padding: '30px'
+              border: '1px solid #DCE4F0',
+              borderRadius: '24px',
+              padding: '0',
+              background: '#FFFFFF',
+              boxShadow: '0 28px 80px rgba(11, 26, 63, 0.22)'
             }}
           >
             <div
@@ -2858,43 +2907,93 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '20px'
+                padding: '24px 28px 18px',
+                borderBottom: '1px solid #EEF2F7',
+                position: 'sticky',
+                top: 0,
+                zIndex: 3,
+                background: 'rgba(255,255,255,0.96)',
+                backdropFilter: 'blur(10px)'
               }}
             >
-              <h2
-                style={{
-                  margin: 0,
-                  fontWeight: '900',
-                  color: '#0B1A3F',
-                  fontSize: '20px'
-                }}
-              >
-                {editingEntry ? 'Edit Entry' : 'New Entry'}
-              </h2>
-
-              {editingEntry && (
-                <button
-                  type="button"
-                  title="Delete Entry"
-                  onClick={handleDeleteFromEdit}
-                  disabled={saving}
+              <div>
+                <h2
                   style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '9px',
-                    background: '#FFF5F5',
-                    border: '1px solid #FECACA',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#EE5D50',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    opacity: saving ? 0.5 : 1
+                    margin: 0,
+                    fontWeight: '900',
+                    color: '#0B1A3F',
+                    fontSize: '24px',
+                    letterSpacing: '-0.5px'
                   }}
                 >
-                  <Trash2 size={16} />
+                  {editingEntry ? 'Edit Entry' : 'New Entry'}
+                </h2>
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#94A3B8'
+                  }}
+                >
+                  {editingEntry
+                    ? 'Update the details for this planner entry.'
+                    : 'Add a class, task, exam, or event to your planner.'}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {editingEntry && (
+                  <button
+                    type="button"
+                    title="Delete Entry"
+                    onClick={handleDeleteFromEdit}
+                    disabled={saving}
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '11px',
+                      background: '#FFF5F5',
+                      border: '1px solid #FECACA',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#EE5D50',
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      opacity: saving ? 0.5 : 1
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={() => {
+                    if (!saving) {
+                      setIsModalOpen(false);
+                      setEditingEntry(null);
+                    }
+                  }}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '11px',
+                    border: '1px solid #E2E8F0',
+                    background: '#F8FAFC',
+                    color: '#0B1A3F',
+                    fontSize: '22px',
+                    lineHeight: 1,
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ×
                 </button>
-              )}
+              </div>
             </div>
 
             <form
@@ -2902,7 +3001,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px'
+                gap: '14px',
+                padding: '22px 28px 28px'
               }}
             >
               <input
@@ -2983,10 +3083,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
-                    padding: '12px',
-                    background: '#F8FAFF',
-                    borderRadius: '10px',
-                    border: '1px solid #E9EDF7'
+                    padding: '16px',
+                    background: '#F8FAFC',
+                    borderRadius: '16px',
+                    border: '1px solid #E7EDF5'
                   }}
                 >
                   <div
@@ -3088,41 +3188,100 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
               <div
                 style={{
-                  display: 'flex',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                   gap: '10px'
                 }}
               >
-                <input
-                  type="time"
-                  style={modalInput}
-                  value={newEntry.start_time}
-                  onChange={(event) =>
-                    setNewEntry({
-                      ...newEntry,
-                      start_time: event.target.value
-                    })
-                  }
-                />
+                {[
+                  { key: 'start_time', label: 'START TIME' },
+                  { key: 'end_time', label: 'END TIME' }
+                ].map(({ key, label }) => {
+                  const timeValue = newEntry[key] || '09:00';
+                  const hour = Number(timeValue.split(':')[0] || 0);
+                  const period = hour >= 12 ? 'PM' : 'AM';
 
-                <input
-                  type="time"
-                  style={modalInput}
-                  value={newEntry.end_time}
-                  onChange={(event) =>
-                    setNewEntry({
-                      ...newEntry,
-                      end_time: event.target.value
-                    })
-                  }
-                />
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        padding: '11px 13px',
+                        background: '#FFFFFF',
+                        border: '1px solid #DCE4EF',
+                        borderRadius: '14px'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          marginBottom: '6px',
+                          color: '#94A3B8',
+                          fontSize: '9px',
+                          fontWeight: '900',
+                          letterSpacing: '0.05em'
+                        }}
+                      >
+                        <AlarmClock size={13} strokeWidth={2.3} />
+                        {label}
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <input
+                          type="time"
+                          value={timeValue}
+                          onChange={(event) =>
+                            setNewEntry({
+                              ...newEntry,
+                              [key]: event.target.value
+                            })
+                          }
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            border: 'none',
+                            outline: 'none',
+                            background: 'transparent',
+                            color: '#0B1A3F',
+                            fontSize: '16px',
+                            fontWeight: '850',
+                            fontFamily: 'inherit',
+                            padding: 0
+                          }}
+                        />
+
+                        <span
+                          style={{
+                            flexShrink: 0,
+                            padding: '5px 8px',
+                            borderRadius: '9px',
+                            background: '#F1F5F9',
+                            color: '#0B1A3F',
+                            fontSize: '10px',
+                            fontWeight: '900'
+                          }}
+                        >
+                          {period}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div
                 style={{
-                  padding: '12px',
-                  background: '#F8FAFF',
-                  border: '1px solid #E9EDF7',
-                  borderRadius: '12px'
+                  padding: '16px',
+                  background: '#F8FAFC',
+                  border: '1px solid #E7EDF5',
+                  borderRadius: '16px'
                 }}
               >
                 <div
@@ -3139,7 +3298,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                     gap: '8px'
                   }}
                 >
@@ -3167,6 +3326,14 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       color: '#8B78B8',
                       soft: '#F7F4FC',
                       border: '#E7E0F2'
+                    },
+                    {
+                      value: 'both',
+                      label: 'Both',
+                      icon: Bell,
+                      color: '#0B1A3F',
+                      soft: '#F4F6FA',
+                      border: '#DCE2EC'
                     }
                   ].map((option) => {
                     const AlertIcon = option.icon;
@@ -3180,7 +3347,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                           setNewEntry({
                             ...newEntry,
                             alertType: option.value,
-                            reminder: option.value === 'reminder'
+                            reminder: option.value === 'reminder' || option.value === 'both'
                           })
                         }
                         style={{
@@ -3216,7 +3383,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     style={{
                       marginTop: '9px',
                       color:
-                        newEntry.alertType === 'reminder'
+                        newEntry.alertType === 'both'
+                          ? '#0B1A3F'
+                          : newEntry.alertType === 'reminder'
                           ? '#8B78B8'
                           : '#648CCB',
                       fontSize: '10px',
@@ -3224,7 +3393,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       lineHeight: 1.45
                     }}
                   >
-                    {newEntry.alertType === 'reminder'
+                    {newEntry.alertType === 'both'
+                      ? 'This entry will appear as both a Notification and a Reminder.'
+                      : newEntry.alertType === 'reminder'
                       ? 'This entry will appear under Reminders in Notifications & Reminders.'
                       : 'This entry will be added to the Notifications section.'}
                   </div>
@@ -3327,13 +3498,14 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
 const switcherGroup = {
   display: 'flex',
-  background: '#F4F7FE',
+  background: '#FFFFFF',
   padding: '4px',
-  borderRadius: '12px'
+  borderRadius: '12px',
+  border: '1px solid #E7EBF1'
 };
 
 const toggleStyle = {
-  background: 'none',
+  background: 'transparent',
   border: 'none',
   padding: '6px 12px',
   fontSize: '11px',
@@ -3345,9 +3517,9 @@ const toggleStyle = {
 
 const activeToggle = {
   ...toggleStyle,
-  background: 'white',
+  background: '#F4F7FE',
   color: '#0B1A3F',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+  boxShadow: 'none'
 };
 
 const navBtn = {
@@ -3365,12 +3537,14 @@ const saveBtn = {
   background: '#0B1A3F',
   border: 'none',
   color: 'white',
-  padding: '11px',
-  borderRadius: '10px',
+  minHeight: '48px',
+  padding: '12px 16px',
+  borderRadius: '13px',
   fontWeight: '900',
   cursor: 'pointer',
   fontSize: '13px',
-  marginTop: '3px'
+  marginTop: '4px',
+  boxShadow: '0 8px 18px rgba(11,26,63,0.16)'
 };
 
 const seriesBtnStyle = {
@@ -3418,24 +3592,28 @@ const cellAddIcon = {
 };
 
 const modalInput = {
-  padding: '10px',
-  borderRadius: '8px',
-  border: '1.5px solid #E2E8F0',
+  minHeight: '46px',
+  padding: '11px 13px',
+  borderRadius: '12px',
+  border: '1.5px solid #DCE4EF',
+  background: '#FFFFFF',
   fontWeight: '800',
   outline: 'none',
   fontSize: '12px',
   flex: 1,
   color: '#0B1A3F',
-  boxSizing: 'border-box'
+  boxSizing: 'border-box',
+  boxShadow: '0 1px 2px rgba(11,26,63,0.02)'
 };
 
 const overlay = {
   position: 'fixed',
   inset: 0,
-  background: 'rgba(11,26,57,0.4)',
-  backdropFilter: 'blur(6px)',
+  background: 'rgba(11,26,57,0.28)',
+  backdropFilter: 'blur(8px)',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
+  padding: '16px',
   zIndex: 1000
 };

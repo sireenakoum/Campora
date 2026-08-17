@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+AlarmClock,
 ArrowLeftRight,
 ArrowRight,
 Bell,
@@ -43,22 +44,22 @@ const MAJORS = [
 ];
 const EMPTY_SWAP = {
 haveCourse: '', haveCrn: '', haveCourseName: '', haveSection: '', haveProf: '',
-haveDays: '', haveTime: '',
+haveDays: '', haveTime: '09:00 AM - 10:00 AM',
 wantCourse: '', wantCrn: '', wantCourseName: '', wantSection: '', wantProf: '',
-wantDays: '', wantTime: '',
+wantDays: '', wantTime: '09:00 AM - 10:00 AM',
 isAnonymous: false
 };
 
 const EMPTY_REVIEW = {
 crn: '', course_code: '', course_name: '', section: '', professor_name: '',
 
-meeting_days: '', meeting_time: '',
+meeting_days: '', meeting_time: '09:00 AM - 10:00 AM',
 semester: '', rating: 5, difficulty: 3, comment: '', is_anonymous: false
 };
 const EMPTY_QUESTION = { title: '', content: '', is_anonymous: false };
 const EMPTY_REMINDER = {
 crn: '', course_code: '', course_name: '', section: '', professor: '',
-meeting_days: '', meeting_time: ''
+meeting_days: '', meeting_time: '09:00 AM - 10:00 AM'
 };
 
 const MEETING_PATTERN_OPTIONS = [
@@ -75,6 +76,71 @@ const MEETING_TIME_OPTIONS = [
 '11:00 AM - 12:15 PM', '12:30 PM - 1:45 PM', '2:00 PM - 3:15 PM',
 '3:30 PM - 4:45 PM'
 ];
+
+const DEFAULT_MEETING_TIME = '09:00 AM - 10:00 AM';
+
+const sanitizeCrn = value => String(value || '').replace(/\D/g, '').slice(0, 5);
+const isValidCrn = value => /^[0-9]{5}$/.test(sanitizeCrn(value));
+
+const normalizeMeetingTime = value => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const match = raw.match(
+    /^(\d{1,2}):?(\d{2})?\s*(AM|PM)\s*-\s*(\d{1,2}):?(\d{2})?\s*(AM|PM)$/i
+  );
+
+  if (!match) return raw;
+
+  const [, sh, sm = '00', sap, eh, em = '00', eap] = match;
+
+  const startHour = Math.min(12, Math.max(1, Number(sh)));
+  const endHour = Math.min(12, Math.max(1, Number(eh)));
+
+  return `${String(startHour).padStart(2, '0')}:${sm} ${sap.toUpperCase()} - ${String(endHour).padStart(2, '0')}:${em} ${eap.toUpperCase()}`;
+};
+
+const isValidMeetingTime = value =>
+  /^(0[1-9]|1[0-2]):[0-5][0-9] (AM|PM) - (0[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/.test(
+    normalizeMeetingTime(value)
+  );
+
+const sanitizeMeetingTime = value =>
+String(value || '')
+.toUpperCase()
+.replace(/[^0-9APM:\s.-]/g, '')
+.replace(/\s+/g, ' ')
+.slice(0, 25);
+
+const to24HourTime = (hourText, minuteText, period) => {
+  let hour = Number(hourText);
+  const minute = String(minuteText || '00').padStart(2, '0');
+  if (period === 'AM' && hour === 12) hour = 0;
+  if (period === 'PM' && hour !== 12) hour += 12;
+  return `${String(hour).padStart(2, '0')}:${minute}`;
+};
+
+const to12HourTime = value => {
+  const [hourText = '09', minute = '00'] = String(value || '09:00').split(':');
+  const hour24 = Number(hourText);
+  const period = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12 = hour24 % 12 || 12;
+  return `${String(hour12).padStart(2, '0')}:${minute} ${period}`;
+};
+
+const splitMeetingTime = value => {
+  const match = String(value || '').trim().match(
+    /^(0?[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)\s*-\s*(0?[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)$/i
+  );
+  if (!match) return { start: '09:00', end: '10:00' };
+  return {
+    start: to24HourTime(match[1], match[2], match[3].toUpperCase()),
+    end: to24HourTime(match[4], match[5], match[6].toUpperCase())
+  };
+};
+
+const joinMeetingTime = (start, end) => `${to12HourTime(start)} - ${to12HourTime(end)}`;
+
 
 const AVATAR_PALETTE = [
 '#E0F2FE', '#FCE7F3', '#F3E8FF', '#F2F9F7',
@@ -141,6 +207,39 @@ const [editingQuestionReplyText, setEditingQuestionReplyText] = useState('');
 const [reminders, setReminders] = useState([]);
 const [newReminder, setNewReminder] = useState(EMPTY_REMINDER);
 const [editingReminderId, setEditingReminderId] = useState(null);
+const [seatAlertMode, setSeatAlertMode] = useState('both');
+
+const seatAlertStorageKey = currentUserId
+  ? `campora-seat-alert-types-${currentUserId}`
+  : 'campora-seat-alert-types';
+
+const getSavedSeatAlertTypes = () => {
+  try {
+    return JSON.parse(localStorage.getItem(seatAlertStorageKey) || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const saveSeatAlertType = (reminderId, alertType) => {
+  if (!reminderId) return;
+  const saved = getSavedSeatAlertTypes();
+  saved[reminderId] = alertType;
+  localStorage.setItem(seatAlertStorageKey, JSON.stringify(saved));
+};
+
+const removeSavedSeatAlertType = (reminderId) => {
+  if (!reminderId) return;
+  const saved = getSavedSeatAlertTypes();
+  delete saved[reminderId];
+  localStorage.setItem(seatAlertStorageKey, JSON.stringify(saved));
+};
+
+const getSeatAlertType = reminder => {
+  if (!reminder) return 'both';
+  if (reminder.alert_type) return reminder.alert_type;
+  return getSavedSeatAlertTypes()[reminder.id] || 'both';
+};
 const [activeDmUser, setActiveDmUser] = useState(null);
 const [dmMessages, setDmMessages] = useState([]);
 const [dmMessage, setDmMessage] = useState('');
@@ -480,6 +579,18 @@ if (!searchPref.haveCourse.trim() || !searchPref.wantCourse.trim()) {
 alert('Please enter the course you currently have and the course you want.');
 return;
 }
+if (!isValidCrn(searchPref.haveCrn)) {
+alert('Your current course CRN must be exactly 5 digits.');
+return;
+}
+if (!isValidCrn(searchPref.wantCrn)) {
+alert('The CRN for the course you want must be exactly 5 digits.');
+return;
+}
+if (!isValidMeetingTime(searchPref.haveTime) || !isValidMeetingTime(searchPref.wantTime)) {
+alert('Please enter each time like 09:00 AM - 10:00 AM.');
+return;
+}
 if (editingPostId) {
 const payload = {
 have_course: searchPref.haveCourse.trim().toUpperCase(),
@@ -488,14 +599,14 @@ have_course_name: searchPref.haveCourseName.trim(),
 have_section: searchPref.haveSection.trim(),
 have_prof: searchPref.haveProf.trim(),
 have_days: searchPref.haveDays.trim(),
-have_time: searchPref.haveTime.trim(),
+have_time: normalizeMeetingTime(searchPref.haveTime).trim(),
 want_course: searchPref.wantCourse.trim().toUpperCase(),
 want_crn: searchPref.wantCrn.trim(),
 want_course_name: searchPref.wantCourseName.trim(),
 want_section: searchPref.wantSection.trim(),
 want_prof: searchPref.wantProf.trim(),
 want_days: searchPref.wantDays.trim(),
-want_time: searchPref.wantTime.trim(),
+want_time: normalizeMeetingTime(searchPref.wantTime).trim(),
 is_anonymous: searchPref.isAnonymous,
 author_name: searchPref.isAnonymous ? 'Anonymous Student' : userName
 };
@@ -539,14 +650,14 @@ have_course_name: searchPref.haveCourseName.trim(),
 have_section: searchPref.haveSection.trim(),
 have_prof: searchPref.haveProf.trim(),
 have_days: searchPref.haveDays.trim(),
-have_time: searchPref.haveTime.trim(),
+have_time: normalizeMeetingTime(searchPref.haveTime).trim(),
 want_course: searchPref.wantCourse.trim().toUpperCase(),
 want_crn: searchPref.wantCrn.trim(),
 want_course_name: searchPref.wantCourseName.trim(),
 want_section: searchPref.wantSection.trim(),
 want_prof: searchPref.wantProf.trim(),
 want_days: searchPref.wantDays.trim(),
-want_time: searchPref.wantTime.trim(),
+want_time: normalizeMeetingTime(searchPref.wantTime).trim(),
 is_anonymous: searchPref.isAnonymous,
 status: 'available'
 };
@@ -630,6 +741,14 @@ setNewReview(EMPTY_REVIEW);
 const handleSaveReview = async event => {
 event.preventDefault();
 if (!currentUserId) return;
+if (!isValidCrn(newReview.crn)) {
+alert('CRN must be exactly 5 digits.');
+return;
+}
+if (!isValidMeetingTime(newReview.meeting_time)) {
+alert('Please enter the time like 09:00 AM - 10:00 AM.');
+return;
+}
 const payload = {
 user_id: currentUserId,
 author_name: newReview.is_anonymous ? 'Anonymous Student' :
@@ -787,6 +906,14 @@ setQuestionReplies(previous => previous.filter(reply => reply.id !== replyId));
 const handleSaveReminder = async event => {
 event.preventDefault();
 if (!newReminder.course_code.trim()) return;
+if (!isValidCrn(newReminder.crn)) {
+alert('CRN must be exactly 5 digits.');
+return;
+}
+if (!isValidMeetingTime(newReminder.meeting_time)) {
+alert('Please enter the time like 09:00 AM - 10:00 AM.');
+return;
+}
 
 const payload = {
 user_id: currentUserId,
@@ -805,19 +932,23 @@ const { data, error } = await
 supabase.from('course_reminders').update(payload).eq('id',
 editingReminderId).eq('user_id', currentUserId).select().single();
 if (error) return showError('Could not update your reminder.', error);
+saveSeatAlertType(data.id, seatAlertMode);
 setReminders(previous => previous.map(reminder => (reminder.id ===
-editingReminderId ? data : reminder)));
+editingReminderId ? { ...data, alert_type: seatAlertMode } : reminder)));
 } else {
 const { data, error } = await
 supabase.from('course_reminders').insert([payload]).select().single();
 if (error) return showError('Could not create your reminder.', error);
-setReminders(previous => [data, ...previous]);
+saveSeatAlertType(data.id, seatAlertMode);
+setReminders(previous => [{ ...data, alert_type: seatAlertMode }, ...previous]);
 }
 setEditingReminderId(null);
 setNewReminder(EMPTY_REMINDER);
+setSeatAlertMode('both');
 };
 const handleEditReminder = reminder => {
 setEditingReminderId(reminder.id);
+setSeatAlertMode(getSeatAlertType(reminder));
 setNewReminder({
 crn: reminder.crn || '', course_code: reminder.course_code || '',
 course_name: reminder.course_name || '',
@@ -831,6 +962,7 @@ if (!window.confirm('Delete this seat reminder?')) return;
 const { error } = await supabase.from('course_reminders').delete().eq('id',
 id).eq('user_id', currentUserId);
 if (error) return showError('Could not delete your reminder.', error);
+removeSavedSeatAlertType(id);
 setReminders(previous => previous.filter(reminder => reminder.id !== id));
 };
 const handleToggleReminder = async reminder => {
@@ -1315,7 +1447,7 @@ label="Direct Messages"
       fontFamily: 'inherit'
     }}
   >
-    No swap requests posted yet.
+    No swap requests posted yet. Your recent requests will appear here.
   </p>
 </div>
 ):(
@@ -1324,54 +1456,143 @@ label="Direct Messages"
 const isTaken = post.status === 'taken';
 return (
 
-<div key={post.id} style={{ ...swapCard, ...(isTaken ?
-takenSwapCard : {}) }}>
-<div style={{ display: 'flex', justifyContent: 'space-between',
-alignItems: 'flex-start', gap: '10px', marginBottom: '16px' }}>
-<StudentIdentity
+<div key={post.id} style={{
+  ...swapCard,
+  padding: 0,
+  borderRadius: '24px',
+  border: '1.5px solid rgba(11,26,63,0.16)',
+  boxShadow: '0 10px 26px rgba(11,26,63,0.08)',
+  ...(isTaken ? takenSwapCard : {})
+}}>
+  <div style={{
+    height: 1,
+    background: '#E8EDF3'
+  }} />
 
-name={post.author_name}
-isAnonymous={post.is_anonymous}
-clickable={canMessageUser(post.user_id, post.is_anonymous,
-post.status)}
-onClick={() => openDm(post.user_id, post.author_name,
-post.is_anonymous, post.status, {
-type: 'swap', postId: post.id, label:
-buildSwapSourceLabel(post)
-})}
-/>
-<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-<span style={isTaken ? takenStatusBadge :
-availableStatusBadge}>{isTaken ? 'TAKEN' : 'AVAILABLE'}</span>
-{post.user_id === currentUserId && <OwnerActions onEdit={() =>
-handleEditSwap(post)} onDelete={() => handleDeleteSwap(post.id)} />}
-</div>
-</div>
-<SwapCourseBlock mode="HAVE" post={post} prefix="have"
-faded={isTaken} />
-<div style={swapArrowDivider}><div style={swapArrowCircle}
-><ArrowRight size={16} /></div></div>
-<SwapCourseBlock mode="WANTS" post={post} prefix="want"
-faded={isTaken} />
-{isTaken && <div style={takenNotice}><CheckCircle2 size={15} />
-This swap has already been taken and is no longer available.</div>}
-{!isTaken && canMessageUser(post.user_id, post.is_anonymous,
-post.status) && (
-<button onClick={() => openDm(post.user_id, post.author_name,
-post.is_anonymous, post.status, {
-type: 'swap', postId: post.id, label: buildSwapSourceLabel(post)
-})} style={{ ...dmBtnStyle, marginTop: '15px' }}>
-<MessageCircle size={15} /> Message Student
-</button>
-)}
-{post.user_id === currentUserId && (
-<button onClick={() => handleToggleSwapStatus(post)}
-style={isTaken ? reopenSwapButton : markTakenButton}>
-{isTaken ? <><RotateCcw size={14} /> Make Available Again</> :
-<><CheckCircle2 size={14} /> Mark as Taken</>}
-</button>
-)}
+  <div style={{ padding: '20px 22px 22px' }}>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '12px',
+      padding: '12px 13px 16px',
+      margin: '-4px -4px 18px',
+      borderRadius: '15px',
+      background: '#FFFFFF',
+      border: '1px solid #E8ECF1',
+      borderBottom: '1px solid #E8ECF1'
+    }}>
+      <StudentIdentity
+        name={post.author_name}
+        isAnonymous={post.is_anonymous}
+        clickable={canMessageUser(post.user_id, post.is_anonymous, post.status)}
+        onClick={() => openDm(post.user_id, post.author_name,
+        post.is_anonymous, post.status, {
+          type: 'swap', postId: post.id, label: buildSwapSourceLabel(post)
+        })}
+      />
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{
+          ...(isTaken ? takenStatusBadge : availableStatusBadge),
+          padding: '7px 10px',
+          borderRadius: 999
+        }}>
+          {isTaken ? 'TAKEN' : 'AVAILABLE'}
+        </span>
+        {post.user_id === currentUserId && (
+          <OwnerActions
+            onEdit={() => handleEditSwap(post)}
+            onDelete={() => handleDeleteSwap(post.id)}
+          />
+        )}
+      </div>
+    </div>
+
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr) 44px minmax(0, 1fr)',
+      alignItems: 'stretch',
+      gap: '12px'
+    }}>
+      <SwapCourseBlock mode="HAVE" post={post} prefix="have" faded={isTaken} />
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          background: 'var(--campora-navy)',
+          border: '1px solid var(--campora-navy)',
+          boxShadow: '0 7px 16px rgba(11,26,63,0.16)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#FFFFFF'
+        }}>
+          <ArrowRight size={17} />
+        </div>
+      </div>
+
+      <SwapCourseBlock mode="WANTS" post={post} prefix="want" faded={isTaken} />
+    </div>
+
+    {isTaken && (
+      <div style={{ ...takenNotice, marginTop: '16px', borderRadius: '14px' }}>
+        <CheckCircle2 size={15} />
+        This swap has already been taken and is no longer available.
+      </div>
+    )}
+
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: '9px',
+      flexWrap: 'wrap',
+      marginTop: '17px',
+      paddingTop: '16px',
+      borderTop: '1px solid #E4EAF2'
+    }}>
+      {!isTaken && canMessageUser(post.user_id, post.is_anonymous, post.status) && (
+        <button
+          onClick={() => openDm(post.user_id, post.author_name,
+          post.is_anonymous, post.status, {
+            type: 'swap', postId: post.id, label: buildSwapSourceLabel(post)
+          })}
+          style={{
+            ...dmBtnStyle,
+            marginTop: 0,
+            borderRadius: 999,
+            padding: '9px 14px'
+          }}
+        >
+          <MessageCircle size={15} /> Message Student
+        </button>
+      )}
+
+      {post.user_id === currentUserId && (
+        <button
+          onClick={() => handleToggleSwapStatus(post)}
+          style={{
+            ...(isTaken ? reopenSwapButton : markTakenButton),
+            borderRadius: 999,
+            padding: '9px 14px',
+            fontWeight: 850,
+            marginTop: 0
+          }}
+        >
+          {isTaken
+            ? <><RotateCcw size={14} /> Make Available Again</>
+            : <><CheckCircle2 size={14} /> Mark as Taken</>}
+        </button>
+      )}
+    </div>
+  </div>
 </div>
 );
 
@@ -1383,12 +1604,24 @@ style={isTaken ? reopenSwapButton : markTakenButton}>
 )}
 {activeTab === 'reviews' && (
 <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-<div style={sectionTopRow}>
-<div>
-<h3 style={{ ...sectionHeading, marginBottom: '4px' }}>Course &
-Professor Feedback</h3>
-<p style={sectionDescription}>Share the exact course section and your
-experience with other students.</p>
+<div style={{
+  ...sectionTopRow,
+  padding: '22px 24px',
+  background: '#FFFFFF',
+  border: '1px solid #E4EAF2',
+  borderRadius: '22px',
+  boxShadow: '0 8px 24px rgba(11,26,63,0.045)'
+}}>
+<div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+  <div style={{
+    width: 46, height: 46, borderRadius: 14, background: '#F3F6FA',
+    border: '1px solid #E4EAF2', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', color: 'var(--campora-navy)'
+  }}><Star size={21} /></div>
+  <div>
+    <h3 style={{ ...sectionHeading, marginBottom: '4px' }}>Course &amp; Professor Feedback</h3>
+    <p style={{ ...sectionDescription, margin: 0 }}>See the course, professor, schedule, rating, and student experience at a glance.</p>
+  </div>
 </div>
 <button onClick={openCreateReview} style={primaryActionBtn}><Plus
 size={18} /> Write Review</button>
@@ -1415,14 +1648,26 @@ review.is_anonymous)}
 handleEditReview(review)} onDelete={() =>
 handleDeleteReview(review.id)} />}
 </div>
-<div style={{ marginTop: '16px' }}>
-<h4 style={{ margin: 0, fontSize: '19px', fontWeight: '900', color:
-'var(--campora-text)' }}>
-{review.course_code}{review.course_name && ` — ${review.course_name}`}
-
-</h4>
-<p style={{ margin: '4px 0 0', color: 'var(--campora-muted)', fontSize: '11px',
-fontWeight: '700' }}>Posted {formatDate(review.created_at)}</p>
+<div style={{
+  marginTop: '16px',
+  padding: '16px 18px',
+  borderRadius: '16px',
+  background: '#F8FAFD',
+  border: '1px solid #E7ECF3'
+}}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+  <div>
+    <h4 style={{ margin: 0, fontSize: '19px', fontWeight: '900', color:
+    'var(--campora-text)' }}>
+    {review.course_code}{review.course_name && ` — ${review.course_name}`}
+    </h4>
+    <p style={{ margin: '4px 0 0', color: 'var(--campora-muted)', fontSize: '11px',
+    fontWeight: '700' }}>Posted {formatDate(review.created_at)}</p>
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 999, background: '#FFF9F1', border: '1px solid #F2E5CA', color: '#B7791F', fontWeight: 900, fontSize: 12 }}>
+    <Star size={14} /> {review.rating}/5
+  </div>
+</div>
 </div>
 <div style={courseInfoGrid}>
 <InfoItem label="CRN" value={review.crn} />
@@ -1488,32 +1733,99 @@ style={replyButton}><CornerDownRight size={14} /> Reply</button>
 )}
 {activeTab === 'curriculum' && (
 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-<div style={reviewCard}>
-<h3 style={sectionHeading}>Curriculum</h3>
-<p style={sectionDescription}>Select a major to view its official
-curriculum once it is uploaded.</p>
-<label style={fieldLabel}>SELECT MAJOR</label>
-<select value={selectedMajor} onChange={event =>
-setSelectedMajor(event.target.value)} style={selectInputStyle}>
-{MAJORS.map(major => <option key={major} value={major}>{major}</option>)}
-</select>
-<div style={{ marginTop: '22px', padding: '45px 25px', border: '1.5px dashed var(--outline)', borderRadius: '20px', textAlign: 'center' }}> <BookOpen size={32} color="var(--campora-muted)" />
-<h4 style={{ margin: '12px 0 5px', fontSize: '18px', fontWeight: '900',
-color: 'var(--campora-text)' }}>{selectedMajor} Curriculum</h4>
-<p style={{ margin: 0, color: 'var(--campora-muted)', fontWeight: '800', fontSize:
-'14px' }}>To be uploaded.</p>
-</div>
-</div>
+  <div style={{
+    background: '#FFFFFF',
+    border: '1px solid #E4EAF2',
+    borderRadius: '24px',
+    boxShadow: '0 10px 28px rgba(11,26,63,0.05)',
+    overflow: 'hidden'
+  }}>
+    <div style={{
+      padding: '24px 26px',
+      background: 'linear-gradient(135deg, #0B1A3F 0%, #173B68 100%)',
+      color: '#FFFFFF',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px'
+    }}>
+      <div style={{
+        width: 50, height: 50, borderRadius: 15,
+        background: 'rgba(255,255,255,0.12)',
+        border: '1px solid rgba(255,255,255,0.18)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}><BookOpen size={23} /></div>
+      <div>
+        <h3 style={{ margin: 0, fontSize: 21, fontWeight: 900, color: '#FFFFFF' }}>Curriculum</h3>
+        <p style={{ margin: '5px 0 0', color: 'rgba(255,255,255,0.76)', fontSize: 12, fontWeight: 650 }}>
+          Pick your major and keep the curriculum in one clean place.
+        </p>
+      </div>
+    </div>
+
+    <div style={{ padding: '24px 26px 26px' }}>
+      <label style={fieldLabel}>SELECT MAJOR</label>
+      <select value={selectedMajor} onChange={event =>
+      setSelectedMajor(event.target.value)} style={{ ...selectInputStyle, minHeight: 46 }}>
+        {MAJORS.map(major => <option key={major} value={major}>{major}</option>)}
+      </select>
+
+      <div style={{
+        marginTop: '20px',
+        padding: '34px 24px',
+        border: '1px solid #E5EAF2',
+        borderRadius: '20px',
+        background: '#FFFFFF',
+        textAlign: 'center',
+        boxShadow: '0 8px 22px rgba(11,26,63,0.045)'
+      }}>
+        <div style={{
+          width: 62, height: 62, borderRadius: 18, margin: '0 auto',
+          background: '#FFFFFF', border: '1px solid #E2E8F0',
+          boxShadow: '0 8px 18px rgba(11,26,63,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--campora-navy)'
+        }}>
+          <GraduationCap size={29} />
+        </div>
+        <h4 style={{ margin: '14px 0 5px', fontSize: '18px', fontWeight: '900',
+        color: 'var(--campora-text)' }}>{selectedMajor} Curriculum</h4>
+        <p style={{ margin: 0, color: 'var(--campora-muted)', fontWeight: '700', fontSize:
+        '13px' }}>The official curriculum will appear here once uploaded.</p>
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ padding: '6px 10px', borderRadius: 999, background: '#FFFFFF', border: '1px solid #E2E8F0', fontSize: 10, fontWeight: 850, color: 'var(--campora-muted)' }}>REQUIREMENTS</span>
+          <span style={{ padding: '6px 10px', borderRadius: 999, background: '#FFFFFF', border: '1px solid #E2E8F0', fontSize: 10, fontWeight: 850, color: 'var(--campora-muted)' }}>COURSE PLAN</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 )}
 
 {activeTab === 'majorqa' && (
 <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-<div style={reviewCard}>
-<h3 style={sectionHeading}>Major Q&A & Student Advice</h3>
-<p style={sectionDescription}>Choose your major, ask questions, and
-
-get advice from other students.</p>
+<div style={{
+  ...reviewCard,
+  padding: 0
+}}>
+<div style={{
+  padding: '22px 24px',
+  background: '#F8FAFD',
+  borderBottom: '1px solid #E7ECF3',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px'
+}}>
+  <div style={{
+    width: 46, height: 46, borderRadius: 14, background: '#FFFFFF',
+    border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', color: 'var(--campora-navy)'
+  }}><MessageSquare size={21} /></div>
+  <div>
+    <h3 style={{ ...sectionHeading, marginBottom: '3px' }}>Major Q&amp;A &amp; Student Advice</h3>
+    <p style={{ ...sectionDescription, margin: 0 }}>Questions and advice are easier to scan by major.</p>
+  </div>
+</div>
+<div style={{ padding: '20px 24px 24px' }}>
 <label style={fieldLabel}>SELECT MAJOR</label>
 <select
 value={selectedMajor}
@@ -1524,7 +1836,12 @@ style={selectInputStyle}
 {MAJORS.map(major => <option key={major} value={major}>{major}</option>)}
 </select>
 </div>
-<form onSubmit={handlePostQuestion} style={reviewCard}>
+</div>
+<form onSubmit={handlePostQuestion} style={{
+  ...reviewCard,
+  background: '#FFFFFF',
+  border: '1px solid #E4EAF2'
+}}>
 <h4 style={{ margin: '0 0 14px', color: 'var(--campora-text)', fontWeight: '900' }}>
 {editingQuestionId ? 'Edit Question' : `Ask about ${selectedMajor}`}
 </h4>
@@ -1590,8 +1907,11 @@ question.is_anonymous)}
 handleEditQuestion(question)} onDelete={() =>
 handleDeleteQuestion(question.id)} />}
 </div>
-<h4 style={{ margin: '16px 0 5px', color: 'var(--campora-text)', fontWeight: '900',
-fontSize: '17px' }}>{question.title}</h4>
+<div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 9 }}>
+  <span style={{ padding: '5px 9px', borderRadius: 999, background: '#F3F6FA', border: '1px solid #E3E9F2', color: 'var(--campora-navy)', fontSize: 9, fontWeight: 900, letterSpacing: '.04em' }}>QUESTION</span>
+</div>
+<h4 style={{ margin: '9px 0 5px', color: 'var(--campora-text)', fontWeight: '900',
+fontSize: '17px', lineHeight: 1.35 }}>{question.title}</h4>
 <p style={{ margin: '0 0 12px', fontSize: '11px', color: 'var(--campora-muted)',
 fontWeight: '700' }}>{formatDate(question.created_at)}</p>
 <p style={bodyText}>{question.content}</p>
@@ -1636,102 +1956,285 @@ Student</button>
 </div>
 )}
 {activeTab === 'reminders' && (
-<div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-<div style={reviewCard}>
-<h3 style={sectionHeading}>Set Course Seat Alert</h3>
-<p style={sectionDescription}>Save the exact course or CRN you want
-Campora to monitor.</p>
-<form onSubmit={handleSaveReminder} style={reminderFormGrid}>
-<input type="text" placeholder="CRN" style={modalInput}
-value={newReminder.crn} onChange={event =>
-setNewReminder({ ...newReminder, crn: event.target.value })} />
-<input type="text" required placeholder="Course Code"
-style={modalInput} value={newReminder.course_code} onChange={event =>
-setNewReminder({ ...newReminder, course_code: event.target.value })} />
-<input type="text" placeholder="Course Name" style={modalInput}
-value={newReminder.course_name} onChange={event =>
-setNewReminder({ ...newReminder, course_name: event.target.value })} />
-<input type="text" placeholder="Section" style={modalInput}
-value={newReminder.section} onChange={event =>
-setNewReminder({ ...newReminder, section: event.target.value })} />
-<input type="text" placeholder="Professor" style={modalInput}
-value={newReminder.professor} onChange={event =>
-setNewReminder({ ...newReminder, professor: event.target.value })} />
-<ScheduleTypePicker
-value={newReminder.meeting_days}
-onChange={value => setNewReminder({ ...newReminder, meeting_days: value })}
-/>
-<EditablePresetTimeInput
-value={newReminder.meeting_time}
-onChange={value => setNewReminder({ ...newReminder, meeting_time: value })}
-/>
-<div style={{ display: 'flex', gap: '8px' }}>
-{editingReminderId && <button type="button"
-style={{ ...secondaryActionBtn, flex: 1 }} onClick={() =>
-{ setEditingReminderId(null); setNewReminder(EMPTY_REMINDER); }}
->Cancel</button>}
-<button type="submit" style={{ ...primaryActionBtn, flex: 1,
+<div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+  <div style={{
+    background: '#FFFFFF',
+    border: '1px solid #E3E9F2',
+    borderRadius: '24px',
+    boxShadow: '0 10px 28px rgba(11,26,63,0.05)',
+    overflow: 'hidden'
+  }}>
+    <div style={{
+      padding: '23px 25px',
+      background: '#F8FAFD',
+      borderBottom: '1px solid #E6EBF3',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '16px',
+      flexWrap: 'wrap'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 15, background: '#0B1A3F',
+          color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 7px 16px rgba(11,26,63,.14)'
+        }}><Bell size={21} /></div>
+        <div>
+          <h3 style={{ ...sectionHeading, marginBottom: 3 }}>Seat Opening Alert</h3>
+          <p style={{ ...sectionDescription, margin: 0 }}>Add the course once and Campora keeps it in your seat-alert list.</p>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px',
+          borderRadius: 999, background: '#F7F4FC', border: '1px solid #E7E0F2',
+          color: '#8B78B8', fontSize: 10, fontWeight: 900
+        }}><AlarmClock size={13} /> REMINDER</span>
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px',
+          borderRadius: 999, background: '#F3F7FD', border: '1px solid #DDE7F5',
+          color: '#648CCB', fontSize: 10, fontWeight: 900
+        }}><Bell size={13} /> NOTIFICATION</span>
+      </div>
+    </div>
 
-justifyContent: 'center' }}><Bell size={16} /> {editingReminderId ? 'Update Alert' : 'Add Alert'}</button>
-</div>
-</form>
-</div>
-<div>
-<h3 style={sectionHeading}>Your Seat Reminders</h3>
-{reminders.length === 0 ? <div style={emptyCard}>You have no seat
+    <form onSubmit={handleSaveReminder} style={{ ...reminderFormGrid, padding: '24px 25px 25px' }}>
+      <div style={{ gridColumn: '1 / -1' }}>
+        <div
+          style={{
+            fontSize: '9px',
+            fontWeight: '900',
+            letterSpacing: '0.08em',
+            color: '#94A3B8',
+            marginBottom: '9px'
+          }}
+        >
+          ALERT
+        </div>
 
-reminders.</div> : (
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
-{reminders.map(reminder => (
-<div key={reminder.id} style={swapCard}>
-<div style={{ display: 'flex', justifyContent: 'space-between',
-alignItems: 'flex-start', gap: '12px' }}>
-<div style={{ display: 'flex', gap: '10px' }}>
-<div style={bellCircle}><Bell size={18} /></div>
-<div>
-<h4 style={{ margin: 0, color: 'var(--campora-text)', fontWeight: '900',
-fontSize: '17px' }}>{reminder.course_code}</h4>
-{reminder.course_name && <p style={{ margin: '2px 0 0', color:
-'var(--campora-body)', fontWeight: '700', fontSize: '12px' }}>{reminder.course_name}</p>}
-</div>
-</div>
-<OwnerActions onEdit={() => handleEditReminder(reminder)}
-onDelete={() => handleDeleteReminder(reminder.id)} />
-</div>
-<div style={{ ...courseInfoGrid, marginTop: '16px' }}>
-<InfoItem label="CRN" value={reminder.crn} />
-<InfoItem label="SECTION" value={reminder.section} />
-<InfoItem label="PROFESSOR" value={reminder.professor} />
-<InfoItem label="SCHEDULE / TYPE" value={reminder.meeting_days} />
-<InfoItem label="TIME" value={reminder.meeting_time} />
-</div>
-<div style={{ display: 'flex', justifyContent: 'space-between',
-alignItems: 'center', gap: '10px' }}>
-<span style={reminder.is_active ? badgeGreen : badgeGray}
->{reminder.is_active ? 'MONITORING' : 'PAUSED'}</span>
-<button onClick={() => handleToggleReminder(reminder)}
-style={smallOutlineBtn}>{reminder.is_active ? 'Pause Alert' : 'Resume Alert'}</button>
-</div>
-</div>
-))}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: '8px'
+          }}
+        >
+          {[
+            {
+              value: 'notification',
+              label: 'Notification',
+              icon: Bell,
+              color: '#648CCB',
+              soft: '#F3F7FD',
+              border: '#DDE7F5'
+            },
+            {
+              value: 'reminder',
+              label: 'Reminder',
+              icon: AlarmClock,
+              color: '#8B78B8',
+              soft: '#F7F4FC',
+              border: '#E7E0F2'
+            },
+            {
+              value: 'both',
+              label: 'Both',
+              icon: Bell,
+              color: '#0B1A3F',
+              soft: '#F4F6FA',
+              border: '#DCE2EC'
+            }
+          ].map(option => {
+            const AlertIcon = option.icon;
+            const active = seatAlertMode === option.value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSeatAlertMode(option.value)}
+                style={{
+                  minHeight: '43px',
+                  borderRadius: '10px',
+                  border: active
+                    ? `1.5px solid ${option.color}`
+                    : `1px solid ${option.border}`,
+                  background: active
+                    ? option.color
+                    : option.soft,
+                  color: active
+                    ? '#FFFFFF'
+                    : option.color,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontSize: '10px',
+                  fontWeight: '900'
+                }}
+              >
+                <AlertIcon size={14} />
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          style={{
+            marginTop: '9px',
+            color:
+              seatAlertMode === 'both'
+                ? '#0B1A3F'
+                : seatAlertMode === 'reminder'
+                ? '#8B78B8'
+                : '#648CCB',
+            fontSize: '10px',
+            fontWeight: '800',
+            lineHeight: 1.45
+          }}
+        >
+          {seatAlertMode === 'both'
+            ? 'This seat opening will appear as both a Notification and a Reminder.'
+            : seatAlertMode === 'reminder'
+            ? 'This seat opening will appear under Reminders in Notifications & Reminders.'
+            : 'This seat opening will be added to the Notifications section.'}
+        </div>
+      </div>
+      <CrnInput
+        placeholder="CRN"
+        value={newReminder.crn}
+        onChange={value => setNewReminder({ ...newReminder, crn: value })}
+      />
+      <input type="text" required placeholder="Course Code"
+      style={modalInput} value={newReminder.course_code} onChange={event =>
+      setNewReminder({ ...newReminder, course_code: event.target.value })} />
+      <input type="text" placeholder="Course Name" style={modalInput}
+      value={newReminder.course_name} onChange={event =>
+      setNewReminder({ ...newReminder, course_name: event.target.value })} />
+      <input type="text" placeholder="Section" style={modalInput}
+      value={newReminder.section} onChange={event =>
+      setNewReminder({ ...newReminder, section: event.target.value })} />
+      <input type="text" placeholder="Professor" style={modalInput}
+      value={newReminder.professor} onChange={event =>
+      setNewReminder({ ...newReminder, professor: event.target.value })} />
+      <ScheduleTypePicker
+        value={newReminder.meeting_days}
+        onChange={value => setNewReminder({ ...newReminder, meeting_days: value })}
+      />
+      <div style={{ gridColumn: 'span 2', minWidth: 0 }}>
+        <EditablePresetTimeInput
+          value={newReminder.meeting_time}
+          onChange={value => setNewReminder({ ...newReminder, meeting_time: value })}
+        />
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        {editingReminderId && <button type="button"
+        style={{ ...secondaryActionBtn, flex: 1 }} onClick={() =>
+        { setEditingReminderId(null); setNewReminder(EMPTY_REMINDER); setSeatAlertMode('both'); }}
+        >Cancel</button>}
+        <button type="submit" style={{ ...primaryActionBtn, flex: 1,
+        justifyContent: 'center', minHeight: 44 }}><Bell size={16} /> {editingReminderId ? 'Update Alert' : 'Add Seat Alert'}</button>
+      </div>
+    </form>
+  </div>
+
+  <div>
+    <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div>
+        <h3 style={{ ...sectionHeading, marginBottom: 3 }}>Your Seat Alerts</h3>
+        <p style={{ ...sectionDescription, margin: 0 }}>Every active seat alert is set up as both a reminder and a notification.</p>
+      </div>
+    </div>
+
+    {reminders.length === 0 ? <div style={emptyCard}>You have no seat alerts yet.</div> : (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '18px' }}>
+      {reminders.map(reminder => (
+      <div key={reminder.id} style={{
+        ...swapCard,
+        padding: 0
+      }}>
+        <div style={{ height: 5, background: reminder.is_active ? '#0B1A3F' : '#CBD5E1' }} />
+        <div style={{ padding: '19px 20px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between',
+          alignItems: 'flex-start', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '11px', alignItems: 'center' }}>
+              <div style={{
+                ...bellCircle,
+                width: 42, height: 42, background: '#F3F6FA',
+                border: '1px solid #E2E8F0', color: 'var(--campora-navy)'
+              }}><Bell size={18} /></div>
+              <div>
+                <h4 style={{ margin: 0, color: 'var(--campora-text)', fontWeight: '900',
+                fontSize: '17px' }}>{reminder.course_code}</h4>
+                {reminder.course_name && <p style={{ margin: '3px 0 0', color:
+                'var(--campora-body)', fontWeight: '700', fontSize: '12px' }}>{reminder.course_name}</p>}
+              </div>
+            </div>
+            <OwnerActions onEdit={() => handleEditReminder(reminder)}
+            onDelete={() => handleDeleteReminder(reminder.id)} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 14 }}>
+            {(getSeatAlertType(reminder) === 'reminder' || getSeatAlertType(reminder) === 'both') && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 9px', borderRadius: 999, background: '#F7F4FC', border: '1px solid #E7E0F2', fontSize: 9, fontWeight: 900, color: '#8B78B8' }}>
+                <AlarmClock size={12} /> REMINDER
+              </span>
+            )}
+            {(getSeatAlertType(reminder) === 'notification' || getSeatAlertType(reminder) === 'both') && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 9px', borderRadius: 999, background: '#F3F7FD', border: '1px solid #DDE7F5', fontSize: 9, fontWeight: 900, color: '#648CCB' }}>
+                <Bell size={12} /> NOTIFICATION
+              </span>
+            )}
+          </div>
+
+          <div style={{ ...courseInfoGrid, marginTop: '15px' }}>
+            <InfoItem label="CRN" value={reminder.crn} />
+            <InfoItem label="SECTION" value={reminder.section} />
+            <InfoItem label="PROFESSOR" value={reminder.professor} />
+            <InfoItem label="SCHEDULE / TYPE" value={reminder.meeting_days} />
+            <InfoItem label="TIME" value={reminder.meeting_time} />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', gap: '10px' }}>
+            <span style={reminder.is_active ? badgeGreen : badgeGray}
+            >{reminder.is_active ? 'MONITORING' : 'PAUSED'}</span>
+            <button onClick={() => handleToggleReminder(reminder)}
+            style={{ ...smallOutlineBtn, borderRadius: 999, padding: '8px 12px' }}>
+              {reminder.is_active ? 'Pause Alert' : 'Resume Alert'}
+            </button>
+          </div>
+        </div>
+      </div>
+      ))}
+    </div>
+    )}
+  </div>
+
+  <div style={{
+    ...infoNotice,
+    padding: '16px 18px',
+    borderRadius: 18,
+    background: '#F8FAFD'
+  }}>
+    <div style={{ display: 'flex', gap: 8 }}>
+      <AlarmClock size={18} color="var(--campora-navy)" />
+      <Bell size={18} color="var(--campora-navy)" />
+    </div>
+    <div>
+      <strong>Reminder + notification</strong>
+      <p style={{ margin: '3px 0 0', fontSize: '12px', lineHeight: 1.5, color:
+      'var(--campora-muted)' }}>
+        Seat alerts are shown as both reminders and notifications. Live seat-opening detection still requires a connection to the university's course availability data.
+      </p>
+    </div>
+  </div>
 </div>
 )}
-</div>
 
-<div style={infoNotice}>
-<Bell size={18} color="var(--campora-navy)" />
-<div>
-<strong>Seat notification system</strong>
-<p style={{ margin: '3px 0 0', fontSize: '12px', lineHeight: 1.5, color:
-'var(--campora-muted)' }}>
-Your alert is saved in Campora. Automatic seat-opening detection
-requires connection to live university course availability data.
-</p>
-
-</div>
-</div>
-</div>
-)}
 {activeTab === 'myposts' && (
 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 <div>
@@ -3168,9 +3671,11 @@ other students can find it when they search.</p>
 <div style={modalCardLarge}>
 <ModalHeader title={editingReviewId ? 'Edit Course Review' : 'Write Course Review'} onClose={closeReviewModal} /> <form onSubmit={handleSaveReview} style={modalForm}>
 <div style={twoColumnGrid}>
-<Field label="CRN"><input type="text" placeholder="e.g. 12345"
-style={modalInput} value={newReview.crn} onChange={event =>
-setNewReview({ ...newReview, crn: event.target.value })} /></Field>
+<Field label="CRN"><CrnInput
+placeholder="e.g. 12345"
+value={newReview.crn}
+onChange={value => setNewReview({ ...newReview, crn: value })}
+/></Field>
 <Field label="COURSE CODE"><input type="text" required
 placeholder="e.g. CMPS 200" style={modalInput}
 value={newReview.course_code} onChange={event =>
@@ -3195,9 +3700,10 @@ setNewReview({ ...newReview, professor_name: event.target.value })} /></Field>
 <Field label="DAYS"><input type="text" placeholder="e.g. MWF"
 style={modalInput} value={newReview.meeting_days} onChange={event =>
 setNewReview({ ...newReview, meeting_days: event.target.value })} /></Field>
-<Field label="TIME"><input type="text" placeholder="e.g. 10:00 10:50"
-style={modalInput} value={newReview.meeting_time} onChange={event =>
-setNewReview({ ...newReview, meeting_time: event.target.value })} /></Field>
+<Field label="TIME"><EditablePresetTimeInput
+value={newReview.meeting_time}
+onChange={value => setNewReview({ ...newReview, meeting_time: value })}
+/></Field>
 </div>
 <Field label="SEMESTER"><input type="text" placeholder="e.g. Fall 2026"
 style={modalInput} value={newReview.semester} onChange={event =>
@@ -3391,31 +3897,68 @@ return (
 );
 }
 
-function EditablePresetTimeInput({ value, onChange }) {
-const selectedPreset = MEETING_TIME_OPTIONS.includes(value) ? value : '';
+function CrnInput({ value, onChange, placeholder = 'e.g. 12345' }) {
 return (
-<div style={editableTimeWrapperStyle}>
 <input
  type="text"
- placeholder="e.g. 9:00 AM - 10:00 AM"
- style={editableTimeInputStyle}
+ inputMode="numeric"
+ pattern="[0-9]{5}"
+ maxLength={5}
+ placeholder={placeholder}
+ style={modalInput}
  value={value}
- onChange={event => onChange(event.target.value)}
+ onChange={event => onChange(sanitizeCrn(event.target.value))}
+ title="CRN must be exactly 5 digits"
+ required
 />
-<select
- aria-label="Choose a preset class time"
- value={selectedPreset}
- onChange={event => {
- if (event.target.value) onChange(event.target.value);
- }}
- style={editableTimeSelectStyle}
->
-<option value=""></option>
-{MEETING_TIME_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
-</select>
+);
+}
+
+function EditablePresetTimeInput({ value, onChange }) {
+useEffect(() => {
+  if (!String(value || '').trim()) onChange(DEFAULT_MEETING_TIME);
+}, []);
+
+const { start, end } = splitMeetingTime(value || DEFAULT_MEETING_TIME);
+
+const updateTime = (key, nextValue) => {
+  const nextStart = key === 'start' ? nextValue : start;
+  const nextEnd = key === 'end' ? nextValue : end;
+  onChange(joinMeetingTime(nextStart, nextEnd));
+};
+
+return (
+<div style={registrationTimeGridStyle}>
+  {[
+    { key: 'start', label: 'START TIME', timeValue: start },
+    { key: 'end', label: 'END TIME', timeValue: end }
+  ].map(({ key, label, timeValue }) => {
+    const hour = Number(String(timeValue).split(':')[0] || 0);
+    const period = hour >= 12 ? 'PM' : 'AM';
+
+    return (
+      <div key={key} style={registrationTimeCardStyle}>
+        <div style={registrationTimeLabelStyle}>
+          <AlarmClock size={13} strokeWidth={2.3} />
+          {label}
+        </div>
+        <div style={registrationTimeRowStyle}>
+          <input
+            type="time"
+            value={timeValue}
+            onChange={event => updateTime(key, event.target.value)}
+            style={registrationTimeInputStyle}
+            aria-label={label === 'START TIME' ? 'Start time' : 'End time'}
+          />
+          <span style={registrationPeriodBadgeStyle}>{period}</span>
+        </div>
+      </div>
+    );
+  })}
 </div>
 );
 }
+
 function SwapPreferenceSection({ mode, pref, setPref }) {
 const isHave = mode === 'HAVE';
 const prefix = isHave ? 'have' : 'want';
@@ -3438,16 +3981,13 @@ set('Course', event.target.value)} />
 </Field>
 
 <Field label="CRN">
-<input type="text" placeholder="e.g. 11312" style={modalInput}
-value={pref[`${prefix}Crn`]} onChange={event => set('Crn',
-event.target.value)} />
+<CrnInput
+placeholder="e.g. 11312"
+value={pref[`${prefix}Crn`]}
+onChange={value => set('Crn', value)}
+/>
 </Field>
 </div>
-<Field label="COURSE NAME">
-<input type="text" placeholder="e.g. Introduction to Programming"
-style={modalInput} value={pref[`${prefix}CourseName`]} onChange={event =>
-set('CourseName', event.target.value)} />
-</Field>
 <div style={twoColumnGrid}>
 <Field label="SECTION">
 <input type="text" placeholder="e.g. 1" style={modalInput}
@@ -3478,23 +4018,112 @@ onChange={value => set('Time', value)}
 );
 }
 function SwapCourseBlock({ mode, post, prefix, faded }) {
-return (
+const isHave = mode === 'HAVE';
 
-<div style={{ ...swapCourseBlock, ...(faded ? { opacity: 0.65 } : {}) }}>
-<div style={swapCourseHeader}>
-<span style={mode === 'HAVE' ? badgeRed : badgeGreen}>{mode}</span>
-{post[`${prefix}_crn`] && <span style={smallCrnBadge}>CRN {post[`${prefix}
-_crn`]}</span>}
-</div>
-<h4 style={{ margin: '10px 0 3px', color: 'var(--campora-text)', fontSize: '16px',
-fontWeight: '900' }}>{post[`${prefix}_course`]}</h4>
-{post[`${prefix}_course_name`] && <p style={swapCourseName}>{post[`${prefix}_course_name`]}</p>}
-<div style={compactCourseInfoGrid}>
-<InfoItem label="SECTION" value={post[`${prefix}_section`]} />
-<InfoItem label="PROFESSOR" value={post[`${prefix}_prof`]} />
-<InfoItem label="DAYS" value={post[`${prefix}_days`]} />
-<InfoItem label="TIME" value={post[`${prefix}_time`]} />
-</div>
+return (
+<div style={{
+  background: '#FFFFFF',
+  border: '1px solid #E5EAF0',
+  borderRadius: '18px',
+  padding: '16px',
+  minWidth: 0,
+  ...(faded ? { opacity: 0.65 } : {})
+}}>
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    marginBottom: '12px'
+  }}>
+    <span style={{
+      padding: '6px 9px',
+      borderRadius: 999,
+      background: 'var(--campora-navy)',
+      color: '#FFFFFF',
+      border: '1px solid var(--campora-navy)',
+      fontSize: '9px',
+      fontWeight: '900',
+      letterSpacing: '.06em'
+    }}>
+      {isHave ? 'YOU HAVE' : 'YOU WANT'}
+    </span>
+
+    {post[`${prefix}_crn`] && (
+      <span style={{
+        padding: '5px 8px',
+        borderRadius: 999,
+        background: '#FFFFFF',
+        border: '1px solid rgba(11,26,63,0.16)',
+        color: 'var(--campora-navy)',
+        fontSize: '9px',
+        fontWeight: '850'
+      }}>
+        CRN {post[`${prefix}_crn`]}
+      </span>
+    )}
+  </div>
+
+  <h4 style={{
+    margin: '0 0 4px',
+    color: 'var(--campora-text)',
+    fontSize: '18px',
+    fontWeight: '900',
+    lineHeight: 1.25
+  }}>
+    {post[`${prefix}_course`]}
+  </h4>
+
+  {post[`${prefix}_course_name`] && (
+    <p style={{
+      ...swapCourseName,
+      margin: '0 0 14px',
+      minHeight: 18
+    }}>
+      {post[`${prefix}_course_name`]}
+    </p>
+  )}
+
+  <div style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '8px'
+  }}>
+    {[
+      ['SECTION', post[`${prefix}_section`]],
+      ['PROFESSOR', post[`${prefix}_prof`]],
+      ['DAYS', post[`${prefix}_days`]],
+      ['TIME', post[`${prefix}_time`]]
+    ].map(([label, value]) => (
+      <div key={label} style={{
+        background: '#FFFFFF',
+        border: '1px solid rgba(11,26,63,0.10)',
+        borderRadius: '12px',
+        padding: '9px 10px',
+        minWidth: 0
+      }}>
+        <div style={{
+          fontSize: '8px',
+          fontWeight: '900',
+          color: 'var(--campora-navy)',
+          opacity: 0.68,
+          letterSpacing: '.07em',
+          marginBottom: '4px'
+        }}>
+          {label}
+        </div>
+        <div style={{
+          color: 'var(--campora-text)',
+          fontSize: '11px',
+          fontWeight: '800',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {value || '—'}
+        </div>
+      </div>
+    ))}
+  </div>
 </div>
 );
 }
@@ -3713,19 +4342,32 @@ const sectionDescription = { margin: '0 0 22px', fontSize: '13px', color:
 const sectionTopRow = { display: 'flex', alignItems: 'center', justifyContent:
 'space-between', gap: '15px', flexWrap: 'wrap' };
 const swapCard = { background: 'var(--surface-container-lowest)', padding: '22px', borderRadius:
-'20px', border: '1.5px solid var(--divider)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-transition: 'all 0.2s ease' };
-const takenSwapCard = { background: '#FBFCFE', border: '1.5px solid var(--outline)' }; const reviewCard = { background: 'var(--surface-container-lowest)', padding: '24px', borderRadius:
-'20px', border: '1.5px solid var(--divider)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }; const emptyCard = { background: 'var(--surface-container-lowest)', border: '1.5px dashed var(--outline)',
-padding: '30px', borderRadius: '20px', textAlign: 'center', color: 'var(--campora-muted)',
-fontWeight: '700', fontSize: '14px' };
+'22px', border: '1px solid #E3E9F2', boxShadow: '0 10px 28px rgba(11,26,63,0.055)',
+transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden' };
+const takenSwapCard = { background: '#FBFCFE', border: '1px solid var(--outline)' }; const reviewCard = { background: 'var(--surface-container-lowest)', padding: '24px', borderRadius:
+'22px', border: '1px solid #E3E9F2', boxShadow: '0 10px 28px rgba(11,26,63,0.05)', overflow: 'hidden' }; const emptyCard = {
+  background: '#FFFFFF',
+  padding: '24px',
+  borderRadius: '20px',
+  border: '1px solid #E4EAF2',
+  boxShadow: '0 10px 26px rgba(11,26,63,0.05)',
+  color: 'var(--campora-muted)',
+  fontWeight: '750',
+  textAlign: 'center'
+};
 const loadingBox = { display: 'flex', alignItems: 'center', justifyContent: 'center',
 gap: '8px', padding: '35px', color: 'var(--campora-muted)', fontWeight: '700' };
 const avatarCircle = { width: '38px', height: '38px', borderRadius: '50%',
 background: '#FAFBFC', border: '1.5px solid var(--divider)', color: 'var(--campora-text)',
 fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center',
 fontSize: '14px', flexShrink: 0 };
-const swapCourseBlock = { background: '#FAFBFC', border: '1px solid #E9EDF5', borderRadius: '15px', padding: '15px' }; const swapCourseHeader = { display: 'flex', justifyContent: 'space-between',
+const swapCourseBlock = {
+  background: '#F8FAFD',
+  border: '1px solid #E5EAF2',
+  borderRadius: '18px',
+  padding: '16px 17px',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,.65)'
+}; const swapCourseHeader = { display: 'flex', justifyContent: 'space-between',
 alignItems: 'center', gap: '8px' };
 
 const swapCourseName = { margin: '0 0 12px', color: 'var(--campora-muted)', fontSize:
@@ -3767,7 +4409,7 @@ const scheduleSelectStyle = {
   ...modalInput,
   height: '44px',
   minHeight: '44px',
-  padding: '0 42px 0 14px',
+  padding: '0 14px',
   borderRadius: '999px',
   WebkitBorderRadius: '999px',
   appearance: 'none',
@@ -3782,46 +4424,59 @@ const scheduleSelectStyle = {
   backgroundSize: '14px 14px',
   overflow: 'hidden'
 };
-const editableTimeWrapperStyle = {
-  position: 'relative',
-  width: '100%',
-  height: '44px',
-  minHeight: '44px',
-  boxSizing: 'border-box'
+const registrationTimeGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: '8px',
+  width: '100%'
 };
-const editableTimeInputStyle = {
-  ...modalInput,
-  width: '100%',
-  height: '44px',
-  minHeight: '44px',
+const registrationTimeCardStyle = {
+  padding: '9px 10px',
+  background: '#FFFFFF',
+  border: '1px solid #DCE4EF',
+  borderRadius: '14px',
   boxSizing: 'border-box',
-  padding: '0 42px 0 14px',
-  borderRadius: '999px',
-  fontSize: '13px',
-  fontWeight: '700',
-  lineHeight: '44px'
+  minWidth: 0
 };
-const editableTimeSelectStyle = {
-  position: 'absolute',
-  right: '1.5px',
-  top: '1.5px',
-  width: '40px',
-  height: '41px',
-  boxSizing: 'border-box',
+const registrationTimeLabelStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '5px',
+  marginBottom: '5px',
+  color: '#94A3B8',
+  fontSize: '8px',
+  fontWeight: '900',
+  letterSpacing: '0.05em',
+  whiteSpace: 'nowrap'
+};
+const registrationTimeRowStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  minWidth: 0
+};
+const registrationTimeInputStyle = {
+  flex: 1,
+  minWidth: 0,
   border: 'none',
-  borderRadius: '999px',
-  WebkitBorderRadius: '999px',
-  backgroundColor: 'transparent',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235B667A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'center',
-  backgroundSize: '14px 14px',
-  color: 'transparent',
-  appearance: 'none',
-  WebkitAppearance: 'none',
-  MozAppearance: 'none',
-  cursor: 'pointer',
-  outline: 'none'
+  outline: 'none',
+  background: 'transparent',
+  color: '#0B1A3F',
+  fontSize: '13px',
+  fontWeight: '800',
+  fontFamily: 'inherit',
+  padding: 0
+};
+const registrationPeriodBadgeStyle = {
+  flexShrink: 0,
+  padding: '4px 6px',
+  borderRadius: '8px',
+  background: '#F3F6FA',
+  border: '1px solid #E4EAF2',
+  color: '#0B1A3F',
+  fontSize: '9px',
+  fontWeight: '900',
+  lineHeight: 1
 };
 const selectInputStyle = { width: '100%', boxSizing: 'border-box', padding:
 '12px 14px', borderRadius: '999px', border: '1.5px solid var(--divider)', fontSize:
@@ -3851,7 +4506,7 @@ padding: '7px', borderRadius: '8px', cursor: 'pointer', color: 'var(--campora-mu
 const closeModalBtn = { background: 'transparent', border: 'none', color:
 'var(--campora-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent:
 'center', padding: '4px' };
-const courseInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', padding: '15px', margin: '15px 0', background: '#FAFBFC', borderRadius: '999px', border: '1px solid var(--divider)' };
+const courseInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', padding: '14px', margin: '16px 0', background: '#F8FAFD', borderRadius: '16px', border: '1px solid #E7ECF3' };
 const infoLabel = { display: 'block', color: 'var(--campora-muted)', fontSize: '9px',
 fontWeight: '900', letterSpacing: '0.6px', marginBottom: '3px' };
 const infoValue = { margin: 0, color: 'var(--campora-text)', fontSize: '12px', fontWeight:
@@ -3866,7 +4521,7 @@ const replyButton = { background: 'none', border: 'none', padding: 0, color:
 'var(--campora-text)', fontWeight: '800', fontSize: '12px', cursor: 'pointer', display: 'flex',
 alignItems: 'center', gap: '5px' };
 const reminderFormGrid = { display: 'grid', gridTemplateColumns:
-'repeat(autofit, minmax(180px, 1fr))', gap: '10px' };
+'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', alignItems: 'start' };
 const bellCircle = { width: '38px', height: '38px', borderRadius: '999px',
 background: '#FAFBFC', color: 'var(--campora-text)', display: 'flex', alignItems: 'center',
 justifyContent: 'center', border: '1px solid var(--divider)' };
