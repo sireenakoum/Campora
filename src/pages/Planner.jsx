@@ -13,7 +13,9 @@ import {
   Trash2,
   AlertCircle,
   Palette,
-  AlarmClock
+  AlarmClock,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -153,6 +155,7 @@ export default function Planner() {
   const [editSeriesConfirmation, setEditSeriesConfirmation] = useState(null);
   const [showEntryCustomColor, setShowEntryCustomColor] = useState(false);
   const [showStickyCustomColor, setShowStickyCustomColor] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const formatDate = (date) => {
     const year = date.getFullYear();
@@ -202,6 +205,14 @@ export default function Planner() {
     setStickyColor(savedColor || '#E1F2FF');
     setShowStickyCustomColor(false);
   }, [selectedDateStr]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape' && fullscreen) setFullscreen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullscreen]);
 
   const handleStickyTextChange = (text) => {
     setStickyText(text);
@@ -1620,6 +1631,27 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 <ChevronRight size={18} />
               </button>
             </div>
+
+            <button
+              onClick={() => setFullscreen((f) => !f)}
+              style={{
+                ...navArrowBtn,
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '10px',
+                border: '1px solid #E7EBF1',
+                background: '#FFFFFF',
+                cursor: 'pointer',
+                color: '#0B1A3F',
+                flexShrink: 0
+              }}
+              title={fullscreen ? 'Exit fullscreen' : 'Expand to fullscreen'}
+            >
+              {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
           </div>
         </div>
 
@@ -1730,6 +1762,267 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     </span>
                   </div>
 
+                  {(viewType === 'Day' || viewType === 'Week') ? (
+                    (() => {
+                      const isDayView = viewType === 'Day';
+                      const HOUR_HEIGHT = isDayView ? 64 : 52;
+                      const TIMELINE_START = 6;
+                      const TIMELINE_END = 23;
+                      const totalHours = TIMELINE_END - TIMELINE_START;
+                      const LABEL_WIDTH = isDayView ? 42 : 0;
+                      const CARD_FONT = isDayView ? '12px' : '10px';
+                      const CARD_TIME_FONT = isDayView ? '9px' : '8px';
+                      const MIN_CARD_HEIGHT = isDayView ? 28 : 22;
+
+                      const timedEvents = dayEvents
+                        .filter((e) => e.start_time && e.end_time)
+                        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+                      const untimedEvents = dayEvents.filter(
+                        (e) => !e.start_time || !e.end_time
+                      );
+
+                      const timeToMinutes = (t) => {
+                        const [h, m] = t.split(':').map(Number);
+                        return h * 60 + m;
+                      };
+
+                      return (
+                        <div
+                          onClick={() => handleOpenModal(dateStr)}
+                          style={{
+                            flex: 1,
+                            overflowY: 'auto',
+                            overflowX: 'hidden',
+                            paddingRight: '2px',
+                            position: 'relative',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ position: 'relative', minHeight: `${totalHours * HOUR_HEIGHT}px` }}>
+                            {Array.from({ length: totalHours + 1 }, (_, i) => {
+                              const hour = TIMELINE_START + i;
+                              const label = hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`;
+                              return (
+                                <div
+                                  key={`hour-${i}`}
+                                  style={{
+                                    position: 'absolute',
+                                    top: `${i * HOUR_HEIGHT}px`,
+                                    left: 0,
+                                    right: 0,
+                                    height: '1px',
+                                    background: '#E9EDF7',
+                                    display: 'flex',
+                                    alignItems: 'flex-start'
+                                  }}
+                                >
+                                  {isDayView && (
+                                    <span
+                                      style={{
+                                        fontSize: '9px',
+                                        fontWeight: '700',
+                                        color: '#9CA3AF',
+                                        position: 'relative',
+                                        top: '-6px',
+                                        left: '0px',
+                                        userSelect: 'none'
+                                      }}
+                                    >
+                                      {label}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            {timedEvents.map((event) => {
+                              const startMin = timeToMinutes(event.start_time);
+                              const endMin = timeToMinutes(event.end_time);
+                              const topPx = ((startMin / 60) - TIMELINE_START) * HOUR_HEIGHT;
+                              const heightPx = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, MIN_CARD_HEIGHT);
+
+                              const eventBackground = event.is_completed
+                                ? '#F1F5F9'
+                                : event.color || '#E1F2FF';
+                              const eventTextColor = event.is_completed
+                                ? '#0B1A3F'
+                                : getContrastText(eventBackground);
+
+                              return (
+                                <div
+                                  key={event.id}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleOpenEditModal(event);
+                                  }}
+                                  style={{
+                                    position: 'absolute',
+                                    top: `${topPx}px`,
+                                    left: `${LABEL_WIDTH}px`,
+                                    right: '2px',
+                                    height: `${heightPx}px`,
+                                    background: eventBackground,
+                                    borderRadius: '6px',
+                                    padding: isDayView ? '4px 8px' : '2px 4px',
+                                    fontWeight: '800',
+                                    fontSize: CARD_FONT,
+                                    color: eventTextColor,
+                                    textDecoration: event.is_completed ? 'line-through' : 'none',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                                    border: '1px solid rgba(0,0,0,0.06)',
+                                    overflow: 'hidden',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'flex-start',
+                                    zIndex: 1
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      gap: '2px'
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        opacity: 0.78,
+                                        fontSize: CARD_TIME_FONT,
+                                        fontWeight: '700',
+                                        color: eventTextColor
+                                      }}
+                                    >
+                                      {event.start_time?.substring(0, 5)} -{' '}
+                                      {event.end_time?.substring(0, 5)}
+                                    </span>
+                                    {isDayView && (
+                                      <Edit3
+                                        size={11}
+                                        color={eventTextColor}
+                                        style={{ opacity: 0.65, flexShrink: 0 }}
+                                      />
+                                    )}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontWeight: '900',
+                                      marginTop: '1px',
+                                      lineHeight: '1.2',
+                                      color: eventTextColor,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {event.name}
+                                  </div>
+                                  {isDayView && heightPx > 50 &&
+                                    visiblePlannerDescription(event.description || '') && (
+                                      <div
+                                        style={{
+                                          fontSize: '10px',
+                                          opacity: 0.88,
+                                          marginTop: '2px',
+                                          fontWeight: '500',
+                                          lineHeight: '1.3',
+                                          color: eventTextColor
+                                        }}
+                                      >
+                                        {visiblePlannerDescription(event.description || '')}
+                                      </div>
+                                    )}
+                                </div>
+                              );
+                            })}
+
+                            {untimedEvents.map((event, idx) => {
+                              const eventBackground = event.is_completed
+                                ? '#F1F5F9'
+                                : event.color || '#E1F2FF';
+                              const eventTextColor = event.is_completed
+                                ? '#0B1A3F'
+                                : getContrastText(eventBackground);
+
+                              return (
+                                <div
+                                  key={event.id}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleOpenEditModal(event);
+                                  }}
+                                  style={{
+                                    position: 'absolute',
+                                    top: `${totalHours * HOUR_HEIGHT + 16 + idx * (isDayView ? 56 : 44)}px`,
+                                    left: `${LABEL_WIDTH}px`,
+                                    right: '2px',
+                                    height: isDayView ? '48px' : '36px',
+                                    background: eventBackground,
+                                    borderRadius: '6px',
+                                    padding: isDayView ? '4px 8px' : '2px 4px',
+                                    fontWeight: '800',
+                                    fontSize: CARD_FONT,
+                                    color: eventTextColor,
+                                    textDecoration: event.is_completed ? 'line-through' : 'none',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                                    border: '1px solid rgba(0,0,0,0.06)',
+                                    overflow: 'hidden',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    zIndex: 1
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      gap: '2px'
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        opacity: 0.78,
+                                        fontSize: CARD_TIME_FONT,
+                                        fontWeight: '700',
+                                        color: eventTextColor
+                                      }}
+                                    >
+                                      No time set
+                                    </span>
+                                    {isDayView && (
+                                      <Edit3
+                                        size={11}
+                                        color={eventTextColor}
+                                        style={{ opacity: 0.65, flexShrink: 0 }}
+                                      />
+                                    )}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontWeight: '900',
+                                      marginTop: '1px',
+                                      lineHeight: '1.2',
+                                      color: eventTextColor,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {event.name}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
                   <div
                     style={{
                       flex: 1,
@@ -1843,6 +2136,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       );
                     })}
                   </div>
+                  )}
                 </div>
               );
             })}
@@ -1850,6 +2144,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         </div>
       </div>
 
+      {!fullscreen && (
       <div
         style={{
           width: '330px',
@@ -2830,6 +3125,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           </div>
         </div>
       </div>
+      )}
 
       {deleteConfirmation && (
         <div style={overlay}>
