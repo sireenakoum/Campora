@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import {
   ChevronLeft,
@@ -13,12 +13,20 @@ import {
   Trash2,
   AlertCircle,
   Palette,
-  AlarmClock
+  AlarmClock,
+  Upload,
+  X
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
 
 import { ProgressRing } from '../components/luminous';
+
+import {
+  parseScheduleFile,
+  expandScheduleEvents,
+  importScheduleRows
+} from '../lib/scheduleImport';
 
 // =========================================================
 // AUTOMATIC TEXT CONTRAST
@@ -135,6 +143,22 @@ const visiblePlannerDescription = (description = '') => {
 const courseLocalKey = (userId, name) =>
   `campora-course-management:${userId || 'guest'}:${name}`;
 
+const scheduleImportKey = (userId) =>
+  `campora-planner:schedule-import:${userId || 'guest'}`;
+
+const startOfWeekMonday = (date) => {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  copy.setDate(copy.getDate() - ((copy.getDay() + 6) % 7));
+  return copy;
+};
+
+const nextMondayDate = () => {
+  const today = new Date();
+  const diff = today.getDay() === 0 ? 1 : 8 - today.getDay();
+  return startOfWeekMonday(new Date(today.getTime() + diff * 86400000));
+};
+
 // =========================================================
 // COMPONENT
 // =========================================================
@@ -153,6 +177,15 @@ export default function Planner() {
   const [editSeriesConfirmation, setEditSeriesConfirmation] = useState(null);
   const [showEntryCustomColor, setShowEntryCustomColor] = useState(false);
   const [showStickyCustomColor, setShowStickyCustomColor] = useState(false);
+  const scheduleInputRef = useRef(null);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleFile, setScheduleFile] = useState(null);
+  const [scheduleEvents, setScheduleEvents] = useState(null);
+  const [scheduleStartDate, setScheduleStartDate] = useState('');
+  const [scheduleImporting, setScheduleImporting] = useState(false);
+  const [scheduleNotice, setScheduleNotice] = useState(null);
+  const [scheduleError, setScheduleError] = useState(null);
+  const [scheduleImportIds, setScheduleImportIds] = useState([]);
 
   const formatDate = (date) => {
     const year = date.getFullYear();
@@ -446,6 +479,187 @@ export default function Planner() {
     setLoading(false);
   };
 
+  const handleUploadClick = () => scheduleInputRef.current?.click();
+
+  const handleScheduleInputChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target.value) e.target.value = '';
+    if (!file) return;
+
+    setScheduleError(null);
+    setScheduleNotice(null);
+
+    try {
+      const events = await parseScheduleFile(file);
+
+      if (!events || !events.length) {
+        setScheduleError(
+          'No events were found in that file. Try a .pdf, .ics or .csv class schedule.'
+        );
+        return;
+      }
+
+      setScheduleFile(file.name);
+      setScheduleEvents(events);
+      setScheduleStartDate(formatDate(nextMondayDate()));
+      setScheduleModalOpen(true);
+    } catch (err) {
+      console.error('Schedule parse error:', err);
+      const msg = String(err?.message || err || 'Unknown error');
+      if (/password|encrypted/i.test(msg)) {
+        setScheduleError(
+          'That PDF is password-protected. Please upload an unlocked copy.'
+        );
+      } else if (/pdf/i.test(msg)) {
+        setScheduleError(`PDF error: ${msg}`);
+      } else {
+        setScheduleError(
+          `Could not read that file: ${msg}`
+        );
+      }
+    }
+  };
+
+  const presetDateForOffset = (offset) => {
+    const base = startOfWeekMonday(new Date());
+    base.setDate(base.getDate() + offset * 7);
+    return formatDate(base);
+  };
+
+  const setStartFromWeekOffset = (offset) => {
+    setScheduleStartDate(presetDateForOffset(offset));
+  };
+
+  const confirmScheduleImport = async () => {
+    if (
+      !user ||
+      !scheduleEvents ||
+      !scheduleStartDate ||
+      scheduleImporting
+    ) {
+      return;
+    }
+
+    setScheduleImporting(true);
+    setScheduleError(null);
+
+    try {
+      const rows = expandScheduleEvents(scheduleEvents, {
+        startDate: scheduleStartDate
+      });
+
+      if (!rows.length) {
+        setScheduleError(
+          'No schedule entries fall on or after the week you picked.'
+        );
+        return;
+      }
+
+      const { inserted, ids, error } = await importScheduleRows({
+        userId: user.id,
+        rows
+      });
+
+      if (error) throw new Error(error.message);
+
+      if (!inserted) {
+        setScheduleNotice('That schedule is already in your planner.');
+        setScheduleModalOpen(false);
+        setScheduleFile(null);
+        setScheduleEvents(null);
+        return;
+      }
+
+      const key = scheduleImportKey(user.id);
+      let existing = [];
+      try {
+        existing = JSON.parse(localStorage.getItem(key) || '[]');
+        if (!Array.isArray(existing)) existing = [];
+      } catch {
+        existing = [];
+      }
+      const nextIds = [...existing, ...(ids || [])];
+      localStorage.setItem(key, JSON.stringify(nextIds));
+      setScheduleImportIds(nextIds);
+
+      setScheduleModalOpen(false);
+      setScheduleFile(null);
+      setScheduleEvents(null);
+
+      setScheduleNotice(
+        `Imported ${inserted} schedule entries starting the week of ${new Date(
+          `${scheduleStartDate}T00:00:00`
+        ).toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        })}.`
+      );
+
+      const start = parseDate(scheduleStartDate);
+      setViewDate(start);
+      setSelectedDate(start);
+      setViewType('Week');
+
+      await fetchCourses(user.id);
+    } catch (err) {
+      console.error('Schedule import error:', err);
+      setScheduleError(`Could not import schedule: ${err.message}`);
+    } finally {
+      setScheduleImporting(false);
+    }
+  };
+
+  const handleClearSchedule = async () => {
+    if (!user || scheduleImporting) return;
+
+    let ids = [];
+    try {
+      const parsed = JSON.parse(
+        localStorage.getItem(scheduleImportKey(user.id)) || '[]'
+      );
+      if (Array.isArray(parsed)) ids = parsed;
+    } catch {
+      ids = [];
+    }
+
+    if (!ids.length) return;
+
+    if (
+      !window.confirm(
+        'Remove all entries imported from your uploaded schedule?'
+      )
+    ) {
+      return;
+    }
+
+    setScheduleImporting(true);
+    setScheduleError(null);
+
+    try {
+      await deleteRemindersForEntries(ids);
+      deletePlannerAlertChoices(ids);
+
+      const { error } = await supabase
+        .from('planner_courses')
+        .delete()
+        .eq('user_id', user.id)
+        .in('id', ids);
+
+      if (error) throw new Error(error.message);
+
+      localStorage.removeItem(scheduleImportKey(user.id));
+      setScheduleImportIds([]);
+      setScheduleNotice('Uploaded schedule cleared from your planner.');
+      await fetchCourses(user.id);
+    } catch (err) {
+      console.error('Clear schedule error:', err);
+      setScheduleError(`Could not clear schedule: ${err.message}`);
+    } finally {
+      setScheduleImporting(false);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       const {
@@ -455,6 +669,15 @@ export default function Planner() {
       if (user) {
         setUser(user);
         await fetchCourses(user.id);
+
+        try {
+          const parsed = JSON.parse(
+            localStorage.getItem(scheduleImportKey(user.id)) || '[]'
+          );
+          if (Array.isArray(parsed)) setScheduleImportIds(parsed);
+        } catch {
+          setScheduleImportIds([]);
+        }
       } else {
         setLoading(false);
       }
@@ -1573,9 +1796,26 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             style={{
               display: 'flex',
               gap: '10px',
-              alignItems: 'center'
+              alignItems: 'center',
+              flexWrap: 'wrap'
             }}
           >
+            <button onClick={handleUploadClick} style={uploadScheduleBtn}>
+              <Upload size={16} />
+              <span style={{ whiteSpace: 'nowrap' }}>Upload schedule</span>
+            </button>
+
+            {scheduleImportIds.length > 0 && (
+              <button
+                onClick={handleClearSchedule}
+                style={clearScheduleBtn}
+                disabled={scheduleImporting}
+              >
+                <Trash2 size={16} />
+                <span style={{ whiteSpace: 'nowrap' }}>Clear schedule</span>
+              </button>
+            )}
+
             <div style={switcherGroup}>
               {['Month', 'Week', 'Day'].map((view) => (
                 <button
@@ -1622,6 +1862,61 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             </div>
           </div>
         </div>
+
+        <input
+          ref={scheduleInputRef}
+          type="file"
+          accept=".pdf,.ics,.csv,application/pdf,text/calendar,text/csv"
+          style={{ display: 'none' }}
+          onChange={handleScheduleInputChange}
+        />
+
+        {scheduleNotice && (
+          <div style={scheduleBannerStyle}>
+            <CheckCircle2 size={16} color="#1E9E63" />
+            <span style={{ flex: 1 }}>{scheduleNotice}</span>
+            <button
+              onClick={() => setScheduleNotice(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#1E6B45',
+                display: 'flex'
+              }}
+              aria-label="Dismiss"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+
+        {scheduleError && (
+          <div
+            style={{
+              ...scheduleBannerStyle,
+              background: '#FDF2F1',
+              border: '1px solid #F0C4BF',
+              color: '#B3392F'
+            }}
+          >
+            <AlertCircle size={16} color="#EE5D50" />
+            <span style={{ flex: 1 }}>{scheduleError}</span>
+            <button
+              onClick={() => setScheduleError(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#B3392F',
+                display: 'flex'
+              }}
+              aria-label="Dismiss"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
 
         <div
           className="card"
@@ -3006,6 +3301,190 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         </div>
       )}
 
+      {scheduleModalOpen && (
+        <div style={overlay}>
+          <div
+            className="card"
+            style={{
+              width: 'min(460px, calc(100vw - 32px))',
+              border: '2px solid #0B1A3F',
+              padding: '30px',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '6px'
+              }}
+            >
+              <Upload size={20} color="#0B1A3F" />
+              <h2
+                style={{
+                  margin: 0,
+                  fontWeight: '900',
+                  color: '#0B1A3F',
+                  fontSize: '20px'
+                }}
+              >
+                Import schedule
+              </h2>
+            </div>
+
+            <p
+              style={{
+                color: '#A3AED0',
+                fontWeight: '700',
+                fontSize: '13px',
+                margin: '0 0 20px',
+                wordBreak: 'break-word'
+              }}
+            >
+              {scheduleFile} · {scheduleEvents?.length ?? 0} event
+              {scheduleEvents?.length === 1 ? '' : 's'} found
+            </p>
+
+            <label
+              style={{
+                display: 'block',
+                fontWeight: '800',
+                color: '#0B1A3F',
+                fontSize: '13px',
+                marginBottom: '8px'
+              }}
+            >
+              Choose the week your schedule starts
+            </label>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap',
+                marginBottom: '12px'
+              }}
+            >
+              {[
+                { label: 'This week', offset: 0 },
+                { label: 'Next week', offset: 1 },
+                { label: 'Following week', offset: 2 }
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  onClick={() => setStartFromWeekOffset(preset.offset)}
+                  style={
+                    scheduleStartDate === presetDateForOffset(preset.offset)
+                      ? weekPresetActive
+                      : weekPreset
+                  }
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            <input
+              type="date"
+              value={scheduleStartDate}
+              min={formatDate(new Date())}
+              onChange={(e) => setScheduleStartDate(e.target.value)}
+              style={scheduleDateInput}
+            />
+
+            <p
+              style={{
+                color: '#A3AED0',
+                fontWeight: '700',
+                fontSize: '13px',
+                margin: '14px 0 0',
+                lineHeight: '1.5'
+              }}
+            >
+              {scheduleEvents && scheduleStartDate
+                ? `${expandScheduleEvents(scheduleEvents, {
+                    startDate: scheduleStartDate
+                  }).length} entries will be added from ${new Date(
+                    `${scheduleStartDate}T00:00:00`
+                  ).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                  })}.`
+                : ''}
+            </p>
+
+            {scheduleError && (
+              <p
+                style={{
+                  color: '#B3392F',
+                  fontWeight: '700',
+                  fontSize: '13px',
+                  margin: '12px 0 0'
+                }}
+              >
+                {scheduleError}
+              </p>
+            )}
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                justifyContent: 'flex-end',
+                marginTop: '24px'
+              }}
+            >
+              <button
+                onClick={() => {
+                  setScheduleModalOpen(false);
+                  setScheduleFile(null);
+                  setScheduleEvents(null);
+                  setScheduleError(null);
+                }}
+                style={cancelButtonStyle}
+                disabled={scheduleImporting}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmScheduleImport}
+                disabled={scheduleImporting || !scheduleStartDate}
+                style={{
+                  ...saveBtn,
+                  minWidth: '158px',
+                  opacity:
+                    scheduleImporting || !scheduleStartDate ? 0.55 : 1,
+                  cursor:
+                    scheduleImporting || !scheduleStartDate
+                      ? 'not-allowed'
+                      : 'pointer'
+                }}
+              >
+                {scheduleImporting ? (
+                  <>
+                    <RefreshCw
+                      size={15}
+                      style={{
+                        animation: 'camporaSpin 0.9s linear infinite',
+                        marginRight: '6px',
+                        verticalAlign: 'middle'
+                      }}
+                    />
+                    Importing...
+                  </>
+                ) : (
+                  'Import schedule'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isModalOpen && (
         <div style={overlay}>
           <div
@@ -3751,4 +4230,82 @@ const overlay = {
   alignItems: 'center',
   padding: '16px',
   zIndex: 1000
+};
+
+const uploadScheduleBtn = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '7px',
+  padding: '9px 14px',
+  borderRadius: '12px',
+  background: '#0B1A3F',
+  color: '#FFFFFF',
+  border: 'none',
+  fontWeight: '800',
+  fontSize: '13px',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+  transition: 'all 0.15s ease'
+};
+
+const clearScheduleBtn = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '7px',
+  padding: '9px 14px',
+  borderRadius: '12px',
+  background: '#FFFFFF',
+  color: '#EE5D50',
+  border: '1.5px solid #F3CDC8',
+  fontWeight: '800',
+  fontSize: '13px',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+  transition: 'all 0.15s ease'
+};
+
+const scheduleBannerStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+  padding: '12px 14px',
+  borderRadius: '12px',
+  background: '#EFF8F3',
+  border: '1px solid #CDEBD9',
+  color: '#1E6B45',
+  fontWeight: '700',
+  fontSize: '13px',
+  marginBottom: '14px'
+};
+
+const weekPreset = {
+  padding: '7px 12px',
+  borderRadius: '10px',
+  border: '1.5px solid #E7EBF1',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  fontWeight: '700',
+  fontSize: '12px',
+  cursor: 'pointer'
+};
+
+const weekPresetActive = {
+  ...weekPreset,
+  border: '1.5px solid #0B1A3F',
+  background: '#0B1A3F',
+  color: '#FFFFFF'
+};
+
+const scheduleDateInput = {
+  width: '100%',
+  padding: '11px 12px',
+  borderRadius: '12px',
+  border: '1.5px solid #E7EBF1',
+  background: '#F7F9FC',
+  fontWeight: '700',
+  color: '#0B1A3F',
+  fontSize: '14px',
+  outline: 'none',
+  fontFamily: 'inherit',
+  boxSizing: 'border-box'
 };

@@ -1,8 +1,5 @@
 import { supabase } from './supabase'
-import * as pdfjsLib from 'pdfjs-dist'
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc
 
 const CAMPORA_COLORS = [
   '#E1F2FF',
@@ -342,6 +339,7 @@ export const expandScheduleEvents = (events = [], options = {}) => {
   )
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const anchor = startDateFrom(options.startDate, today) || today
 
   const rows = []
   const pushRow = (row) => {
@@ -362,7 +360,7 @@ export const expandScheduleEvents = (events = [], options = {}) => {
       const days = parseDaysField(event.dayField)
       if (!days.length) continue
       const groupId = cryptoUUID()
-      let current = new Date(today)
+      let current = new Date(anchor)
       while (current <= endDate) {
         if (days.includes(current.getDay())) {
           pushRow({
@@ -382,10 +380,10 @@ export const expandScheduleEvents = (events = [], options = {}) => {
 
     if (rule.freq === 'WEEKLY' || rule.freq === 'DAILY') {
       const groupId = cryptoUUID()
-      const start = startDateFrom(event.date, today)
+      const start = startDateFrom(event.date, anchor)
       const end = resolveSeriesEnd(rule, endDate)
       const firstOccurrence = new Date(
-        Math.max(start.getTime(), today.getTime())
+        Math.max(start.getTime(), anchor.getTime())
       )
       let generated = 0
       let current = new Date(firstOccurrence)
@@ -419,7 +417,7 @@ export const expandScheduleEvents = (events = [], options = {}) => {
     }
 
     const singleDate = startDateFrom(event.date, null)
-    if (!singleDate || singleDate < today) continue
+    if (!singleDate || singleDate < anchor) continue
 
     pushRow({
       ...base,
@@ -457,6 +455,19 @@ export const parseScheduleFile = async (file) => {
 // PDF text extraction + parsing
 // ---------------------------------------------------------------
 
+let pdfjsPromise = null
+
+const getPdfjs = () => {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import('pdfjs-dist').then((pdfjsLib) => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc
+      return pdfjsLib
+    })
+  }
+
+  return pdfjsPromise
+}
+
 export const extractPdfItems = async (file) => {
   if (!file) throw new Error('No file provided.')
 
@@ -469,6 +480,7 @@ export const extractPdfItems = async (file) => {
   }
 
   const buffer = await file.arrayBuffer()
+  const pdfjsLib = await getPdfjs()
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
   const items = []
 
@@ -925,12 +937,13 @@ const dedupeAgainstExisting = async (userId, rows) => {
 }
 
 export const importScheduleRows = async ({ userId, rows = [] }) => {
-  if (!userId || !rows.length) return { inserted: 0, error: null }
+  if (!userId || !rows.length) return { inserted: 0, ids: [], error: null }
 
   const uniqueRows = await dedupeAgainstExisting(userId, rows)
-  if (!uniqueRows.length) return { inserted: 0, error: null }
+  if (!uniqueRows.length) return { inserted: 0, ids: [], error: null }
 
   let inserted = 0
+  const ids = []
   const chunkSize = 50
 
   for (let i = 0; i < uniqueRows.length; i += chunkSize) {
@@ -938,7 +951,10 @@ export const importScheduleRows = async ({ userId, rows = [] }) => {
       .slice(i, i + chunkSize)
       .map((row) => ({ ...row, user_id: userId }))
 
-    let result = await supabase.from('planner_courses').insert(chunk)
+    let result = await supabase
+      .from('planner_courses')
+      .insert(chunk)
+      .select('id')
 
     const missingGroupId =
       result.error &&
@@ -949,16 +965,22 @@ export const importScheduleRows = async ({ userId, rows = [] }) => {
 
     if (missingGroupId) {
       const compatibleChunk = chunk.map(({ group_id: _groupId, ...row }) => row)
-      result = await supabase.from('planner_courses').insert(compatibleChunk)
+      result = await supabase
+        .from('planner_courses')
+        .insert(compatibleChunk)
+        .select('id')
     }
 
     if (result.error) {
       console.error('Schedule import error:', result.error)
-      return { inserted, error: result.error }
+      return { inserted, ids, error: result.error }
     }
 
     inserted += chunk.length
+    for (const row of result.data || []) {
+      if (row?.id) ids.push(row.id)
+    }
   }
 
-  return { inserted, error: null }
+  return { inserted, ids, error: null }
 }
