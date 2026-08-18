@@ -54,6 +54,7 @@ import Login from './Login';
 import SignUp from './pages/SignUp';
 import Profile from './Profile';
 import ForgotPassword from './ForgotPassword';
+import ResetPassword from './ResetPassword';
 
 import { supabase } from './lib/supabase';
 import { signOut } from './lib/auth';
@@ -1229,6 +1230,11 @@ export default function App() {
         <Route
           path="/forgot-password"
           element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
         />
 
         <Route

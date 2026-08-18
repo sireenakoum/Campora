@@ -31,6 +31,8 @@ import {
 
 import camporaLogo from '../assets/camporanavylogo.png';
 
+import ChatBotWidget from '../components/ChatBotWidget';
+
 import dashboardImg from '../assets/dashboard.png';
 import coursesImg from '../assets/courses.png';
 import studygroupsImg from '../assets/studygroups.png';
@@ -3786,6 +3788,8 @@ export default function LandingPage() {
           </span>
         </div>
       </footer>
+
+      <ChatBotWidget />
     </div>
   );
 }
