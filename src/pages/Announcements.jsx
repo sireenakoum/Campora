@@ -1024,7 +1024,7 @@ const styles = {
     fontSize: "31px",
     lineHeight: 1.1,
 
-    fontWeight: "900",
+    fontWeight: "600",
 
     letterSpacing: "-0.7px",
   },
@@ -1287,7 +1287,7 @@ const styles = {
 
     fontSize: "19px",
 
-    fontWeight: "850",
+    fontWeight: "600",
 
     letterSpacing:
       "-0.25px",
@@ -1512,11 +1512,11 @@ const styles = {
   emptyTitle: {
     margin: 0,
 
-    color: "#172554",
+    color: "#737B88",
 
     fontSize: "15px",
 
-    fontWeight: "800",
+    fontWeight: "600",
   },
 
   emptyText: {

@@ -699,7 +699,7 @@ return (
    <div
     style={{
      fontSize: '24px',
-     fontWeight: '900',
+     fontWeight: '750',
     }}
    >
     {progress}%
@@ -821,7 +821,7 @@ return (
       border: '1px solid #D8E0EB',
       boxShadow: '0 3px 9px rgba(11, 26, 63, 0.05)',
       fontSize: '11px',
-      fontWeight: '900',
+      fontWeight: '650',
       whiteSpace: 'nowrap',
      }}
     >
@@ -1507,7 +1507,7 @@ function SummaryStat({
       color: '#0B1A3F',
       fontSize: '23px',
       lineHeight: 1,
-      fontWeight: '950',
+      fontWeight: '650',
      }}
     >
      {value}
@@ -1585,7 +1585,7 @@ function PriorityOverviewCard({ priority, count }) {
            margin: '2px 0 0',
            color: 'var(--campora-text)',
            fontSize: '19px',
-           fontWeight: '900',
+           fontWeight: '650',
           }}
          >
           {count}
@@ -1678,7 +1678,7 @@ function PriorityColumn({
        alignItems: 'center',
        justifyContent: 'center',
        fontSize: '11px',
-       fontWeight: '900',
+       fontWeight: '650',
       }}
      >
       {tasks.length}

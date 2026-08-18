@@ -1288,6 +1288,15 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
   const toggleCompleted = async (entry) => {
     const nextCompleted = !entry.is_completed;
 
+    // Update immediately so the Agenda visibly crosses out/restores the item.
+    setCourses((current) =>
+      current.map((item) =>
+        item.id === entry.id
+          ? { ...item, is_completed: nextCompleted }
+          : item
+      )
+    );
+
     const { error } = await supabase
       .from('planner_courses')
       .update({
@@ -1298,14 +1307,21 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
     if (error) {
       console.error('Complete entry error:', error);
+
+      // Roll back if saving fails.
+      setCourses((current) =>
+        current.map((item) =>
+          item.id === entry.id
+            ? { ...item, is_completed: entry.is_completed }
+            : item
+        )
+      );
       return;
     }
 
     updateLinkedCourseLocalItem(entry, {
       is_completed: nextCompleted
     });
-
-    await fetchCourses(user.id);
   };
 
   const eraseAll = async () => {
@@ -1848,7 +1864,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           paddingRight: '6px',
           paddingBottom: '18px',
           boxSizing: 'border-box',
-          scrollbarWidth: 'thin'
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#C9D2DF transparent'
         }}
       >
         <div
@@ -1994,9 +2011,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             border: '1.5px solid #E9EDF7',
               display: 'flex',
               flexDirection: 'column',
-              height: '340px',
-              minHeight: '340px',
-              overflow: 'hidden'
+              height: '390px',
+              minHeight: '390px',
+              maxHeight: '390px',
+              overflow: 'hidden',
+              flexShrink: 0
             }}
           >
             <div
@@ -2017,21 +2036,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   minWidth: 0
                 }}
               >
-                <ProgressRing
-                  value={upNextProgress}
-                  size={34}
-                  stroke={4}
-                >
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      color: 'var(--campora-text)'
-                    }}
-                  >
-                    {upNextDone}
-                  </span>
-                </ProgressRing>
+                
 
                 <div>
                   <h3
@@ -2046,18 +2051,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     Agenda
                   </h3>
 
-                  <div
-                    style={{
-                      marginTop: '4px',
-                      fontSize: '11px',
-                      fontWeight: '500',
-                      color: 'var(--campora-muted)'
-                    }}
-                  >
-                    {upNextEvents.length
-                      ? `${upNextEvents.length} item${upNextEvents.length === 1 ? '' : 's'} on your radar`
-                      : 'Your day is clear for now'}
-                  </div>
+
                 </div>
               </div>
 
@@ -2073,10 +2067,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   onClick={eraseAll}
                   className="btn btn-sm btn-ghost"
                   style={{
-                    color: '#FF3B4D',
-                    background: 'transparent',
+                    color: 'var(--campora-urgent)',
+                    background: 'var(--tone-error-soft)',
                     border: 'none',
-                    padding: '6px 4px',
+                    padding: '7px 10px',
+                    borderRadius: '9px',
                     fontSize: '11px',
                     fontWeight: '650',
                     cursor: 'pointer',
@@ -2087,7 +2082,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     transition: 'opacity 0.18s ease'
                   }}
                   onMouseEnter={(event) => {
-                    event.currentTarget.style.opacity = '0.72';
+                    event.currentTarget.style.opacity = '0.82';
                   }}
                   onMouseLeave={(event) => {
                     event.currentTarget.style.opacity = '1';
@@ -2118,18 +2113,22 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 gap: '12px',
                 overflowY: 'auto',
                 overflowX: 'hidden',
-                overscrollBehaviorY: 'contain',
-                WebkitOverflowScrolling: 'touch',
-                touchAction: 'pan-y',
-                paddingRight: '10px',
-                paddingBottom: '12px',
-                scrollbarGutter: 'stable',
+                paddingRight: '6px',
+                paddingBottom: '10px',
                 scrollbarWidth: 'thin',
-                scrollbarColor: '#AAB4C4 #F4F3F8'
+                scrollbarColor: '#C9D2DF transparent'
               }}
             >
               {upNextEvents.length > 0 ? (
                 upNextEvents.map((event) => {
+                  const savedAlert =
+                    readPlannerAlertLinks()[event.id] || {};
+
+                  const agendaAlertMode =
+                    savedAlert.alertMode ||
+                    savedAlert.type ||
+                    (event.reminder ? 'reminder' : 'none');
+
                   const barColor = event.is_completed
                     ? 'var(--surface-container-highest)'
                     : darkModeColor(event.color || '#E1F2FF');
@@ -2155,14 +2154,21 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                         overflow: 'hidden',
                         borderRadius: '18px',
                         padding: '16px 16px 15px 20px',
-                        background: '#FFFFFF',
-                        border: '1px solid #E7ECF3',
+                        background: event.is_completed
+                          ? '#FFFFFF'
+                          : `${darkModeColor(event.color || '#E1F2FF')}24`,
+                        border: event.is_completed
+                          ? '1px solid #E7ECF3'
+                          : `1px solid ${darkModeColor(event.color || '#E1F2FF')}55`,
                         boxShadow: '0 4px 14px rgba(11,26,63,0.04)',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'stretch',
                         gap: '10px',
-                        minHeight: '132px',
+                        minHeight: '168px',
+                        height: 'auto',
+                        boxSizing: 'border-box',
+                        flexShrink: 0,
                         cursor: 'pointer',
                         outline: 'none',
                         transition:
@@ -2234,17 +2240,50 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                                   fontSize: '16px',
                                   fontWeight: '900',
                                   color: event.is_completed
-                                    ? 'var(--campora-muted)'
-                                    : darkModeColor(event.color || '#0B1A3F'),
+                                    ? '#7B8798'
+                                    : '#0B1A3F',
                                   textDecoration: event.is_completed
                                     ? 'line-through'
                                     : 'none',
                                   lineHeight: '1.3',
-                                  wordBreak: 'break-word'
+                                  wordBreak: 'break-word',
+                                  flex: 1,
+                                  minWidth: 0
                                 }}
                               >
                                 {event.name}
                               </span>
+
+                              <button
+                                type="button"
+                                title={event.is_completed ? 'Mark incomplete' : 'Mark complete'}
+                                onClick={(clickEvent) => {
+                                  clickEvent.stopPropagation();
+                                  toggleCompleted(event);
+                                }}
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '50%',
+                                  border: event.is_completed
+                                    ? '1px solid #0B1A3F'
+                                    : '1.5px solid #CBD5E1',
+                                  background: event.is_completed
+                                    ? '#0B1A3F'
+                                    : '#FFFFFF',
+                                  color: event.is_completed
+                                    ? '#FFFFFF'
+                                    : '#7B8798',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  flexShrink: 0,
+                                  padding: 0
+                                }}
+                              >
+                                <CheckCircle2 size={15} strokeWidth={2.2} />
+                              </button>
 
                               {event.is_completed && (
                                 <span
@@ -2316,7 +2355,55 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                                   : ''}
                               </span>
 
-                              {event.reminder && <Bell size={11} />}
+                              {agendaAlertMode === 'notification' && (
+                                <span
+                                  title="Notification"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#648CCB'
+                                  }}
+                                >
+                                  <Bell size={13} strokeWidth={2.2} />
+                                </span>
+                              )}
+
+                              {agendaAlertMode === 'reminder' && (
+                                <span
+                                  title="Reminder"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#8B78B8'
+                                  }}
+                                >
+                                  <AlarmClock size={13} strokeWidth={2.2} />
+                                </span>
+                              )}
+
+                              {agendaAlertMode === 'both' && (
+                                <span
+                                  title="Notification + Reminder"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}
+                                >
+                                  <Bell
+                                    size={13}
+                                    strokeWidth={2.2}
+                                    color="#648CCB"
+                                  />
+                                  <AlarmClock
+                                    size={13}
+                                    strokeWidth={2.2}
+                                    color="#8B78B8"
+                                  />
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2326,10 +2413,19 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             className="planner-upnext-details"
                             style={{
                               marginTop: '10px',
-                              padding: '12px 13px',
+                              padding: '14px 14px',
+                              minHeight: '88px',
                               borderRadius: '12px',
-                              background: 'rgba(255,255,255,0.62)',
-                              border: '1px solid rgba(0,45,98,0.06)'
+                              background: event.is_completed
+                                ? '#FAFBFC'
+                                : `${darkModeColor(event.color || '#E1F2FF')}18`,
+                              border: event.is_completed
+                                ? '1px solid #E7ECF3'
+                                : `1px solid ${darkModeColor(event.color || '#E1F2FF')}38`,
+                              width: '100%',
+                              maxWidth: '100%',
+                              boxSizing: 'border-box',
+                              overflow: 'hidden'
                             }}
                           >
                             <div
@@ -2350,15 +2446,22 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                               className="planner-upnext-details-text"
                               style={{
                                 fontSize: '13px',
-                                lineHeight: '1.55',
+                                lineHeight: '1.65',
                                 fontWeight: '600',
                                 color: 'var(--campora-body)',
+                                textDecoration: event.is_completed
+                                  ? 'line-through'
+                                  : 'none',
+                                opacity: event.is_completed ? 0.55 : 1,
                                 whiteSpace: 'pre-wrap',
                                 wordBreak: 'break-word',
-                                maxHeight: '62px',
-                                overflowY: 'auto',
-                                paddingRight: '4px',
-                                scrollbarWidth: 'thin'
+                                overflow: 'visible',
+                                maxHeight: 'none',
+                                minHeight: '52px',
+                                width: '100%',
+                                boxSizing: 'border-box',
+                                paddingRight: 0,
+                                paddingBottom: '2px'
                               }}
                             >
                               {visiblePlannerDescription(event.description || '')}
@@ -2375,7 +2478,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                           alignItems: 'center',
                           justifyContent: 'flex-end',
                           flexShrink: 0,
-                          paddingTop: '8px',
+                          paddingTop: '9px',
+                          marginTop: '2px',
                           borderTop: '1px solid rgba(0,45,98,0.08)'
                         }}
                       >
@@ -2408,33 +2512,6 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
                         <button
                           type="button"
-                          title={event.is_completed ? 'Mark incomplete' : 'Mark complete'}
-                          onClick={(clickEvent) => {
-                            clickEvent.stopPropagation();
-                            toggleCompleted(event);
-                          }}
-                          style={{
-                            width: '30px',
-                            height: '30px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '999px',
-                            border: '1px solid rgba(0,45,98,0.08)',
-                            background: event.is_completed
-                              ? 'var(--campora-navy-tint-alpha)'
-                              : 'rgba(255,255,255,0.72)',
-                            color: event.is_completed
-                              ? 'var(--campora-navy)'
-                              : 'var(--campora-muted)',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <CheckCircle2 size={15} />
-                        </button>
-
-                        <button
-                          type="button"
                           title="Delete entry"
                           onClick={(clickEvent) => {
                             clickEvent.stopPropagation();
@@ -2457,8 +2534,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             alignItems: 'center',
                             justifyContent: 'center',
                             borderRadius: '999px',
-                            border: '1px solid rgba(186,26,26,0.08)',
-                            background: 'rgba(255,255,255,0.72)',
+                            border: 'none',
+                            background: 'var(--tone-error-soft)',
                             color: 'var(--campora-urgent)',
                             cursor: 'pointer'
                           }}
