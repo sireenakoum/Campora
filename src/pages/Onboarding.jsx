@@ -459,7 +459,9 @@ export default function Onboarding() {
           <div style={styles.stepBody}>
             <p style={styles.prompt}>Upload your class schedule</p>
             <p style={styles.hint}>
-              Add a .pdf, .ics or .csv file and we'll place it on your Planner automatically.
+              This step is optional. Add a .pdf, .ics or .csv file and we'll place
+              it on your Planner automatically — or skip it and add it later from
+              your profile.
             </p>
 
             <div
@@ -509,7 +511,7 @@ export default function Onboarding() {
             )}
 
             {!scheduleFile && (
-              <p style={styles.hint}>No file yet — you can also skip this step and add it later from your profile.</p>
+              <p style={styles.hint}>No file yet — that's fine, you can skip this step.</p>
             )}
           </div>
         )}
@@ -530,10 +532,20 @@ export default function Onboarding() {
               Continue <ArrowRight size={18} />
             </button>
           ) : (
-            <button type="button" onClick={handleFinish} disabled={saving} style={saving ? { ...styles.primaryBtn, ...styles.primaryBtnDisabled } : styles.primaryBtn}>
-              {saving ? 'Saving…' : 'Finish Setup'}
-              {!saving && <Check size={18} />}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleFinish}
+                disabled={saving}
+                style={saving ? { ...styles.skipBtn, ...styles.primaryBtnDisabled } : styles.skipBtn}
+              >
+                Skip for now
+              </button>
+              <button type="button" onClick={handleFinish} disabled={saving} style={saving ? { ...styles.primaryBtn, ...styles.primaryBtnDisabled } : styles.primaryBtn}>
+                {saving ? 'Saving…' : 'Finish Setup'}
+                {!saving && <Check size={18} />}
+              </button>
+            </>
           )}
         </div>
 
@@ -826,6 +838,18 @@ const styles = {
   primaryBtnDisabled: {
     backgroundColor: '#9CA3AF',
     cursor: 'not-allowed',
+  },
+  skipBtn: {
+    padding: '0.9rem 1.4rem',
+    borderRadius: '10px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: '#6B7280',
+    fontWeight: '700',
+    fontSize: '0.95rem',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    textUnderlineOffset: '3px',
   },
   footer: {
     marginTop: '1.5rem',
