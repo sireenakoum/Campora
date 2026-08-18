@@ -1771,35 +1771,112 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{
-                fontSize: '13px',
-                fontWeight: '700',
-                color: 'var(--campora-muted)',
-                letterSpacing: '0.02em'
-              }}>
-                {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap' }}>
-                <span style={{
-                  fontSize: '32px',
-                  fontWeight: '800',
-                  color: 'var(--campora-text)',
-                  lineHeight: 1.08,
-                  letterSpacing: '-0.025em'
-                }}>
-                  {selectedDate.toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </span>
-                <span style={{
-                  fontSize: '15px',
-                  fontWeight: '700',
-                  color: 'var(--campora-muted)'
-                }}>
-                  {selectedDate.getFullYear()}
-                </span>
-              </div>
+              {viewType === 'Month' && (
+                <>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    color: 'var(--campora-muted)',
+                    letterSpacing: '0.02em'
+                  }}>
+                    {viewDate.toLocaleDateString('en-US', { weekday: 'long' })}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: '32px',
+                      fontWeight: '800',
+                      color: 'var(--campora-text)',
+                      lineHeight: 1.08,
+                      letterSpacing: '-0.025em'
+                    }}>
+                      {viewDate.toLocaleDateString('en-US', { month: 'long' })}
+                    </span>
+                    <span style={{
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      color: 'var(--campora-muted)'
+                    }}>
+                      {viewDate.getFullYear()}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {viewType === 'Week' && (() => {
+                const weekStart = dateArray[0];
+                const weekEnd = dateArray[6];
+                const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+                const startStr = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const endStr = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                return (
+                  <>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: 'var(--campora-muted)',
+                      letterSpacing: '0.02em'
+                    }}>
+                      Week of {weekStart.toLocaleDateString('en-US', { weekday: 'long' })}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontSize: '32px',
+                        fontWeight: '800',
+                        color: 'var(--campora-text)',
+                        lineHeight: 1.08,
+                        letterSpacing: '-0.025em'
+                      }}>
+                        {sameMonth
+                          ? `${weekStart.toLocaleDateString('en-US', { month: 'long' })} ${weekStart.getDate()} – ${weekEnd.getDate()}`
+                          : `${startStr} – ${endStr}`}
+                      </span>
+                      {sameMonth && (
+                        <span style={{
+                          fontSize: '15px',
+                          fontWeight: '700',
+                          color: 'var(--campora-muted)'
+                        }}>
+                          {weekStart.getFullYear()}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+
+              {viewType === 'Day' && (
+                <>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    color: 'var(--campora-muted)',
+                    letterSpacing: '0.02em'
+                  }}>
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: '32px',
+                      fontWeight: '800',
+                      color: 'var(--campora-text)',
+                      lineHeight: 1.08,
+                      letterSpacing: '-0.025em'
+                    }}>
+                      {selectedDate.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                    <span style={{
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      color: 'var(--campora-muted)'
+                    }}>
+                      {selectedDate.getFullYear()}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </h1>
 
