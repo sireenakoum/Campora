@@ -1523,18 +1523,19 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <span style={{
                 fontSize: '13px',
-                fontWeight: '800',
+                fontWeight: '700',
                 color: 'var(--campora-muted)',
-                letterSpacing: '0.04em'
+                letterSpacing: '0.02em'
               }}>
                 {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
               </span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap' }}>
                 <span style={{
-                  fontSize: '28px',
-                  fontWeight: '900',
+                  fontSize: '32px',
+                  fontWeight: '800',
                   color: 'var(--campora-text)',
-                  lineHeight: 1.15
+                  lineHeight: 1.08,
+                  letterSpacing: '-0.025em'
                 }}>
                   {selectedDate.toLocaleDateString('en-US', {
                     month: 'long',
@@ -1542,8 +1543,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   })}
                 </span>
                 <span style={{
-                  fontSize: '14px',
-                  fontWeight: '800',
+                  fontSize: '15px',
+                  fontWeight: '700',
                   color: 'var(--campora-muted)'
                 }}>
                   {selectedDate.getFullYear()}
@@ -1573,24 +1574,36 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               ))}
             </div>
 
-            <button
-              onClick={() => {
-                const now = new Date();
-                setViewDate(now);
-                setSelectedDate(now);
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px',
+                borderRadius: '12px',
+                background: '#FFFFFF',
+                border: '1px solid #E7EBF1'
               }}
-              style={navBtn}
             >
-              Today
-            </button>
+              <button onClick={handlePrev} style={navArrowBtn}>
+                <ChevronLeft size={18} />
+              </button>
 
-            <button onClick={handlePrev} style={navBtn}>
-              <ChevronLeft size={18} />
-            </button>
+              <button
+                onClick={() => {
+                  const now = new Date();
+                  setViewDate(now);
+                  setSelectedDate(now);
+                }}
+                style={todayNavBtn}
+              >
+                Today
+              </button>
 
-            <button onClick={handleNext} style={navBtn}>
-              <ChevronRight size={18} />
-            </button>
+              <button onClick={handleNext} style={navArrowBtn}>
+                <ChevronRight size={18} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2012,7 +2025,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   <span
                     style={{
                       fontSize: '10px',
-                      fontWeight: '800',
+                      fontWeight: '700',
                       color: 'var(--campora-text)'
                     }}
                   >
@@ -2020,16 +2033,32 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   </span>
                 </ProgressRing>
 
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: '16px',
-                    fontWeight: '800',
-                    color: 'var(--campora-text)'
-                  }}
-                >
-                  Agenda
-                </h3>
+                <div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: 'var(--campora-text)',
+                      letterSpacing: '-0.01em'
+                    }}
+                  >
+                    Agenda
+                  </h3>
+
+                  <div
+                    style={{
+                      marginTop: '4px',
+                      fontSize: '11px',
+                      fontWeight: '500',
+                      color: 'var(--campora-muted)'
+                    }}
+                  >
+                    {upNextEvents.length
+                      ? `${upNextEvents.length} item${upNextEvents.length === 1 ? '' : 's'} on your radar`
+                      : 'Your day is clear for now'}
+                  </div>
+                </div>
               </div>
 
               <div
@@ -2044,14 +2073,28 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   onClick={eraseAll}
                   className="btn btn-sm btn-ghost"
                   style={{
-                    color: '#0B1A3F',
-                    background: '#FFFFFF',
-                    border: '1px solid #D8E0EB',
-                    height: '32px',
-                    fontWeight: '900'
+                    color: '#FF3B4D',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '6px 4px',
+                    fontSize: '11px',
+                    fontWeight: '650',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'opacity 0.18s ease'
+                  }}
+                  onMouseEnter={(event) => {
+                    event.currentTarget.style.opacity = '0.72';
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.opacity = '1';
                   }}
                 >
-                  Erase All
+                  <span>Erase All</span>
+                  <Trash2 size={14} strokeWidth={2} />
                 </button>
 
                 <button
@@ -2072,7 +2115,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '14px',
+                gap: '12px',
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 overscrollBehaviorY: 'contain',
@@ -2110,18 +2153,16 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       style={{
                         position: 'relative',
                         overflow: 'hidden',
-                        borderRadius: '16px',
-                        padding: '20px 18px 18px',
+                        borderRadius: '18px',
+                        padding: '16px 16px 15px 20px',
                         background: '#FFFFFF',
-                        border: '1px solid var(--hairline)',
-                        boxShadow: '0 6px 18px rgba(0, 45, 98, 0.05)',
+                        border: '1px solid #E7ECF3',
+                        boxShadow: '0 4px 14px rgba(11,26,63,0.04)',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'stretch',
-                        gap: '14px',
-                        height: '220px',
-                        minHeight: '220px',
-                        maxHeight: '220px',
+                        gap: '10px',
+                        minHeight: '132px',
                         cursor: 'pointer',
                         outline: 'none',
                         transition:
@@ -2129,13 +2170,13 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.boxShadow =
-                          '0 10px 24px rgba(0, 45, 98, 0.10)';
+                          '0 9px 22px rgba(11,26,63,0.085)';
                         e.currentTarget.style.borderColor =
                           'rgba(0,45,98,0.16)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.boxShadow =
-                          '0 6px 18px rgba(0, 45, 98, 0.05)';
+                          '0 3px 12px rgba(11, 26, 63, 0.045)';
                         e.currentTarget.style.borderColor =
                           'var(--hairline)';
                       }}
@@ -2144,9 +2185,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                         style={{
                           position: 'absolute',
                           left: 0,
-                          right: 0,
-                          top: 0,
-                          height: '3px',
+                          top: '13px',
+                          bottom: '13px',
+                          width: '5px',
+                          borderRadius: '0 5px 5px 0',
                           background: event.is_completed
                             ? '#E5EAF0'
                             : darkModeColor(event.color || '#0B1A3F'),
@@ -3062,6 +3104,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   <option value="Recitation">Recitation</option>
                   <option value="Task">Task</option>
                   <option value="Exam">Exam</option>
+                  <option value="Event">Event</option>
                 </select>
 
                 <input
@@ -3507,30 +3550,45 @@ const switcherGroup = {
 const toggleStyle = {
   background: 'transparent',
   border: 'none',
-  padding: '6px 12px',
+  padding: '7px 13px',
   fontSize: '11px',
-  fontWeight: '900',
-  color: '#A3AED0',
+  fontWeight: '700',
+  color: '#7E899B',
   cursor: 'pointer',
   borderRadius: '8px'
 };
 
 const activeToggle = {
   ...toggleStyle,
-  background: '#F4F7FE',
-  color: '#0B1A3F',
-  boxShadow: 'none'
+  background: '#0B1A3F',
+  color: '#FFFFFF',
+  boxShadow: '0 3px 8px rgba(11,26,63,0.14)'
 };
 
-const navBtn = {
-  background: 'white',
-  border: '1.5px solid #E2E8F0',
-  padding: '6px 12px',
-  borderRadius: '10px',
-  fontWeight: '900',
+const navArrowBtn = {
+  width: '34px',
+  height: '34px',
+  border: 'none',
+  borderRadius: '9px',
+  background: '#F7F9FC',
   color: '#0B1A3F',
   cursor: 'pointer',
-  fontSize: '12px'
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
+};
+
+const todayNavBtn = {
+  minWidth: '62px',
+  height: '34px',
+  border: 'none',
+  borderRadius: '9px',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  cursor: 'pointer',
+  fontSize: '12px',
+  fontWeight: '700',
+  padding: '0 12px'
 };
 
 const saveBtn = {

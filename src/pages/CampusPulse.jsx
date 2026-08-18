@@ -17,7 +17,8 @@ import {
   Reply,
   Pin,
   MessageSquare,
-  BellPlus
+  BellPlus,
+  Clock3
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -348,7 +349,8 @@ export default function CampusPulse() {
     content: '',
     category: 'Campus Life',
     image_url: '',
-    is_anonymous: false
+    is_anonymous: false,
+    reply_alert_preference: 'both'
   });
 
   const [editingPostId, setEditingPostId] = useState(null);
@@ -1112,7 +1114,8 @@ export default function CampusPulse() {
       content: newPost.content.trim(),
       category: newPost.category,
       image_url: newPost.image_url.trim() || null,
-      is_anonymous: newPost.is_anonymous
+      is_anonymous: newPost.is_anonymous,
+      reply_alert_preference: newPost.reply_alert_preference
     };
 
     let { error } = await supabase
@@ -1154,7 +1157,8 @@ export default function CampusPulse() {
       content: '',
       category: 'Campus Life',
       image_url: '',
-      is_anonymous: false
+      is_anonymous: false,
+      reply_alert_preference: 'both'
     });
 
     await fetchData();
@@ -1200,85 +1204,6 @@ export default function CampusPulse() {
     setPosts(previous =>
       previous.filter(post => post.id !== postId)
     );
-  };
-
-  const handleAddPostReminder = async post => {
-    if (!currentUserId || !post?.id) return;
-
-    if (
-      Array.isArray(remindedPostIds) &&
-      remindedPostIds.includes(post.id)
-    ) {
-      return;
-    }
-
-    const reminderTitle =
-      post.title?.trim() ||
-      `${post.category || 'Campus Pulse'} update`;
-
-    const reminderMessage =
-      post.content?.trim() ||
-      'Open Campus Pulse to view this update.';
-
-    const basePayload = {
-      user_id: currentUserId,
-      title: `Campus Pulse: ${reminderTitle}`,
-      message: reminderMessage,
-      read: false
-    };
-
-    let result = await supabase
-      .from('notifications')
-      .insert([
-        {
-          ...basePayload,
-          category: 'Campus Pulse'
-        }
-      ]);
-
-    // Some versions of the notifications table may not have a category column.
-    if (
-      result.error &&
-      result.error.message?.toLowerCase().includes('category')
-    ) {
-      result = await supabase
-        .from('notifications')
-        .insert([basePayload]);
-    }
-
-    // Older schemas may use content instead of message.
-    if (
-      result.error &&
-      result.error.message?.toLowerCase().includes('message')
-    ) {
-      result = await supabase
-        .from('notifications')
-        .insert([
-          {
-            user_id: currentUserId,
-            title: `Campus Pulse: ${reminderTitle}`,
-            content: reminderMessage,
-            read: false
-          }
-        ]);
-    }
-
-    if (result.error) {
-      alert(
-        `Could not add reminder: ${result.error.message}`
-      );
-      return;
-    }
-
-    setRemindedPostIds(previous => {
-      const safePrevious = Array.isArray(previous)
-        ? previous
-        : [];
-
-      return safePrevious.includes(post.id)
-        ? safePrevious
-        : [...safePrevious, post.id];
-    });
   };
 
   const handleLikeToggle = async postId => {
@@ -1393,6 +1318,69 @@ export default function CampusPulse() {
     }));
   };
 
+  const createCampusPulseReplyNotification = async ({
+    recipientUserId,
+    postId,
+    replyText,
+    isCommentReply = false
+  }) => {
+    if (!recipientUserId || recipientUserId === currentUserId) return;
+
+    const title = isCommentReply
+      ? 'New reply to your Campus Pulse comment'
+      : 'New reply to your Campus Pulse post';
+
+    const message =
+      replyText?.trim()
+        ? `${userName || 'A student'} replied: ${replyText.trim().slice(0, 140)}`
+        : `${userName || 'A student'} replied to you on Campus Pulse.`;
+
+    const basePayload = {
+      user_id: recipientUserId,
+      title,
+      message,
+      read: false
+    };
+
+    let result = await supabase
+      .from('notifications')
+      .insert([
+        {
+          ...basePayload,
+          category: 'Campus Pulse'
+        }
+      ]);
+
+    if (
+      result.error &&
+      result.error.message?.toLowerCase().includes('category')
+    ) {
+      result = await supabase
+        .from('notifications')
+        .insert([basePayload]);
+    }
+
+    if (
+      result.error &&
+      result.error.message?.toLowerCase().includes('message')
+    ) {
+      result = await supabase
+        .from('notifications')
+        .insert([
+          {
+            user_id: recipientUserId,
+            title,
+            content: message,
+            read: false
+          }
+        ]);
+    }
+
+    if (result.error) {
+      console.error('Could not create Campus Pulse reply notification:', result.error);
+    }
+  };
+
   const handleAddComment = async (
     postId,
     parentComment = null
@@ -1477,6 +1465,31 @@ export default function CampusPulse() {
         ]
       }
     }));
+
+    const relatedPost = posts.find(post => post.id === postId);
+
+    if (
+      parentComment?.user_id &&
+      parentComment.user_id !== currentUserId
+    ) {
+      await createCampusPulseReplyNotification({
+        recipientUserId: parentComment.user_id,
+        postId,
+        replyText: textToSend,
+        isCommentReply: true
+      });
+    } else if (
+      relatedPost?.user_id &&
+      relatedPost.user_id !== currentUserId &&
+      relatedPost.reply_alert_preference !== 'none'
+    ) {
+      await createCampusPulseReplyNotification({
+        recipientUserId: relatedPost.user_id,
+        postId,
+        replyText: textToSend,
+        isCommentReply: false
+      });
+    }
 
     if (parentComment) {
       setReplyingToComment(null);
@@ -1678,7 +1691,7 @@ export default function CampusPulse() {
                   outline: 'none',
                   width: '100%',
                   fontSize: '14px',
-                  fontWeight: '700',
+                  fontWeight: '750',
                   color: 'var(--campora-text)',
                   background: 'transparent'
                 }}
@@ -1806,9 +1819,9 @@ export default function CampusPulse() {
                 <h3
                   style={{
                     margin: 0,
-                    color: '#0B1A3F',
+                    color: '#737B88',
                     fontSize: '17px',
-                    fontWeight: '950'
+                    fontWeight: 600
                   }}
                 >
                   No posts found
@@ -2213,43 +2226,7 @@ export default function CampusPulse() {
                         </span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleAddPostReminder(post)
-                        }
-                        disabled={
-                          Array.isArray(remindedPostIds) &&
-                          remindedPostIds.includes(post.id)
-                        }
-                        title={
-                          Array.isArray(remindedPostIds) &&
-                          remindedPostIds.includes(post.id)
-                            ? 'Reminder added'
-                            : 'Add this to your notifications'
-                        }
-                        style={{
-                          ...actionBtn,
-                          color:
-                            Array.isArray(remindedPostIds) &&
-                            remindedPostIds.includes(post.id)
-                              ? categoryBadge.accent
-                              : 'var(--campora-muted)',
-                          opacity:
-                            Array.isArray(remindedPostIds) &&
-                            remindedPostIds.includes(post.id)
-                              ? 0.85
-                              : 1
-                        }}
-                      >
-                        <BellPlus size={18} />
-                        <span>
-                          {Array.isArray(remindedPostIds) &&
-                          remindedPostIds.includes(post.id)
-                            ? 'Reminder added'
-                            : 'Remind me'}
-                        </span>
-                      </button>
+
 
 
                     </div>
@@ -3084,7 +3061,13 @@ export default function CampusPulse() {
                 </label>
 
                 <select
-                  style={inputStyle}
+                  style={{
+                    ...inputStyle,
+                    minHeight: '54px',
+                    padding: '14px 16px',
+                    fontSize: '14px',
+                    borderRadius: '13px'
+                  }}
                   value={newPost.category}
                   onChange={event =>
                     setNewPost({
@@ -3136,7 +3119,7 @@ export default function CampusPulse() {
                   required
                   style={{
                     ...inputStyle,
-                    height: '120px',
+                    height: '145px',
                     resize: 'none'
                   }}
                   value={newPost.content}
@@ -3166,6 +3149,106 @@ export default function CampusPulse() {
                     })
                   }
                 />
+              </div>
+
+              <div>
+                <label style={labelStyle}>
+                  WHEN SOMEONE REPLIES
+                </label>
+
+                <div style={replyPreferenceGridStyle}>
+                  {[
+                    {
+                      value: 'notification',
+                      label: 'Notify me',
+                      icon: BellPlus,
+                      accent: '#648CCB',
+                      soft: '#F1F6FC',
+                      border: '#D5E2F2'
+                    },
+                    {
+                      value: 'reminder',
+                      label: 'Remind me',
+                      icon: Clock3,
+                      accent: '#8B78B8',
+                      soft: '#F7F4FC',
+                      border: '#E7E0F2'
+                    },
+                    {
+                      value: 'both',
+                      label: 'Both',
+                      icon: BellPlus,
+                      accent: '#0B1A3F',
+                      soft: '#F4F6F9',
+                      border: '#DCE2EA'
+                    },
+                    {
+                      value: 'none',
+                      label: 'None',
+                      icon: null,
+                      accent: '#667085',
+                      soft: '#F8F9FB',
+                      border: '#E1E5EB'
+                    }
+                  ].map(option => {
+                    const active =
+                      newPost.reply_alert_preference === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() =>
+                          setNewPost({
+                            ...newPost,
+                            reply_alert_preference: option.value
+                          })
+                        }
+                        style={{
+                          ...replyPreferenceButtonStyle,
+                          background: active
+                            ? (
+                                option.value === 'notification'
+                                  ? '#648CCB'
+                                  : option.value === 'reminder'
+                                    ? '#8B78B8'
+                                    : '#0B1A3F'
+                              )
+                            : option.soft,
+                          color: active
+                            ? '#FFFFFF'
+                            : option.accent,
+                          borderColor: active
+                            ? (
+                                option.value === 'notification'
+                                  ? '#648CCB'
+                                  : option.value === 'reminder'
+                                    ? '#8B78B8'
+                                    : '#0B1A3F'
+                              )
+                            : option.border,
+                          boxShadow: active
+                            ? `0 4px 12px ${
+                                option.value === 'notification'
+                                  ? '#648CCB'
+                                  : option.value === 'reminder'
+                                    ? '#8B78B8'
+                                    : '#0B1A3F'
+                              }24`
+                            : 'none'
+                        }}
+                      >
+                        {option.icon &&
+                          React.createElement(option.icon, {
+                            size: 15,
+                            strokeWidth: 2.2,
+                            color: active ? '#FFFFFF' : option.accent
+                          })}
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <label style={anonymousPostRowStyle}>
@@ -3531,7 +3614,7 @@ const avatarCircle = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontWeight: '900',
+  fontWeight: 600,
   fontSize: '11px',
   flexShrink: 0
 };
@@ -3545,7 +3628,7 @@ const postAuthorRowStyle = {
 
 const postAuthorNameStyle = {
   margin: 0,
-  fontWeight: '900',
+  fontWeight: '750',
   color: 'var(--campora-text)',
   fontSize: '15px'
 };
@@ -3620,12 +3703,14 @@ const postActionsRowStyle = {
 
 const inputStyle = {
   width: '100%',
-  padding: '10px 14px',
-  borderRadius: '10px',
+  minHeight: '46px',
+  padding: '12px 15px',
+  borderRadius: '12px',
   border: '1.5px solid var(--divider)',
   outline: 'none',
-  fontSize: '13px',
-  color: 'var(--campora-text)',
+  fontSize: '14px',
+  fontWeight: 600,
+  color: '#252A33',
   boxSizing: 'border-box',
   fontFamily: 'inherit',
   background: 'var(--surface-container-lowest)'
@@ -3703,7 +3788,7 @@ const noCommentsStyle = {
 const commentsListStyle = {
   display: 'flex',
   flexDirection: 'column',
-  gap: '16px'
+  gap: '20px'
 };
 
 const postImage = {
@@ -3759,8 +3844,8 @@ const overlay = {
 
 const modalCardStyle = {
   width: '100%',
-  maxWidth: '540px',
-  padding: '32px',
+  maxWidth: '640px',
+  padding: '38px 40px',
   borderRadius: 'var(--radius)',
   background: 'var(--surface-container-lowest)',
   boxShadow: 'var(--shadow-lift)'
@@ -3789,12 +3874,42 @@ const modalFormStyle = {
 };
 
 const labelStyle = {
-  fontSize: '11px',
-  fontWeight: '800',
-  color: 'var(--campora-muted)',
+  fontSize: '12px',
+  fontWeight: 700,
+  color: '#2F3540',
   display: 'block',
-  marginBottom: '6px',
-  letterSpacing: '0.5px'
+  marginBottom: '8px',
+  letterSpacing: '0.45px'
+};
+
+const replyPreferenceGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  gap: '9px'
+};
+
+const replyPreferenceButtonStyle = {
+  minHeight: '44px',
+  padding: '10px 12px',
+  borderRadius: '12px',
+  border: '1px solid #E1E5EB',
+  background: '#F8F9FB',
+  color: '#555E6C',
+  fontSize: '12px',
+  fontWeight: 650,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '7px',
+  transition: 'all 0.18s ease'
+};
+
+const replyPreferenceButtonActiveStyle = {
+  background: '#0B1A3F',
+  color: '#FFFFFF',
+  borderColor: '#0B1A3F'
 };
 
 const anonymousPostRowStyle = {
@@ -3882,7 +3997,7 @@ const commentAvatarStyle = {
 };
 
 const commentAuthorStyle = {
-  fontWeight: '900',
+  fontWeight: '700',
   fontSize: '13px',
   color: 'var(--campora-text)'
 };

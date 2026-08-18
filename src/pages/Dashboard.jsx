@@ -79,8 +79,8 @@ function safeParse(value, fallback) {
 function greeting() {
   const hour = new Date().getHours();
 
-  if (hour < 12) return 'Good Morning';
-  if (hour < 18) return 'Good Afternoon';
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
 
   return 'Good Evening';
 }
@@ -1351,7 +1351,7 @@ const styles = {
     gap: '8px',
     color: '#FFFFFF',
     fontSize: '13px',
-    fontWeight: '900',
+    fontWeight: '600',
     letterSpacing: '0.7px',
     marginBottom: '10px',
   },
@@ -1360,7 +1360,7 @@ const styles = {
     margin: 0,
     color: '#FFFFFF',
     fontSize: '34px',
-    fontWeight: '950',
+    fontWeight: '600',
     letterSpacing: '-1px',
     lineHeight: 1.1,
   },
@@ -1369,7 +1369,7 @@ const styles = {
     margin: '9px 0 0',
     color: '#FFFFFF',
     fontSize: '16px',
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   errorBanner: {
@@ -1652,9 +1652,9 @@ const styles = {
 
   statValue: {
     color: NAVY,
-    fontSize: '24px',
+    fontSize: '22px',
     lineHeight: 1,
-    fontWeight: '950',
+    fontWeight: '600',
   },
 
   statLabel: {
@@ -1676,9 +1676,9 @@ const styles = {
 
   todoNumber: {
     color: NAVY,
-    fontSize: '32px',
+    fontSize: '30px',
     lineHeight: 1,
-    fontWeight: '950',
+    fontWeight: '600',
   },
 
   todoLabel: {

@@ -4441,8 +4441,6 @@ return (
        <GraduationCap size={46} color="#0B1A3F" />
      </div>
 
-   <h2 style={emptyCoursesTitle}>No courses yet</h2>
-
    <p style={emptyCoursesText}>
     Start by choosing a semester, then create your first
     course workspace.
@@ -5667,8 +5665,8 @@ const statIconStyle = {
 
 const statValueStyle = {
   color: '#1A1B1F',
-  fontSize: '24px',
-  fontWeight: '900',
+  fontSize: '22px',
+  fontWeight: '700',
   lineHeight: 1,
   marginBottom: '6px'
 };

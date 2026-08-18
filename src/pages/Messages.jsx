@@ -1701,7 +1701,7 @@ export default function Messages() {
         .wa-top-title-line h3 {
           margin: 0;
           color: #FFFFFF;
-          font-weight: 950;
+          font-weight: 600;
           letter-spacing: -.025em;
         }
 
@@ -2216,9 +2216,9 @@ export default function Messages() {
         }
 
         .wa-empty-list strong {
-          color: #0B1A3F;
+          color: #737B88;
           font-size: 14px;
-          font-weight: 900;
+          font-weight: 600;
         }
 
         .wa-empty-list span {
@@ -2467,9 +2467,10 @@ export default function Messages() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          color: #8B97AD;
+          color: #737B88;
           text-align: center;
           font-size: 11px;
+          font-weight: 500;
         }
 
         .wa-composer {

@@ -1383,7 +1383,7 @@ label="Direct Messages"
   </div>
   <div style={{ flex: 1, minWidth: 0 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-      <h2 style={{ ...heroCardTitle, fontSize: 26, color: '#FFFFFF' }}>Register &amp; Swap</h2>
+      <h2 style={{ ...heroCardTitle, fontSize: 26, fontWeight: 600, color: '#FFFFFF' }}>Register &amp; Swap</h2>
       <span style={{ ...heroCardPill, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}>COURSE MATCH &amp; SWAP</span>
     </div>
     <p style={{
@@ -1441,9 +1441,9 @@ label="Direct Messages"
   <p
     style={{
       margin: 0,
-      color: 'var(--campora-text)',
-      fontSize: 16,
-      fontWeight: 800,
+      color: 'var(--campora-muted)',
+      fontSize: 14,
+      fontWeight: 600,
       fontFamily: 'inherit'
     }}
   >
@@ -1755,7 +1755,7 @@ style={replyButton}><CornerDownRight size={14} /> Reply</button>
         display: 'flex', alignItems: 'center', justifyContent: 'center'
       }}><BookOpen size={23} /></div>
       <div>
-        <h3 style={{ margin: 0, fontSize: 21, fontWeight: 900, color: '#FFFFFF' }}>Curriculum</h3>
+        <h3 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: '#FFFFFF' }}>Curriculum</h3>
         <p style={{ margin: '5px 0 0', color: 'rgba(255,255,255,0.76)', fontSize: 12, fontWeight: 650 }}>
           Pick your major and keep the curriculum in one clean place.
         </p>
@@ -1842,7 +1842,7 @@ style={selectInputStyle}
   background: '#FFFFFF',
   border: '1px solid #E4EAF2'
 }}>
-<h4 style={{ margin: '0 0 14px', color: 'var(--campora-text)', fontWeight: '900' }}>
+<h4 style={{ margin: '0 0 14px', color: 'var(--campora-text)', fontWeight: '600' }}>
 {editingQuestionId ? 'Edit Question' : `Ask about ${selectedMajor}`}
 </h4>
 <input type="text" placeholder="Question title" required
@@ -3824,7 +3824,7 @@ style={{
   whiteSpace: 'nowrap',
   fontFamily: 'inherit',
   fontSize: '13px',
-  fontWeight: 800,
+  fontWeight: 600,
   lineHeight: '40px',
 
   cursor: 'pointer',
@@ -4335,10 +4335,10 @@ const primarySaveBtn = { width: '100%', background: 'var(--campora-navy)', color
 'var(--surface-container-lowest)', border: 'none', padding: '14px', borderRadius: '999px', fontWeight:
 '900', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center',
 justifyContent: 'center', gap: '8px' };
-const sectionHeading = { margin: '0 0 10px', fontSize: '20px', fontWeight: '900',
+const sectionHeading = { margin: '0 0 10px', fontSize: '20px', fontWeight: 600,
 color: 'var(--campora-text)' };
 const sectionDescription = { margin: '0 0 22px', fontSize: '13px', color:
-'var(--campora-muted)', fontWeight: '600', lineHeight: 1.5 };
+'var(--campora-muted)', fontWeight: 600, lineHeight: 1.5 };
 const sectionTopRow = { display: 'flex', alignItems: 'center', justifyContent:
 'space-between', gap: '15px', flexWrap: 'wrap' };
 const swapCard = { background: 'var(--surface-container-lowest)', padding: '22px', borderRadius:
@@ -4352,7 +4352,7 @@ const takenSwapCard = { background: '#FBFCFE', border: '1px solid var(--outline)
   border: '1px solid #E4EAF2',
   boxShadow: '0 10px 26px rgba(11,26,63,0.05)',
   color: 'var(--campora-muted)',
-  fontWeight: '750',
+  fontWeight: 600,
   textAlign: 'center'
 };
 const loadingBox = { display: 'flex', alignItems: 'center', justifyContent: 'center',

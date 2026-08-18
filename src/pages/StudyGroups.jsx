@@ -3976,7 +3976,7 @@ border:
 fontSize:
  '14px',
 fontWeight:
- '700',
+ '600',
 
 color:
  '#1A1B1F',
@@ -3985,7 +3985,7 @@ outline:
 'none',
 
 background:
-'#FAFBFC',
+'#FCFCFD',
 
   boxSizing:
    'border-box'
@@ -4008,46 +4008,28 @@ flexWrap:
 
 
 const chipStyle = {
-
-padding:
-'8px 16px',
-
-borderRadius:
-'10px',
-
-border:
-'1.5px solid #E3E2E7',
-
-background:
-'#E9E7ED',
-color:
- '#717786',
-
-fontSize:
- '12px',
-
-fontWeight:
- '800',
-
-  cursor:
-   'pointer'
+  padding: '9px 15px',
+  borderRadius: '12px',
+  border: '1px solid #E4E8EF',
+  background: '#F8F9FB',
+  color: '#667085',
+  fontSize: '12px',
+  fontWeight: '600',
+  cursor: 'pointer',
+  transition: 'all 0.18s ease',
+  boxShadow: '0 1px 2px rgba(11,26,63,0.025)'
 };
 
 
 
 
 const activeChipStyle = {
-
-...chipStyle,
-
-background:
-'#0B1A3F',
-
-color:
- 'white',
-
-  borderColor:
-   '#002D62'
+  ...chipStyle,
+  background: '#0B1A3F',
+  color: '#FFFFFF',
+  borderColor: '#0B1A3F',
+  fontWeight: '650',
+  boxShadow: '0 3px 9px rgba(11,26,63,0.12)'
 };
 
 const saveBtn = {
@@ -4238,9 +4220,9 @@ function WhiteStudyEmptyState({
    <h3
     style={{
      margin: 0,
-     color: '#0B1A3F',
-     fontSize: '17px',
-     fontWeight: '900'
+     color: '#6F7785',
+     fontSize: '15px',
+     fontWeight: '600'
     }}
    >
     {title}
@@ -4382,7 +4364,7 @@ const instagramNoChatText = { margin: '7px 0 0', color: '#717786', maxWidth:
 '320px', fontSize: '11px', fontWeight: '700', lineHeight: 1.5 };
 const instagramBubble = { maxWidth: '72%', padding: '12px 14px',
 borderRadius: '19px', fontSize: '13px' };
-const instagramBubbleMine = { background: '#002D62', color: '#FFFFFF',
+const instagramBubbleMine = { background: '#0B1A3F', color: '#FFFFFF',
 borderBottomRightRadius: '6px' };
 const instagramBubbleTheirs = { background: '#F1F5F9', color: '#1A1B1F',
 borderBottomLeftRadius: '6px' };
@@ -6631,7 +6613,7 @@ fontSize:
  '28px',
 
 fontWeight:
- '900',
+ '600',
 
  color:
    '#1A1B1F'
@@ -6948,7 +6930,7 @@ style={{
  0,
 
 fontWeight:
- '900',
+ '600',
 
 fontSize:
  '30px',
