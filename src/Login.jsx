@@ -39,6 +39,10 @@ export default function Login() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
+        <Link to="/" style={styles.backHome}>
+          ← Back to Home
+        </Link>
+
         <div style={styles.header}>
           <h1 style={styles.logoTitle}>Campora</h1>
           <p style={styles.subtitle}>Academic Portal Login</p>
@@ -111,6 +115,17 @@ const styles = {
   header: {
     textAlign: "center",
     marginBottom: "2.5rem",
+  },
+  backHome: {
+    display: "inline-flex",
+    alignItems: "center",
+    color: "#6B7280",
+    textDecoration: "none",
+    fontSize: "0.85rem",
+    fontWeight: "600",
+    marginBottom: "1.25rem",
+    transition: "color 0.2s ease",
+    paddingLeft: "2px",
   },
   logoTitle: {
     color: "#111827",
