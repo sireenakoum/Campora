@@ -12,7 +12,6 @@ import {
   GraduationCap,
   Heart,
   Infinity as InfinityIcon,
-  Landmark,
   LayoutDashboard,
   MapPin,
   Megaphone,
@@ -61,8 +60,9 @@ const DEMO_TABS = [
     points: [
       'Today’s schedule plus everything coming up',
       'To-do progress and an academic snapshot',
-      'Quick access to every workspace',
+      'Quick access to your most-used workspaces',
       'A pinned campus update right on top',
+      'An embedded campus map to find your way',
     ],
   },
   {
@@ -91,7 +91,7 @@ const DEMO_TABS = [
       'Create or join groups filtered by major',
       'Group chat with pin-and-reply',
       'Direct messages with a live typing indicator',
-      'Roles, bookmarks, and join requests',
+      'Roles and join requests',
     ],
   },
   {
@@ -105,7 +105,7 @@ const DEMO_TABS = [
     points: [
       'Posts, questions, and opportunities',
       'Likes, comments, and nested replies',
-      'Six colour-coded categories at a glance',
+      'Seven colour-coded categories at a glance',
       'Search across everything',
     ],
   },
@@ -120,7 +120,7 @@ const DEMO_TABS = [
     points: [
       'Month view with next / prev navigation',
       'Colour-coded events with auto contrast',
-      'Reminders and a progress ring',
+      'Reminders and completion tracking',
     ],
   },
   {
@@ -171,7 +171,7 @@ const PILLARS = [
   {
     icon: CalendarDays,
     title: 'Planner',
-    text: 'A month at a glance with colour-coded events, reminders, and a progress ring.',
+    text: 'A month at a glance with colour-coded events, reminders, and completion tracking.',
     accent: '#4F7FC7',
     soft: '#EAF2FD',
   },
@@ -244,12 +244,6 @@ const EXTRAS = [
     label: 'Live Notifications',
     text: 'Realtime updates the moment they happen',
     accent: '#A97884',
-  },
-  {
-    icon: Landmark,
-    label: 'Campus Finder',
-    text: 'Locate the landmarks you use every day',
-    accent: '#7F7897',
   },
   {
     icon: Sparkles,
@@ -3279,7 +3273,6 @@ export default function LandingPage() {
                   'Notifications',
                   'Campus Map',
                   'Schedule Import',
-                  'Assistant',
                 ].map((item) => (
                   <span className="lp-ticker-item" key={`${round}-${item}`}>
                     <span>✦</span>
