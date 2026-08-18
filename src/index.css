@@ -15,6 +15,12 @@ body {
   min-height: 100vh;
 }
 
+@keyframes camporaSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes camporaTypingPulse {
   0%, 100% {
     opacity: 0.35;

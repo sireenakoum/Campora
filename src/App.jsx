@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -35,26 +35,27 @@ import camporaLogo from './assets/camporanavylogo.png';
 
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
-import About from './pages/About';
-import Features from './pages/Features';
-import Announcements from './pages/Announcements';
-import Notifications from './pages/Notifications';
-import CourseManagement from './pages/CourseManagement';
-import Planner from './pages/Planner';
-import DevPlannerHarness from './pages/DevPlannerHarness';
-import Todo from './pages/Todo';
-import StudyGroups from './pages/StudyGroups';
-import CampusPulse from './pages/CampusPulse';
-import AdminStudyGroups from './pages/AdminStudyGroups';
-import Registration from './pages/Registration';
-import Messages from './pages/Messages';
 
-import Onboarding from './pages/Onboarding';
-import Login from './Login';
-import SignUp from './pages/SignUp';
-import Profile from './Profile';
-import ForgotPassword from './ForgotPassword';
-import ResetPassword from './ResetPassword';
+const About = lazy(() => import('./pages/About'));
+const Features = lazy(() => import('./pages/Features'));
+const Announcements = lazy(() => import('./pages/Announcements'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const CourseManagement = lazy(() => import('./pages/CourseManagement'));
+const Planner = lazy(() => import('./pages/Planner'));
+const DevPlannerHarness = lazy(() => import('./pages/DevPlannerHarness'));
+const Todo = lazy(() => import('./pages/Todo'));
+const StudyGroups = lazy(() => import('./pages/StudyGroups'));
+const CampusPulse = lazy(() => import('./pages/CampusPulse'));
+const AdminStudyGroups = lazy(() => import('./pages/AdminStudyGroups'));
+const Registration = lazy(() => import('./pages/Registration'));
+const Messages = lazy(() => import('./pages/Messages'));
+
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Login = lazy(() => import('./Login'));
+const SignUp = lazy(() => import('./pages/SignUp'));
+const Profile = lazy(() => import('./Profile'));
+const ForgotPassword = lazy(() => import('./ForgotPassword'));
+const ResetPassword = lazy(() => import('./ResetPassword'));
 
 import { supabase } from './lib/supabase';
 import { signOut } from './lib/auth';
@@ -1193,14 +1194,52 @@ function DashboardLayout() {
   );
 }
 
+function RouteFallback() {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FBFCFE',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          color: '#0B1A3F',
+          fontSize: '13px',
+          fontWeight: '900',
+        }}
+      >
+        <span
+          style={{
+            width: '18px',
+            height: '18px',
+            borderRadius: '50%',
+            border: '3px solid rgba(11,26,63,.15)',
+            borderTopColor: '#0B1A3F',
+            animation: 'camporaSpin .7s linear infinite',
+          }}
+        />
+        Loading Campora…
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <Router>
-      <Routes>
-        <Route
-          path="/"
-          element={<LandingPage />}
-        />
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route
+            path="/"
+            element={<LandingPage />}
+          />
 
         <Route
           path="/about"
@@ -1309,6 +1348,7 @@ export default function App() {
           />
         </Route>
       </Routes>
+      </Suspense>
     </Router>
   );
 }
