@@ -1000,13 +1000,15 @@ function DashboardLayout() {
                 <span
                   style={{
                     position: 'absolute',
-                    top: '5px',
-                    right: '1px',
-                    width: '7px',
-                    height: '7px',
+                    top: '2px',
+                    right: '-2px',
+                    width: '11px',
+                    height: '11px',
+                    minWidth: '11px',
                     borderRadius: '50%',
-                    background: '#A97884',
+                    background: '#0B1A3F',
                     border: '2px solid #FFFFFF',
+                    boxShadow: '0 2px 8px rgba(11, 26, 63, 0.34)',
                   }}
                 />
               )}
