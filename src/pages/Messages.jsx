@@ -1572,7 +1572,7 @@ export default function Messages() {
           text-align: center;
           color: #0B1A3F;
           font-size: 15px;
-          font-weight: 900;
+          font-weight: 700;
           background: transparent;
         }
 
@@ -1615,7 +1615,7 @@ export default function Messages() {
           margin: 0;
           color: #0B1A3F;
           font-size: 24px;
-          font-weight: 950;
+          font-weight: 800;
           line-height: 1.05;
         }
 
@@ -1640,7 +1640,7 @@ export default function Messages() {
           color: #FFFFFF;
           font: inherit;
           font-size: 11px;
-          font-weight: 900;
+          font-weight: 700;
           cursor: pointer;
           box-shadow: 0 7px 16px rgba(11,26,63,.12);
         }
@@ -1717,7 +1717,7 @@ export default function Messages() {
         .wa-top-divider {
           color: #8FA8CC;
           font-size: 13px;
-          font-weight: 900;
+          font-weight: 700;
         }
 
         .wa-top-overview-copy p {
@@ -1767,7 +1767,7 @@ export default function Messages() {
           color: #0B1A3F;
           font-size: 16px;
           line-height: 1;
-          font-weight: 950;
+          font-weight: 800;
         }
 
         .wa-top-stat-card span {
@@ -1775,7 +1775,7 @@ export default function Messages() {
           margin-top: 4px;
           color: #8B97AD;
           font-size: 9px;
-          font-weight: 850;
+          font-weight: 700;
           text-transform: uppercase;
           letter-spacing: .035em;
         }
@@ -1814,7 +1814,7 @@ export default function Messages() {
         .wa-sidebar-header h2 {
           margin: 0;
           font-size: 19px;
-          font-weight: 950;
+          font-weight: 800;
           line-height: 1.05;
           color: #FFFFFF;
         }
@@ -1823,7 +1823,7 @@ export default function Messages() {
           padding: 0 8px 11px;
           color: #8A95A7;
           font-size: 10px;
-          font-weight: 900;
+          font-weight: 700;
           letter-spacing: .08em;
           text-transform: uppercase;
         }
@@ -1847,7 +1847,7 @@ export default function Messages() {
           gap: 10px;
           font: inherit;
           font-size: 12px;
-          font-weight: 850;
+          font-weight: 700;
           text-align: left;
           cursor: pointer;
           box-shadow: 0 3px 10px rgba(11,26,63,.025);
@@ -1903,7 +1903,7 @@ export default function Messages() {
           gap: 8px;
           font: inherit;
           font-size: 11px;
-          font-weight: 900;
+          font-weight: 700;
           cursor: pointer;
           box-shadow: 0 7px 16px rgba(11,26,63,.12);
         }
@@ -1941,7 +1941,7 @@ export default function Messages() {
           margin: 0;
           color: #0B1A3F;
           font-size: 18px;
-          font-weight: 950;
+          font-weight: 800;
         }
 
         .wa-inbox-toolbar p {
@@ -1961,7 +1961,7 @@ export default function Messages() {
         .wa-section-label {
           color: #0B1A3F;
           font-size: 12px;
-          font-weight: 900;
+          font-weight: 700;
         }
 
         .wa-search-wrap {
@@ -2116,7 +2116,7 @@ export default function Messages() {
           flex-shrink: 0;
           color: #0B1A3F;
           font-size: 13px;
-          font-weight: 950;
+          font-weight: 700;
           box-shadow: inset 0 0 0 1px rgba(11,26,63,.05);
         }
 
@@ -2135,7 +2135,7 @@ export default function Messages() {
           min-width: 0;
           color: #0B1A3F;
           font-size: 13px;
-          font-weight: 900;
+          font-weight: 700;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -2150,7 +2150,7 @@ export default function Messages() {
           background: #EEF2F7;
           color: #66758E;
           font-size: 8px;
-          font-weight: 900;
+          font-weight: 700;
           text-transform: uppercase;
           white-space: nowrap;
         }
@@ -2187,7 +2187,7 @@ export default function Messages() {
           align-items: center;
           justify-content: center;
           font-size: 9px;
-          font-weight: 900;
+          font-weight: 800;
         }
 
         .wa-empty-list {
@@ -2260,7 +2260,7 @@ export default function Messages() {
         .mentor-name {
           color: #0B1A3F;
           font-size: 14px;
-          font-weight: 900;
+          font-weight: 700;
         }
 
         .mentor-role {
@@ -2330,7 +2330,7 @@ export default function Messages() {
           color: #FFFFFF;
           font: inherit;
           font-size: 10px;
-          font-weight: 900;
+          font-weight: 700;
           cursor: pointer;
         }
 
@@ -2381,7 +2381,7 @@ export default function Messages() {
           margin: 0;
           color: #0B1A3F;
           font-size: 15px;
-          font-weight: 900;
+          font-weight: 700;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -2451,7 +2451,7 @@ export default function Messages() {
           margin-bottom: 4px;
           color: #66758E;
           font-size: 9px;
-          font-weight: 900;
+          font-weight: 700;
         }
 
         .wa-message-time {
@@ -2558,7 +2558,7 @@ export default function Messages() {
           margin: 0;
           color: #0B1A3F;
           font-size: 20px;
-          font-weight: 950;
+          font-weight: 800;
         }
 
         .central-modal-head p {
@@ -2586,7 +2586,7 @@ export default function Messages() {
           margin-bottom: 6px;
           color: #0B1A3F;
           font-size: 11px;
-          font-weight: 900;
+          font-weight: 700;
         }
 
         .central-modal-input {
@@ -2663,7 +2663,7 @@ export default function Messages() {
           border-radius: 11px;
           font: inherit;
           font-size: 11px;
-          font-weight: 900;
+          font-weight: 700;
           cursor: pointer;
         }
 

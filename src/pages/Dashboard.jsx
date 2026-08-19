@@ -1395,14 +1395,14 @@ const styles = {
     margin: 0,
     color: NAVY,
     fontSize: '18px',
-    fontWeight: '950',
+    fontWeight: '800',
   },
 
   sectionSubtitle: {
     margin: '4px 0 0',
     color: '#96A1B3',
     fontSize: '12px',
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   quickGrid: {
@@ -1450,7 +1450,7 @@ const styles = {
     textAlign: 'left',
     color: NAVY,
     fontSize: '13px',
-    fontWeight: '900',
+    fontWeight: '700',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -1515,7 +1515,7 @@ const styles = {
     margin: 0,
     color: NAVY,
     fontSize: '16px',
-    fontWeight: '950',
+    fontWeight: '800',
   },
 
   panelSubtitle: {
@@ -1523,7 +1523,7 @@ const styles = {
     color: '#96A1B3',
     fontSize: '12px',
     lineHeight: 1.45,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   panelAction: {
@@ -1539,7 +1539,7 @@ const styles = {
     cursor: 'pointer',
     fontFamily: 'inherit',
     fontSize: '9px',
-    fontWeight: '900',
+    fontWeight: '700',
     flexShrink: 0,
   },
 
@@ -1586,7 +1586,7 @@ const styles = {
   scheduleTitle: {
     color: NAVY,
     fontSize: '13.5px',
-    fontWeight: '900',
+    fontWeight: '700',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -1596,13 +1596,13 @@ const styles = {
     marginTop: '4px',
     color: '#8793A6',
     fontSize: '11px',
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   scheduleTime: {
     color: '#6F7D93',
     fontSize: '11px',
-    fontWeight: '850',
+    fontWeight: '700',
     whiteSpace: 'nowrap',
   },
 
@@ -1631,7 +1631,7 @@ const styles = {
     justifyContent: 'center',
     flexShrink: 0,
     fontSize: '8px',
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   statGrid: {
@@ -1660,7 +1660,7 @@ const styles = {
   statLabel: {
     marginTop: '8px',
     fontSize: '11.5px',
-    fontWeight: '900',
+    fontWeight: '700',
   },
 
   todoWrap: {
@@ -1685,7 +1685,7 @@ const styles = {
     marginTop: '6px',
     color: '#7F8B9F',
     fontSize: '12px',
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   todoPercent: {
@@ -1697,7 +1697,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '11px',
-    fontWeight: '950',
+    fontWeight: '800',
   },
 
   progressTrack: {
@@ -1718,7 +1718,7 @@ const styles = {
     marginTop: '9px',
     color: '#8995A8',
     fontSize: '11px',
-    fontWeight: '750',
+    fontWeight: '600',
   },
 
   announcementCard: {
@@ -1754,7 +1754,7 @@ const styles = {
   announcementMeta: {
     color: GOLD,
     fontSize: '9.5px',
-    fontWeight: '950',
+    fontWeight: '800',
     letterSpacing: '.5px',
     marginBottom: '4px',
   },
@@ -1762,7 +1762,7 @@ const styles = {
   announcementTitle: {
     color: NAVY,
     fontSize: '13.5px',
-    fontWeight: '900',
+    fontWeight: '700',
   },
 
   announcementText: {
@@ -1825,7 +1825,7 @@ const styles = {
     color: NAVY,
     fontSize: '14px',
     lineHeight: 1.35,
-    fontWeight: '850',
+    fontWeight: '700',
   },
 
   statusDivider: {
@@ -1877,7 +1877,7 @@ const styles = {
     margin: 0,
     color: NAVY,
     fontSize: '16px',
-    fontWeight: '950',
+    fontWeight: '800',
   },
 
   mapSubtitle: {
@@ -1885,7 +1885,7 @@ const styles = {
     color: '#96A1B3',
     fontSize: '12px',
     lineHeight: 1.4,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   mapOpenButton: {
@@ -1899,7 +1899,7 @@ const styles = {
     cursor: 'pointer',
     fontFamily: 'inherit',
     fontSize: '9px',
-    fontWeight: '900',
+    fontWeight: '700',
     color: BLUE,
     background: BLUE_SOFT,
     border: `1px solid ${BLUE_BORDER}`,
@@ -1957,14 +1957,14 @@ const styles = {
   mapFloatingTitle: {
     color: NAVY,
     fontSize: '12px',
-    fontWeight: '950',
+    fontWeight: '700',
   },
 
   mapFloatingText: {
     marginTop: '3px',
     color: '#8995A8',
     fontSize: '10px',
-    fontWeight: '750',
+    fontWeight: '600',
   },
 
   loadingCard: {
@@ -1994,13 +1994,13 @@ const styles = {
   loadingTitle: {
     color: NAVY,
     fontSize: '15px',
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   loadingText: {
     marginTop: '3px',
     color: MUTED,
     fontSize: '10.5px',
-    fontWeight: '700',
+    fontWeight: '600',
   },
 };
