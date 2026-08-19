@@ -1,5 +1,9 @@
 -- Campora: message reporting support
 -- Run this in Supabase dashboard -> SQL Editor -> New query, then Run.
+-- NOTE: this DROPS an existing message_reports table so its schema exactly
+-- matches what the app inserts/reads. No reports are stored yet in normal use.
+
+drop table if exists public.message_reports cascade;
 
 -- 1) Table: one row per message that a student reported.
 create table if not exists public.message_reports (
