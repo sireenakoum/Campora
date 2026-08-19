@@ -32,7 +32,6 @@ CheckCheck,
   Minimize2} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from '../lib/toast';
-import WeightedGradeCalculator from "../components/WeightedGradeCalculator";
 import {
 PageShell,
 IconChip,
@@ -202,6 +201,261 @@ const openCentralMessagesForUser = (profile) => {
 
   window.location.assign('/messages');
 };
+
+
+
+const GPA_SCALE = {
+  'A+': 4.3,
+  'A': 4.0,
+  'A-': 3.7,
+  'B+': 3.3,
+  'B': 3.0,
+  'B-': 2.7,
+  'C+': 2.3,
+  'C': 2.0,
+  'C-': 1.7,
+  'D+': 1.3,
+  'D': 1.0,
+  'F': 0.0
+};
+
+const GPA_GRADE_OPTIONS = Object.keys(GPA_SCALE);
+
+const percentToLetterGrade = value => {
+  const score = Number(value);
+  if (!Number.isFinite(score)) return '—';
+  if (score >= 93) return 'A';
+  if (score >= 90) return 'A-';
+  if (score >= 87) return 'B+';
+  if (score >= 83) return 'B';
+  if (score >= 80) return 'B-';
+  if (score >= 77) return 'C+';
+  if (score >= 73) return 'C';
+  if (score >= 70) return 'C-';
+  if (score >= 67) return 'D+';
+  if (score >= 60) return 'D';
+  return 'F';
+};
+
+function RegistrationGradeGpaCalculator() {
+  const [calculatorMode, setCalculatorMode] = useState('gpa');
+  const [gpaMode, setGpaMode] = useState('semester');
+  const [previousCredits, setPreviousCredits] = useState('');
+  const [currentGpa, setCurrentGpa] = useState('');
+  const [courses, setCourses] = useState([
+    { id: 1, name: '', credits: '3', grade: 'A' },
+    { id: 2, name: '', credits: '3', grade: 'B+' }
+  ]);
+  const [gradeItems, setGradeItems] = useState([
+    { id: 1, name: 'Midterm', grade: '', weight: '' },
+    { id: 2, name: 'Final', grade: '', weight: '' }
+  ]);
+
+  const semesterCredits = courses.reduce((sum, course) => sum + Math.max(0, Number(course.credits) || 0), 0);
+  const semesterQualityPoints = courses.reduce(
+    (sum, course) => sum + (Math.max(0, Number(course.credits) || 0) * (GPA_SCALE[course.grade] ?? 0)),
+    0
+  );
+  const semesterGpa = semesterCredits > 0 ? semesterQualityPoints / semesterCredits : null;
+
+  const oldCredits = Math.max(0, Number(previousCredits) || 0);
+  const oldGpa = Math.min(4.3, Math.max(0, Number(currentGpa) || 0));
+  const cumulativeCredits = oldCredits + semesterCredits;
+  const cumulativeGpa = cumulativeCredits > 0
+    ? ((oldCredits * oldGpa) + semesterQualityPoints) / cumulativeCredits
+    : null;
+
+  const enteredWeight = gradeItems.reduce((sum, item) => sum + Math.max(0, Number(item.weight) || 0), 0);
+  const weightedPoints = gradeItems.reduce(
+    (sum, item) => sum + ((Math.max(0, Number(item.grade) || 0) * Math.max(0, Number(item.weight) || 0)) / 100),
+    0
+  );
+  const weightedPercent = enteredWeight > 0 ? (weightedPoints / enteredWeight) * 100 : null;
+
+  const updateCourse = (id, key, value) => {
+    setCourses(items => items.map(item => item.id === id ? { ...item, [key]: value } : item));
+  };
+
+  const addCourse = () => {
+    setCourses(items => [...items, { id: Date.now(), name: '', credits: '3', grade: 'A' }]);
+  };
+
+  const removeCourse = id => {
+    setCourses(items => items.length === 1 ? items : items.filter(item => item.id !== id));
+  };
+
+  const updateGradeItem = (id, key, value) => {
+    setGradeItems(items => items.map(item => item.id === id ? { ...item, [key]: value } : item));
+  };
+
+  const addGradeItem = () => {
+    setGradeItems(items => [...items, { id: Date.now(), name: '', grade: '', weight: '' }]);
+  };
+
+  const removeGradeItem = id => {
+    setGradeItems(items => items.length === 1 ? items : items.filter(item => item.id !== id));
+  };
+
+  const card = {
+    background: '#FFFFFF',
+    border: '1px solid #E3EAF3',
+    borderRadius: '24px',
+    boxShadow: '0 12px 30px rgba(11,26,63,0.07)',
+    padding: '24px'
+  };
+
+  const pillButton = active => ({
+    border: active ? '1px solid #0B1A3F' : '1px solid #DDE5EF',
+    background: active ? '#0B1A3F' : '#FFFFFF',
+    color: active ? '#FFFFFF' : '#0B1A3F',
+    borderRadius: '999px',
+    padding: '10px 16px',
+    fontSize: '12px',
+    fontWeight: 850,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    boxShadow: active ? '0 7px 18px rgba(11,26,63,0.14)' : 'none'
+  });
+
+  const input = {
+    width: '100%',
+    boxSizing: 'border-box',
+    height: '44px',
+    border: '1px solid #DCE4EF',
+    borderRadius: '14px',
+    background: '#FFFFFF',
+    color: '#0B1A3F',
+    fontSize: '13px',
+    fontWeight: 750,
+    padding: '0 13px',
+    outline: 'none',
+    fontFamily: 'inherit'
+  };
+
+  const label = {
+    display: 'block',
+    marginBottom: '7px',
+    color: '#0B1A3F',
+    fontSize: '10px',
+    fontWeight: 900,
+    letterSpacing: '0.5px'
+  };
+
+  const resultBubble = {
+    background: 'rgba(255,255,255,0.08)',
+    borderRadius: '22px',
+    padding: '20px 22px',
+    color: '#FFFFFF',
+    boxShadow: '0 12px 28px rgba(11,26,63,0.18)',
+    border: '1px solid rgba(255,255,255,0.14)'
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ ...card, padding: 0, overflow: 'hidden', background: '#0B1A3F', border: '1px solid #0B1A3F', boxShadow: '0 16px 34px rgba(11,26,63,0.18)' }}>
+        <div style={{ background: '#0B1A3F', padding: '20px 22px 12px' }}>
+          <h2 style={{ margin: 0, color: '#FFFFFF', fontSize: '21px', fontWeight: 800 }}>Grade &amp; GPA Calculator</h2>
+          <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,.82)', fontSize: '12px', fontWeight: 650, lineHeight: 1.5 }}>
+            Calculate a course grade, one semester GPA, or your updated cumulative GPA.
+          </p>
+        </div>
+        <div style={{ padding: '10px 22px 8px', background: '#0B1A3F' }}>
+          {calculatorMode === 'grade' ? (
+            <div style={{ ...resultBubble, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+              <div><div style={{ fontSize: '10px', fontWeight: 800, opacity: .72 }}>CURRENT GRADE</div><div style={{ marginTop: '5px', fontSize: '24px', fontWeight: 900 }}>{weightedPercent === null ? '—' : `${weightedPercent.toFixed(1)}%`}</div></div>
+              <div><div style={{ fontSize: '10px', fontWeight: 800, opacity: .72 }}>LETTER GRADE</div><div style={{ marginTop: '5px', fontSize: '24px', fontWeight: 900 }}>{weightedPercent === null ? '—' : percentToLetterGrade(weightedPercent)}</div></div>
+              <div><div style={{ fontSize: '10px', fontWeight: 800, opacity: .72 }}>WEIGHT ENTERED</div><div style={{ marginTop: '5px', fontSize: '24px', fontWeight: 900 }}>{enteredWeight.toFixed(0)}%</div></div>
+            </div>
+          ) : (
+            <div style={{ ...resultBubble, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+              <div><div style={{ fontSize: '10px', fontWeight: 800, opacity: .72 }}>{gpaMode === 'cumulative' ? 'NEW CUMULATIVE GPA' : 'SEMESTER GPA'}</div><div style={{ marginTop: '5px', fontSize: '25px', fontWeight: 900 }}>{(gpaMode === 'cumulative' ? cumulativeGpa : semesterGpa) === null ? '—' : (gpaMode === 'cumulative' ? cumulativeGpa : semesterGpa).toFixed(2)}</div></div>
+              <div><div style={{ fontSize: '10px', fontWeight: 800, opacity: .72 }}>SEMESTER CREDITS</div><div style={{ marginTop: '5px', fontSize: '25px', fontWeight: 900 }}>{semesterCredits}</div></div>
+              <div><div style={{ fontSize: '10px', fontWeight: 800, opacity: .72 }}>{gpaMode === 'cumulative' ? 'TOTAL CREDITS' : 'QUALITY POINTS'}</div><div style={{ marginTop: '5px', fontSize: '25px', fontWeight: 900 }}>{gpaMode === 'cumulative' ? cumulativeCredits : semesterQualityPoints.toFixed(1)}</div></div>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '8px 22px 20px', background: '#0B1A3F' }}>
+          <button type="button" onClick={() => setCalculatorMode('grade')} style={{ ...pillButton(calculatorMode === 'grade'), background: calculatorMode === 'grade' ? '#FFFFFF' : 'rgba(255,255,255,0.10)', color: calculatorMode === 'grade' ? '#0B1A3F' : '#FFFFFF', border: '1px solid rgba(255,255,255,0.28)' }}>Grade Calculator</button>
+          <button type="button" onClick={() => setCalculatorMode('gpa')} style={{ ...pillButton(calculatorMode === 'gpa'), background: calculatorMode === 'gpa' ? '#FFFFFF' : 'rgba(255,255,255,0.10)', color: calculatorMode === 'gpa' ? '#0B1A3F' : '#FFFFFF', border: '1px solid rgba(255,255,255,0.28)' }}>GPA Calculator</button>
+        </div>
+      </div>
+
+      {calculatorMode === 'grade' ? (
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '18px' }}>
+            <div>
+              <h3 style={{ margin: 0, color: '#0B1A3F', fontSize: '17px', fontWeight: 700 }}>Course Grade</h3>
+              <p style={{ margin: '5px 0 0', color: '#5B667A', fontSize: '12px', fontWeight: 650 }}>Enter each grade and how much it is worth.</p>
+            </div>
+            <button type="button" onClick={addGradeItem} style={{ ...pillButton(false), display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={14} /> Add Item</button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {gradeItems.map((item, index) => (
+              <div key={item.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1.4fr) minmax(110px, .7fr) minmax(110px, .7fr) 38px', gap: '10px', alignItems: 'end', padding: '14px', borderRadius: '18px', background: '#F8FAFD', border: '1px solid #E4EAF2' }}>
+                <div><label style={label}>ITEM</label><input value={item.name} onChange={e => updateGradeItem(item.id, 'name', e.target.value)} placeholder={`Assessment ${index + 1}`} style={input} /></div>
+                <div><label style={label}>GRADE %</label><input type="number" min="0" max="100" value={item.grade} onChange={e => updateGradeItem(item.id, 'grade', e.target.value)} placeholder="85" style={input} /></div>
+                <div><label style={label}>WEIGHT %</label><input type="number" min="0" max="100" value={item.weight} onChange={e => updateGradeItem(item.id, 'weight', e.target.value)} placeholder="20" style={input} /></div>
+                <button type="button" onClick={() => removeGradeItem(item.id)} aria-label="Remove item" style={{ width: 38, height: 38, borderRadius: '50%', border: '1px solid #E0E6EF', background: '#FFFFFF', color: '#5B667A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3px' }}><Trash2 size={15} /></button>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      ) : (
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '18px' }}>
+            <div>
+              <h3 style={{ margin: 0, color: '#0B1A3F', fontSize: '17px', fontWeight: 700 }}>GPA Calculator</h3>
+              <p style={{ margin: '5px 0 0', color: '#5B667A', fontSize: '12px', fontWeight: 650 }}>Choose whether you want this semester only or your cumulative GPA.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => setGpaMode('semester')} style={pillButton(gpaMode === 'semester')}>Semester GPA</button>
+              <button type="button" onClick={() => setGpaMode('cumulative')} style={pillButton(gpaMode === 'cumulative')}>Cumulative GPA</button>
+            </div>
+          </div>
+
+          {gpaMode === 'cumulative' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', padding: '16px', marginBottom: '16px', borderRadius: '20px', background: '#F8FAFD', border: '1px solid #E4EAF2', boxShadow: '0 7px 18px rgba(11,26,63,0.04)' }}>
+              <div><label style={label}>CREDITS ALREADY COMPLETED</label><input type="number" min="0" value={previousCredits} onChange={e => setPreviousCredits(e.target.value)} placeholder="e.g. 45" style={input} /></div>
+              <div><label style={label}>CURRENT CUMULATIVE GPA</label><input type="number" min="0" max="4.3" step="0.01" value={currentGpa} onChange={e => setCurrentGpa(e.target.value)} placeholder="e.g. 3.42" style={input} /></div>
+              <p style={{ gridColumn: '1 / -1', margin: 0, color: '#5B667A', fontSize: '11px', fontWeight: 650, lineHeight: 1.5 }}>
+                If you already completed courses, add how many credits you have taken and your current GPA. The courses below will then be added to calculate your new cumulative GPA.
+              </p>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {courses.map((course, index) => (
+              <div key={course.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1.4fr) minmax(90px, .55fr) minmax(110px, .65fr) minmax(100px, .6fr) 38px', gap: '10px', alignItems: 'end', padding: '14px', borderRadius: '18px', background: '#F8FAFD', border: '1px solid #E4EAF2' }}>
+                <div><label style={label}>COURSE</label><input value={course.name} onChange={e => updateCourse(course.id, 'name', e.target.value)} placeholder={`Course ${index + 1}`} style={input} /></div>
+                <div><label style={label}>CREDITS</label><input type="number" min="0" step="0.5" value={course.credits} onChange={e => updateCourse(course.id, 'credits', e.target.value)} style={input} /></div>
+                <div><label style={label}>LETTER GRADE</label><select value={course.grade} onChange={e => updateCourse(course.id, 'grade', e.target.value)} style={{ ...input, cursor: 'pointer' }}>{GPA_GRADE_OPTIONS.map(grade => <option key={grade} value={grade}>{grade}</option>)}</select></div>
+                <div><label style={label}>GPA GRADE</label><div style={{ ...input, display: 'flex', alignItems: 'center', background: '#EEF3F9', fontWeight: 900 }}>{GPA_SCALE[course.grade].toFixed(1)}</div></div>
+                <button type="button" onClick={() => removeCourse(course.id)} aria-label="Remove course" style={{ width: 38, height: 38, borderRadius: '50%', border: '1px solid #E0E6EF', background: '#FFFFFF', color: '#5B667A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3px' }}><Trash2 size={15} /></button>
+              </div>
+            ))}
+          </div>
+
+          <button type="button" onClick={addCourse} style={{ ...pillButton(false), marginTop: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={14} /> Add Course</button>
+
+          <div style={{ marginTop: '18px', padding: '16px', borderRadius: '20px', background: '#F8FAFD', border: '1px solid #E4EAF2' }}>
+            <div style={{ color: '#0B1A3F', fontSize: '12px', fontWeight: 900, marginBottom: '10px' }}>LETTER GRADE → GPA SCALE</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(72px, 1fr))', gap: '8px' }}>
+              {GPA_GRADE_OPTIONS.map(grade => (
+                <div key={grade} style={{ background: '#FFFFFF', border: '1px solid #E1E8F1', borderRadius: '14px', padding: '10px 8px', textAlign: 'center', boxShadow: '0 4px 12px rgba(11,26,63,.04)' }}>
+                  <div style={{ color: '#0B1A3F', fontSize: '13px', fontWeight: 900 }}>{grade}</div>
+                  <div style={{ color: '#5B667A', fontSize: '11px', fontWeight: 800, marginTop: '2px' }}>{GPA_SCALE[grade].toFixed(1)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Registration() {
 const [activeTab, setActiveTab] = useState('match');
@@ -1435,12 +1689,6 @@ Reminders" />
 <TabButton active={activeTab === 'myposts'} onClick={() =>
 
 setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
-<TabButton 
-  active={activeTab === 'gpa'} 
-  onClick={() => setActiveTab('gpa')} 
-  icon={<Calculator size={16} />} 
-  label="GPA / Grade Calculator" 
-/>
 </div>
 {activeTab === 'match' && (
 <div className="stack" style={{ gap: 26 }}>
@@ -1706,7 +1954,7 @@ return (
 )}
 {activeTab === 'gpa' && (
   <div style={{ marginTop: '20px' }}>
-    <WeightedGradeCalculator />
+    <RegistrationGradeGpaCalculator />
   </div>
 )}
 {activeTab === 'reviews' && (
