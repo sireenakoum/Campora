@@ -2837,7 +2837,7 @@ onChange={value => set('Crn', value)}
 </Field>
 </div>
 <div style={twoColumnGrid}>
-<Field label="SECTION" (OPTIONAL)>
+<Field label="SECTION (OPTIONAL)">
 <input type="text" placeholder="e.g. 1" style={modalInput}
 value={pref[`${prefix}Section`]} onChange={event => set('Section',
 event.target.value)} />
