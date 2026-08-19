@@ -602,18 +602,6 @@ return (
  {/* HEADER */}
 
  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-  <span
-   className="pill"
-   style={{
-    alignSelf: 'flex-start',
-    background: 'var(--campora-navy-tint)',
-    color: 'var(--campora-navy)',
-   }}
-  >
-   <Sparkles size={13} />
-   Stay Productive
-  </span>
-
   <SectionHeader
    title="To-Do List"
    subtitle="Keep your tasks organized, focus on what matters most, and celebrate your progress."

@@ -1587,11 +1587,6 @@ export default function CampusPulse() {
     <div style={campusPulsePageShellStyle}>
       <div ref={pageTopRef}>
         <div className="stack" style={{ gap: '14px' }}>
-          <span className="pill" style={{ alignSelf: 'flex-start', background: 'var(--campora-bg)', border: '1px solid var(--hairline)', color: 'var(--campora-text)' }}>
-            <Sparkles size={14} />
-            CAMPUS FEED
-          </span>
-
           <SectionHeader
             title="Campus Pulse"
             subtitle="What's happening in your student community today?"
