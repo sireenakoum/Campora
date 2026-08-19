@@ -423,3 +423,28 @@ from (values
   ('Arch. Textbooks', 120.00)
 ) as v(title, price)
 where not exists (select 1 from marketplace_listings m where m.title = v.title);
+-- Enable Row Level Security on your messages table
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to read ONLY their own direct messages
+CREATE POLICY "Users can only read their own messages"
+ON messages
+FOR SELECT
+USING (
+  auth.uid() = sender_id OR auth.uid() = receiver_id
+);
+-- Allow users to send messages ONLY as themselves
+CREATE POLICY "Users can only insert their own messages"
+ON messages
+FOR INSERT
+WITH CHECK (
+  auth.uid() = sender_id
+);
+
+-- Allow users to delete ONLY their own sent messages
+CREATE POLICY "Users can only delete their own messages"
+ON messages
+FOR DELETE
+USING (
+  auth.uid() = sender_id
+);
