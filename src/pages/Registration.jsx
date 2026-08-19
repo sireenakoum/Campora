@@ -2447,11 +2447,17 @@ buildSwapSourceLabel(post)
 })}
 
 />
-<{candidate.category === 'exact' ?
-exactMatchBadge : candidate.category === 'similar' ? similarMatchBadge :
-possibleMatchBadge}>
-{candidate.category === 'exact' ? '100% MATCH' :
-candidate.category === 'similar' ? `${candidate.percentage}% SIMILAR` : `${candidate.percentage}% POSSIBLE`}
+<span>
+  {candidate.category === 'exact' 
+    ? exactMatchBadge 
+    : candidate.category === 'similar' 
+    ? similarMatchBadge 
+    : possibleMatchBadge}
+  {candidate.category === 'exact' 
+    ? '100% MATCH' 
+    : candidate.category === 'similar' 
+    ? `${candidate.percentage}% MATCH` 
+    : 'POSSIBLE MATCH'}
 </span>
 </div>
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
