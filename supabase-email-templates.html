@@ -1,0 +1,230 @@
+<!--
+  Campora branded auth-email templates for Supabase.
+  HOW TO USE:
+  1. Supabase dashboard -> Authentication -> Email Templates.
+  2. For EACH template (Confirm signup, Invite user, Magic link, Reset password, Change email address):
+     - Expand the template, click inside the HTML box.
+     - Copy ONLY the <table>...</table> block for that email from below.
+     - Paste it over the existing HTML (replace everything after the <!DOCTYPE... header if you keep their wrapper, or the whole box).
+     - Save.
+  3. Verify with a test sign-up / reset-password email.
+
+  Variables usable in Supabase templates:
+    {{ .SiteURL }}          - your app URL
+    {{ .ConfirmationURL }}  - one-click action link
+    {{ .InviteURL }}        - invite link (invite template only)
+    {{ .MagicLink }}        - magic link (magic link template only)
+    {{ .Token }}            - 6-digit/42-char token fallback
+    {{ .Email }}            - recipient email
+    {{ .NewEmail }}         - new email (change-email template only)
+
+  Note: some variables only exist when "Secure email change" or "Double confirm
+  email changes" settings are enabled. If {{ .NewEmail }} renders empty, use {{ .Email }}.
+-->
+
+<!-- ============================================================
+     SHARED SHELL  (prefix for every template; keep as-is)
+     ============================================================ -->
+<div style="background-color:#F4F3F8;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;max-width:560px;width:100%;border-radius:16px;overflow:hidden;background-color:#FFFFFF;border:1px solid #E3E2E7">
+    <tr>
+      <td style="background-color:#0B1A3F;background-image:linear-gradient(135deg,#0B1A3F 0%,#14265C 60%,#4C4ACA 130%);padding:28px 32px;border-bottom:3px solid #4C4ACA">
+        <span style="color:#FFFFFF;font-size:26px;font-weight:800;letter-spacing:6px">CAMPORA</span>
+        <span style="display:block;color:#A9BEE8;font-size:12px;letter-spacing:1px;margin-top:3px">YOUR CAMPUS, ONE PLATFORM</span>
+      </td>
+    </tr>
+
+    <!-- ============================================================
+         BODY: REPLACE ALL CONTENT BELOW WITH ONE OF THE EMAIL BLOCKS
+         ============================================================ -->
+
+    <tr>
+      <td style="padding:36px 32px 12px 32px">
+        <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:700;color:#0B1A3F;line-height:1.3">Hello!</h1>
+        <p style="margin:0;font-size:15px;color:#414755;line-height:1.6">Something happened on Campora. Open it in your browser to continue.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:20px 32px">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0">
+          <tr>
+            <td style="background-color:#0B1A3F;border-radius:10px">
+              <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.2px">Open Campora</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:0 32px 28px 32px">
+        <p style="margin:0;font-size:13px;color:#717786;line-height:1.6">
+          If the button doesn't work, copy and paste this link into your browser:<br>
+          <a href="{{ .ConfirmationURL }}" style="color:#4C4ACA;word-break:break-all">{{ .ConfirmationURL }}</a>
+        </p>
+      </td>
+    </tr>
+
+    <!-- ===================== END BODY ===================== -->
+
+    <tr>
+      <td style="background-color:#F4F3F8;border-top:1px solid #E3E2E7;padding:20px 32px">
+        <p style="margin:0 0 6px 0;font-size:12px;color:#717786;line-height:1.5">
+          You're receiving this email because you use Campora. If you didn't request this, you can safely ignore it.
+        </p>
+        <p style="margin:0;font-size:12px;color:#717786;line-height:1.5">
+          &copy; Campora &middot; <a href="{{ .SiteURL }}" style="color:#4C4ACA;text-decoration:none">my.campora.app</a>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+
+<!-- ============================================================
+     EMAIL BLOCKS  (copy the <tr>...</tr> that matches each template)
+     ============================================================ -->
+
+<!-- ============ CONFIRM SIGNUP ============ -->
+<tr>
+  <td style="padding:36px 32px 12px 32px">
+    <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:700;color:#0B1A3F;line-height:1.3">Welcome to Campora!</h1>
+    <p style="margin:0 0 6px 0;font-size:15px;color:#414755;line-height:1.6">Hi {{ .Email }}, your account has been created. Confirm your email address to get started.</p>
+    <p style="margin:0;font-size:15px;color:#414755;line-height:1.6">Your next steps: complete your student profile, pin your courses, and join your campus community.</p>
+  </td>
+</tr>
+<tr>
+  <td style="padding:20px 32px">
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="background-color:#4C4ACA;border-radius:10px">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px">Confirm my email</a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding:0 32px 28px 32px">
+    <p style="margin:0;font-size:13px;color:#717786;line-height:1.6">
+      Button not working? Paste this link into your browser:<br>
+      <a href="{{ .ConfirmationURL }}" style="color:#4C4ACA;word-break:break-all">{{ .ConfirmationURL }}</a><br><br>
+      Or enter this code in the app: <strong style="color:#0B1A3F">{{ .Token }}</strong>
+    </p>
+  </td>
+</tr>
+
+<!-- ============ RESET PASSWORD ============ -->
+<tr>
+  <td style="padding:36px 32px 12px 32px">
+    <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:700;color:#0B1A3F;line-height:1.3">Reset your password</h1>
+    <p style="margin:0 0 6px 0;font-size:15px;color:#414755;line-height:1.6">We received a request to reset the password for <strong>{{ .Email }}</strong>.</p>
+    <p style="margin:0;font-size:15px;color:#414755;line-height:1.6">Click below to choose a new password. This link expires shortly.</p>
+  </td>
+</tr>
+<tr>
+  <td style="padding:20px 32px">
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="background-color:#4C4ACA;border-radius:10px">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px">Reset password</a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding:0 32px 28px 32px">
+    <p style="margin:0;font-size:13px;color:#717786;line-height:1.6">
+      Button not working? Paste this link into your browser:<br>
+      <a href="{{ .ConfirmationURL }}" style="color:#4C4ACA;word-break:break-all">{{ .ConfirmationURL }}</a><br><br>
+      If you didn't request this, your password stays the same and you can ignore this email.
+    </p>
+  </td>
+</tr>
+
+<!-- ============ INVITE USER ============ -->
+<tr>
+  <td style="padding:36px 32px 12px 32px">
+    <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:700;color:#0B1A3F;line-height:1.3">You've been invited to Campora</h1>
+    <p style="margin:0 0 6px 0;font-size:15px;color:#414755;line-height:1.6">Your admin invited you to join Campora at {{ .SiteURL }}.</p>
+    <p style="margin:0;font-size:15px;color:#414755;line-height:1.6">Accept the invite to set up your account and get started.</p>
+  </td>
+</tr>
+<tr>
+  <td style="padding:20px 32px">
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="background-color:#4C4ACA;border-radius:10px">
+          <a href="{{ .InviteURL }}" style="display:inline-block;padding:14px 28px;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px">Accept invite</a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding:0 32px 28px 32px">
+    <p style="margin:0;font-size:13px;color:#717786;line-height:1.6">
+      Button not working? Paste this link into your browser:<br>
+      <a href="{{ .InviteURL }}" style="color:#4C4ACA;word-break:break-all">{{ .InviteURL }}</a>
+    </p>
+  </td>
+</tr>
+
+<!-- ============ MAGIC LINK ============ -->
+<tr>
+  <td style="padding:36px 32px 12px 32px">
+    <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:700;color:#0B1A3F;line-height:1.3">Your sign-in link</h1>
+    <p style="margin:0 0 6px 0;font-size:15px;color:#414755;line-height:1.6">Hi {{ .Email }}, click below to sign in to Campora.</p>
+    <p style="margin:0;font-size:15px;color:#414755;line-height:1.6">This link is a one-time sign-in and expires shortly.</p>
+  </td>
+</tr>
+<tr>
+  <td style="padding:20px 32px">
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="background-color:#4C4ACA;border-radius:10px">
+          <a href="{{ .MagicLink }}" style="display:inline-block;padding:14px 28px;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px">Sign in to Campora</a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding:0 32px 28px 32px">
+    <p style="margin:0;font-size:13px;color:#717786;line-height:1.6">
+      Button not working? Paste this link into your browser:<br>
+      <a href="{{ .MagicLink }}" style="color:#4C4ACA;word-break:break-all">{{ .MagicLink }}</a>
+    </p>
+  </td>
+</tr>
+
+<!-- ============ CHANGE EMAIL ADDRESS ============ -->
+<tr>
+  <td style="padding:36px 32px 12px 32px">
+    <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:700;color:#0B1A3F;line-height:1.3">Confirm your new email</h1>
+    <p style="margin:0 0 6px 0;font-size:15px;color:#414755;line-height:1.6">You asked to change your Campora email to <strong>{{ .NewEmail }}</strong>.</p>
+    <p style="margin:0;font-size:15px;color:#414755;line-height:1.6">Click below to complete the change. After this, sign in with your new address.</p>
+  </td>
+</tr>
+<tr>
+  <td style="padding:20px 32px">
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="background-color:#4C4ACA;border-radius:10px">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px">Confirm new email</a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding:0 32px 28px 32px">
+    <p style="margin:0;font-size:13px;color:#717786;line-height:1.6">
+      Button not working? Paste this link into your browser:<br>
+      <a href="{{ .ConfirmationURL }}" style="color:#4C4ACA;word-break:break-all">{{ .ConfirmationURL }}</a>
+    </p>
+  </td>
+</tr>

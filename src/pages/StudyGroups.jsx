@@ -301,6 +301,30 @@ for (let i = 0; i < string.length; i++) {
 // MAIN COMPONENT
 // =====================================================
 
+
+const openCentralMessagesForUser = (profile) => {
+  if (!profile?.id) {
+    window.location.assign('/messages');
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      'campora_pending_message_recipient',
+      JSON.stringify({
+        id: profile.id,
+        name: profile.name || profile.full_name || 'Student',
+        email: profile.email || '',
+        source: 'Study Groups'
+      })
+    );
+  } catch (error) {
+    console.error('Could not save pending message recipient:', error);
+  }
+
+  window.location.assign('/messages');
+};
+
 export default function StudyGroups() {
 
 // =====================================================
@@ -1546,18 +1570,18 @@ const openMemberProfile = async (member) => {
 };
 
 const openMemberChat = (member) => {
- if (!member || member.user_id === currentUser?.id) return;
+  if (!member || member.user_id === currentUser?.id) return;
 
-startNewDmWithUser({
- id: member.user_id,
- name: member.profiles?.name || member.profiles?.full_name || 'Student',
- email: member.profiles?.email || '',
- major: member.profiles?.major,
- academic_year: member.profiles?.academic_year
-});
-
-  setView('dms');
+  openCentralMessagesForUser({
+    id: member.user_id,
+    name:
+      member.profiles?.name ||
+      member.profiles?.full_name ||
+      'Student',
+    email: member.profiles?.email || ''
+  });
 };
+
 
 const toggleNotifications = (
   groupId
@@ -1739,6 +1763,31 @@ setView(
 
 
    const createdCircle = data[0];
+
+   // Keep the Study Group creator connected to the group chat.
+   // This ensures the new circle appears immediately in central Messages
+   // and uses the same membership model as joined members.
+   const { error: creatorMembershipError } = await supabase
+     .from('group_members')
+     .upsert(
+       [
+         {
+           group_id: createdCircle.id,
+           user_id: user.id
+         }
+       ],
+       {
+         onConflict: 'group_id,user_id',
+         ignoreDuplicates: true
+       }
+     );
+
+   if (creatorMembershipError) {
+     console.error(
+       'Could not add creator to Study Group members:',
+       creatorMembershipError
+     );
+   }
 
    if (createdCircle.visibility === 'private') {
      alert(
@@ -5551,7 +5600,6 @@ return (
         { key: 'browse', label: 'Discover', icon: LayoutGrid },
         { key: 'created', label: `Circles Created (${createdGroups.length})`, icon: Crown },
         { key: 'joined', label: `Joined Circles (${joinedOnlyGroups.length})`, icon: BookmarkCheck },
-        { key: 'dms', label: 'Direct Messages', icon: Mail },
         { key: 'preferences', label: 'My Vibe Settings', icon: Sliders },
         { key: 'create', label: 'Create Circle', icon: Plus }
       ].map(({ key, label, icon: Icon }) => {
@@ -6181,521 +6229,6 @@ gridTemplateColumns:
 }
 `}</style>
 
-<style>{`
-.study-dm-search-white::placeholder {
-  color: #A0A7B3 !important;
-  opacity: 1;
-}
-`}</style>
-
-{/* =================================================
- DIRECT MESSAGES
-================================================= */}
-{view === 'dms' && (
-  <div>
-  <div style={{ marginBottom: '18px' }}>
-   <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color:
-'#1A1B1F' }}>
-    Direct Messages
-   </h2>
-   <p style={{ margin: '5px 0 0', color: '#717786', fontSize: '13px', fontWeight:
-'700' }}>
-    Search by student name or email and keep your private conversations in
-one place.
-  </p>
-  </div>
-
-  <ShellPortal active={dmFullscreen}>
- <div style={{
-    background: '#FFFFFF', ...instagramDmShell, ...(dmFullscreen ? {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  width: '100vw',
-  height: '100vh',
-  minHeight: '100vh',
-  maxHeight: '100vh',
-  maxWidth: '100vw',
-  gridTemplateColumns: '1fr',
-  borderRadius: 0,
-  border: '1px solid #E3E8EF',
-  zIndex: 9990,
-  boxShadow: '0 0 60px rgba(0,45,98,0.35)'
- } : {}) }}>
- {!dmFullscreen && (
- <aside style={instagramDmSidebar}>
-  <div style={instagramDmSidebarHeader}>
-  <div>
-    <h4 style={instagramDmSidebarTitle}>Messages</h4>
-    <p style={instagramDmSidebarSubtitle}>Your conversations</p>
-  </div>
-  <MessageCircle size={20} color={selectedGroup?.color || '#0B1A3F'} />
-  </div>
-
-   <div style={instagramSearchWrap}>
-   <div style={instagramSearchBar}>
-    <Search size={18} style={instagramSearchIcon} />
-    <input
-     type="text"
-
-      value={dmSearchQuery}
-      onChange={(event) => setDmSearchQuery(event.target.value)}
-      placeholder="Search name or email"
-      className="study-dm-search-white"
-      className="study-dm-search-input"
-      style={instagramSearchInput}
-     />
-     {dmSearchQuery && (
-      <button type="button" onClick={() => setDmSearchQuery('')}
-style={instagramSearchClear}>
-        <X size={15} />
-      </button>
-     )}
-    </div>
-   </div>
-
-   {dmSearchQuery.trim() && (
-    <div style={instagramSearchResults}>
-    {searchingUsers ? (
-       <div style={instagramSearchStatus}>Searching students...</div>
-    ) : dmSearchResults.length === 0 ? (
-       <div style={instagramSearchStatus}>No students found.</div>
-    ):(
-       dmSearchResults.map((profile) => {
-         const resultName = profile.name || profile.email?.split('@')[0] ||
-'Student';
-         return (
-          <button key={profile.id} type="button" onClick={() =>
-startNewDmWithUser(profile)} style={instagramSearchResultRow}>
-            <div style={{ ...instagramAvatar, background:
-getAvatarColor(resultName) }}>
-            {getInitials(resultName)}
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={instagramPersonName}>{resultName}</p>
-            <p style={instagramPersonMeta}>{profile.email || 'Student'}</p>
-            </div>
-           </button>
-         );
-       })
-      )}
-    </div>
-   )}
-
-   <div style={instagramThreadList}>
-   {sortedDmConversations.length === 0 ? (
-    <div style={instagramEmptyThreads}>
-    <Mail size={34} strokeWidth={1.5} />
-    <p style={{ margin: '10px 0 0' }}>No conversations yet.</p>
-
-      <p style={{ margin: '4px 0 0', fontWeight: '600' }}>Search above or
-message a member from a study circle.</p>
-     </div>
-    ):(
-     sortedDmConversations.map((conversation) => {
-      const isPinned = pinnedChats.dms.includes(conversation.partnerId);
-      const selected = selectedDmUser?.partnerId ===
-conversation.partnerId;
-      return (
-        <button
-        key={conversation.partnerId}
-        type="button"
-        onClick={() => setSelectedDmUser(conversation)}
-        style={{ ...instagramThreadRow, ...(selected ?
-instagramThreadRowActive : {}) }}
-        >
-        <div style={{ ...instagramAvatar, background:
-getAvatarColor(conversation.name) }}>
-         {getInitials(conversation.name)}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-         <div style={instagramThreadTopLine}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '6px',
-minWidth: 0 }}>
-            {isPinned && <Pin size={11} fill={PIN_COLORS.icon}
-color={PIN_COLORS.icon} />}
-             <p style={instagramPersonName}>{conversation.name}</p>
-           </div>
-           {conversation.lastMessageTime && (
-             <span style={instagramThreadDate}>{new
-Date(conversation.lastMessageTime).toLocaleDateString()}</span>
-           )}
-           {(conversation.unreadCount || 0) > 0 && (
-            <span style={{
-             background: '#EF4444',
-             color: '#FFFFFF',
-             borderRadius: '999px',
-             minWidth: '18px',
-             height: '18px',
-             padding: '0 6px',
-             display: 'inline-flex',
-             alignItems: 'center',
-             justifyContent: 'center',
-             fontSize: '10px',
-             fontWeight: '900',
-             flexShrink: 0,
-             lineHeight: 1
-            }}>
-             {conversation.unreadCount > 99 ? '99+' :
-conversation.unreadCount}
-            </span>
-           )}
-          </div>
-          {conversation.email && <p style={instagramPersonMeta}
->{conversation.email}</p>}
-          <p style={{ ...instagramMessagePreview,
-...(conversation.unreadCount > 0 ? { color: '#1A1B1F', fontWeight: '800' } :
-{}) }}
->{parseStudyDm(conversation.lastMessage).text || 'Click to view conversation'}
-</p>
-         </div>
-         <span
-          onClick={(event) => {
-           event.stopPropagation();
-           togglePinDm(conversation.partnerId);
-          }}
-          style={instagramPinButton}
-         >
-          <Pin size={15} fill={isPinned ? PIN_COLORS.icon : 'none'}
-
-color={isPinned ? PIN_COLORS.icon : '#717786'} />
-         </span>
-        </button>
-      );
-    })
-   )}
-</div>
-  </aside>
- )}
-
-   <section style={instagramChatPanel}>
-   {!selectedDmUser ? (
-     <div style={instagramNoChat}>
-     <div style={instagramNoChatIcon}><MessageCircle size={32} /></div>
-     <h4 style={instagramNoChatTitle}>Your messages</h4>
-     <p style={instagramNoChatText}>Select a conversation on the left or
-search for a student to start chatting.</p>
-     </div>
-   ):(
-     <>
-     <div style={instagramChatHeader}>
-       <div style={{ display: 'flex', alignItems: 'center', gap: '13px', minWidth:
-0 }}>
-        <div style={{ ...instagramAvatarLarge, background:
-getAvatarColor(selectedDmUser.name) }}>
-          {getInitials(selectedDmUser.name)}
-        </div>
-       <div style={{ minWidth: 0 }}>
-        <h4 style={instagramChatName}>{selectedDmUser.name}</h4>
-        {partnerTyping ? (
-         <p style={{ ...instagramChatEmail, color: '#1A1B1F', display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <span style={{
-           width: '6px',
-           height: '6px',
-           borderRadius: '50%',
-           background: '#22C55E',
-           display: 'inline-block',
-           animation: 'camporaTypingPulse 1s ease-in-out infinite'
-          }} />
-          {selectedDmUser.name} is typing...
-         </p>
-        ) : (
-         <p style={instagramChatEmail}>{selectedDmUser.email || 'Campora Student'}</p>
-        )}
-       </div>
-     </div>
-     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-     <button
-type="button"
-title={dmNotificationMuted[selectedDmUser.partnerId] ? 'Notifications off' : 'Notifications on'}
-onClick={() => toggleDmNotifications(selectedDmUser.partnerId)}
-style={{
-  ...instagramHeaderPin,
-  background: '#FFFFFF',
-  border: '1px solid #E3E8EF'
-}}
->
-{dmNotificationMuted[selectedDmUser.partnerId] ? (
-  <BellOff size={16} color="#EF4444" />
-) : (
-  <Bell size={16} color="#0B1A3F" />
-)}
-</button>
-<button
-       type="button"
-       onClick={() => togglePinDm(selectedDmUser.partnerId)}
-       style={{
-        ...instagramHeaderPin,
-        ...(pinnedChats.dms.includes(selectedDmUser.partnerId) ?
- instagramHeaderPinActive : {})
-       }}
-     >
-       <Pin
-        size={16}
-        color={pinnedChats.dms.includes(selectedDmUser.partnerId) ?
- PIN_COLORS.icon : '#717786'}
-        fill={pinnedChats.dms.includes(selectedDmUser.partnerId) ?
- PIN_COLORS.icon : 'none'}
-
-     />
-    </button>
-<button
-type="button"
-title={dmFullscreen ? 'Exit full screen' : 'Full screen'}
-onClick={() => setDmFullscreen(value => !value)}
-style={{
-  ...instagramHeaderPin,
-  background: '#FFFFFF',
-  border: '1px solid #E3E8EF'
-}}
->
-{dmFullscreen ? (
-  <Minimize2 size={16} color="#667085" />
-) : (
-  <Maximize2 size={16} color="#667085" />
-)}
-</button>
-    
-    </div>
-    </div>
-
-     {(pinnedDmMessages[selectedDmUser.partnerId] || []).length > 0 && (
-      <div style={{
-        background: PIN_COLORS.bg,
-        borderTop: `1px solid ${PIN_COLORS.border}`,
-        borderBottom: `1px solid ${PIN_COLORS.border}`,
-        padding: '10px 14px',
-        flexShrink: 0
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginBottom: '8px',
-          color: PIN_COLORS.icon,
-          fontSize: '11px',
-          fontWeight: '900'
-        }}>
-          <Pin size={13} fill={PIN_COLORS.icon} color={PIN_COLORS.icon} />
-          PINNED MESSAGES
-({(pinnedDmMessages[selectedDmUser.partnerId] || []).length})
-        </div>
-       <div style={{
-         display: 'flex',
-         gap: '8px',
-         overflowX: 'auto',
-         paddingBottom: '2px'
-       }}>
-         {(pinnedDmMessages[selectedDmUser.partnerId] ||
-[]).map((pinnedId) => {
-          const pinnedMessage = dmMessages.find((message) =>
-message.id === pinnedId);
-          if (!pinnedMessage) return null;
-
-      const parsedPinned = parseStudyDm(pinnedMessage.content);
-      const pinnedMine = pinnedMessage.sender_id ===
-currentUser?.id;
-
-     return (
-      <div
-       key={pinnedId}
-       style={{
-        minWidth: '220px',
-        maxWidth: '320px',
-
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: '10px',
-  padding: '8px 10px',
-  borderRadius: '10px',
-  background: 'rgba(255,255,255,0.82)',
-  border: `1px solid ${PIN_COLORS.border}`
- }}
->
- <div style={{ minWidth: 0 }}>
-  <div style={{
-    color: PIN_COLORS.icon,
-    fontSize: '10px',
-    fontWeight: '900',
-    marginBottom: '2px'
-  }}>
-    {pinnedMine ? 'You' : selectedDmUser.name}
-  </div>
-  <div style={{
-    color: '#1A1B1F',
-    fontSize: '11px',
-    fontWeight: '700',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-   }}>
-    {parsedPinned.text || 'Message'}
-   </div>
-  </div>
-
-  <button
-  type="button"
-  onClick={() => togglePinDmMessage(pinnedId)}
-  title="Unpin message"
-  style={{
-    border: 'none',
-    background: 'transparent',
-    color: PIN_COLORS.icon,
-    cursor: 'pointer',
-    display: 'flex',
-    padding: '2px',
-    flexShrink: 0
-  }}
-  >
-  <X size={14} />
-  </button>
-
-          </div>
-        );
-       })}
-       </div>
-     </div>
-    )}
-
-     <div ref={dmChatHistoryRef} style={instagramChatHistory}>
-      {dmMessages.length === 0 ? (
-       <div style={instagramEmptyChat}>
-        <div style={{ ...instagramAvatarLarge, width: '64px', height: '64px',
-background: getAvatarColor(selectedDmUser.name), marginBottom: '10px' }}>
-          {getInitials(selectedDmUser.name)}
-        </div>
-        <strong style={{ color: '#1A1B1F', fontSize: '15px' }}
->{selectedDmUser.name}</strong>
-        <span style={{ marginTop: '5px' }}>Start your private conversation.</span>
-       </div>
-      ):(
-       dmMessages.map((message) => {
-        const isMe = message.sender_id === currentUser?.id;
-        const parsed = parseStudyDm(message.content);
-        const reactionMap = dmLocalReactions[message.id] || {};
-          const isPinnedMessage =
-(pinnedDmMessages[selectedDmUser.partnerId] || []).includes(message.id);
-          return (
-           <div key={message.id} style={{ display: 'flex', justifyContent: isMe ?
-'flex-end' : 'flex-start', marginBottom: '14px', position: 'relative' }}>
-             <div style={{ maxWidth: '76%', position: 'relative' }}>
-             <div style={{ ...instagramBubble, maxWidth: '100%', ...(isMe ?
-instagramBubbleMine : instagramBubbleTheirs) }}>
-              {parsed.reply && (
-               <div style={{ ...instagramReplyQuote, ...(isMe ?
-instagramReplyQuoteMine : {}) }}>
-                 <strong>{parsed.reply.sender}</strong>
-                 <span>{parsed.reply.text}</span>
-               </div>
-              )}
-              <p style={instagramBubbleText}>{parsed.text}</p>
-              <div style={instagramBubbleFooter}>
-               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                 {message.created_at
-                  ? new Date(message.created_at).toLocaleTimeString([],
-{ hour: '2-digit', minute: '2-digit' })
-                  : ''}
-                 {isMe && (
-                  message.read_at ? (
-                   <CheckCheck size={13} color="#8AB4F8" strokeWidth={2.5} />
-                  ) : (
-                   <Check size={13} color="currentColor" strokeWidth={2.5} />
-                  )
-                 )}
-               </span>
-
-           </div>
-           </div>
-
-          {Object.entries(reactionMap).some(([, users]) => users?.length)
-&& (
-            <div style={{ ...instagramReactionRow, justifyContent: isMe ?
-'flex-end' : 'flex-start' }}>
-              {Object.entries(reactionMap).map(([emoji, users]) =>
-users?.length ? (
-                <button key={emoji} type="button" onClick={() =>
-toggleLocalDmReaction(message.id, emoji)} style={instagramReactionPill}>
-                  {emoji} {users.length}
-                </button>
-              ) : null)}
-            </div>
-           )}
-
-          <button
-            type="button"
-            onClick={() =>
-setActiveDmMessageMenu(activeDmMessageMenu === message.id ? null :
-message.id)}
-            style={{ ...instagramMessageMenuButton, ...(isMe ? { right:
-'100%' } : { left: '100%' }) }}
-              >•••</button>
-
-                  {activeDmMessageMenu === message.id && (
-                   <div style={{ ...instagramMessageMenu, ...(isMe ? { right: '0' } :
-{ left: '0' }) }}>
-                {DM_REACTIONS.map((emoji) => (
-                 <button key={emoji} type="button" onClick={() =>
-toggleLocalDmReaction(message.id, emoji)} style={instagramEmojiButton}
->{emoji}</button>
-                ))}
-                <button type="button" onClick={() => {
-                 setDmReplyingTo({ id: message.id, sender: isMe ? 'You' :
-selectedDmUser.name, text: parsed.text });
-                 setActiveDmMessageMenu(null);
-                }} style={instagramMenuAction}><Reply size={13} /> Reply</button>
-                <button type="button" onClick={() =>
-togglePinDmMessage(message.id)} style={instagramMenuAction}><Pin
-size={13} /> {isPinnedMessage ? 'Unpin' : 'Pin'}</button>
-              </div>
-             )}
-           </div>
-          </div>
-
-       );
-      })
-    )}
-    <div ref={dmChatBottomRef} style={{ height: '1px', flexShrink: 0 }} />
-    </div>
-
-     {dmReplyingTo && (
-      <div style={instagramReplyComposerPreview}>
-        <div style={{
-    background: '#FFFFFF', minWidth: 0 }}>
-        <strong>Replying to {dmReplyingTo.sender}</strong>
-        <p>{dmReplyingTo.text}</p>
-        </div>
-        <button type="button" onClick={() => setDmReplyingTo(null)}
-style={instagramReplyClose}><X size={15} /></button>
-      </div>
-     )}
-
-        <form onSubmit={handleSendDmInInbox} style={instagramComposer}>
-        <input
-         type="text"
-         placeholder={`Message ${selectedDmUser.name}...`}
-         value={newDmMessageText}
-         onChange={(event) => handleDmComposerChange(event.target.value)}
-         style={instagramComposerInput}
-           />
-           <button
-            type="submit"
-            disabled={!newDmMessageText.trim()}
-            style={{ ...instagramSendButton, opacity: newDmMessageText.trim() ?
-1 : 0.5 }}
-        >
-          <Send size={18} />
-        </button>
-        </form>
-      </>
-     )}
-   </section>
-   </div>
-  </ShellPortal>
-  </div>
-)}
 {/* =================================================
   VIBE SETTINGS
 ================================================= */}
