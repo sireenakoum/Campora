@@ -1755,8 +1755,9 @@ export default function Messages() {
           height: 35px;
           flex-shrink: 0;
           border-radius: 10px;
-          background: #EEF2F7;
+          background: #FFFFFF;
           color: #0B1A3F;
+          border: 1px solid #F1F3F7;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1841,7 +1842,7 @@ export default function Messages() {
           border: 1px solid #E7EBF1;
           border-radius: 14px;
           background: #FFFFFF;
-          color: #66758E;
+          color: #0B1A3F;
           display: flex;
           align-items: center;
           gap: 10px;
@@ -1880,7 +1881,7 @@ export default function Messages() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(11,26,63,.05);
+          background: #FAFBFD;
           flex-shrink: 0;
         }
 
