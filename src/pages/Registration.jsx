@@ -396,7 +396,7 @@ function RegistrationGradeGpaCalculator() {
                 <div><label style={label}>ITEM</label><input value={item.name} onChange={e => updateGradeItem(item.id, 'name', e.target.value)} placeholder={`Assessment ${index + 1}`} style={input} /></div>
                 <div><label style={label}>GRADE %</label><input type="number" min="0" max="100" value={item.grade} onChange={e => updateGradeItem(item.id, 'grade', e.target.value)} placeholder="85" style={input} /></div>
                 <div><label style={label}>WEIGHT %</label><input type="number" min="0" max="100" value={item.weight} onChange={e => updateGradeItem(item.id, 'weight', e.target.value)} placeholder="20" style={input} /></div>
-                <button type="button" onClick={() => removeGradeItem(item.id)} aria-label="Remove item" style={{ width: 38, height: 38, borderRadius: '50%', border: '1px solid #E0E6EF', background: '#FFFFFF', color: '#5B667A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3px' }}><Trash2 size={15} /></button>
+                <button type="button" onClick={() => removeGradeItem(item.id)} aria-label="Remove item" style={{ width: 38, height: 38, border: 'none', background: 'transparent', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3px', padding: 0 }}><Trash2 size={18} /></button>
               </div>
             ))}
           </div>
@@ -431,8 +431,8 @@ function RegistrationGradeGpaCalculator() {
                 <div><label style={label}>COURSE</label><input value={course.name} onChange={e => updateCourse(course.id, 'name', e.target.value)} placeholder={`Course ${index + 1}`} style={input} /></div>
                 <div><label style={label}>CREDITS</label><input type="number" min="0" step="0.5" value={course.credits} onChange={e => updateCourse(course.id, 'credits', e.target.value)} style={input} /></div>
                 <div><label style={label}>LETTER GRADE</label><select value={course.grade} onChange={e => updateCourse(course.id, 'grade', e.target.value)} style={{ ...input, cursor: 'pointer' }}>{GPA_GRADE_OPTIONS.map(grade => <option key={grade} value={grade}>{grade}</option>)}</select></div>
-                <div><label style={label}>GPA GRADE</label><div style={{ ...input, display: 'flex', alignItems: 'center', background: '#EEF3F9', fontWeight: 900 }}>{GPA_SCALE[course.grade].toFixed(1)}</div></div>
-                <button type="button" onClick={() => removeCourse(course.id)} aria-label="Remove course" style={{ width: 38, height: 38, borderRadius: '50%', border: '1px solid #E0E6EF', background: '#FFFFFF', color: '#5B667A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3px' }}><Trash2 size={15} /></button>
+                <div><label style={label}>GPA GRADE</label><div style={{ ...input, display: 'flex', alignItems: 'center', background: '#FFFFFF', fontWeight: 900 }}>{GPA_SCALE[course.grade].toFixed(1)}</div></div>
+                <button type="button" onClick={() => removeCourse(course.id)} aria-label="Remove course" style={{ width: 38, height: 38, border: 'none', background: 'transparent', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '3px', padding: 0 }}><Trash2 size={18} /></button>
               </div>
             ))}
           </div>
