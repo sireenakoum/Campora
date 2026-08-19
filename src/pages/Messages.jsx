@@ -2195,6 +2195,41 @@ export default function Messages() {
 
         if (error) throw error;
 
+        try {
+          const { data: memberRows } = await supabase
+            .from('message_group_members')
+            .select('user_id')
+            .eq('group_id', selected.groupId);
+
+          const senderName =
+            currentProfile?.name ||
+            currentProfile?.full_name ||
+            currentUser.user_metadata?.name ||
+            currentUser.email?.split('@')[0] ||
+            'Student';
+
+          const recipients = new Set(
+            (memberRows || [])
+              .map((row) => row.user_id)
+              .filter(Boolean)
+          );
+
+          recipients.delete(currentUser.id);
+
+          await Promise.all(
+            [...recipients].map((userId) =>
+              createMessagesNotification({
+                userId,
+                title: `New message in ${selected.name || 'Group'}`,
+                message: `${senderName}: ${text.slice(0, 140)}`,
+                category: 'Study Groups'
+              })
+            )
+          );
+        } catch (notificationError) {
+          console.error('Could not notify group members:', notificationError);
+        }
+
         clearCurrentDraft();
         setReplyingTo(null);
         clearPendingAttachment();
