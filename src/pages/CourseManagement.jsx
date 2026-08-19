@@ -321,6 +321,10 @@ const [courseAssignments, setCourseAssignments] = useState([]);
 const [courseEvents, setCourseEvents] = useState([]);
 const [coursePlannerSchedules, setCoursePlannerSchedules] = useState({});
 const [courseCredits, setCourseCredits] = useState({});
+const [semesterCreditOverrides, setSemesterCreditOverrides] = useState({});
+const [manualCompletedCredits, setManualCompletedCredits] = useState('');
+const [newSemesterCredits, setNewSemesterCredits] = useState('');
+const [editedSemesterCredits, setEditedSemesterCredits] = useState('');
 const [creditsHydrated, setCreditsHydrated] = useState(false);
 
 // Course workspace tabs
@@ -409,6 +413,17 @@ useEffect(() => {
      {}
    )
  );
+ setSemesterCreditOverrides(
+   safeParse(
+     localStorage.getItem(localKey(userId, 'semesterCreditOverrides')),
+     {}
+   )
+ );
+ setManualCompletedCredits(
+   localStorage.getItem('campora-shared-completed-credits') ||
+   localStorage.getItem(localKey(userId, 'manualCompletedCredits')) ||
+   ''
+ );
  setCreditsHydrated(true);
 
   fetchCourses();
@@ -462,6 +477,42 @@ useEffect(() => {
     JSON.stringify(courseCredits)
   );
 }, [courseCredits, userId, creditsHydrated]);
+
+useEffect(() => {
+  if (!userId || !creditsHydrated) return;
+  localStorage.setItem(
+    localKey(userId, 'semesterCreditOverrides'),
+    JSON.stringify(semesterCreditOverrides)
+  );
+}, [semesterCreditOverrides, userId, creditsHydrated]);
+
+useEffect(() => {
+  if (!userId || !creditsHydrated) return;
+  localStorage.setItem(
+    localKey(userId, 'manualCompletedCredits'),
+    manualCompletedCredits
+  );
+  localStorage.setItem(
+    'campora-shared-completed-credits',
+    manualCompletedCredits
+  );
+  window.dispatchEvent(new Event('camporaCreditsUpdated'));
+}, [manualCompletedCredits, userId, creditsHydrated]);
+
+useEffect(() => {
+  const syncSharedCredits = () => {
+    const shared = localStorage.getItem('campora-shared-completed-credits') || '';
+    setManualCompletedCredits(shared);
+  };
+
+  window.addEventListener('camporaCreditsUpdated', syncSharedCredits);
+  window.addEventListener('storage', syncSharedCredits);
+
+  return () => {
+    window.removeEventListener('camporaCreditsUpdated', syncSharedCredits);
+    window.removeEventListener('storage', syncSharedCredits);
+  };
+}, []);
 
 // ---------------------------------------------------------
 
@@ -533,11 +584,32 @@ const upcomingEventsCount = courseEvents.filter((event) => {
  return eventDay >= todayStart();
 }).length;
 
-const totalCredits = courses.reduce(
- (sum, course) =>
-  sum + Math.max(0, Number(courseCredits[course.id]) || 0),
+const getSemesterCredits = (semesterName) => {
+ const semesterCourses = courses.filter(
+  (course) => courseSemester(course) === semesterName
+ );
+
+ const calculated = semesterCourses.reduce(
+  (sum, course) =>
+   sum + Math.max(0, Number(courseCredits[course.id]) || 0),
+  0
+ );
+
+ const override = semesterCreditOverrides[semesterName];
+ return override === '' || override === undefined || override === null
+  ? calculated
+  : Math.max(0, Number(override) || 0);
+};
+
+const calculatedTotalCredits = semesterOptions.reduce(
+ (sum, semesterName) => sum + getSemesterCredits(semesterName),
  0
 );
+
+const totalCredits =
+ manualCompletedCredits === ''
+  ? calculatedTotalCredits
+  : Math.max(0, Number(manualCompletedCredits) || 0);
 
 // ---------------------------------------------------------
 // SUPABASE FETCH
@@ -616,6 +688,7 @@ const resetCourseForm = () => {
  setSemesterMode(hasExistingSemester ? 'existing' : 'new');
 
   setCustomSemester('');
+ setNewSemesterCredits('');
   setNewCourse({
    name: '',
    professor: '',
@@ -648,6 +721,7 @@ const openEditCourseModal = () => {
  setEditingCourse(selectedCourse);
  setSemesterMode('existing');
  setCustomSemester('');
+ setNewSemesterCredits('');
 
  setNewCourse({
   name: selectedCourse.name || '',
@@ -856,6 +930,16 @@ try {
    setCustomSemesters((prev) => [...prev, finalSemester]);
  }
 
+ if (
+   (semesterOptions.length === 0 || semesterMode === 'new') &&
+   newSemesterCredits !== ''
+ ){
+   setSemesterCreditOverrides((prev) => ({
+     ...prev,
+     [finalSemester]: Math.max(0, Number(newSemesterCredits) || 0)
+   }));
+ }
+
  // Only sync this course to Planner when the user chooses to.
  await removeCourseScheduleFromPlanner(editingCourse.id);
 
@@ -951,6 +1035,16 @@ const handleAddCourse = async (e) => {
     setCustomSemesters((prev) => [...prev, finalSemester]);
   }
 
+ if (
+   (semesterOptions.length === 0 || semesterMode === 'new') &&
+   newSemesterCredits !== ''
+ ){
+   setSemesterCreditOverrides((prev) => ({
+     ...prev,
+     [finalSemester]: Math.max(0, Number(newSemesterCredits) || 0)
+   }));
+ }
+
     setIsModalOpen(false);
     resetCourseForm();
     await fetchCourses();
@@ -981,11 +1075,17 @@ const openEditSemester = (semesterName, event = null) => {
 
   setEditingSemesterName(semesterName);
   setEditedSemesterValue(semesterName);
+  setEditedSemesterCredits(
+    semesterCreditOverrides[semesterName] === undefined
+      ? String(getSemesterCredits(semesterName))
+      : String(semesterCreditOverrides[semesterName])
+  );
 };
 
 const closeEditSemester = () => {
   setEditingSemesterName(null);
   setEditedSemesterValue('');
+  setEditedSemesterCredits('');
 };
 
 const saveEditedSemester = () => {
@@ -1044,6 +1144,18 @@ const saveEditedSemester = () => {
       semester: nextName
     }));
   }
+
+  setSemesterCreditOverrides((prev) => {
+    const next = { ...prev };
+    const enteredCredits = Math.max(0, Number(editedSemesterCredits) || 0);
+
+    if (nextName !== editingSemesterName) {
+      delete next[editingSemesterName];
+    }
+
+    next[nextName] = enteredCredits;
+    return next;
+  });
 
    closeEditSemester();
  };
@@ -1110,6 +1222,12 @@ setCoursePlannerSchedules((prev) => {
  courseIds.forEach((courseId) => {
     delete next[courseId];
  });
+ return next;
+});
+
+setSemesterCreditOverrides((prev) => {
+ const next = { ...prev };
+ delete next[semesterName];
  return next;
 });
 
@@ -2372,11 +2490,7 @@ if (selectedSemester && !selectedCourse) {
    semesterCourseIds.has(resource.course_id)
  );
 
- const semesterCredits = semesterCourses.reduce(
-  (sum, course) =>
-   sum + Math.max(0, Number(courseCredits[course.id]) || 0),
-  0
- );
+ const semesterCredits = getSemesterCredits(selectedSemester);
 
 const semesterSearch = searchTerm.trim().toLowerCase();
 
@@ -2563,11 +2677,44 @@ const visibleSemesterCourses = semesterCourses.filter((course) => {
 
 {visibleSemesterCourses.length === 0 ? (
  <div style={emptyCoursesCard}>
-   <EmptyState
-     icon={FolderOpen}
-     title={semesterCourses.length === 0 ? 'No courses in this semester yet.' : 'No courses match your search.'}
-     text={semesterCourses.length === 0 ? 'Use Add Course to create the first course.' : 'Try another course or professor name.'}
-   />
+   <div style={emptyStateStyle}>
+    <div style={{
+      width: '94px',
+      height: '94px',
+      borderRadius: '50%',
+      background: '#FFFFFF',
+      border: '1.5px solid #D7E2F0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      margin: '0 auto 22px',
+      boxShadow: '0 8px 24px rgba(15,35,65,0.06)'
+    }}>
+      <FolderOpen size={38} color="#0B1A3F" />
+    </div>
+
+    <div style={{
+      fontSize: '18px',
+      fontWeight: 900,
+      color: '#1A1B1F',
+      marginBottom: '7px'
+    }}>
+      {semesterCourses.length === 0
+        ? 'No courses in this semester yet.'
+        : 'No courses match your search.'}
+    </div>
+
+    <div style={{
+      fontSize: '12px',
+      fontWeight: 700,
+      color: '#8A98B8',
+      lineHeight: 1.55
+    }}>
+      {semesterCourses.length === 0
+        ? 'Use Add Course to create the first course.'
+        : 'Try another course or professor name.'}
+    </div>
+   </div>
  </div>
 ):(
  <div style={courseGridStyle}>
@@ -2737,6 +2884,8 @@ const visibleSemesterCourses = semesterCourses.filter((course) => {
  <EditSemesterModal
    value={editedSemesterValue}
    setValue={setEditedSemesterValue}
+   credits={editedSemesterCredits}
+   setCredits={setEditedSemesterCredits}
    onSave={saveEditedSemester}
    onClose={closeEditSemester}
  />
@@ -2749,6 +2898,8 @@ const visibleSemesterCourses = semesterCourses.filter((course) => {
    setSemesterMode={setSemesterMode}
    customSemester={customSemester}
    setCustomSemester={setCustomSemester}
+   newSemesterCredits={newSemesterCredits}
+   setNewSemesterCredits={setNewSemesterCredits}
    newCourse={newCourse}
    setNewCourse={setNewCourse}
    handleAddCourse={handleAddCourse}
@@ -4444,20 +4595,23 @@ if (dashboardView === 'upcoming') {
  }
 
  if (dashboardView === 'credits') {
-   return courses.map((course) => ({
-     id: course.id,
-     type: 'credit',
-     title: course.name,
-     subtitle: [
-       courseSemester(course),
-       `${Math.max(0, Number(courseCredits[course.id]) || 0)} ${
-         Math.max(0, Number(courseCredits[course.id]) || 0) === 1
-           ? 'credit'
-           : 'credits'
+   return semesterOptions.map((semesterName) => {
+     const semesterCourses = courses.filter(
+       (course) => courseSemester(course) === semesterName
+     );
+     const credits = getSemesterCredits(semesterName);
+
+     return {
+       id: semesterName,
+       type: 'credit',
+       title: semesterName,
+       subtitle: `${credits} ${credits === 1 ? 'credit' : 'credits'} • ${
+         semesterCreditOverrides[semesterName] !== undefined
+           ? 'editable semester total'
+           : `${semesterCourses.length} course${semesterCourses.length === 1 ? '' : 's'}`
        }`
-     ].join(' • '),
-     course
-   }));
+     };
+   });
  }
 
  return [];
@@ -4495,7 +4649,7 @@ const dashboardViewMeta = {
   },
   credits: {
     title: 'Credits',
-    subtitle: 'Credits added across all of your courses.',
+    subtitle: 'Course credits plus editable semester totals for earlier study.',
     icon: <GraduationCap size={21} />,
     accent: '#C99758',
     bg: '#FFF9F1'
@@ -4873,11 +5027,7 @@ const resourceCount = allResources.filter(
   (resource) => ids.has(resource.course_id)
 ).length;
 
-const creditCount = semesterCourses.reduce(
-  (sum, course) =>
-   sum + Math.max(0, Number(courseCredits[course.id]) || 0),
-  0
-);
+const creditCount = getSemesterCredits(semester);
 
 return (
  <button
@@ -4948,6 +5098,8 @@ return (
  <EditSemesterModal
    value={editedSemesterValue}
    setValue={setEditedSemesterValue}
+   credits={editedSemesterCredits}
+   setCredits={setEditedSemesterCredits}
    onSave={saveEditedSemester}
    onClose={closeEditSemester}
  />
@@ -4962,6 +5114,8 @@ return (
 
           customSemester={customSemester}
           setCustomSemester={setCustomSemester}
+          newSemesterCredits={newSemesterCredits}
+          setNewSemesterCredits={setNewSemesterCredits}
           newCourse={newCourse}
           setNewCourse={setNewCourse}
           handleAddCourse={handleAddCourse}
@@ -4987,6 +5141,8 @@ return (
 function EditSemesterModal({
  value,
  setValue,
+ credits,
+ setCredits,
  onSave,
  onClose
 }) {
@@ -5031,6 +5187,28 @@ function EditSemesterModal({
         />
        </div>
 
+       <div style={{ marginTop: '14px' }}>
+        <label style={fieldLabel}>Semester Credits</label>
+        <input
+         type="number"
+         min="0"
+         step="0.5"
+         value={credits}
+         onChange={(event) => setCredits(event.target.value)}
+         style={modalInput}
+         placeholder="e.g. 15"
+        />
+        <div style={{
+          marginTop: '6px',
+          color: '#8A98B8',
+          fontSize: '10px',
+          fontWeight: '700',
+          lineHeight: 1.45
+        }}>
+          Edit this total if the semester happened before you started using Campora.
+        </div>
+       </div>
+
        <div style={semesterEditActionsStyle}>
         <button
          type="button"
@@ -5058,8 +5236,9 @@ function CourseModal({
  semesterMode,
  setSemesterMode,
  customSemester,
-
  setCustomSemester,
+ newSemesterCredits,
+ setNewSemesterCredits,
  newCourse,
  setNewCourse,
  handleAddCourse,
@@ -5194,18 +5373,40 @@ function CourseModal({
   ))}
  </select>
 ):(
- <input
-  type="text"
-  placeholder="e.g. Fall 2026-2027"
-  value={customSemester}
-  onChange={(e) =>
-    setCustomSemester(e.target.value)
-  }
-  style={modalInput}
-  required
- />
+ <>
+  <input
+   type="text"
+   placeholder="e.g. Fall 2026-2027"
+   value={customSemester}
+   onChange={(e) =>
+     setCustomSemester(e.target.value)
+   }
+   style={modalInput}
+   required
+  />
 
-   )}
+  <div style={{ marginTop: '10px' }}>
+   <label style={fieldLabel}>Semester Credits <span style={{ color: '#9AA7C6' }}>(optional)</span></label>
+   <input
+    type="number"
+    min="0"
+    step="0.5"
+    placeholder="e.g. 15"
+    value={newSemesterCredits}
+    onChange={(e) => setNewSemesterCredits(e.target.value)}
+    style={modalInput}
+   />
+   <div style={{
+     marginTop: '5px',
+     color: '#8A98B8',
+     fontSize: '10px',
+     fontWeight: '700'
+   }}>
+    Useful for older semesters: enter the semester's total credits even if you do not add every old course.
+   </div>
+  </div>
+ </>
+)}
   </>
  ):(
   <>
@@ -5231,6 +5432,27 @@ function CourseModal({
      style={modalInput}
      required
     />
+
+    <div style={{ marginTop: '10px' }}>
+     <label style={fieldLabel}>Semester Credits <span style={{ color: '#9AA7C6' }}>(optional)</span></label>
+     <input
+      type="number"
+      min="0"
+      step="0.5"
+      placeholder="e.g. 15"
+      value={newSemesterCredits}
+      onChange={(e) => setNewSemesterCredits(e.target.value)}
+      style={modalInput}
+     />
+     <div style={{
+       marginTop: '5px',
+       color: '#8A98B8',
+       fontSize: '10px',
+       fontWeight: '700'
+     }}>
+      You can enter the total credits now, even if those courses were taken before Campora.
+     </div>
+    </div>
   </>
  )}
 </div>
@@ -5394,8 +5616,8 @@ function CourseModal({
         padding: '10px 12px',
         borderRadius: '11px',
         border: `1.5px solid ${!addCourseToPlanner ? '#0B1A3F' : '#DDE4EF'}`,
-        background: !addCourseToPlanner ? '#EEF4FB' : '#FFFFFF',
-        color: '#0B1A3F',
+        background: !addCourseToPlanner ? '#0B1A3F' : '#FFFFFF',
+        color: !addCourseToPlanner ? '#FFFFFF' : '#0B1A3F',
         fontWeight: '900',
         cursor: 'pointer'
       }}

@@ -210,6 +210,10 @@ export default function Dashboard() {
   const [plannerItems, setPlannerItems] = useState([]);
   const [courses, setCourses] = useState([]);
   const [courseCredits, setCourseCredits] = useState({});
+  const [courseSemesters, setCourseSemesters] = useState({});
+  const [customSemesters, setCustomSemesters] = useState([]);
+  const [semesterCreditOverrides, setSemesterCreditOverrides] = useState({});
+  const [sharedCompletedCredits, setSharedCompletedCredits] = useState('');
   const [courseAssignments, setCourseAssignments] = useState([]);
   const [todos, setTodos] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -254,7 +258,34 @@ export default function Dashboard() {
         []
       );
 
+      const semestersByCourse = safeParse(
+        localStorage.getItem(
+          localKey(user.id, 'semestersByCourse')
+        ),
+        {}
+      );
+
+      const savedCustomSemesters = safeParse(
+        localStorage.getItem(
+          localKey(user.id, 'customSemesters')
+        ),
+        []
+      );
+
+      const savedSemesterCredits = safeParse(
+        localStorage.getItem(
+          localKey(user.id, 'semesterCreditOverrides')
+        ),
+        {}
+      );
+
       setCourseCredits(credits);
+      setCourseSemesters(semestersByCourse);
+      setCustomSemesters(savedCustomSemesters);
+      setSemesterCreditOverrides(savedSemesterCredits);
+      setSharedCompletedCredits(
+        localStorage.getItem('campora-shared-completed-credits') || ''
+      );
       setCourseAssignments(assignments);
 
       const [
@@ -442,17 +473,65 @@ export default function Dashboard() {
     [courseAssignments]
   );
 
+  useEffect(() => {
+    const syncSharedCredits = () => {
+      setSharedCompletedCredits(
+        localStorage.getItem('campora-shared-completed-credits') || ''
+      );
+    };
+
+    window.addEventListener('camporaCreditsUpdated', syncSharedCredits);
+    window.addEventListener('storage', syncSharedCredits);
+
+    return () => {
+      window.removeEventListener('camporaCreditsUpdated', syncSharedCredits);
+      window.removeEventListener('storage', syncSharedCredits);
+    };
+  }, []);
+
   const totalCredits = useMemo(() => {
-    return courses.reduce(
-      (sum, course) =>
-        sum +
-        Math.max(
-          0,
-          Number(courseCredits[course.id]) || 0
-        ),
-      0
+    const semesterNames = Array.from(
+      new Set([
+        ...customSemesters,
+        ...courses
+          .map(course => courseSemesters[course.id] || course.semester)
+          .filter(Boolean)
+      ])
     );
-  }, [courses, courseCredits]);
+
+    const calculated = semesterNames.reduce((sum, semesterName) => {
+      const calculated = courses
+        .filter(
+          course =>
+            (courseSemesters[course.id] || course.semester) === semesterName
+        )
+        .reduce(
+          (semesterSum, course) =>
+            semesterSum +
+            Math.max(0, Number(courseCredits[course.id]) || 0),
+          0
+        );
+
+      const override = semesterCreditOverrides[semesterName];
+      const semesterCredits =
+        override === '' || override === undefined || override === null
+          ? calculated
+          : Math.max(0, Number(override) || 0);
+
+      return sum + semesterCredits;
+    }, 0);
+
+    return sharedCompletedCredits === ''
+      ? calculated
+      : Math.max(0, Number(sharedCompletedCredits) || 0);
+  }, [
+    courses,
+    courseCredits,
+    courseSemesters,
+    customSemesters,
+    semesterCreditOverrides,
+    sharedCompletedCredits
+  ]);
 
   const remainingTodos = useMemo(
     () =>

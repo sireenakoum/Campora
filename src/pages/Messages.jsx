@@ -93,6 +93,18 @@ function formatDate(value) {
   });
 }
 
+function formatMessageTime(value) {
+  if (!value) return '';
+
+  const date = new Date(value);
+
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 const REPORT_REASONS = [
   'Spam or advertising',
   'Harassment or bullying',
@@ -607,6 +619,63 @@ export default function Messages() {
       return next;
     });
   }, [composer, currentUser?.id, selected?.type, selected?.partnerId, selected?.groupId]);
+
+  useEffect(() => {
+    if (
+      !currentUser?.id ||
+      selected?.type !== 'dm' ||
+      !selected?.partnerId
+    ) {
+      return;
+    }
+
+    const hasUnreadFromPartner = directMessages.some(
+      (message) =>
+        message.sender_id === selected.partnerId &&
+        message.receiver_id === currentUser.id &&
+        message.read !== true
+    );
+
+    if (!hasUnreadFromPartner) return;
+
+    let cancelled = false;
+
+    const markConversationRead = async () => {
+      const { error } = await supabase
+        .from('direct_messages')
+        .update({ read: true })
+        .eq('sender_id', selected.partnerId)
+        .eq('receiver_id', currentUser.id)
+        .eq('read', false);
+
+      if (error) {
+        console.error('Could not mark direct messages as read:', error);
+        return;
+      }
+
+      if (!cancelled) {
+        setDirectMessages((current) =>
+          current.map((message) =>
+            message.sender_id === selected.partnerId &&
+            message.receiver_id === currentUser.id
+              ? { ...message, read: true }
+              : message
+          )
+        );
+      }
+    };
+
+    markConversationRead();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentUser?.id,
+    selected?.type,
+    selected?.partnerId,
+    directMessages
+  ]);
 
   useEffect(() => {
     const query = peopleSearch.trim();
@@ -4084,6 +4153,29 @@ export default function Messages() {
           position: relative;
         }
 
+        .wa-message-meta {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 5px;
+          margin-top: 5px;
+          font-size: 9px;
+          line-height: 1;
+          font-weight: 700;
+          color: #98A2B3;
+          white-space: nowrap;
+        }
+
+        .wa-message-meta.seen {
+          color: #526987;
+        }
+
+        .wa-message-meta .wa-seen-check {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
         .wa-message-avatar {
           width: 34px;
           height: 34px;
@@ -5364,6 +5456,23 @@ export default function Messages() {
                         <div className="wa-message-text">
                           {parsed.text}
                         </div>
+
+                        <div
+                          className={`wa-message-meta ${
+                            mine && message.read === true ? 'seen' : ''
+                          }`}
+                        >
+                          <span>{formatMessageTime(message.created_at)}</span>
+
+                          {mine && (
+                            <>
+                              <span>·</span>
+                              <span>
+                                {message.read === true ? 'Seen' : 'Sent'}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {mine && (
@@ -5440,6 +5549,10 @@ export default function Messages() {
 
                         <div className="wa-message-text">
                           {parsedText}
+                        </div>
+
+                        <div className="wa-message-meta">
+                          <span>{formatMessageTime(message.created_at)}</span>
                         </div>
                       </div>
 
