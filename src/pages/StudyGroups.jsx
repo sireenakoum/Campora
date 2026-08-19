@@ -513,6 +513,23 @@ const [
   dmConversations,
   setDmConversations
 ] = useState([]);
+const [dmNotificationMuted, setDmNotificationMuted] = useState(() => {
+  try {
+    return JSON.parse(localStorage.getItem('campora_study_dm_notification_muted') || '{}');
+  } catch {
+    return {};
+  }
+});
+
+const toggleDmNotifications = partnerId => {
+  if (!partnerId) return;
+  setDmNotificationMuted(previous => {
+    const next = { ...previous, [partnerId]: !previous[partnerId] };
+    localStorage.setItem('campora_study_dm_notification_muted', JSON.stringify(next));
+    return next;
+  });
+};
+
 
 const [
   selectedDmUser,
@@ -1992,6 +2009,46 @@ const createStudyGroupNotification = async ({
   }
 };
 
+const createStudyDirectMessageNotification = async ({
+  userId,
+  senderName,
+  content
+}) => {
+  if (!userId) return;
+
+  let result = await supabase
+    .from('notifications')
+    .insert([
+      {
+        user_id: userId,
+        title: 'New direct message',
+        message: `${senderName || 'A student'}: ${String(content || '').slice(0, 140)}`,
+        category: 'Direct',
+        read: false,
+      },
+    ]);
+
+  if (
+    result.error &&
+    result.error.message?.toLowerCase().includes('category')
+  ) {
+    result = await supabase
+      .from('notifications')
+      .insert([
+        {
+          user_id: userId,
+          title: 'New direct message',
+          message: `${senderName || 'A student'}: ${String(content || '').slice(0, 140)}`,
+          read: false,
+        },
+      ]);
+  }
+
+  if (result.error) {
+    console.error('DIRECT MESSAGE NOTIFICATION ERROR:', result.error);
+  }
+};
+
 const notifyStudyGroupMembersAboutMessage = async ({
   group,
   senderId,
@@ -2685,6 +2742,16 @@ if (error) {
 
 
 
+await createStudyDirectMessageNotification({
+  userId: selectedMember.user_id,
+  senderName:
+    currentUser.user_metadata?.full_name ||
+    currentUser.user_metadata?.name ||
+    currentUser.email?.split('@')[0] ||
+    'A student',
+  content: directChatMessage.trim()
+});
+
 setDirectChatMessage('');
 
 
@@ -2815,6 +2882,16 @@ if (error) {
             return;
 }
 
+
+await createStudyDirectMessageNotification({
+  userId: selectedDmUser.partnerId,
+  senderName:
+    currentUser.user_metadata?.full_name ||
+    currentUser.user_metadata?.name ||
+    currentUser.email?.split('@')[0] ||
+    'A student',
+  content: trimmed
+});
 
 setNewDmMessageText('');
 setDmReplyingTo(null);
@@ -4145,15 +4222,13 @@ const instagramReactionPill = { border: '1px solid #E3E2E7', background:
 const instagramMessageMenuButton = { position: 'absolute', top: '8px', border:
 'none', background: 'transparent', color: '#717786', cursor: 'pointer', padding:
 '4px 7px', fontWeight: '900', letterSpacing: '1px' };
-const instagramMessageMenu = { position: 'absolute', top: '34px', background:
-'#FFFFFF', border: '1px solid #E3E2E7', borderRadius: '13px', padding: '7px',
+const instagramMessageMenu = { position: 'absolute', top: '34px', background: '#FFFFFF', border: '1px solid #E3E2E7', borderRadius: '13px', padding: '7px',
 boxShadow: '0 10px 25px rgba(0,45,98,0.12)', zIndex: 40, display: 'flex',
 alignItems: 'center', gap: '3px', flexWrap: 'wrap', minWidth: '250px', maxWidth:
 'min(310px, calc(100vw - 80px))' };
 const instagramEmojiButton = { border: 'none', background: 'transparent',
 fontSize: '16px', cursor: 'pointer', padding: '4px' };
-const instagramMenuAction = { border: 'none', background: '#E9E7ED', color:
-'#1A1B1F', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems:
+const instagramMenuAction = { border: 'none', background: '#FFFFFF', color: '#0B1A3F', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems:
 'center', gap: '4px', fontSize: '10px', fontWeight: '800', cursor: 'pointer' };
 const instagramReplyQuote = { display: 'flex', flexDirection: 'column', gap: '2px',
 padding: '7px 9px', marginBottom: '7px', borderRadius: '9px', background:
@@ -4275,20 +4350,36 @@ const instagramDmSidebar = { borderRight: '1px solid #E3E2E7', display: 'flex',
 flexDirection: 'column', minWidth: 0, background: '#FFFFFF' };
 const instagramDmSidebarHeader = { padding: '24px 22px 16px', display: 'flex',
 alignItems: 'center', justifyContent: 'space-between', gap: '12px' };
-const instagramDmSidebarTitle = { margin: 0, color: '#1A1B1F', fontSize: '22px',
-fontWeight: '900' };
-const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: '#717786',
-fontSize: '11px', fontWeight: '700' };
+const instagramDmSidebarTitle = {
+  margin: 0,
+  color: '#0B1A3F',
+  fontSize: '16px',
+  fontWeight: '900'
+};
+const instagramDmSidebarSubtitle = {
+  margin: '4px 0 0',
+  color: '#667085',
+  fontSize: '11px',
+  fontWeight: '800'
+};
 const instagramSearchWrap = { padding: '0 18px 16px' };
 const instagramSearchBar = { height: '50px', border: '1.5px solid #E3E2E7',
-borderRadius: '15px', background: '#E9E7ED', display: 'flex', alignItems:
+borderRadius: '15px', background: '#FFFFFF', display: 'flex', alignItems:
 'center', gap: '10px', padding: '0 15px', boxSizing: 'border-box' };
-const instagramSearchIcon = { color: '#717786', pointerEvents: 'none',
-flexShrink: 0 };
-const instagramSearchInput = { width: '100%', minWidth: 0, height: '100%',
-border: 'none', outline: 'none', padding: 0, margin: 0, background: 'transparent',
-color: '#1A1B1F', fontSize: '13px', fontWeight: '700', fontFamily: 'inherit',
-boxSizing: 'border-box', lineHeight: 1 };
+const instagramSearchIcon = {
+  color: '#A0A7B3',
+  flexShrink: 0
+};
+const instagramSearchInput = {
+  width: '100%',
+  border: 'none',
+  outline: 'none',
+  background: 'transparent',
+  color: '#0B1A3F',
+  fontSize: '12px',
+  fontWeight: '700',
+  fontFamily: 'inherit'
+};
 const instagramSearchClear = { border: 'none', background: 'transparent',
 color: '#717786', cursor: 'pointer', padding: 0, display: 'flex', alignItems:
 'center', justifyContent: 'center', flexShrink: 0 };
@@ -4375,8 +4466,8 @@ justifyContent: 'space-between', gap: '10px', marginTop: '5px', fontSize: '8px',
 opacity: 0.7 };
 const instagramComposer = { borderTop: '1px solid #E3E2E7', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: '#FFFFFF', flexShrink: 0, position: 'relative', zIndex: 3 };
 const instagramComposerInput = { flex: 1, height: '50px', minWidth: 0,
-borderRadius: '20px', border: '1.5px solid #E3E2E7', background: '#E9E7ED',
-padding: '0 16px', fontSize: '13px', fontWeight: '700', color: '#1A1B1F', outline:
+borderRadius: '20px', border: '1.5px solid #E3E2E7', background: '#FFFFFF',
+padding: '0 16px', fontSize: '13px', fontWeight: '700', color: '#0B1A3F', outline:
 'none', boxSizing: 'border-box', fontFamily: 'inherit' };
 const instagramSendButton = { width: '48px', height: '48px', borderRadius:
 '50%', border: 'none', background: '#002D62', color: '#FFFFFF', display: 'flex',
@@ -6083,6 +6174,20 @@ gridTemplateColumns:
 )}
 
 
+<style>{`
+.study-dm-search-input::placeholder {
+  color: #A0A7B3 !important;
+  opacity: 1;
+}
+`}</style>
+
+<style>{`
+.study-dm-search-white::placeholder {
+  color: #A0A7B3 !important;
+  opacity: 1;
+}
+`}</style>
+
 {/* =================================================
  DIRECT MESSAGES
 ================================================= */}
@@ -6101,7 +6206,8 @@ one place.
   </div>
 
   <ShellPortal active={dmFullscreen}>
- <div style={{ ...instagramDmShell, ...(dmFullscreen ? {
+ <div style={{
+    background: '#FFFFFF', ...instagramDmShell, ...(dmFullscreen ? {
   position: 'fixed',
   top: 0,
   left: 0,
@@ -6114,7 +6220,7 @@ one place.
   maxWidth: '100vw',
   gridTemplateColumns: '1fr',
   borderRadius: 0,
-  border: 'none',
+  border: '1px solid #E3E8EF',
   zIndex: 9990,
   boxShadow: '0 0 60px rgba(0,45,98,0.35)'
  } : {}) }}>
@@ -6137,6 +6243,8 @@ one place.
       value={dmSearchQuery}
       onChange={(event) => setDmSearchQuery(event.target.value)}
       placeholder="Search name or email"
+      className="study-dm-search-white"
+      className="study-dm-search-input"
       style={instagramSearchInput}
      />
      {dmSearchQuery && (
@@ -6300,6 +6408,22 @@ getAvatarColor(selectedDmUser.name) }}>
      </div>
      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
      <button
+type="button"
+title={dmNotificationMuted[selectedDmUser.partnerId] ? 'Notifications off' : 'Notifications on'}
+onClick={() => toggleDmNotifications(selectedDmUser.partnerId)}
+style={{
+  ...instagramHeaderPin,
+  background: '#FFFFFF',
+  border: '1px solid #E3E8EF'
+}}
+>
+{dmNotificationMuted[selectedDmUser.partnerId] ? (
+  <BellOff size={16} color="#EF4444" />
+) : (
+  <Bell size={16} color="#0B1A3F" />
+)}
+</button>
+<button
        type="button"
        onClick={() => togglePinDm(selectedDmUser.partnerId)}
        style={{
@@ -6317,18 +6441,23 @@ getAvatarColor(selectedDmUser.name) }}>
 
      />
     </button>
-    <button
-     type="button"
-     onClick={() => setDmFullscreen((previous) => !previous)}
-     title={dmFullscreen ? 'Exit fullscreen' : 'View fullscreen'}
-     style={{ ...instagramHeaderPin, ...(dmFullscreen ? instagramHeaderPinActive : {}) }}
-    >
-     {dmFullscreen ? (
-      <Minimize2 size={16} color="#717786" />
-     ) : (
-      <Maximize2 size={16} color="#717786" />
-     )}
-    </button>
+<button
+type="button"
+title={dmFullscreen ? 'Exit full screen' : 'Full screen'}
+onClick={() => setDmFullscreen(value => !value)}
+style={{
+  ...instagramHeaderPin,
+  background: '#FFFFFF',
+  border: '1px solid #E3E8EF'
+}}
+>
+{dmFullscreen ? (
+  <Minimize2 size={16} color="#667085" />
+) : (
+  <Maximize2 size={16} color="#667085" />
+)}
+</button>
+    
     </div>
     </div>
 
@@ -6533,7 +6662,8 @@ size={13} /> {isPinnedMessage ? 'Unpin' : 'Pin'}</button>
 
      {dmReplyingTo && (
       <div style={instagramReplyComposerPreview}>
-        <div style={{ minWidth: 0 }}>
+        <div style={{
+    background: '#FFFFFF', minWidth: 0 }}>
         <strong>Replying to {dmReplyingTo.sender}</strong>
         <p>{dmReplyingTo.text}</p>
         </div>

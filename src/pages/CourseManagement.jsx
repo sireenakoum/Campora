@@ -24,10 +24,12 @@ import {
   Clock3,
   Bell,
   AlarmClock,
+  CheckCheck,
   ChevronDown
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import { toast } from '../lib/toast';
 
 import {
   PageShell,
@@ -236,6 +238,48 @@ const formatDate = (dateString) => {
 // Then crossing out from either screen will update the same Supabase row.
 // =========================================================
 
+
+const camporaToastStyle = {
+  position: 'fixed',
+  top: '22px',
+  right: '22px',
+  zIndex: 9999,
+  minWidth: '280px',
+  maxWidth: '360px',
+  padding: '14px 16px',
+  borderRadius: '16px',
+  background: '#FFFFFF',
+  border: '1px solid #E4EAF2',
+  boxShadow: '0 14px 36px rgba(11, 26, 63, 0.16)',
+  color: '#0B1A3F',
+  fontSize: '13px',
+  fontWeight: '800',
+  lineHeight: 1.45
+};
+
+
+const getCourseAlertStorageKey = (userId) =>
+  `campora-course-alert-links-${userId}`;
+
+const readCourseAlertLinks = (userId) => {
+  if (!userId) return {};
+  try {
+    return JSON.parse(
+      localStorage.getItem(getCourseAlertStorageKey(userId)) || '{}'
+    );
+  } catch {
+    return {};
+  }
+};
+
+const writeCourseAlertLinks = (userId, links) => {
+  if (!userId) return;
+  localStorage.setItem(
+    getCourseAlertStorageKey(userId),
+    JSON.stringify(links || {})
+  );
+};
+
 export default function CourseManagement() {
  const [courses, setCourses] = useState([]);
  const [loading, setLoading] = useState(true);
@@ -288,6 +332,8 @@ const [assignmentDue, setAssignmentDue] = useState('');
 const [assignmentEditingId, setAssignmentEditingId] = useState(null);
 const [assignmentReminder, setAssignmentReminder] = useState(false);
 const [assignmentNotification, setAssignmentNotification] = useState(false);
+const [assignmentReminderDate, setAssignmentReminderDate] = useState('');
+const [assignmentReminderTime, setAssignmentReminderTime] = useState('');
 
 // Exams / upcoming
 const [eventTitle, setEventTitle] = useState('');
@@ -296,6 +342,10 @@ const [eventType, setEventType] = useState('Exam');
 const [eventEditingId, setEventEditingId] = useState(null);
 const [eventReminder, setEventReminder] = useState(false);
 const [eventNotification, setEventNotification] = useState(false);
+const [eventReminderDate, setEventReminderDate] = useState('');
+const [eventReminderTime, setEventReminderTime] = useState('');
+const [alertConfirmation, setAlertConfirmation] = useState(null);
+const [camporaToast, setCamporaToast] = useState(null);
 
 // Notes
 const [savedNotes, setSavedNotes] = useState([]);
@@ -1565,6 +1615,110 @@ const deleteCourseNotification = async (notificationId) => {
  if (error) console.error('Could not delete course notification:', error);
 };
 
+
+const createReminderAddedNotification = async ({ title, reminderDate, reminderTime }) => {
+ if (!userId || !reminderDate || !reminderTime) return;
+ const when = `${formatDate(reminderDate)} at ${reminderTime}`;
+ let result = await supabase.from('notifications').insert([{
+  user_id: userId,
+  title: `Reminder added: ${title}`,
+  message: `Your reminder is set for ${when}.`,
+  category: 'Courses',
+  read: false
+ }]);
+ if (result.error) {
+  result = await supabase.from('notifications').insert([{
+   user_id: userId,
+   title: `Reminder added: ${title}`,
+   message: `Your reminder is set for ${when}.`
+  }]);
+ }
+ if (result.error) console.error('Could not create reminder confirmation notification:', result.error);
+};
+
+const createCourseAlertConfirmation = async ({
+ title,
+ notification,
+ reminder,
+ reminderDate,
+ reminderTime
+}) => {
+ if (!userId || (!notification && !reminder)) return;
+
+ const when =
+   reminder && reminderDate && reminderTime
+     ? `${formatDate(reminderDate)} at ${reminderTime}`
+     : '';
+
+ const confirmationTitle =
+   notification && reminder
+     ? `Notification + reminder added: ${title}`
+     : reminder
+       ? `Reminder added: ${title}`
+       : `Notification added: ${title}`;
+
+ const confirmationMessage =
+   notification && reminder
+     ? `Your course notification is on and your reminder is set for ${when}.`
+     : reminder
+       ? `Your reminder is set for ${when}.`
+       : 'Your course notification is turned on.';
+
+ let result = await supabase.from('notifications').insert([{
+  user_id: userId,
+  title: confirmationTitle,
+  message: confirmationMessage,
+  category: 'Courses',
+  read: false
+ }]);
+
+ if (result.error) {
+  result = await supabase.from('notifications').insert([{
+   user_id: userId,
+   title: confirmationTitle,
+   message: confirmationMessage
+  }]);
+ }
+
+ if (result.error) {
+  console.error('Could not create course alert confirmation:', result.error);
+ }
+};
+
+const showCamporaToast = (message) => {
+ setCamporaToast(message);
+ window.setTimeout(() => setCamporaToast(null), 4000);
+};
+
+const showAlertConfirmation = (message) => {
+ setAlertConfirmation(message);
+ window.setTimeout(() => setAlertConfirmation(null), 4000);
+};
+
+const createLinkedCourseAlert = ({
+ itemId,
+ alertType,
+ title,
+ details,
+ reminderDate,
+ reminderTime
+}) => {
+ if (!userId || !itemId || !alertType) return;
+
+ const links = readCourseAlertLinks(userId);
+
+ links[itemId] = {
+  type: alertType,
+  title: title || 'Course Item',
+  details: details || '',
+  date: reminderDate || '',
+  time: reminderTime || '',
+  created_at: new Date().toISOString()
+ };
+
+ writeCourseAlertLinks(userId, links);
+};
+
 // ---------------------------------------------------------
 // ASSIGNMENTS
 // ---------------------------------------------------------
@@ -1581,11 +1735,24 @@ const resetAssignmentForm = () => {
  setAssignmentEditingId(null);
  setAssignmentReminder(false);
  setAssignmentNotification(false);
+ setAssignmentReminderDate('');
+ setAssignmentReminderTime('');
 };
 
 const saveAssignment = async (e) => {
  e.preventDefault();
  if (!selectedCourse || !assignmentTitle.trim()) return;
+ const effectiveAssignmentReminderDate =
+  String(assignmentReminderDate || assignmentDue || '').trim();
+ const effectiveAssignmentReminderTime =
+  String(assignmentReminderTime || '09:00').trim();
+
+ if (assignmentReminder && effectiveAssignmentReminderDate.length === 0) {
+  showAlertConfirmation('Choose a reminder date first.');
+  return;
+ }
+
+ let savedAssignmentId = assignmentEditingId || null;
 
  if (assignmentEditingId) {
   const current = courseAssignments.find((assignment) => assignment.id === assignmentEditingId);
@@ -1613,10 +1780,13 @@ const saveAssignment = async (e) => {
    plannerId,
    reminder: assignmentReminder,
    notification: assignmentNotification,
+   reminderDate: assignmentReminder ? effectiveAssignmentReminderDate : '',
+   reminderTime: assignmentReminder ? effectiveAssignmentReminderTime : '',
    notificationId
   } : assignment));
  } else {
   const id = `${Date.now()}-${Math.random()}`;
+  savedAssignmentId = id;
   const plannerEntry = assignmentDue ? await createPlannerEntryForCourseItem({
    kind: 'assignment', itemId: id, title: assignmentTitle.trim(), date: assignmentDue, type: 'Task', reminder: assignmentReminder
   }) : null;
@@ -1628,8 +1798,43 @@ const saveAssignment = async (e) => {
   setCourseAssignments((prev) => [...prev, {
    id, courseId: selectedCourse.id, title: assignmentTitle.trim(), due: assignmentDue, completed: false,
    plannerId: plannerEntry?.id || null, reminder: assignmentReminder, notification: assignmentNotification,
+   reminderDate: assignmentReminder ? effectiveAssignmentReminderDate : '',
+   reminderTime: assignmentReminder ? effectiveAssignmentReminderTime : '',
    notificationId, createdAt: new Date().toISOString()
   }]);
+ }
+ if (assignmentReminder || assignmentNotification) {
+  await createCourseAlertConfirmation({
+   title: assignmentTitle.trim(),
+   notification: assignmentNotification,
+   reminder: assignmentReminder,
+   reminderDate: assignmentReminderDate,
+   reminderTime: assignmentReminderTime
+  });
+
+  const assignmentMessage =
+   assignmentReminder && assignmentNotification
+    ? `Notification is on and reminder set for ${formatDate(effectiveAssignmentReminderDate)} at ${effectiveAssignmentReminderTime}.`
+    : assignmentReminder
+      ? `Reminder set for ${formatDate(effectiveAssignmentReminderDate)} at ${effectiveAssignmentReminderTime}.`
+      : 'Notification is on for this assignment.';
+
+  showAlertConfirmation(assignmentMessage);
+  toast(assignmentMessage);
+
+  createLinkedCourseAlert({
+   itemId: savedAssignmentId,
+   alertType:
+    assignmentReminder && assignmentNotification
+      ? 'both'
+      : assignmentReminder
+        ? 'reminder'
+        : 'notification',
+   title: assignmentTitle.trim(),
+   details: selectedCourse?.name || '',
+   reminderDate: effectiveAssignmentReminderDate,
+   reminderTime: effectiveAssignmentReminderTime
+  });
  }
  resetAssignmentForm();
 };
@@ -1640,6 +1845,8 @@ const editAssignment = (assignment) => {
  setAssignmentDue(assignment.due || '');
  setAssignmentReminder(Boolean(assignment.reminder));
  setAssignmentNotification(Boolean(assignment.notification));
+ setAssignmentReminderDate(assignment.reminderDate || assignment.due || '');
+ setAssignmentReminderTime(assignment.reminderTime || '09:00');
 };
 
 const toggleAssignment = async (id) => {
@@ -1699,11 +1906,24 @@ const resetEventForm = () => {
  setEventEditingId(null);
  setEventReminder(false);
  setEventNotification(false);
+ setEventReminderDate('');
+ setEventReminderTime('');
 };
 
 const saveEvent = async (e) => {
  e.preventDefault();
  if (!selectedCourse || !eventTitle.trim()) return;
+ const effectiveEventReminderDate =
+  String(eventReminderDate || eventDate || '').trim();
+ const effectiveEventReminderTime =
+  String(eventReminderTime || '09:00').trim();
+
+ if (eventReminder && effectiveEventReminderDate.length === 0) {
+  showAlertConfirmation('Choose a reminder date first.');
+  return;
+ }
+
+ let savedEventId = eventEditingId || null;
 
  if (eventEditingId) {
   const current = courseEvents.find((event) => event.id === eventEditingId);
@@ -1726,10 +1946,14 @@ const saveEvent = async (e) => {
   });
   setCourseEvents((prev) => prev.map((event) => event.id === eventEditingId ? {
    ...event, title: eventTitle.trim(), date: eventDate, type: eventType, plannerId,
-   reminder: eventReminder, notification: eventNotification, notificationId
+   reminder: eventReminder, notification: eventNotification,
+   reminderDate: eventReminder ? effectiveEventReminderDate : '',
+   reminderTime: eventReminder ? effectiveEventReminderTime : '',
+   notificationId
   } : event));
  } else {
   const id = `${Date.now()}-${Math.random()}`;
+  savedEventId = id;
   const plannerEntry = eventDate ? await createPlannerEntryForCourseItem({
    kind: 'upcoming', itemId: id, title: eventTitle.trim(), date: eventDate,
    type: plannerTypeForUpcoming(eventType), reminder: eventReminder
@@ -1742,8 +1966,44 @@ const saveEvent = async (e) => {
   setCourseEvents((prev) => [...prev, {
    id, courseId: selectedCourse.id, title: eventTitle.trim(), date: eventDate, type: eventType,
    completed: false, plannerId: plannerEntry?.id || null, reminder: eventReminder,
-   notification: eventNotification, notificationId, createdAt: new Date().toISOString()
+   notification: eventNotification,
+   reminderDate: eventReminder ? effectiveEventReminderDate : '',
+   reminderTime: eventReminder ? effectiveEventReminderTime : '',
+   notificationId, createdAt: new Date().toISOString()
   }]);
+ }
+ if (eventReminder || eventNotification) {
+  await createCourseAlertConfirmation({
+   title: eventTitle.trim(),
+   notification: eventNotification,
+   reminder: eventReminder,
+   reminderDate: eventReminderDate,
+   reminderTime: eventReminderTime
+  });
+
+  const eventMessage =
+   eventReminder && eventNotification
+    ? `Notification is on and reminder set for ${formatDate(effectiveEventReminderDate)} at ${effectiveEventReminderTime}.`
+    : eventReminder
+      ? `Reminder set for ${formatDate(effectiveEventReminderDate)} at ${effectiveEventReminderTime}.`
+      : 'Notification is on for this course item.';
+
+  showAlertConfirmation(eventMessage);
+  toast(eventMessage);
+
+  createLinkedCourseAlert({
+   itemId: savedEventId,
+   alertType:
+    eventReminder && eventNotification
+      ? 'both'
+      : eventReminder
+        ? 'reminder'
+        : 'notification',
+   title: eventTitle.trim(),
+   details: selectedCourse?.name || '',
+   reminderDate: effectiveEventReminderDate,
+   reminderTime: effectiveEventReminderTime
+  });
  }
  resetEventForm();
 };
@@ -1755,6 +2015,8 @@ const editEvent = (event) => {
  setEventType(event.type || 'Exam');
  setEventReminder(Boolean(event.reminder));
  setEventNotification(Boolean(event.notification));
+ setEventReminderDate(event.reminderDate || event.date || '');
+ setEventReminderTime(event.reminderTime || '09:00');
 };
 
 const toggleEventCompleted = async (id) => {
@@ -2130,6 +2392,12 @@ const visibleSemesterCourses = semesterCourses.filter((course) => {
 
  return (
   <div style={coursesPageShellStyle}>
+      {camporaToast && (
+        <div style={camporaToastStyle}>
+          {camporaToast}
+        </div>
+      )}
+
     <button
       onClick={() => {
         setSelectedSemester(null);
@@ -2840,11 +3108,24 @@ if (selectedCourse) {
 
  <div style={{ height: '16px' }} />
  {savedNotes.length === 0 ? (
+  <div className="white-pop-empty-icon">
+  <style>{`
+    .white-pop-empty-icon div:has(> svg) {
+      background: #FFFFFF !important;
+      border-color: #EEF2F7 !important;
+      box-shadow: 0 8px 22px rgba(11, 26, 63, 0.08) !important;
+    }
+    .white-pop-empty-icon svg {
+      color: #0B1A3F !important;
+      stroke: #0B1A3F !important;
+    }
+  `}</style>
   <EmptyState
    icon={FileText}
    title="No saved notes yet."
    text="Write your first note on the left."
   />
+ </div>
  ):(
   <div
    style={{
@@ -2964,25 +3245,26 @@ if (selectedCourse) {
   </div>
 
   <div style={alertOptionsGridStyle}>
-   <AlertOption
-    icon={<AlarmClock size={17} />}
-    title="Reminder"
-    text="Show this under Reminders and in Planner."
-    active={assignmentReminder}
-    onClick={() => setAssignmentReminder((value) => !value)}
-    accent="#7F7897"
-     soft="#F4F2F8"
-   />
-   <AlertOption
-    icon={<Bell size={17} />}
-    title="Notification"
-    text="Add this to your Courses notifications."
-    active={assignmentNotification}
-    onClick={() => setAssignmentNotification((value) => !value)}
-    accent="#6684AE"
-     soft="#F1F5FA"
-   />
+   <AlertOption icon={<Bell size={17} />} title="Notification" text="Add this to your Courses notifications." active={assignmentNotification && !assignmentReminder} onClick={() => { setAssignmentNotification(true); setAssignmentReminder(false); }} accent="#6684AE" soft="#F1F5FA" />
+   <AlertOption icon={<AlarmClock size={17} />} title="Reminder" text="Choose a date and time for a reminder." active={assignmentReminder && !assignmentNotification} onClick={() => { setAssignmentReminder(true); setAssignmentNotification(false); if (!assignmentReminderDate) setAssignmentReminderDate(assignmentDue || ''); if (!assignmentReminderTime) setAssignmentReminderTime('09:00'); }} accent="#7F7897" soft="#F4F2F8" />
+   <AlertOption icon={<CheckCheck size={17} />} title="Both" text="Create both a notification and reminder." active={assignmentReminder && assignmentNotification} onClick={() => { setAssignmentReminder(true); setAssignmentNotification(true); if (!assignmentReminderDate) setAssignmentReminderDate(assignmentDue || ''); if (!assignmentReminderTime) setAssignmentReminderTime('09:00'); }} accent="#0B1A3F" soft="#F4F7FB" />
+   <AlertOption icon={<X size={17} />} title="None" text="No notification or reminder." active={!assignmentReminder && !assignmentNotification} onClick={() => { setAssignmentReminder(false); setAssignmentNotification(false); }} accent="#0B1A3F" soft="#F8FAFC" />
   </div>
+
+  {assignmentReminder && (
+   <div style={reminderScheduleStyle}>
+    <div>
+     <label style={fieldLabel}>Reminder Date</label>
+     <input type="date" value={assignmentReminderDate || assignmentDue || ''} onChange={(e) => setAssignmentReminderDate(e.target.value)} style={{ ...modalInput, background: '#F7F8FA', color: '#0B1A3F', WebkitTextFillColor: '#0B1A3F', opacity: 1, border: '1px solid #E2E7EE' }} required />
+    </div>
+    <div>
+     <label style={fieldLabel}>Reminder Time</label>
+     <input type="time" value={assignmentReminderTime || '09:00'} onChange={(e) => setAssignmentReminderTime(e.target.value)} style={{ ...modalInput, background: '#F7F8FA', color: '#0B1A3F', WebkitTextFillColor: '#0B1A3F', opacity: 1, border: '1px solid #E2E7EE' }} required />
+    </div>
+   </div>
+  )}
+
+  {alertConfirmation && <div style={alertConfirmationStyle}>{alertConfirmation}</div>}
 
   <button
    type="submit"
@@ -3034,11 +3316,24 @@ if (selectedCourse) {
 
 <div style={{ height: '16px' }} />
 {selectedAssignments.length === 0 ? (
- <EmptyState
+ <div className="white-pop-empty-icon">
+  <style>{`
+    .white-pop-empty-icon div:has(> svg) {
+      background: #FFFFFF !important;
+      border-color: #EEF2F7 !important;
+      box-shadow: 0 8px 22px rgba(11, 26, 63, 0.08) !important;
+    }
+    .white-pop-empty-icon svg {
+      color: #0B1A3F !important;
+      stroke: #0B1A3F !important;
+    }
+  `}</style>
+  <EmptyState
    icon={ClipboardCheck}
    title="No assignments yet."
    text="Add one from the form."
   />
+ </div>
 ):(
  <div
   style={{
@@ -3104,6 +3399,9 @@ if (selectedCourse) {
   {assignment.reminder && <MiniAlertBadge icon={<AlarmClock size={10} />} label="Reminder" />}
   {assignment.notification && <MiniAlertBadge icon={<Bell size={10} />} label="Notification" />}
  </div>
+ {assignment.reminder && assignment.reminderDate && assignment.reminderTime && (
+  <div style={{ ...metaTextStyle, marginTop: '4px' }}>Remind me {formatDate(assignment.reminderDate)} at {assignment.reminderTime}</div>
+ )}
 </div>
 
 <button
@@ -3195,25 +3493,26 @@ if (selectedCourse) {
  </div>
 
  <div style={alertOptionsGridStyle}>
-  <AlertOption
-   icon={<AlarmClock size={17} />}
-   title="Reminder"
-   text="Show this under Reminders and in Planner."
-   active={eventReminder}
-   onClick={() => setEventReminder((value) => !value)}
-   accent="#7F7897"
-    soft="#F4F2F8"
-  />
-  <AlertOption
-   icon={<Bell size={17} />}
-   title="Notification"
-   text="Add this to your Courses notifications."
-   active={eventNotification}
-   onClick={() => setEventNotification((value) => !value)}
-   accent="#6684AE"
-    soft="#F1F5FA"
-  />
+  <AlertOption icon={<Bell size={17} />} title="Notification" text="Add this to your Courses notifications." active={eventNotification && !eventReminder} onClick={() => { setEventNotification(true); setEventReminder(false); }} accent="#6684AE" soft="#F1F5FA" />
+  <AlertOption icon={<AlarmClock size={17} />} title="Reminder" text="Choose a date and time for a reminder." active={eventReminder && !eventNotification} onClick={() => { setEventReminder(true); setEventNotification(false); if (!eventReminderDate) setEventReminderDate(eventDate || ''); if (!eventReminderTime) setEventReminderTime('09:00'); }} accent="#7F7897" soft="#F4F2F8" />
+  <AlertOption icon={<CheckCheck size={17} />} title="Both" text="Create both a notification and reminder." active={eventReminder && eventNotification} onClick={() => { setEventReminder(true); setEventNotification(true); if (!eventReminderDate) setEventReminderDate(eventDate || ''); if (!eventReminderTime) setEventReminderTime('09:00'); }} accent="#0B1A3F" soft="#F4F7FB" />
+  <AlertOption icon={<X size={17} />} title="None" text="No notification or reminder." active={!eventReminder && !eventNotification} onClick={() => { setEventReminder(false); setEventNotification(false); }} accent="#0B1A3F" soft="#F8FAFC" />
  </div>
+
+ {eventReminder && (
+  <div style={reminderScheduleStyle}>
+   <div>
+    <label style={fieldLabel}>Reminder Date</label>
+    <input type="date" value={eventReminderDate || eventDate || ''} onChange={(e) => setEventReminderDate(e.target.value)} style={{ ...modalInput, background: '#F7F8FA', color: '#0B1A3F', WebkitTextFillColor: '#0B1A3F', opacity: 1, border: '1px solid #E2E7EE' }} required />
+   </div>
+   <div>
+    <label style={fieldLabel}>Reminder Time</label>
+    <input type="time" value={eventReminderTime || '09:00'} onChange={(e) => setEventReminderTime(e.target.value)} style={{ ...modalInput, background: '#F7F8FA', color: '#0B1A3F', WebkitTextFillColor: '#0B1A3F', opacity: 1, border: '1px solid #E2E7EE' }} required />
+   </div>
+  </div>
+ )}
+
+ {alertConfirmation && <div style={alertConfirmationStyle}>{alertConfirmation}</div>}
 
  <button type="submit" className="btn btn-primary btn-sm">
   {eventEditingId
@@ -3268,11 +3567,24 @@ if (selectedCourse) {
 
  {selectedEvents.filter((event) => !event.completed)
   .length === 0 ? (
-  <EmptyState
+  <div className="white-pop-empty-icon">
+  <style>{`
+    .white-pop-empty-icon div:has(> svg) {
+      background: #FFFFFF !important;
+      border-color: #EEF2F7 !important;
+      box-shadow: 0 8px 22px rgba(11, 26, 63, 0.08) !important;
+    }
+    .white-pop-empty-icon svg {
+      color: #0B1A3F !important;
+      stroke: #0B1A3F !important;
+    }
+  `}</style>
+   <EmptyState
     icon={Clock3}
     title="Nothing upcoming."
     text="Add an exam, quiz, project, or other date."
-  />
+   />
+  </div>
  ):(
   <div
     style={{
@@ -3537,11 +3849,24 @@ if (selectedCourse) {
 
            {!activeFolderView ? (
              existingFolders.length === 0 ? (
+               <div className="white-pop-empty-icon">
+  <style>{`
+    .white-pop-empty-icon div:has(> svg) {
+      background: #FFFFFF !important;
+      border-color: #EEF2F7 !important;
+      box-shadow: 0 8px 22px rgba(11, 26, 63, 0.08) !important;
+    }
+    .white-pop-empty-icon svg {
+      color: #0B1A3F !important;
+      stroke: #0B1A3F !important;
+    }
+  `}</style>
                <EmptyState
                 icon={Folder}
                 title="No folders created yet."
                 text='Click "Add File" to upload something and create your first folder.'
-              />
+               />
+              </div>
             ):(
              <div
               style={{
@@ -6375,6 +6700,27 @@ const alertOptionsGridStyle = {
  gap: '9px'
 };
 
+
+const reminderScheduleStyle = {
+ display: 'grid',
+ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+ gap: '10px',
+ padding: '12px',
+ borderRadius: '14px',
+ background: '#FAFBFD',
+ border: '1px solid #E8ECF2'
+};
+
+const alertConfirmationStyle = {
+ padding: '10px 12px',
+ borderRadius: '12px',
+ background: '#F1F5FA',
+ border: '1px solid #DCE5F0',
+ color: '#0B1A3F',
+ fontSize: '12px',
+ fontWeight: '800'
+};
+
 const miniAlertBadgeRowStyle = {
  display: 'flex',
  alignItems: 'center',
@@ -6622,9 +6968,10 @@ const doneEmptyStyle = {
   color: '#64748B',
   fontSize: '11px',
   fontWeight: '800',
-  background: '#FAFBFD',
+  background: '#FFFFFF',
   borderRadius: '12px',
-  border: '1px dashed #E3E2E7'
+  border: '1px solid #EEF2F7',
+  boxShadow: '0 8px 22px rgba(11, 26, 63, 0.08)'
 };
 
 const taskRowStyle = {

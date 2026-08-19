@@ -12,9 +12,16 @@ import {
   ArrowLeft,
   Sparkles,
   UserRound,
-} from 'lucide-react';
+  Bell,
+  BellOff,
+  Maximize2,
+  Minimize2,
+  Pin,
+  MoreVertical,
+  Reply} from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import { toast } from '../lib/toast';
 
 const FOLDERS = [
   { key: 'all', label: 'All Conversations', icon: MessageSquare },
@@ -182,15 +189,115 @@ function selectedDraftKey(selected) {
   return `group:${selected.groupId}`;
 }
 
+
+async function createMessagesNotification({
+  userId,
+  title,
+  message,
+  category = 'Direct'
+}) {
+  if (!userId) return;
+
+  let result = await supabase
+    .from('notifications')
+    .insert([
+      {
+        user_id: userId,
+        title,
+        message,
+        category,
+        read: false,
+      },
+    ]);
+
+  if (
+    result.error &&
+    result.error.message?.toLowerCase().includes('category')
+  ) {
+    result = await supabase
+      .from('notifications')
+      .insert([
+        {
+          user_id: userId,
+          title,
+          message,
+          read: false,
+        },
+      ]);
+  }
+
+  if (result.error) {
+    console.error('Could not create message notification:', result.error);
+  }
+}
+
 export default function Messages() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentProfile, setCurrentProfile] = useState(null);
 
   const [folder, setFolder] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [messagesFullscreen, setMessagesFullscreen] = useState(false);
+  useEffect(() => {
+    if (messagesFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [messagesFullscreen]);
+
+  const [pinnedMessageChats, setPinnedMessageChats] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('campora-messages-pinned-chats') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const togglePinnedMessageChat = (key) => {
+    if (!key) return;
+    setPinnedMessageChats((previous) => {
+      const exists = previous.includes(key);
+      const next = exists
+        ? previous.filter((item) => item !== key)
+        : [...previous, key];
+
+      localStorage.setItem(
+        'campora-messages-pinned-chats',
+        JSON.stringify(next)
+      );
+
+      return next;
+    });
+  };
+
 
   const [directMessages, setDirectMessages] = useState([]);
+  const [messageNotificationPrefs, setMessageNotificationPrefs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('campora-message-notifications') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const isMessageNotificationOn = (key) =>
+    messageNotificationPrefs[key] !== false;
+
+  const toggleMessageNotification = (key) => {
+    setMessageNotificationPrefs((previous) => {
+      const next = { ...previous, [key]: previous[key] === false };
+      localStorage.setItem('campora-message-notifications', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [profiles, setProfiles] = useState({});
 
   const [groups, setGroups] = useState([]);
@@ -200,6 +307,81 @@ export default function Messages() {
   const [customGroupMessages, setCustomGroupMessages] = useState({});
 
   const [selected, setSelected] = useState(null);
+  const [activeMessageMenu, setActiveMessageMenu] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+
+  const [localMessageReactions, setLocalMessageReactions] = useState(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem('campora-central-message-reactions') || '{}'
+      );
+    } catch {
+      return {};
+    }
+  });
+
+  const [pinnedMessages, setPinnedMessages] = useState(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem('campora-central-pinned-messages') || '{}'
+      );
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleLocalMessageReaction = (messageId, emoji) => {
+    if (!messageId) return;
+
+    setLocalMessageReactions((previous) => {
+      const current = previous[messageId] || {};
+      const nextForMessage = {
+        ...current,
+        [emoji]: current[emoji] ? 0 : 1
+      };
+
+      const next = {
+        ...previous,
+        [messageId]: nextForMessage
+      };
+
+      localStorage.setItem(
+        'campora-central-message-reactions',
+        JSON.stringify(next)
+      );
+
+      return next;
+    });
+
+    setActiveMessageMenu(null);
+  };
+
+  const togglePinnedMessage = (conversationKey, messageId) => {
+    if (!conversationKey || !messageId) return;
+
+    setPinnedMessages((previous) => {
+      const current = previous[conversationKey] || [];
+      const exists = current.includes(messageId);
+      const next = {
+        ...previous,
+        [conversationKey]: exists
+          ? current.filter((id) => id !== messageId)
+          : [...current, messageId]
+      };
+
+      localStorage.setItem(
+        'campora-central-pinned-messages',
+        JSON.stringify(next)
+      );
+
+      return next;
+    });
+
+    setActiveMessageMenu(null);
+  };
+
+  const MESSAGE_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '👏'];
+
   const [composer, setComposer] = useState('');
   const [drafts, setDrafts] = useState({});
 
@@ -471,6 +653,31 @@ export default function Messages() {
       return next;
     });
   }
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const channel = supabase
+      .channel(`central_dm_notifications_${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${currentUser.id}`,
+        },
+        (payload) => {
+          const incoming = payload.new;
+          if (!incoming?.sender_id || !isMessageNotificationOn(incoming.sender_id)) return;
+          toast('New direct message');
+          loadDirectMessages(currentUser.id);
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [currentUser?.id, messageNotificationPrefs]);
 
   async function loadDirectMessages(userId) {
     const { data, error } = await supabase
@@ -1078,9 +1285,13 @@ export default function Messages() {
   }
 
   async function sendCurrentMessage() {
-    const text = composer.trim();
+    const rawText = composer.trim();
 
-    if (!text || !selected || !currentUser?.id) return;
+    if (!rawText || !selected || !currentUser?.id) return;
+
+    const text = replyingTo
+      ? `↪ ${replyingTo.sender}: ${replyingTo.text}\n${rawText}`
+      : rawText;
 
     setSending(true);
 
@@ -1100,7 +1311,21 @@ export default function Messages() {
 
         if (error) throw error;
 
+        await createMessagesNotification({
+          userId: selected.partnerId,
+          title: 'New direct message',
+          message: `${
+            currentProfile?.name ||
+            currentProfile?.full_name ||
+            currentUser.user_metadata?.name ||
+            currentUser.email?.split('@')[0] ||
+            'A student'
+          }: ${text.slice(0, 140)}`,
+          category: 'Direct'
+        });
+
         clearCurrentDraft();
+        setReplyingTo(null);
         await loadDirectMessages(currentUser.id);
       } else if (selected.type === 'custom-group') {
         const { error } = await supabase
@@ -1116,6 +1341,7 @@ export default function Messages() {
         if (error) throw error;
 
         clearCurrentDraft();
+        setReplyingTo(null);
         await loadCustomGroupsAndMessages(currentUser.id);
       } else {
         const senderName =
@@ -1140,7 +1366,40 @@ export default function Messages() {
 
         if (error) throw error;
 
+        try {
+          const { data: memberRows } = await supabase
+            .from('group_members')
+            .select('user_id')
+            .eq('group_id', selected.groupId);
+
+          const recipients = new Set(
+            (memberRows || [])
+              .map((row) => row.user_id)
+              .filter(Boolean)
+          );
+
+          if (selected.group?.creator_id) {
+            recipients.add(selected.group.creator_id);
+          }
+
+          recipients.delete(currentUser.id);
+
+          await Promise.all(
+            [...recipients].map((userId) =>
+              createMessagesNotification({
+                userId,
+                title: `New message in ${selected.name || 'Study Group'}`,
+                message: `${senderName}: ${text.slice(0, 140)}`,
+                category: 'Study Groups'
+              })
+            )
+          );
+        } catch (notificationError) {
+          console.error('Could not notify Study Group members:', notificationError);
+        }
+
         clearCurrentDraft();
+        setReplyingTo(null);
         await loadGroupsAndMessages(currentUser.id);
       }
 
@@ -1449,6 +1708,8 @@ export default function Messages() {
             unread={conversation.unread > 0}
             unreadCount={conversation.unread}
             onClick={() => openDm(conversation.partnerId)}
+            pinned={pinnedMessageChats.includes(`dm:${conversation.partnerId}`)}
+            onTogglePin={() => togglePinnedMessageChat(`dm:${conversation.partnerId}`)}
           />
         );
       });
@@ -1496,6 +1757,8 @@ export default function Messages() {
             preview={parsed.text}
             date={formatDate(latestSent?.created_at)}
             onClick={() => openDm(conversation.partnerId)}
+            pinned={pinnedMessageChats.includes(`dm:${conversation.partnerId}`)}
+            onTogglePin={() => togglePinnedMessageChat(`dm:${conversation.partnerId}`)}
           />
         );
       });
@@ -1536,12 +1799,31 @@ export default function Messages() {
           unread={item.unread > 0}
           unreadCount={item.unread}
           onClick={() => openDm(item.partnerId)}
+          pinned={pinnedMessageChats.includes(`dm:${item.partnerId}`)}
+          onTogglePin={() => togglePinnedMessageChat(`dm:${item.partnerId}`)}
         />
       );
     });
   }
 
-  const rows = currentList();
+  const allCurrentRows = currentList();
+
+  const rows =
+    sourceFilter === 'all'
+      ? allCurrentRows
+      : allCurrentRows.filter((row) => {
+          const rowSource = String(
+            row?.props?.meta || ''
+          ).toLowerCase();
+
+          const wanted = String(sourceFilter).toLowerCase();
+
+          if (wanted === 'direct message') {
+            return rowSource === 'direct message' || rowSource === 'direct';
+          }
+
+          return rowSource === wanted;
+        });
 
   if (loading) {
     return (
@@ -1606,7 +1888,7 @@ export default function Messages() {
 
         .wa-page-title-line p {
           margin: 0;
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 11px;
           font-weight: 700;
         }
@@ -1621,7 +1903,7 @@ export default function Messages() {
 
         .wa-page-title-wrap p {
           margin: 4px 0 0;
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 11px;
           font-weight: 700;
         }
@@ -1774,7 +2056,7 @@ export default function Messages() {
         .wa-top-stat-card span {
           display: block;
           margin-top: 4px;
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 9px;
           font-weight: 700;
           text-transform: uppercase;
@@ -1947,7 +2229,7 @@ export default function Messages() {
 
         .wa-inbox-toolbar p {
           margin: 4px 0 0;
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 11px;
           font-weight: 700;
         }
@@ -1989,7 +2271,7 @@ export default function Messages() {
           border: none;
           outline: none;
           background: transparent;
-          color: #0B1A3F;
+          color: #A0A7B3;
           font: inherit;
           font-size: 13px;
           font-weight: 700;
@@ -2002,7 +2284,7 @@ export default function Messages() {
           border: none;
           border-radius: 8px;
           background: transparent;
-          color: #8B97AD;
+          color: #A0A7B3;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -2043,7 +2325,7 @@ export default function Messages() {
         .wa-search-person-email {
           margin-top: 2px;
           font-size: 10px;
-          color: #8B97AD;
+          color: #A0A7B3;
         }
 
         .wa-chat-list {
@@ -2148,7 +2430,7 @@ export default function Messages() {
           border-radius: 999px;
           display: inline-flex;
           align-items: center;
-          background: #EEF2F7;
+          background: #F7F8FA;
           color: #66758E;
           font-size: 8px;
           font-weight: 700;
@@ -2158,7 +2440,7 @@ export default function Messages() {
 
         .wa-chat-preview {
           margin-top: 4px;
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 11px;
           font-weight: 650;
           white-space: nowrap;
@@ -2198,7 +2480,7 @@ export default function Messages() {
           align-items: center;
           justify-content: center;
           text-align: center;
-          color: #8B97AD;
+          color: #A0A7B3;
           padding: 34px 20px;
         }
 
@@ -2274,7 +2556,7 @@ export default function Messages() {
         .mentor-department,
         .mentor-bio,
         .mentor-meta-row {
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 10px;
           font-weight: 700;
         }
@@ -2390,7 +2672,7 @@ export default function Messages() {
 
         .wa-chat-header-copy p {
           margin: 3px 0 0;
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 10px;
           font-weight: 700;
         }
@@ -2411,8 +2693,8 @@ export default function Messages() {
           margin: 0 auto 18px;
           padding: 5px 9px;
           border-radius: 999px;
-          background: #EEF2F7;
-          color: #8B97AD;
+          background: #F7F8FA;
+          color: #A0A7B3;
           font-size: 9px;
           font-weight: 800;
         }
@@ -2420,7 +2702,9 @@ export default function Messages() {
         .wa-message-row {
           display: flex;
           justify-content: flex-start;
-          margin-bottom: 10px;
+          margin-bottom: 14px;
+          overflow: visible;
+          position: relative;
         }
 
         .wa-message-row.mine {
@@ -2431,7 +2715,7 @@ export default function Messages() {
           max-width: min(72%, 760px);
           padding: 11px 14px;
           border-radius: 16px;
-          background: #EEF2F7;
+          background: #F7F8FA;
           color: #0B1A3F;
           font-size: 13px;
           font-weight: 650;
@@ -2564,7 +2848,7 @@ export default function Messages() {
 
         .central-modal-head p {
           margin: 5px 0 0;
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 11px;
           font-weight: 700;
         }
@@ -2642,7 +2926,7 @@ export default function Messages() {
           padding: 0 9px;
           border: none;
           border-radius: 999px;
-          background: #EEF2F7;
+          background: #F7F8FA;
           color: #0B1A3F;
           font: inherit;
           font-size: 9px;
@@ -2683,7 +2967,7 @@ export default function Messages() {
         .central-list-empty {
           padding: 14px;
           text-align: center;
-          color: #8B97AD;
+          color: #A0A7B3;
           font-size: 11px;
           font-weight: 700;
         }
@@ -3031,6 +3315,76 @@ export default function Messages() {
                 )}
               </div>
 
+              <div
+                style={{
+                  margin: '0 0 10px',
+                  padding: '18px',
+                  border: '1px solid #E6EBF2',
+                  borderRadius: '18px',
+                  background: '#FFFFFF'
+                }}
+              >
+                <div
+                  style={{
+                    marginBottom: '12px',
+                    color: '#0B1A3F',
+                    fontSize: '13px',
+                    fontWeight: '900',
+                    letterSpacing: '0.04em'
+                  }}
+                >
+                  MESSAGE SOURCES
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                    gap: '10px'
+                  }}
+                >
+                  {[
+                    ['all', 'All'],
+                    ['Direct Message', 'Direct'],
+                    ['Registration', 'Registration'],
+                    ['Study Groups', 'Study Groups'],
+                    ['Campus Pulse', 'Campus Pulse']
+                  ].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSourceFilter(key)}
+                      style={{
+                        border:
+                          sourceFilter === key
+                            ? '1px solid #0B1A3F'
+                            : '1px solid #E3E8EF',
+                        background:
+                          sourceFilter === key
+                            ? '#0B1A3F'
+                            : '#FFFFFF',
+                        color:
+                          sourceFilter === key
+                            ? '#FFFFFF'
+                            : '#0B1A3F',
+                        borderRadius: '14px',
+                        minHeight: '48px',
+                        width: '100%',
+                        padding: '10px 14px',
+                        fontSize: '11px',
+                        fontWeight: '900',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="wa-chat-list">
                 {rows.length ? (
                   rows.map((row, index) =>
@@ -3083,7 +3437,31 @@ export default function Messages() {
           </div>
         </section>
       ) : (
-        <section className="wa-chat-screen">
+        <section
+          className="wa-chat-screen"
+          style={
+            messagesFullscreen
+              ? {
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  minWidth: '100vw',
+                  minHeight: '100vh',
+                  maxWidth: '100vw',
+                  maxHeight: '100vh',
+                  margin: 0,
+                  borderRadius: 0,
+                  zIndex: 2147483646,
+                  background: '#FFFFFF',
+                  boxShadow: '0 0 0 100vmax #FFFFFF'
+                }
+              : undefined
+          }
+        >
           <header className="wa-chat-header">
             <button
               type="button"
@@ -3125,6 +3503,109 @@ export default function Messages() {
                   : selected.email || 'Direct message'}
               </p>
             </div>
+
+            <div
+              style={{
+                marginLeft: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexShrink: 0
+              }}
+            >
+              <button
+                type="button"
+                title={
+                  pinnedMessageChats.includes(
+                    selected.type === 'dm'
+                      ? `dm:${selected.partnerId}`
+                      : `${selected.type}:${selected.groupId}`
+                  )
+                    ? 'Unpin chat'
+                    : 'Pin chat'
+                }
+                onClick={() =>
+                  togglePinnedMessageChat(
+                    selected.type === 'dm'
+                      ? `dm:${selected.partnerId}`
+                      : `${selected.type}:${selected.groupId}`
+                  )
+                }
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  border: '1px solid #E3E8EF',
+                  borderRadius: '11px',
+                  background: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <Pin
+                  size={17}
+                  fill={
+                    pinnedMessageChats.includes(
+                      selected.type === 'dm'
+                        ? `dm:${selected.partnerId}`
+                        : `${selected.type}:${selected.groupId}`
+                    )
+                      ? '#0B1A3F'
+                      : 'none'
+                  }
+                  color="#0B1A3F"
+                />
+              </button>
+
+              {selected.type === 'dm' && (
+                <button
+                  type="button"
+                  title={isMessageNotificationOn(selected.partnerId) ? 'Notifications on' : 'Notifications off'}
+                  onClick={() => toggleMessageNotification(selected.partnerId)}
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    border: '1px solid #E3E8EF',
+                    borderRadius: '11px',
+                    background: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {isMessageNotificationOn(selected.partnerId) ? (
+                    <Bell size={17} color="#0B1A3F" />
+                  ) : (
+                    <BellOff size={17} color="#EF4444" />
+                  )}
+                </button>
+              )}
+
+              <button
+                type="button"
+                title={messagesFullscreen ? 'Exit full screen' : 'Full screen'}
+                onClick={() => setMessagesFullscreen((value) => !value)}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  border: '1px solid #E3E8EF',
+                  borderRadius: '11px',
+                  background: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                {messagesFullscreen ? (
+                  <Minimize2 size={17} color="#667085" />
+                ) : (
+                  <Maximize2 size={17} color="#667085" />
+                )}
+              </button>
+            </div>
           </header>
 
           <div className="wa-chat-history">
@@ -3138,12 +3619,206 @@ export default function Messages() {
                     message.content || message.message || ''
                   );
 
+                  const conversationKey = `dm:${selected.partnerId}`;
+                  const isPinnedMessage = (
+                    pinnedMessages[conversationKey] || []
+                  ).includes(message.id);
+                  const reactionMap =
+                    localMessageReactions[message.id] || {};
+
                   return (
                     <div
                       key={message.id}
                       className={`wa-message-row ${mine ? 'mine' : ''}`}
                     >
-                      <div className="wa-message-bubble">
+                      <div
+                        className="wa-message-bubble"
+                        style={{
+                          position: 'relative',
+                          overflow: 'visible'
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveMessageMenu(
+                              activeMessageMenu === message.id
+                                ? null
+                                : message.id
+                            )
+                          }
+                          style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: mine ? 'auto' : '-30px',
+                            left: mine ? '-30px' : 'auto',
+                            width: '26px',
+                            height: '26px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            background: '#FFFFFF',
+                            color: '#98A2B3',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
+                          aria-label="Message actions"
+                        >
+                          <MoreVertical size={15} />
+                        </button>
+
+                        {activeMessageMenu === message.id && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '34px',
+                              right: mine ? '0' : 'auto',
+                              left: mine ? 'auto' : '0',
+                              zIndex: 1000,
+                              width: '260px',
+                              minWidth: '260px',
+                              maxWidth: 'min(260px, calc(100vw - 48px))',
+                              marginTop: 0,
+                              boxSizing: 'border-box',
+                              padding: '12px',
+                              borderRadius: '14px',
+                              border: '1px solid #E3E8EF',
+                              background: '#FFFFFF',
+                              boxShadow: '0 10px 28px rgba(11,26,63,0.12)'
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+                                gap: '6px',
+                                marginBottom: '10px'
+                              }}
+                            >
+                              {MESSAGE_REACTIONS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() =>
+                                    toggleLocalMessageReaction(
+                                      message.id,
+                                      emoji
+                                    )
+                                  }
+                                  style={{
+                                    border: 'none',
+                                    background: '#FFFFFF',
+                                    borderRadius: '8px',
+                                    minWidth: '34px',
+                                    minHeight: '34px',
+                                    padding: '6px',
+                                    fontSize: '17px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReplyingTo({
+                                  id: message.id,
+                                  sender: mine
+                                    ? 'You'
+                                    : selected.name,
+                                  text: parsed.text
+                                });
+                                setActiveMessageMenu(null);
+                              }}
+                              style={{
+                                width: '100%',
+                                border: 'none',
+                                background: '#FFFFFF',
+                                color: '#0B1A3F',
+                                borderRadius: '8px',
+                                padding: '7px 8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Reply size={13} />
+                              Reply
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                togglePinnedMessage(
+                                  conversationKey,
+                                  message.id
+                                )
+                              }
+                              style={{
+                                width: '100%',
+                                border: 'none',
+                                background: '#FFFFFF',
+                                color: isPinnedMessage
+                                  ? '#C99758'
+                                  : '#0B1A3F',
+                                borderRadius: '8px',
+                                padding: '7px 8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Pin
+                                size={13}
+                                fill={
+                                  isPinnedMessage
+                                    ? '#C99758'
+                                    : 'none'
+                                }
+                              />
+                              {isPinnedMessage ? 'Unpin' : 'Pin'}
+                            </button>
+                          </div>
+                        )}
+
+                        {Object.entries(reactionMap)
+                          .filter(([, count]) => count)
+                          .length > 0 && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '-12px',
+                              right: mine ? '8px' : 'auto',
+                              left: mine ? 'auto' : '8px',
+                              display: 'flex',
+                              gap: '3px',
+                              padding: '2px 5px',
+                              borderRadius: '999px',
+                              background: '#FFFFFF',
+                              border: '1px solid #E3E8EF',
+                              fontSize: '11px'
+                            }}
+                          >
+                            {Object.entries(reactionMap)
+                              .filter(([, count]) => count)
+                              .map(([emoji]) => (
+                                <span key={emoji}>{emoji}</span>
+                              ))}
+                          </div>
+                        )}
                         {parsed.reply?.text && (
                           <div
                             style={{
@@ -3447,6 +4122,8 @@ function ConversationButton({
   unread,
   unreadCount,
   onClick,
+  pinned = false,
+  onTogglePin = null
 }) {
   return (
     <button
@@ -3478,6 +4155,41 @@ function ConversationButton({
         {unread && (
           <span className="wa-unread">
             {unreadCount && unreadCount > 1 ? unreadCount : '•'}
+          </span>
+        )}
+
+        {onTogglePin && (
+          <span
+            role="button"
+            tabIndex={0}
+            title={pinned ? 'Unpin chat' : 'Pin chat'}
+            onClick={(event) => {
+              event.stopPropagation();
+              onTogglePin();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                event.stopPropagation();
+                onTogglePin();
+              }
+            }}
+            style={{
+              width: '30px',
+              height: '30px',
+              marginTop: '4px',
+              borderRadius: '9px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: pinned ? '#C99758' : '#98A2B3',
+              cursor: 'pointer'
+            }}
+          >
+            <Pin
+              size={14}
+              fill={pinned ? '#C99758' : 'none'}
+            />
           </span>
         )}
       </span>

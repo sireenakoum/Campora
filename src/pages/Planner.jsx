@@ -17,10 +17,12 @@ import {
   Upload,
   X,
   Maximize2,
-  Minimize2
+  Minimize2,
+  CheckCheck
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import { toast } from '../lib/toast';
 
 import { ProgressRing } from '../components/luminous';
 
@@ -281,7 +283,9 @@ export default function Planner() {
     color: '#E1F2FF',
     repeat: 'none',
     reminder: false,
-    alertType: 'none'
+    alertType: 'none',
+    reminder_date: '',
+    reminder_time: ''
   };
 
   const [newEntry, setNewEntry] = useState(initialEntryState);
@@ -444,8 +448,8 @@ export default function Planner() {
         reminder: hasReminderAlert(alertType),
         title: entry.name || 'Planner entry',
         entryType: entry.type || '',
-        date: entry.date || '',
-        time: entry.start_time || '',
+        date: entry.reminder_date || entry.date || '',
+        time: entry.reminder_time || entry.start_time || '',
         description: visiblePlannerDescription(entry.description || ''),
         created_at: new Date().toISOString(),
       };
@@ -922,6 +926,12 @@ export default function Planner() {
     const makeEntry = (date) => ({
       ...dbEntry,
       date,
+      reminder_date: hasReminderAlert(alertType)
+        ? (entryData.reminder_date || date || null)
+        : null,
+      reminder_time: hasReminderAlert(alertType)
+        ? (entryData.reminder_time || entryData.start_time || '09:00')
+        : null,
       group_id: repeat === 'none' ? null : groupId,
       user_id: user.id
     });
@@ -971,14 +981,21 @@ export default function Planner() {
   const saveRemindersForEntries = async (entries = []) => {
     if (!user || !entries.length) return;
 
-    const reminderRows = entries.map((entry) => ({
-      profile_id: user.id,
-      title: entry.name,
-      source_id: entry.id,
-      remind_at: new Date(
-        `${entry.date}T${entry.start_time}`
-      ).toISOString()
-    }));
+    const reminderRows = entries.map((entry) => {
+      const reminderDate =
+        entry.reminder_date || entry.date;
+      const reminderTime =
+        entry.reminder_time || entry.start_time || '09:00';
+
+      return {
+        profile_id: user.id,
+        title: entry.name,
+        source_id: entry.id,
+        remind_at: new Date(
+          `${reminderDate}T${reminderTime}`
+        ).toISOString()
+      };
+    });
 
     const { error } = await supabase
       .from('reminders')
@@ -1081,6 +1098,20 @@ export default function Planner() {
       if (hasNotificationAlert(newEntry.alertType)) {
         savePlannerAlertChoice(savedEntries, newEntry.alertType);
       }
+
+      if (newEntry.alertType === 'both') {
+        toast(
+          `Notification + reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`
+        );
+      } else if (newEntry.alertType === 'reminder') {
+        toast(
+          `Reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`
+        );
+      } else if (newEntry.alertType === 'notification') {
+        toast('Notification set');
+      } else {
+        toast('Planner entry added');
+      }
     }
 
     return true;
@@ -1103,7 +1134,13 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       start_time: newEntry.start_time,
       end_time: newEntry.end_time,
       color: newEntry.color,
-      reminder: hasReminderAlert(newEntry.alertType)
+      reminder: hasReminderAlert(newEntry.alertType),
+      reminder_date: hasReminderAlert(newEntry.alertType)
+        ? (newEntry.reminder_date || newEntry.date || null)
+        : null,
+      reminder_time: hasReminderAlert(newEntry.alertType)
+        ? (newEntry.reminder_time || newEntry.start_time || '09:00')
+        : null
     };
 
     const { data, error } = await supabase
@@ -1142,6 +1179,20 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         name: data.name,
         date: data.date
       });
+
+      if (newEntry.alertType === 'both') {
+        toast(
+          `Notification + reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`
+        );
+      } else if (newEntry.alertType === 'reminder') {
+        toast(
+          `Reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`
+        );
+      } else if (newEntry.alertType === 'notification') {
+        toast('Notification set');
+      } else {
+        toast('Planner entry updated');
+      }
     }
 
     return true;
@@ -1241,6 +1292,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         end_time: newEntry.end_time,
         color: newEntry.color,
         reminder: hasReminderAlert(newEntry.alertType),
+        reminder_date: hasReminderAlert(newEntry.alertType)
+          ? (newEntry.reminder_date || newEntry.date || null)
+          : null,
+        reminder_time: hasReminderAlert(newEntry.alertType)
+          ? (newEntry.reminder_time || newEntry.start_time || '09:00')
+          : null,
         group_id: null,
         user_id: user.id
       };
@@ -4270,19 +4327,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
                     gap: '8px'
                   }}
                 >
                   {[
-                    {
-                      value: 'none',
-                      label: 'None',
-                      icon: BellOff,
-                      color: '#75839A',
-                      soft: '#F6F8FB',
-                      border: '#E4E8EF'
-                    },
                     {
                       value: 'notification',
                       label: 'Notification',
@@ -4302,10 +4351,18 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     {
                       value: 'both',
                       label: 'Both',
-                      icon: Bell,
+                      icon: CheckCheck,
                       color: '#0B1A3F',
-                      soft: '#F4F6FA',
-                      border: '#DCE2EC'
+                      soft: '#F5F7FA',
+                      border: '#E1E6ED'
+                    },
+                    {
+                      value: 'none',
+                      label: 'None',
+                      icon: X,
+                      color: '#0B1A3F',
+                      soft: '#F6F8FB',
+                      border: '#E4E8EF'
                     }
                   ].map((option) => {
                     const AlertIcon = option.icon;
@@ -4319,7 +4376,15 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                           setNewEntry({
                             ...newEntry,
                             alertType: option.value,
-                            reminder: option.value === 'reminder' || option.value === 'both'
+                            reminder: option.value === 'reminder' || option.value === 'both',
+                            reminder_date:
+                              option.value === 'reminder' || option.value === 'both'
+                                ? (newEntry.reminder_date || newEntry.date || '')
+                                : '',
+                            reminder_time:
+                              option.value === 'reminder' || option.value === 'both'
+                                ? (newEntry.reminder_time || newEntry.start_time || '09:00')
+                                : ''
                           })
                         }
                         style={{
@@ -4349,6 +4414,99 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     );
                   })}
                 </div>
+
+                {(newEntry.alertType === 'reminder' ||
+                  newEntry.alertType === 'both') && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      gap: '10px'
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: '9px',
+                          fontWeight: '900',
+                          color: '#94A3B8',
+                          marginBottom: '6px',
+                          letterSpacing: '0.05em'
+                        }}
+                      >
+                        REMINDER DATE
+                      </div>
+
+                      <input
+                        type="date"
+                        value={newEntry.reminder_date || newEntry.date || ''}
+                        onChange={(event) =>
+                          setNewEntry({
+                            ...newEntry,
+                            reminder_date: event.target.value
+                          })
+                        }
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          minHeight: '42px',
+                          borderRadius: '10px',
+                          border: '1px solid #E2E7EE',
+                          background: '#F7F8FA',
+                          color: '#0B1A3F',
+                          WebkitTextFillColor: '#0B1A3F',
+                          padding: '0 12px',
+                          fontSize: '12px',
+                          fontWeight: '800',
+                          fontFamily: 'inherit',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <div
+                        style={{
+                          fontSize: '9px',
+                          fontWeight: '900',
+                          color: '#94A3B8',
+                          marginBottom: '6px',
+                          letterSpacing: '0.05em'
+                        }}
+                      >
+                        REMINDER TIME
+                      </div>
+
+                      <input
+                        type="time"
+                        value={newEntry.reminder_time || newEntry.start_time || '09:00'}
+                        onChange={(event) =>
+                          setNewEntry({
+                            ...newEntry,
+                            reminder_time: event.target.value
+                          })
+                        }
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          minHeight: '42px',
+                          borderRadius: '10px',
+                          border: '1px solid #E2E7EE',
+                          background: '#F7F8FA',
+                          color: '#0B1A3F',
+                          WebkitTextFillColor: '#0B1A3F',
+                          padding: '0 12px',
+                          fontSize: '12px',
+                          fontWeight: '800',
+                          fontFamily: 'inherit',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
 
                 {newEntry.alertType !== 'none' && (
                   <div

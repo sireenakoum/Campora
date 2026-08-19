@@ -24,9 +24,13 @@ Send,
 Star,
 Trash2,
 UserRound,
-X
-} from 'lucide-react';
+X,
+CheckCheck,
+  BellOff,
+  Maximize2,
+  Minimize2} from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { toast } from '../lib/toast';
 import {
 PageShell,
 IconChip,
@@ -213,6 +217,39 @@ const seatAlertStorageKey = currentUserId
   ? `campora-seat-alert-types-${currentUserId}`
   : 'campora-seat-alert-types';
 
+const seatAlertDetailsStorageKey = currentUserId
+  ? `campora-registration-alert-links-${currentUserId}`
+  : 'campora-registration-alert-links';
+
+const saveRegistrationAlertLink = (reminder, alertType) => {
+  if (!reminder?.id || !alertType || alertType === 'none') return;
+
+  try {
+    const links = JSON.parse(
+      localStorage.getItem(seatAlertDetailsStorageKey) || '{}'
+    );
+
+    links[reminder.id] = {
+      type: alertType,
+      title: reminder.course_code || 'Registration',
+      details: [
+        reminder.course_name || null,
+        reminder.section ? `Section ${reminder.section}` : null,
+        reminder.meeting_days || null,
+        reminder.meeting_time || null
+      ].filter(Boolean).join(' • '),
+      created_at: new Date().toISOString()
+    };
+
+    localStorage.setItem(
+      seatAlertDetailsStorageKey,
+      JSON.stringify(links)
+    );
+  } catch (error) {
+    console.error('Could not save Registration alert link:', error);
+  }
+};
+
 const getSavedSeatAlertTypes = () => {
   try {
     return JSON.parse(localStorage.getItem(seatAlertStorageKey) || '{}');
@@ -242,6 +279,32 @@ const getSeatAlertType = reminder => {
 };
 const [activeDmUser, setActiveDmUser] = useState(null);
 const [dmMessages, setDmMessages] = useState([]);
+const [registrationDmMuted, setRegistrationDmMuted] = useState(() => {
+try {
+return JSON.parse(localStorage.getItem('campora_registration_dm_muted') || '{}');
+} catch {
+return {};
+}
+});
+const [registrationDmFullscreen, setRegistrationDmFullscreen] = useState(false);
+useEffect(() => {
+  document.body.style.overflow = registrationDmFullscreen ? 'hidden' : '';
+
+  return () => {
+    document.body.style.overflow = '';
+  };
+}, [registrationDmFullscreen]);
+
+
+const toggleRegistrationDmMuted = partnerId => {
+if (!partnerId) return;
+setRegistrationDmMuted(previous => {
+const next = { ...previous, [partnerId]: !previous[partnerId] };
+localStorage.setItem('campora_registration_dm_muted', JSON.stringify(next));
+return next;
+});
+};
+
 const [dmMessage, setDmMessage] = useState('');
 const [dmLoading, setDmLoading] = useState(false);
 const [dmInboxMessages, setDmInboxMessages] = useState([]);
@@ -933,6 +996,7 @@ supabase.from('course_reminders').update(payload).eq('id',
 editingReminderId).eq('user_id', currentUserId).select().single();
 if (error) return showError('Could not update your reminder.', error);
 saveSeatAlertType(data.id, seatAlertMode);
+saveRegistrationAlertLink(data, seatAlertMode);
 setReminders(previous => previous.map(reminder => (reminder.id ===
 editingReminderId ? { ...data, alert_type: seatAlertMode } : reminder)));
 } else {
@@ -940,7 +1004,17 @@ const { data, error } = await
 supabase.from('course_reminders').insert([payload]).select().single();
 if (error) return showError('Could not create your reminder.', error);
 saveSeatAlertType(data.id, seatAlertMode);
+saveRegistrationAlertLink(data, seatAlertMode);
 setReminders(previous => [{ ...data, alert_type: seatAlertMode }, ...previous]);
+}
+if (seatAlertMode === 'both') {
+toast('Notification + reminder set for this seat alert');
+} else if (seatAlertMode === 'reminder') {
+toast('Reminder set for this seat alert');
+} else if (seatAlertMode === 'notification') {
+toast('Notification set for this seat alert');
+} else {
+toast('Seat alert saved');
 }
 setEditingReminderId(null);
 setNewReminder(EMPTY_REMINDER);
@@ -2016,7 +2090,7 @@ Student</button>
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
             gap: '8px'
           }}
         >
@@ -2040,10 +2114,18 @@ Student</button>
             {
               value: 'both',
               label: 'Both',
-              icon: Bell,
+              icon: CheckCheck,
               color: '#0B1A3F',
               soft: '#F4F6FA',
               border: '#DCE2EC'
+            },
+            {
+              value: 'none',
+              label: 'None',
+              icon: X,
+              color: '#0B1A3F',
+              soft: '#F6F8FB',
+              border: '#E4E8EF'
             }
           ].map(option => {
             const AlertIcon = option.icon;
@@ -2294,14 +2376,32 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
 
  <div
   style={{
+    ...(registrationDmFullscreen ? {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+      minWidth: '100vw',
+      minHeight: '100vh',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+      margin: 0,
+      borderRadius: 0,
+      zIndex: 2147483647,
+      background: '#FFFFFF',
+      boxShadow: '0 0 0 100vmax #FFFFFF'
+    } : {}),
     display: 'grid',
     gridTemplateColumns: '390px minmax(0, 1fr)',
-    minHeight: '700px',
-    height: '76vh',
-    maxHeight: '880px',
+    minHeight: registrationDmFullscreen ? '100vh' : '700px',
+    height: registrationDmFullscreen ? '100vh' : '76vh',
+    maxHeight: registrationDmFullscreen ? '100vh' : '880px',
     background: 'var(--surface-container-lowest)',
     border: '1.5px solid var(--divider)',
-    borderRadius: '24px',
+    borderRadius: registrationDmFullscreen ? 0 : '24px',
     overflow: 'hidden',
     boxShadow: '0 10px 30px rgba(0,45,98,0.07)'
   }}
@@ -2861,7 +2961,42 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
        </div>
       </div>
 
-        <button
+        <div
+  style={{
+    marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: '8px',
+    flexShrink: 0
+  }}
+>
+<button
+type="button"
+title={registrationDmMuted[activeDmUser.id] ? 'Notifications off' : 'Notifications on'}
+onClick={() => toggleRegistrationDmMuted(activeDmUser.id)}
+style={{
+  width: '38px',
+  height: '38px',
+  minWidth: '38px',
+  borderRadius: '11px',
+  border: '1px solid #E3E8EF',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  flexShrink: 0
+}}
+>
+{registrationDmMuted[activeDmUser.id] ? (
+  <BellOff size={17} color="#EF4444" />
+) : (
+  <Bell size={17} color="#0B1A3F" />
+)}
+</button>
+<button
          type="button"
          onClick={() =>
            togglePinDmUser(activeDmUser.id)
@@ -2873,23 +3008,19 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
              : 'Pin conversation'
          }
          style={{
-           width: '38px',
-           height: '38px',
-           borderRadius: '11px',
-           border: '1px solid var(--divider)',
-           background: (Array.isArray(pinnedDmUsers) ? pinnedDmUsers :
-[]).includes(activeDmUser.id)
-             ? '#FFF9F1'
-             : 'var(--surface-container-lowest)',
-           color: (Array.isArray(pinnedDmUsers) ? pinnedDmUsers :
-[]).includes(activeDmUser.id)
-             ? '#C99758'
-             : 'var(--campora-muted)',
-           display: 'flex',
-           alignItems: 'center',
-           justifyContent: 'center',
-           cursor: 'pointer'
-         }}
+  width: '38px',
+  height: '38px',
+  minWidth: '38px',
+  borderRadius: '11px',
+  border: '1px solid #E3E8EF',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  flexShrink: 0
+}}
         >
          <Pin
            size={16}
@@ -2901,6 +3032,35 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
            }
          />
         </button>
+<button
+type="button"
+title={registrationDmFullscreen ? 'Exit full screen' : 'Full screen'}
+onClick={() => setRegistrationDmFullscreen(value => !value)}
+style={{
+  width: '38px',
+  height: '38px',
+  minWidth: '38px',
+  borderRadius: '11px',
+  border: '1px solid #E3E8EF',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  flexShrink: 0
+}}
+>
+{registrationDmFullscreen ? (
+  <Minimize2 size={17} color="#667085" />
+) : (
+  <Maximize2 size={17} color="#667085" />
+)}
+</button>
+</div>
+
+
+
        </div>
 
 {activeDmUser.context?.type === 'swap' && (

@@ -256,7 +256,7 @@ const handleSaveTask = async () => {
    return;
  }
 
- if (alertType === 'reminder' && !alertDate) {
+ if ((alertType === 'reminder' || alertType === 'both') && !alertDate) {
    setFormError('Please choose a date for the reminder.');
    return;
  }
@@ -366,7 +366,7 @@ const handleSaveTask = async () => {
 
     setFormError(
       `Task saved, but the ${
-        alertType === 'reminder' ? 'reminder' : 'notification'
+        alertType === 'both' ? 'notification/reminder' : alertType === 'reminder' ? 'reminder' : 'notification'
       } could not be added: ${alertError?.message || 'Unknown error'}`
     );
 
@@ -1218,20 +1218,12 @@ return (
     <div
      style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
       gap: '9px',
       marginBottom: newTask.alertType ? '14px' : '22px',
      }}
     >
      {[
-       {
-         value: '',
-         label: 'None',
-         icon: Circle,
-         color: '#75839A',
-         soft: '#F6F8FB',
-         border: '#E4E8EF',
-       },
        {
          value: 'notification',
          label: 'Notification',
@@ -1248,6 +1240,22 @@ return (
          soft: '#F7F4FC',
          border: '#E7E0F2',
        },
+       {
+         value: 'both',
+         label: 'Both',
+         icon: CheckCheck,
+         color: NAVY,
+         soft: '#F5F7FA',
+         border: '#E1E6ED',
+       },
+       {
+         value: '',
+         label: 'None',
+         icon: X,
+         color: NAVY,
+         soft: '#F6F8FB',
+         border: '#E4E8EF',
+       },
      ].map((option) => {
        const AlertIcon = option.icon;
        const active = newTask.alertType === option.value;
@@ -1261,11 +1269,11 @@ return (
            ...current,
            alertType: option.value,
            alertDate:
-             option.value === 'reminder'
+             (option.value === 'reminder' || option.value === 'both')
                ? current.alertDate
                : '',
            alertTime:
-             option.value === 'reminder'
+             (option.value === 'reminder' || option.value === 'both')
                ? current.alertTime
                : '',
           }));
@@ -1300,7 +1308,7 @@ return (
      })}
     </div>
 
-    {newTask.alertType === 'notification' && (
+    {(newTask.alertType === 'notification' || newTask.alertType === 'both') && (
      <div
       style={{
        marginBottom: '20px',
@@ -1314,11 +1322,13 @@ return (
        lineHeight: 1.45,
       }}
      >
-      A To-Do notification will be added to Notifications.
+      {newTask.alertType === 'both'
+       ? 'A To-Do notification and reminder will be added.'
+       : 'A To-Do notification will be added to Notifications.'}
      </div>
     )}
 
-    {newTask.alertType === 'reminder' && (
+    {(newTask.alertType === 'reminder' || newTask.alertType === 'both') && (
      <>
       <div
        style={{

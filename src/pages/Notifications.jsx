@@ -97,6 +97,13 @@ const CATEGORY_STYLES = {
     icon: GraduationCap,
   },
 
+  'Campus Pulse': {
+    main: '#648CCB',
+    soft: '#F3F7FD',
+    border: '#DDE7F5',
+    icon: MessageSquare,
+  },
+
   Registration: {
     main: '#D47B6A',
     soft: '#FFF5F2',
@@ -615,6 +622,166 @@ export default function Notifications() {
       }
 
       // ===================================================
+      // LOCAL COURSE ALERTS
+      // ===================================================
+
+      try {
+        const courseAlertLinks = JSON.parse(
+          localStorage.getItem(
+            `campora-course-alert-links-${currentUser.id}`
+          ) || '{}'
+        );
+
+        Object.entries(courseAlertLinks || {}).forEach(
+          ([itemId, alert]) => {
+            if (!alert?.type) return;
+
+            const base = {
+              rawId: itemId,
+              title: alert.title || 'Course Item',
+              message: [
+                alert.details || null,
+                alert.date
+                  ? `Reminder ${alert.date}${alert.time ? ` at ${alert.time}` : ''}`
+                  : null,
+              ].filter(Boolean).join(' • '),
+              category: 'Courses',
+              created_at: getSafeDate(alert.created_at),
+            };
+
+            if (alert.type === 'reminder' || alert.type === 'both') {
+              const id = `course-reminder-${itemId}`;
+              combined.push({
+                ...base,
+                id,
+                section: 'Reminders',
+                source: 'course_local_alert',
+                read: savedReadIds.includes(id),
+              });
+            }
+
+            if (alert.type === 'notification' || alert.type === 'both') {
+              const id = `course-notification-${itemId}`;
+              combined.push({
+                ...base,
+                id,
+                section: 'Notifications',
+                source: 'course_local_alert',
+                read: savedReadIds.includes(id),
+              });
+            }
+          }
+        );
+      } catch (error) {
+        console.log('Local Course alerts could not be loaded:', error);
+      }
+
+      // ===================================================
+      // LOCAL CAMPUS PULSE ALERTS
+      // ===================================================
+
+      try {
+        const campusPulseAlertLinks = JSON.parse(
+          localStorage.getItem(
+            `campora-campus-pulse-alert-links-${currentUser.id}`
+          ) || '{}'
+        );
+
+        Object.entries(campusPulseAlertLinks || {}).forEach(
+          ([postId, alert]) => {
+            if (!alert?.type) return;
+
+            const base = {
+              rawId: postId,
+              title: alert.title || 'Campus Pulse',
+              message: [
+                alert.details || null,
+                alert.date
+                  ? `Reminder ${alert.date}${alert.time ? ` at ${alert.time}` : ''}`
+                  : null,
+              ].filter(Boolean).join(' • '),
+              category: 'Campus Pulse',
+              created_at: getSafeDate(alert.created_at),
+            };
+
+            if (alert.type === 'reminder' || alert.type === 'both') {
+              const id = `campus-pulse-reminder-${postId}`;
+              combined.push({
+                ...base,
+                id,
+                section: 'Reminders',
+                source: 'campus_pulse_local_alert',
+                read: savedReadIds.includes(id),
+              });
+            }
+
+            if (alert.type === 'notification' || alert.type === 'both') {
+              const id = `campus-pulse-notification-${postId}`;
+              combined.push({
+                ...base,
+                id,
+                section: 'Notifications',
+                source: 'campus_pulse_local_alert',
+                read: savedReadIds.includes(id),
+              });
+            }
+          }
+        );
+      } catch (error) {
+        console.log('Local Campus Pulse alerts could not be loaded:', error);
+      }
+
+      // ===================================================
+      // LOCAL REGISTRATION ALERTS
+      // ===================================================
+
+      try {
+        const registrationAlertLinks = JSON.parse(
+          localStorage.getItem(
+            `campora-registration-alert-links-${currentUser.id}`
+          ) || '{}'
+        );
+
+        Object.entries(registrationAlertLinks || {}).forEach(
+          ([reminderId, alert]) => {
+            if (!alert?.type) return;
+
+            const base = {
+              rawId: reminderId,
+              title: alert.title || 'Registration',
+              message: alert.details || '',
+              category: 'Registration',
+              created_at: getSafeDate(alert.created_at),
+            };
+
+            if (alert.type === 'reminder' || alert.type === 'both') {
+              const id = `registration-reminder-${reminderId}`;
+              combined.push({
+                ...base,
+                id,
+                section: 'Reminders',
+                source: 'registration_local_alert',
+                read: savedReadIds.includes(id),
+              });
+            }
+
+            if (alert.type === 'notification' || alert.type === 'both') {
+              const id = `registration-notification-${reminderId}`;
+              combined.push({
+                ...base,
+                id,
+                section: 'Notifications',
+                source: 'registration_local_alert',
+                read: savedReadIds.includes(id),
+              });
+            }
+          }
+        );
+      } catch (error) {
+        console.log('Local Registration alerts could not be loaded:', error);
+      }
+
+      // ===================================================
       // LOCAL PLANNER NOTIFICATIONS
       // ===================================================
 
@@ -627,23 +794,24 @@ export default function Notifications() {
 
         Object.entries(plannerAlertLinks || {}).forEach(
           ([entryId, alert]) => {
-            if (alert?.type !== 'notification') return;
+            if (!alert) return;
 
-            const id = `planner-local-${entryId}`;
+            const alertMode =
+              alert.alertMode ||
+              (alert.notification && alert.reminder
+                ? 'both'
+                : alert.reminder
+                  ? 'reminder'
+                  : alert.notification
+                    ? 'notification'
+                    : alert.type);
 
-            combined.push({
-              id,
+            const base = {
               rawId: entryId,
-
-              title:
-                alert.title ||
-                'Planner Notification',
-
+              title: alert.title || 'Planner',
               message: [
                 alert.entryType || null,
-                alert.date
-                  ? `on ${alert.date}`
-                  : null,
+                alert.date ? `on ${alert.date}` : null,
                 alert.time
                   ? `at ${String(alert.time).substring(0, 5)}`
                   : null,
@@ -651,19 +819,31 @@ export default function Notifications() {
               ]
                 .filter(Boolean)
                 .join(' • '),
-
               category: 'Planner',
+              created_at: getSafeDate(alert.created_at),
+            };
 
-              section: 'Notifications',
+            if (alertMode === 'reminder' || alertMode === 'both') {
+              const reminderId = `planner-reminder-${entryId}`;
+              combined.push({
+                ...base,
+                id: reminderId,
+                section: 'Reminders',
+                source: 'planner_local_alert',
+                read: savedReadIds.includes(reminderId),
+              });
+            }
 
-              source: 'planner_local_alert',
-
-              created_at: getSafeDate(
-                alert.created_at
-              ),
-
-              read: savedReadIds.includes(id),
-            });
+            if (alertMode === 'notification' || alertMode === 'both') {
+              const notificationId = `planner-notification-${entryId}`;
+              combined.push({
+                ...base,
+                id: notificationId,
+                section: 'Notifications',
+                source: 'planner_local_alert',
+                read: savedReadIds.includes(notificationId),
+              });
+            }
           }
         );
       } catch (error) {
@@ -1607,6 +1787,34 @@ export default function Notifications() {
             key,
             JSON.stringify(links)
           );
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      if (
+        item.source ===
+        'course_local_alert'
+      ) {
+        try {
+          const key = `campora-course-alert-links-${user?.id}`;
+          const links = JSON.parse(localStorage.getItem(key) || '{}');
+          delete links[item.rawId];
+          localStorage.setItem(key, JSON.stringify(links));
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      if (
+        item.source ===
+        'campus_pulse_local_alert'
+      ) {
+        try {
+          const key = `campora-campus-pulse-alert-links-${user?.id}`;
+          const links = JSON.parse(localStorage.getItem(key) || '{}');
+          delete links[item.rawId];
+          localStorage.setItem(key, JSON.stringify(links));
         } catch (error) {
           console.log(error);
         }

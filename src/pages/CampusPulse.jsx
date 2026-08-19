@@ -18,10 +18,16 @@ import {
   Pin,
   MessageSquare,
   BellPlus,
-  Clock3
-} from 'lucide-react';
+  Clock3,
+  Bell,
+  AlarmClock,
+  CheckCheck,
+  BellOff,
+  Maximize2,
+  Minimize2} from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import { toast } from '../lib/toast';
 
 import {
   SectionHeader,
@@ -316,6 +322,28 @@ const parseDirectMessage = rawMessage => {
 // MAIN COMPONENT
 // =========================================================
 
+
+const getCampusPulseAlertStorageKey = (userId) =>
+  `campora-campus-pulse-alert-links-${userId}`;
+
+const saveCampusPulseAlertLink = (userId, postId, alert) => {
+  if (!userId || !postId || !alert?.type || alert.type === 'none') return;
+
+  try {
+    const key = getCampusPulseAlertStorageKey(userId);
+    const links = JSON.parse(localStorage.getItem(key) || '{}');
+
+    links[postId] = {
+      ...alert,
+      created_at: new Date().toISOString()
+    };
+
+    localStorage.setItem(key, JSON.stringify(links));
+  } catch (error) {
+    console.error('Could not save Campus Pulse local alert:', error);
+  }
+};
+
 export default function CampusPulse() {
   const pageTopRef = useRef(null);
   const [activeView, setActiveView] = useState('feed');
@@ -350,7 +378,9 @@ export default function CampusPulse() {
     category: 'Campus Life',
     image_url: '',
     is_anonymous: false,
-    reply_alert_preference: 'both'
+    reply_alert_preference: 'both',
+    reminder_date: '',
+    reminder_time: ''
   });
 
   const [editingPostId, setEditingPostId] = useState(null);
@@ -375,7 +405,27 @@ export default function CampusPulse() {
 
   const [activeDmUser, setActiveDmUser] = useState(null);
   const [dmMessages, setDmMessages] = useState([]);
+  const [dmNotificationPrefs, setDmNotificationPrefs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('campora-pulse-dm-notifications') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const isPulseDmNotificationOn = (userId) =>
+    dmNotificationPrefs[userId] !== false;
+
+  const togglePulseDmNotification = (userId) => {
+    setDmNotificationPrefs((previous) => {
+      const next = { ...previous, [userId]: previous[userId] === false };
+      localStorage.setItem('campora-pulse-dm-notifications', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [dmLoading, setDmLoading] = useState(false);
+  const [dmFullscreen, setDmFullscreen] = useState(false);
 
   const [dmSearchQuery, setDmSearchQuery] = useState('');
   const [dmSearchResults, setDmSearchResults] = useState([]);
@@ -584,6 +634,31 @@ export default function CampusPulse() {
       });
     });
   }, [activeView]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const channel = supabase
+      .channel(`campus_pulse_dm_notifications_${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${currentUserId}`
+        },
+        (payload) => {
+          const incoming = payload.new;
+          if (!incoming?.sender_id || !isPulseDmNotificationOn(incoming.sender_id)) return;
+          toast('New direct message');
+          fetchDmInbox({ silent: true });
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [currentUserId, dmNotificationPrefs]);
 
   const fetchDmInbox = async ({ silent = false } = {}) => {
     if (!currentUserId) return;
@@ -1103,65 +1178,121 @@ export default function CampusPulse() {
       return;
     }
 
-    setIsSubmitting(true);
-
-    const fullPayload = {
-      user_id: currentUserId,
-      author_name: newPost.is_anonymous
-        ? 'Anonymous Student'
-        : userName,
-      title: newPost.title.trim() || null,
-      content: newPost.content.trim(),
-      category: newPost.category,
-      image_url: newPost.image_url.trim() || null,
-      is_anonymous: newPost.is_anonymous,
-      reply_alert_preference: newPost.reply_alert_preference
-    };
-
-    let { error } = await supabase
-      .from('campus_pulse_posts')
-      .insert([fullPayload]);
+    const effectiveReminderDate = newPost.reminder_date || '';
+    const effectiveReminderTime = newPost.reminder_time || '09:00';
 
     if (
-      error &&
-      error.message?.toLowerCase().includes('column')
+      (newPost.reply_alert_preference === 'reminder' ||
+        newPost.reply_alert_preference === 'both') &&
+      !effectiveReminderDate
     ) {
-      const fallbackPayload = {
+      alert('Please choose a reminder date.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const payload = {
         user_id: currentUserId,
         author_name: newPost.is_anonymous
           ? 'Anonymous Student'
           : userName,
+        title: newPost.title.trim() || null,
         content: newPost.content.trim(),
         category: newPost.category,
-        image_url: newPost.image_url.trim() || null
+        image_url: newPost.image_url.trim() || null,
+        is_anonymous: newPost.is_anonymous,
+        reply_alert_preference: newPost.reply_alert_preference,
+        reminder_date:
+          newPost.reply_alert_preference === 'reminder' ||
+          newPost.reply_alert_preference === 'both'
+            ? effectiveReminderDate
+            : null,
+        reminder_time:
+          newPost.reply_alert_preference === 'reminder' ||
+          newPost.reply_alert_preference === 'both'
+            ? effectiveReminderTime
+            : null
       };
 
-      const retry = await supabase
+      let result = await supabase
         .from('campus_pulse_posts')
-        .insert([fallbackPayload]);
+        .insert([payload])
+        .select()
+        .maybeSingle();
 
-      error = retry.error;
+      if (
+        result.error &&
+        result.error.message?.toLowerCase().includes('column')
+      ) {
+        const fallbackPayload = {
+          user_id: currentUserId,
+          author_name: newPost.is_anonymous
+            ? 'Anonymous Student'
+            : userName,
+          title: newPost.title.trim() || null,
+          content: newPost.content.trim(),
+          category: newPost.category,
+          image_url: newPost.image_url.trim() || null
+        };
+
+        result = await supabase
+          .from('campus_pulse_posts')
+          .insert([fallbackPayload])
+          .select()
+          .maybeSingle();
+      }
+
+      if (result.error) {
+        alert(`Could not create post: ${result.error.message}`);
+        return;
+      }
+
+      const createdId = result.data?.id || `local-${Date.now()}`;
+
+      saveCampusPulseAlertLink(currentUserId, createdId, {
+        type: newPost.reply_alert_preference,
+        title: newPost.title.trim() || 'Campus Pulse',
+        details: newPost.content.trim(),
+        date: effectiveReminderDate,
+        time: effectiveReminderTime
+      });
+
+      if (newPost.reply_alert_preference === 'both') {
+        toast(
+          `Notification + reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`
+        );
+      } else if (newPost.reply_alert_preference === 'reminder') {
+        toast(
+          `Reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`
+        );
+      } else if (newPost.reply_alert_preference === 'notification') {
+        toast('Notification set for this Campus Pulse post');
+      } else {
+        toast('Campus Pulse post created');
+      }
+
+      setIsModalOpen(false);
+
+      setNewPost({
+        title: '',
+        content: '',
+        category: 'Campus Life',
+        image_url: '',
+        is_anonymous: false,
+        reply_alert_preference: 'both',
+        reminder_date: '',
+        reminder_time: ''
+      });
+
+      await fetchData();
+    } catch (error) {
+      console.error('Campus Pulse create post error:', error);
+      alert(`Could not create post: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
-
-    if (error) {
-      alert(`Could not create post: ${error.message}`);
-      return;
-    }
-
-    setIsModalOpen(false);
-
-    setNewPost({
-      title: '',
-      content: '',
-      category: 'Campus Life',
-      image_url: '',
-      is_anonymous: false,
-      reply_alert_preference: 'both'
-    });
-
-    await fetchData();
   };
 
   const handleUpdatePost = async event => {
@@ -1799,7 +1930,7 @@ export default function CampusPulse() {
                     height: '58px',
                     borderRadius: '50%',
                     background: '#FFFFFF',
-                    color: '#0B1A3F',
+                    color: '#1A1B1F',
                     border: '1px solid #E6EAF0',
                     boxShadow: '0 10px 26px rgba(11,26,63,0.06)',
                     display: 'flex',
@@ -2401,7 +2532,20 @@ export default function CampusPulse() {
             />
           </div>
 
-          <div style={instagramDmShell}>
+          <div style={{
+    background: '#FFFFFF',
+          ...instagramDmShell,
+          ...(dmFullscreen ? {
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            borderRadius: 0,
+            zIndex: 2147483647
+          } : {})
+        }}>
             <aside style={instagramDmSidebar}>
               <div style={instagramDmSidebarHeader}>
                 <div>
@@ -2674,10 +2818,35 @@ export default function CampusPulse() {
                       </div>
                     </div>
 
-                    <button
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flexShrink: 0
+                      }}
+                    >
+                      <button
+                        type="button"
+                        title={isPulseDmNotificationOn(activeDmUser.id) ? 'Notifications on' : 'Notifications off'}
+                        onClick={() => togglePulseDmNotification(activeDmUser.id)}
+                        style={{
+                          ...instagramHeaderPin,
+                          background: '#FFFFFF',
+                          border: '1px solid #E3E8EF'
+                        }}
+                      >
+                        {isPulseDmNotificationOn(activeDmUser.id) ? (
+                          <Bell size={16} color="#1A1B1F" />
+                        ) : (
+                          <BellOff size={16} color="#EF4444" />
+                        )}
+                      </button>
+
+                      <button
                       type="button"
                       onClick={() => togglePinDmUser(activeDmUser.id)}
-                      style={instagramHeaderPin}
+                      style={{ ...instagramHeaderPin, background: '#FFFFFF', border: '1px solid #E3E8EF' }}
                     >
                       <Pin
                         size={16}
@@ -2699,6 +2868,23 @@ export default function CampusPulse() {
                         }
                       />
                     </button>
+                      <button
+                        type="button"
+                        title={dmFullscreen ? 'Exit full screen' : 'Full screen'}
+                        onClick={() => setDmFullscreen((value) => !value)}
+                        style={{
+                          ...instagramHeaderPin,
+                          background: '#FFFFFF',
+                          border: '1px solid #E3E8EF'
+                        }}
+                      >
+                        {dmFullscreen ? (
+                          <Minimize2 size={16} color="#667085" />
+                        ) : (
+                          <Maximize2 size={16} color="#667085" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {(pinnedDmMessages[activeDmUser.id] || []).length > 0 && (
@@ -3156,34 +3342,30 @@ export default function CampusPulse() {
                     {
                       value: 'notification',
                       label: 'Notify me',
-                      icon: BellPlus,
-                      accent: '#648CCB',
-                      soft: '#F1F6FC',
-                      border: '#D5E2F2'
+                      icon: Bell,
+                      accent: '#6684AE',
+                      soft: '#F1F5FA'
                     },
                     {
                       value: 'reminder',
                       label: 'Remind me',
-                      icon: Clock3,
-                      accent: '#8B78B8',
-                      soft: '#F7F4FC',
-                      border: '#E7E0F2'
+                      icon: AlarmClock,
+                      accent: '#7F7897',
+                      soft: '#F4F2F8'
                     },
                     {
                       value: 'both',
                       label: 'Both',
-                      icon: BellPlus,
+                      icon: CheckCheck,
                       accent: '#0B1A3F',
-                      soft: '#F4F6F9',
-                      border: '#DCE2EA'
+                      soft: '#F4F7FB'
                     },
                     {
                       value: 'none',
                       label: 'None',
-                      icon: null,
-                      accent: '#667085',
-                      soft: '#F8F9FB',
-                      border: '#E1E5EB'
+                      icon: X,
+                      accent: '#0B1A3F',
+                      soft: '#F8FAFC'
                     }
                   ].map(option => {
                     const active =
@@ -3196,41 +3378,25 @@ export default function CampusPulse() {
                         onClick={() =>
                           setNewPost({
                             ...newPost,
-                            reply_alert_preference: option.value
+                            reply_alert_preference: option.value,
+                            reminder_date:
+                              option.value === 'reminder' || option.value === 'both'
+                                ? newPost.reminder_date
+                                : '',
+                            reminder_time:
+                              option.value === 'reminder' || option.value === 'both'
+                                ? newPost.reminder_time
+                                : ''
                           })
                         }
                         style={{
                           ...replyPreferenceButtonStyle,
-                          background: active
-                            ? (
-                                option.value === 'notification'
-                                  ? '#648CCB'
-                                  : option.value === 'reminder'
-                                    ? '#8B78B8'
-                                    : '#0B1A3F'
-                              )
-                            : option.soft,
-                          color: active
-                            ? '#FFFFFF'
-                            : option.accent,
-                          borderColor: active
-                            ? (
-                                option.value === 'notification'
-                                  ? '#648CCB'
-                                  : option.value === 'reminder'
-                                    ? '#8B78B8'
-                                    : '#0B1A3F'
-                              )
-                            : option.border,
+                          background: active ? option.accent : option.soft,
+                          color: active ? '#FFFFFF' : option.accent,
+                          borderColor: active ? option.accent : '#E1E7EF',
                           boxShadow: active
-                            ? `0 4px 12px ${
-                                option.value === 'notification'
-                                  ? '#648CCB'
-                                  : option.value === 'reminder'
-                                    ? '#8B78B8'
-                                    : '#0B1A3F'
-                              }24`
-                            : 'none'
+                            ? `0 6px 16px ${option.accent}24`
+                            : '0 4px 12px rgba(11, 26, 63, 0.05)'
                         }}
                       >
                         {option.icon &&
@@ -3244,6 +3410,62 @@ export default function CampusPulse() {
                     );
                   })}
                 </div>
+
+                {(newPost.reply_alert_preference === 'reminder' ||
+                  newPost.reply_alert_preference === 'both') && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      gap: '10px'
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>REMINDER DATE</label>
+                      <input
+                        type="date"
+                        value={newPost.reminder_date}
+                        onChange={event =>
+                          setNewPost({
+                            ...newPost,
+                            reminder_date: event.target.value
+                          })
+                        }
+                        style={{
+                          ...inputStyle,
+                          background: '#F7F8FA',
+                          color: '#1A1B1F',
+                          WebkitTextFillColor: '#0B1A3F',
+                          opacity: 1,
+                          border: '1px solid #E2E7EE'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>REMINDER TIME</label>
+                      <input
+                        type="time"
+                        value={newPost.reminder_time}
+                        onChange={event =>
+                          setNewPost({
+                            ...newPost,
+                            reminder_time: event.target.value
+                          })
+                        }
+                        style={{
+                          ...inputStyle,
+                          background: '#F7F8FA',
+                          color: '#1A1B1F',
+                          WebkitTextFillColor: '#0B1A3F',
+                          opacity: 1,
+                          border: '1px solid #E2E7EE'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <label style={anonymousPostRowStyle}>
@@ -3631,7 +3853,7 @@ const postAuthorNameStyle = {
 const anonymousTagStyle = {
   fontSize: '10px',
   background: 'var(--campora-bg)',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   padding: '2px 8px',
   borderRadius: '10px',
   fontWeight: '800'
@@ -3640,7 +3862,7 @@ const anonymousTagStyle = {
 const postDateStyle = {
   margin: '2px 0 0',
   fontSize: '11px',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontWeight: '700'
 };
 
@@ -3656,7 +3878,7 @@ const moreButtonStyle = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   padding: '4px'
 };
 
@@ -3720,7 +3942,7 @@ const actionBtn = {
   gap: '6px',
   fontSize: '13px',
   fontWeight: '800',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   padding: 0,
   fontFamily: 'inherit'
 };
@@ -3767,14 +3989,14 @@ const anonymousCommentButtonStyle = {
 const commentsLoadingStyle = {
   textAlign: 'center',
   padding: '20px',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontSize: '12px',
   fontWeight: '800'
 };
 
 const noCommentsStyle = {
   fontSize: '13px',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontWeight: '700',
   textAlign: 'center',
   margin: '15px 0'
@@ -3857,7 +4079,7 @@ const modalHeaderStyle = {
 const modalCloseStyle = {
   border: 'none',
   background: 'transparent',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   cursor: 'pointer',
   display: 'flex'
 };
@@ -4028,7 +4250,7 @@ const replyingToTagStyle = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: '5px',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   background: 'var(--surface-container-low)',
   fontSize: '10px',
   fontWeight: '800',
@@ -4109,17 +4331,19 @@ alignItems: 'center', justifyContent: 'space-between', gap: '12px' };
 const instagramDmSidebarTitle = { margin: 0, color: 'var(--campora-text)', fontSize: '22px',
 fontWeight: '900' };
 
-const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: 'var(--campora-muted)',
+const instagramDmSidebarSubtitle = { margin: '4px 0 0', color: '#717786',
 fontSize: '11px', fontWeight: '700' };
 
-const instagramSearchWrap = { padding: '0 18px 16px' };
+const instagramSearchWrap = {
+  border: '1px solid #E6EBF2',
+  background: '#FFFFFF', padding: '0 18px 16px' };
 
 const instagramSearchBar = { height: '50px', border: '1.5px solid var(--divider)',
 borderRadius: '15px', background: 'var(--surface-container-high)', display: 'flex', alignItems:
 'center', gap: '10px', padding: '0 15px', boxSizing: 'border-box' };
 
 const instagramSearchIcon = {
-  color: 'var(--campora-muted)',
+  color: '#A0A7B3',
   pointerEvents: 'none',
   flexShrink: 0
 };
@@ -4132,8 +4356,8 @@ const instagramSearchInput = {
   outline: 'none',
   padding: 0,
   margin: 0,
-  background: 'transparent',
-  color: 'var(--campora-text)',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
   fontSize: '13px',
   fontWeight: '700',
   fontFamily: 'inherit',
@@ -4144,7 +4368,7 @@ const instagramSearchInput = {
 const instagramSearchClear = {
   border: 'none',
   background: 'transparent',
-  color: 'var(--campora-muted)',
+  color: '#A0A7B3',
   cursor: 'pointer',
   padding: 0,
   display: 'flex',
@@ -4168,7 +4392,7 @@ const instagramSearchResults = {
 const instagramSearchStatus = {
   padding: '14px',
   textAlign: 'center',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontSize: '12px',
   fontWeight: '700'
 };
@@ -4203,7 +4427,7 @@ const instagramAvatar = {
   flexShrink: 0,
   border: '1px solid var(--hairline)',
   background: '#E0F2FE',
-  color: 'var(--campora-text)',
+  color: '#7D899A',
   fontSize: '14px',
   fontWeight: '900',
   display: 'flex',
@@ -4230,7 +4454,7 @@ const instagramPersonName = {
 
 const instagramPersonMeta = {
   margin: '3px 0 0',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontSize: '10px',
   fontWeight: '700',
   whiteSpace: 'nowrap',
@@ -4246,7 +4470,7 @@ const instagramThreadTopLine = {
 };
 
 const instagramThreadDate = {
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontSize: '8px',
   fontWeight: '700',
   flexShrink: 0
@@ -4254,7 +4478,7 @@ const instagramThreadDate = {
 
 const instagramMessagePreview = {
   margin: '5px 0 0',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontSize: '11px',
   fontWeight: '600',
   whiteSpace: 'nowrap',
@@ -4265,7 +4489,7 @@ const instagramMessagePreview = {
 const instagramEmptyThreads = {
   padding: '32px 14px',
   textAlign: 'center',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontSize: '11px',
   fontWeight: '700'
 };
@@ -4302,7 +4526,7 @@ const instagramChatName = {
 
 const instagramChatEmail = {
   margin: '4px 0 0',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontSize: '11px',
   fontWeight: '700'
 };
@@ -4330,7 +4554,7 @@ const instagramEmptyChat = {
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   fontSize: '12px',
   fontWeight: '700'
 };
@@ -4366,7 +4590,7 @@ const instagramNoChatTitle = {
 
 const instagramNoChatText = {
   margin: '7px 0 0',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   maxWidth: '320px',
   fontSize: '11px',
   fontWeight: '700',
@@ -4445,7 +4669,7 @@ const instagramReactionPill = {
 };
 
 const instagramMessageMenuButton = { position: 'absolute', top: '8px', border:
-'none', background: 'transparent', color: 'var(--campora-muted)', cursor: 'pointer', padding:
+'none', background: 'transparent', color: '#717786', cursor: 'pointer', padding:
 '4px 7px', fontWeight: '900', letterSpacing: '1px' };
 
 const instagramMessageMenu = { position: 'absolute', top: '34px', background:
@@ -4475,7 +4699,7 @@ const instagramReplyComposerPreview = {
 const instagramReplyClose = {
   border: 'none',
   background: 'transparent',
-  color: 'var(--campora-muted)',
+  color: '#717786',
   cursor: 'pointer',
   display: 'flex'
 };
@@ -4537,11 +4761,11 @@ const instagramPinnedRemove = {
   flexShrink: 0
 };
 
-const instagramComposer = { borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--surface-container-lowest)', flexShrink: 0, position: 'relative', zIndex: 3 };
+const instagramComposer = { borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', background: '#FFFFFF', flexShrink: 0, position: 'relative', zIndex: 3 };
 
 const instagramComposerInput = { flex: 1, height: '50px', minWidth: 0,
-borderRadius: '20px', border: '1.5px solid var(--divider)', background: 'var(--surface-container-high)',
-padding: '0 16px', fontSize: '13px', fontWeight: '700', color: 'var(--campora-text)', outline:
+borderRadius: '20px', border: '1.5px solid var(--divider)', background: '#FFFFFF',
+padding: '0 16px', fontSize: '13px', fontWeight: '700', color: '#0B1A3F', outline:
 'none', boxSizing: 'border-box', fontFamily: 'inherit' };
 
 const instagramSendButton = {
@@ -4550,7 +4774,7 @@ const instagramSendButton = {
   borderRadius: '50%',
   border: 'none',
   background: 'var(--campora-navy-solid)',
-  color: '#FFFFFF',
+  color: '#98A2B3',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
