@@ -35,6 +35,7 @@ import camporaLogo from './assets/camporanavylogo.png';
 
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
+import ChatBotWidget from './components/ChatBotWidget';
 
 const About = lazy(() => import('./pages/About'));
 const Features = lazy(() => import('./pages/Features'));
@@ -1190,6 +1191,8 @@ function DashboardLayout() {
           onSelect={navigate}
         />
       )}
+
+      <ChatBotWidget />
 
       <ToastViewport />
     </div>
