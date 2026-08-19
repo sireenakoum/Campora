@@ -10,10 +10,10 @@ import {
   Volume2,
   RefreshCw,
   GraduationCap,
-  MessagesSquare,
   Search,
   UserRoundCheck,
   ChevronLeft,
+  Flag,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -31,16 +31,12 @@ export default function AdminStudyGroups() {
   const [pendingGroups, setPendingGroups] = useState([]);
   const [mentorApplications, setMentorApplications] = useState([]);
 
-  const [directMessages, setDirectMessages] = useState([]);
-  const [studyGroups, setStudyGroups] = useState([]);
-  const [groupMessages, setGroupMessages] = useState([]);
-  const [privateGroups, setPrivateGroups] = useState([]);
-  const [privateGroupMessages, setPrivateGroupMessages] = useState([]);
+  const [reports, setReports] = useState([]);
 
   const [profiles, setProfiles] = useState({});
-  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(null);
 
-  const [messageFilter, setMessageFilter] = useState('all');
+  const [reportFilter, setReportFilter] = useState('all');
   const [messageSearch, setMessageSearch] = useState('');
 
   const [loading, setLoading] = useState(true);
@@ -132,70 +128,26 @@ export default function AdminStudyGroups() {
     await mergeProfilesByIds(rows.map((item) => item.user_id));
   };
 
-  const fetchMessageModeration = async () => {
-    const [
-      dmResult,
-      studyGroupResult,
-      groupMessageResult,
-      privateGroupResult,
-      privateMessageResult,
-    ] = await Promise.all([
-      supabase
-        .from('direct_messages')
-        .select('*')
-        .order('created_at', { ascending: true }),
+  const fetchReports = async () => {
+    const { data, error } = await supabase
+      .from('message_reports')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      supabase
-        .from('study_groups')
-        .select('*')
-        .order('created_at', { ascending: false }),
-
-      supabase
-        .from('group_messages')
-        .select('*')
-        .order('created_at', { ascending: true }),
-
-      supabase
-        .from('message_groups')
-        .select('*')
-        .order('created_at', { ascending: false }),
-
-      supabase
-        .from('message_group_messages')
-        .select('*')
-        .order('created_at', { ascending: true }),
-    ]);
-
-    const errors = [
-      dmResult.error,
-      studyGroupResult.error,
-      groupMessageResult.error,
-      privateGroupResult.error,
-      privateMessageResult.error,
-    ].filter(Boolean);
-
-    if (errors.length) {
-      console.error('Message moderation loading error:', errors);
-      throw errors[0];
+    if (error) {
+      console.error('Message reports loading error:', error);
+      throw error;
     }
 
-    const dms = dmResult.data || [];
-    const groups = studyGroupResult.data || [];
-    const studyMessages = groupMessageResult.data || [];
-    const customGroups = privateGroupResult.data || [];
-    const customMessages = privateMessageResult.data || [];
+    const rows = data || [];
+    setReports(rows);
 
-    setDirectMessages(dms);
-    setStudyGroups(groups);
-    setGroupMessages(studyMessages);
-    setPrivateGroups(customGroups);
-    setPrivateGroupMessages(customMessages);
-
-    const userIds = [
-      ...dms.flatMap((m) => [m.sender_id, m.receiver_id]),
-      ...studyMessages.map((m) => m.user_id),
-      ...customMessages.map((m) => m.sender_id),
-    ];
+    const userIds = rows.flatMap((report) => [
+      report.reporter_id,
+      report.sender_id,
+      report.receiver_id,
+      report.reviewed_by,
+    ]);
 
     await mergeProfilesByIds(userIds);
   };
@@ -205,7 +157,7 @@ export default function AdminStudyGroups() {
     try {
       if (tab === 'study') await fetchPendingGroups();
       if (tab === 'mentors') await fetchMentorApplications();
-      if (tab === 'messages') await fetchMessageModeration();
+      if (tab === 'messages') await fetchReports();
     } catch (error) {
       alert(
         `Could not load this admin section: ${
@@ -236,9 +188,9 @@ export default function AdminStudyGroups() {
 
   const changeTab = async (tab) => {
     setActiveTab(tab);
-    setSelectedConversation(null);
+    setSelectedReport(null);
     setMessageSearch('');
-    setMessageFilter('all');
+    setReportFilter('all');
     await loadTab(tab);
   };
 
@@ -345,107 +297,40 @@ export default function AdminStudyGroups() {
     );
   };
 
-  const dmThreads = useMemo(() => {
-    const map = {};
+    const reportTypeLabel = (type) => {
+    const labels = {
+      dm: 'Direct Message',
+      group: 'Study Group',
+      'custom-group': 'Private Group',
+    };
+    return labels[type] || 'Message';
+  };
 
-    directMessages.forEach((message) => {
-      if (!message.sender_id || !message.receiver_id) return;
+  const cleanReportedText = (raw) =>
+    String(raw || '')
+      .replace(/^\[\[CAMPORA_ATTACHMENT:[^\]]*\]\]/, '')
+      .replace(/^\[\[CAMPORA_SOURCE:[^\]]*\]\]/, '')
+      .replace(/^\[\[CAMPORA_DM:[^\]]*\]\]/, '')
+      .trim();
 
-      const key = [message.sender_id, message.receiver_id].sort().join('__');
+  const reportItems = useMemo(() => {
+    let rows = [...reports];
 
-      if (!map[key]) {
-        map[key] = {
-          id: `dm-${key}`,
-          type: 'dm',
-          title: '',
-          subtitle: 'Direct Message',
-          participantIds: [message.sender_id, message.receiver_id],
-          messages: [],
-        };
-      }
-
-      map[key].messages.push(message);
-    });
-
-    return Object.values(map).map((thread) => {
-      const [a, b] = thread.participantIds;
-      const latest = thread.messages[thread.messages.length - 1];
-
-      return {
-        ...thread,
-        title: `${profileName(a)} ↔ ${profileName(b)}`,
-        latestAt: latest?.created_at,
-        preview: latest?.content || latest?.message || 'No messages yet',
-      };
-    });
-  }, [directMessages, profiles]);
-
-  const studyThreads = useMemo(() => {
-    return studyGroups
-      .map((group) => {
-        const messages = groupMessages.filter(
-          (message) => message.group_id === group.id
-        );
-        const latest = messages[messages.length - 1];
-
-        return {
-          id: `study-${group.id}`,
-          type: 'study',
-          title: group.name || group.subject || 'Study Group',
-          subtitle: 'Study Group',
-          group,
-          messages,
-          latestAt: latest?.created_at || group.created_at,
-          preview: latest?.content || 'No messages yet',
-        };
-      })
-      .filter((thread) => thread.messages.length > 0);
-  }, [studyGroups, groupMessages]);
-
-  const privateThreads = useMemo(() => {
-    return privateGroups
-      .map((group) => {
-        const messages = privateGroupMessages.filter(
-          (message) => message.group_id === group.id
-        );
-        const latest = messages[messages.length - 1];
-
-        return {
-          id: `private-${group.id}`,
-          type: 'private',
-          title: group.name || 'Private Group',
-          subtitle: 'Private Group',
-          group,
-          messages,
-          latestAt: latest?.created_at || group.created_at,
-          preview: latest?.content || 'No messages yet',
-        };
-      })
-      .filter((thread) => thread.messages.length > 0);
-  }, [privateGroups, privateGroupMessages]);
-
-  const moderationThreads = useMemo(() => {
-    let rows = [...dmThreads, ...studyThreads, ...privateThreads];
-
-    if (messageFilter !== 'all') {
-      rows = rows.filter((thread) => thread.type === messageFilter);
+    if (reportFilter !== 'all') {
+      rows = rows.filter((report) => report.status === reportFilter);
     }
 
     const query = messageSearch.trim().toLowerCase();
 
     if (query) {
-      rows = rows.filter((thread) => {
+      rows = rows.filter((report) => {
         const searchable = [
-          thread.title,
-          thread.subtitle,
-          thread.preview,
-          ...(thread.messages || []).map(
-            (m) =>
-              `${m.content || m.message || ''} ${profileName(
-                m.sender_id || m.user_id,
-                m.sender_name || ''
-              )}`
-          ),
+          report.content || '',
+          report.reason || '',
+          report.note || '',
+          profileName(report.sender_id, ''),
+          profileName(report.reporter_id, ''),
+          reportTypeLabel(report.message_type),
         ]
           .join(' ')
           .toLowerCase();
@@ -456,17 +341,53 @@ export default function AdminStudyGroups() {
 
     return rows.sort(
       (a, b) =>
-        new Date(b.latestAt || 0).getTime() -
-        new Date(a.latestAt || 0).getTime()
+        new Date(b.created_at || 0).getTime() -
+        new Date(a.created_at || 0).getTime()
     );
-  }, [
-    dmThreads,
-    studyThreads,
-    privateThreads,
-    messageFilter,
-    messageSearch,
-    profiles,
-  ]);
+  }, [reports, reportFilter, messageSearch, profiles]);
+
+  const resolveReport = async (reportId, reviewed) => {
+    setActionLoading(`report-${reportId}`);
+
+    try {
+      const { error } = await supabase
+        .from('message_reports')
+        .update({
+          status: reviewed ? 'reviewed' : 'pending',
+          reviewed_by: reviewed ? adminUserId : null,
+          reviewed_at: reviewed ? new Date().toISOString() : null,
+        })
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      const updated = {
+        status: reviewed ? 'reviewed' : 'pending',
+        reviewed_by: reviewed ? adminUserId : null,
+        reviewed_at: reviewed ? new Date().toISOString() : null,
+      };
+
+      setReports((current) =>
+        current.map((report) =>
+          report.id === reportId ? { ...report, ...updated } : report
+        )
+      );
+
+      setSelectedReport((current) =>
+        current && current.id === reportId
+          ? { ...current, ...updated }
+          : current
+      );
+    } catch (error) {
+      alert(
+        `Could not ${reviewed ? 'resolve' : 'reopen'} this report: ${
+          error.message
+        }`
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const formatDate = (value) => {
     if (!value) return '';
@@ -519,8 +440,8 @@ export default function AdminStudyGroups() {
           <h1 style={pageTitle}>Admin Reviews</h1>
 
           <p style={pageSubtitle}>
-            Review community submissions, mentor applications, and platform
-            conversations from one place.
+            Review community submissions, mentor applications, and reported
+            messages from one place.
           </p>
         </div>
 
@@ -553,8 +474,11 @@ export default function AdminStudyGroups() {
 
         <AdminTab
           active={activeTab === 'messages'}
-          icon={<MessagesSquare size={17} />}
-          label="Message Moderation"
+          icon={<Flag size={17} />}
+          label="Reported Messages"
+          count={
+            reports.filter((report) => report.status === 'pending').length
+          }
           onClick={() => changeTab('messages')}
         />
       </div>
@@ -585,16 +509,20 @@ export default function AdminStudyGroups() {
           )}
 
           {activeTab === 'messages' && (
-            <MessageModerationSection
-              threads={moderationThreads}
-              selectedConversation={selectedConversation}
-              setSelectedConversation={setSelectedConversation}
-              filter={messageFilter}
-              setFilter={setMessageFilter}
+            <ReportsSection
+              reports={reportItems}
+              selectedReport={selectedReport}
+              setSelectedReport={setSelectedReport}
+              filter={reportFilter}
+              setFilter={setReportFilter}
               search={messageSearch}
               setSearch={setMessageSearch}
               profileName={profileName}
+              reportTypeLabel={reportTypeLabel}
+              cleanReportedText={cleanReportedText}
               formatDate={formatDate}
+              actionLoading={actionLoading}
+              onResolve={resolveReport}
             />
           )}
         </>
@@ -916,24 +844,32 @@ function MentorCard({
   );
 }
 
-function MessageModerationSection({
-  threads,
-  selectedConversation,
-  setSelectedConversation,
+function ReportsSection({
+  reports,
+  selectedReport,
+  setSelectedReport,
   filter,
   setFilter,
   search,
   setSearch,
   profileName,
+  reportTypeLabel,
+  cleanReportedText,
   formatDate,
+  actionLoading,
+  onResolve,
 }) {
-  if (selectedConversation) {
+  if (selectedReport) {
     return (
-      <ConversationViewer
-        thread={selectedConversation}
-        onBack={() => setSelectedConversation(null)}
+      <ReportDetail
+        report={selectedReport}
+        onBack={() => setSelectedReport(null)}
         profileName={profileName}
+        reportTypeLabel={reportTypeLabel}
+        cleanReportedText={cleanReportedText}
         formatDate={formatDate}
+        actionLoading={actionLoading}
+        onResolve={onResolve}
       />
     );
   }
@@ -941,9 +877,9 @@ function MessageModerationSection({
   return (
     <>
       <SectionIntro
-        icon={<MessagesSquare size={21} />}
-        title="Message Moderation"
-        description="Read-only access to Campora conversations for safety and moderation."
+        icon={<Flag size={21} />}
+        title="Reported Messages"
+        description="Messages students have flagged for review. Only the reported message is shown — never the whole conversation."
       />
 
       <div style={moderationToolbar}>
@@ -952,7 +888,7 @@ function MessageModerationSection({
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search user, group, or message..."
+            placeholder="Search sender, reporter, reason, or message..."
             style={searchInput}
           />
         </div>
@@ -960,9 +896,8 @@ function MessageModerationSection({
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {[
             ['all', 'All'],
-            ['dm', 'Direct Messages'],
-            ['study', 'Study Groups'],
-            ['private', 'Private Groups'],
+            ['pending', 'Pending'],
+            ['reviewed', 'Reviewed'],
           ].map(([key, label]) => (
             <button
               key={key}
@@ -981,39 +916,57 @@ function MessageModerationSection({
         </div>
       </div>
 
-      {!threads.length ? (
+      {!reports.length ? (
         <EmptyState
-          icon={<MessagesSquare size={32} />}
-          title="No conversations found"
-          text="There are no conversations matching this filter."
+          icon={<Flag size={32} />}
+          title="No reported messages"
+          text="Messages students report will appear here. Conversation contents are never visible to admins otherwise."
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {threads.map((thread) => (
+          {reports.map((report) => (
             <button
-              key={thread.id}
+              key={report.id}
               type="button"
-              onClick={() => setSelectedConversation(thread)}
-              style={conversationRow}
+              onClick={() => setSelectedReport(report)}
+              style={reportRow}
             >
               <div style={conversationAvatar}>
-                {thread.type === 'dm' ? (
-                  <Users size={21} />
-                ) : (
-                  <MessagesSquare size={21} />
-                )}
+                <Flag size={21} />
               </div>
 
               <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                 <div style={conversationTitleRow}>
-                  <strong style={conversationTitle}>{thread.title}</strong>
-                  <span style={conversationType}>{thread.subtitle}</span>
+                  <strong style={conversationTitle}>
+                    {profileName(report.sender_id, 'Student')}
+                  </strong>
+                  <span style={conversationType}>
+                    {reportTypeLabel(report.message_type)}
+                  </span>
+                  <span
+                    style={{
+                      ...conversationType,
+                      background:
+                        report.status === 'reviewed' ? '#ECFBF6' : '#FFF7E6',
+                      color:
+                        report.status === 'reviewed' ? '#008E68' : '#B7791F',
+                    }}
+                  >
+                    {report.status === 'reviewed' ? 'Reviewed' : 'Pending'}
+                  </span>
                 </div>
 
-                <div style={conversationPreview}>{thread.preview}</div>
+                <div style={conversationPreview}>
+                  <strong style={{ color: '#0B1A3F' }}>
+                    {report.reason || 'Reported'}
+                  </strong>{' '}
+                  — {cleanReportedText(report.content) || '(Empty message)'}
+                </div>
               </div>
 
-              <div style={conversationDate}>{formatDate(thread.latestAt)}</div>
+              <div style={conversationDate}>
+                {formatDate(report.created_at)}
+              </div>
             </button>
           ))}
         </div>
@@ -1022,48 +975,101 @@ function MessageModerationSection({
   );
 }
 
-function ConversationViewer({ thread, onBack, profileName, formatDate }) {
+function ReportDetail({
+  report,
+  onBack,
+  profileName,
+  reportTypeLabel,
+  cleanReportedText,
+  formatDate,
+  actionLoading,
+  onResolve,
+}) {
+  const isPending = report.status === 'pending';
+
   return (
     <div>
       <button type="button" onClick={onBack} style={backButton}>
         <ChevronLeft size={17} />
-        Back to conversations
+        Back to reported messages
       </button>
 
       <div style={conversationHeader}>
         <div>
-          <div style={miniLabel}>READ-ONLY MODERATION VIEW</div>
+          <div style={miniLabel}>REPORTED MESSAGE</div>
           <h2 style={{ margin: '5px 0 4px', color: TEXT, fontSize: 27 }}>
-            {thread.title}
+            {profileName(report.sender_id, 'Student')}
           </h2>
           <p style={{ margin: 0, color: MUTED, fontWeight: 700 }}>
-            {thread.subtitle} · {thread.messages.length} message
-            {thread.messages.length === 1 ? '' : 's'}
+            {reportTypeLabel(report.message_type)} · Reported{' '}
+            {formatDate(report.created_at)}
           </p>
         </div>
 
-        <ShieldCheck size={28} color={NAVY} />
+        <Flag size={28} color={NAVY} />
+      </div>
+
+      <div style={reportMetaGrid}>
+        <div style={infoItem}>
+          <div style={infoLabel}>REASON</div>
+          <div style={infoValue}>{report.reason || 'Not specified'}</div>
+        </div>
+
+        <div style={infoItem}>
+          <div style={infoLabel}>REPORTED BY</div>
+          <div style={infoValue}>{profileName(report.reporter_id, 'Student')}</div>
+        </div>
+      </div>
+
+      {report.note && (
+        <DetailBlock label="REPORTER NOTE" value={report.note} />
+      )}
+
+      <div style={{ marginBottom: 14 }}>
+        <div style={miniLabel}>THE REPORTED MESSAGE</div>
       </div>
 
       <div style={messageViewer}>
-        {thread.messages.map((message) => {
-          const senderId = message.sender_id || message.user_id;
-          const sender = profileName(
-            senderId,
-            message.sender_name || 'Student'
-          );
-          const body = message.content || message.message || '';
+        <div style={moderationMessage}>
+          <div style={messageMeta}>
+            <strong style={{ color: NAVY }}>
+              {profileName(report.sender_id, 'Student')}
+            </strong>
+            <span>{formatDate(report.created_at)}</span>
+          </div>
+          <div style={messageBody}>
+            {cleanReportedText(report.content) || '(Empty message)'}
+          </div>
+        </div>
+      </div>
 
-          return (
-            <div key={message.id} style={moderationMessage}>
-              <div style={messageMeta}>
-                <strong style={{ color: NAVY }}>{sender}</strong>
-                <span>{formatDate(message.created_at)}</span>
-              </div>
-              <div style={messageBody}>{body || '(Empty message)'}</div>
-            </div>
-          );
-        })}
+      {report.reviewed_at && (
+        <DetailBlock
+          label={`RESOLVED BY ${profileName(report.reviewed_by, 'An admin')}`}
+          value={`${formatDate(report.reviewed_at)} — this message was reviewed and resolved.`}
+        />
+      )}
+
+      <div style={twoButtons}>
+        {isPending ? (
+          <button
+            disabled={actionLoading === `report-${report.id}`}
+            onClick={() => onResolve(report.id, true)}
+            style={approveButton}
+          >
+            <Check size={17} />
+            Mark as reviewed
+          </button>
+        ) : (
+          <button
+            disabled={actionLoading === `report-${report.id}`}
+            onClick={() => onResolve(report.id, false)}
+            style={denyButton}
+          >
+            <RefreshCw size={17} />
+            Reopen report
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1489,7 +1495,7 @@ const filterButton = {
   fontSize: 12,
 };
 
-const conversationRow = {
+const reportRow = {
   width: '100%',
   border: '1.5px solid #E5EAF1',
   background: '#FFFFFF',
@@ -1524,6 +1530,13 @@ const conversationTitleRow = {
 const conversationTitle = {
   color: TEXT,
   fontSize: 14,
+};
+
+const reportMetaGrid = {
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: 12,
+  marginBottom: 14,
 };
 
 const conversationType = {

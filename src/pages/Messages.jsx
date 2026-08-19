@@ -25,7 +25,9 @@ import {
   MoreHorizontal,
   ImageIcon,
   Archive,
-  LogOut} from 'lucide-react';
+  LogOut,
+  Flag,
+  Check} from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
 import { toast } from '../lib/toast';
@@ -89,6 +91,23 @@ function formatDate(value) {
     month: 'short',
     day: 'numeric',
   });
+}
+
+const REPORT_REASONS = [
+  'Spam or advertising',
+  'Harassment or bullying',
+  'Threatening or hateful content',
+  'Inappropriate or explicit content',
+  'Impersonation',
+  'Something else',
+];
+
+function cleanMessageText(raw) {
+  return String(raw || '')
+    .replace(/^\[\[CAMPORA_ATTACHMENT:[^\]]*\]\]/, '')
+    .replace(/^\[\[CAMPORA_SOURCE:[^\]]*\]\]/, '')
+    .replace(/^\[\[CAMPORA_DM:[^\]]*\]\]/, '')
+    .trim();
 }
 
 function parseDirectMessage(rawValue) {
@@ -1998,6 +2017,71 @@ export default function Messages() {
     }
   }
 
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportReason, setReportReason] = useState(REPORT_REASONS[0]);
+  const [reportNote, setReportNote] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportedMessageIds, setReportedMessageIds] = useState(
+    () => new Set()
+  );
+
+  const startReport = (message, messageType) => {
+    setReportTarget({ message, messageType });
+    setReportReason(REPORT_REASONS[0]);
+    setReportNote('');
+  };
+
+  async function submitReport() {
+    if (!reportTarget || !currentUser?.id) return;
+
+    setReportSubmitting(true);
+
+    try {
+      const { message, messageType } = reportTarget;
+
+      const { error } = await supabase
+        .from('message_reports')
+        .insert([
+          {
+            message_id: message.id,
+            message_type: messageType,
+            content: message.content || message.message || '',
+            sender_id:
+              messageType === 'group'
+                ? message.user_id
+                : message.sender_id,
+            receiver_id:
+              messageType === 'dm' ? message.receiver_id : null,
+            group_id:
+              messageType === 'dm'
+                ? null
+                : selected?.groupId || null,
+            reporter_id: currentUser.id,
+            reason: reportReason,
+            note: reportNote.trim() || null,
+            status: 'pending',
+          },
+        ]);
+
+      if (error) throw error;
+
+      setReportedMessageIds((current) => {
+        const next = new Set(current);
+        next.add(message.id);
+        return next;
+      });
+
+      setReportTarget(null);
+      setReportNote('');
+      toast('Report submitted. Campora admins will review it.');
+    } catch (error) {
+      console.error('Report error:', error);
+      alert(`Could not submit report: ${error.message}`);
+    } finally {
+      setReportSubmitting(false);
+    }
+  }
+
   async function sendCurrentMessage() {
     const rawText = composer.trim();
 
@@ -2791,7 +2875,8 @@ export default function Messages() {
     mine,
     parsedText,
     conversationKey,
-    senderName
+    senderName,
+    messageType
   }) => {
     const isPinnedMessage = (
       pinnedMessages[conversationKey] || []
@@ -2951,6 +3036,41 @@ export default function Messages() {
                 }
               />
               {isPinnedMessage ? 'Unpin message' : 'Pin message'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => startReport(message, messageType)}
+              disabled={reportedMessageIds.has(message.id)}
+              style={{
+                width: '100%',
+                border: 'none',
+                background: '#FFFFFF',
+                color: '#0B1A3F',
+                borderRadius: '8px',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+                fontSize: '10px',
+                fontWeight: '800',
+                cursor: reportedMessageIds.has(message.id)
+                  ? 'default'
+                  : 'pointer',
+                opacity: reportedMessageIds.has(message.id) ? 0.5 : 1
+              }}
+            >
+              <Flag
+                size={13}
+                fill={
+                  reportedMessageIds.has(message.id)
+                    ? '#0B1A3F'
+                    : 'none'
+                }
+              />
+              {reportedMessageIds.has(message.id)
+                ? 'Message reported'
+                : 'Report message'}
             </button>
           </div>
         )}
@@ -5198,7 +5318,8 @@ export default function Messages() {
                           mine,
                           parsedText: parsed.text,
                           conversationKey,
-                          senderName: sender.name
+                          senderName: sender.name,
+                          messageType: 'dm'
                         })}
 
                         {renderAttachment(
@@ -5276,7 +5397,8 @@ export default function Messages() {
                           mine,
                           parsedText,
                           conversationKey,
-                          senderName: sender.name
+                          senderName: sender.name,
+                          messageType: 'custom-group'
                         })}
 
                         {renderAttachment(message.content || '')}
@@ -5351,7 +5473,8 @@ export default function Messages() {
                         mine,
                         parsedText,
                         conversationKey,
-                        senderName: sender.name
+                        senderName: sender.name,
+                        messageType: 'group'
                       })}
 
                       {!mine && (
@@ -5885,6 +6008,157 @@ export default function Messages() {
                 }
               >
                 {creatingGroup ? 'Creating...' : 'Create Group'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reportTarget && (
+        <div
+          className="central-modal-backdrop"
+          onClick={() => setReportTarget(null)}
+        >
+          <div
+            className="central-modal"
+            onClick={(event) => event.stopPropagation()}
+            style={{ width: 'min(480px, 100%)' }}
+          >
+            <div className="central-modal-head">
+              <div>
+                <h2>Report message</h2>
+                <p>Only this message is sent to Campora admins for review.</p>
+              </div>
+
+              <button
+                type="button"
+                className="central-modal-close"
+                onClick={() => setReportTarget(null)}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: '#F6F8FB',
+                border: '1px solid #E4E9F0',
+                borderRadius: 12,
+                padding: '12px 14px',
+                marginBottom: 18,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  marginBottom: 6,
+                  color: '#8A91A0',
+                  fontSize: 10,
+                  fontWeight: 800,
+                }}
+              >
+                <span>
+                  {reportTarget.message.sender_id === currentUser?.id
+                    ? 'You'
+                    : reportTarget.message.sender_name || 'Student'}
+                </span>
+                <span>{formatDate(reportTarget.message.created_at)}</span>
+              </div>
+
+              <div
+                style={{
+                  color: '#344054',
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  fontWeight: 650,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {cleanMessageText(
+                  reportTarget.message.content ||
+                    reportTarget.message.message ||
+                    ''
+                ) || '(Empty message)'}
+              </div>
+            </div>
+
+            <label className="central-modal-label">Reason</label>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {REPORT_REASONS.map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => setReportReason(reason)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border:
+                      reportReason === reason
+                        ? '1.5px solid #0B1A3F'
+                        : '1px solid #E1E7EF',
+                    background:
+                      reportReason === reason ? '#F4F6FC' : '#FFFFFF',
+                    color: '#0B1A3F',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    font: 'inherit',
+                  }}
+                >
+                  {reason}
+                  {reportReason === reason && <Check size={15} />}
+                </button>
+              ))}
+            </div>
+
+            <label
+              className="central-modal-label"
+              style={{ marginTop: 18 }}
+            >
+              Details (optional)
+            </label>
+
+            <textarea
+              className="central-modal-input"
+              value={reportNote}
+              onChange={(event) => setReportNote(event.target.value)}
+              placeholder="Add anything that helps our team understand..."
+              style={{
+                resize: 'vertical',
+                minHeight: 72,
+                paddingTop: 10,
+                paddingBottom: 10,
+                fontFamily: 'inherit',
+              }}
+            />
+
+            <div className="central-modal-actions">
+              <button
+                type="button"
+                className="central-modal-secondary"
+                onClick={() => setReportTarget(null)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="central-modal-primary"
+                onClick={submitReport}
+                disabled={reportSubmitting}
+              >
+                {reportSubmitting ? 'Submitting...' : 'Submit report'}
               </button>
             </div>
           </div>
