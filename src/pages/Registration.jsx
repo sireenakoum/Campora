@@ -2447,7 +2447,7 @@ buildSwapSourceLabel(post)
 })}
 
 />
-<span style={candidate.category === 'exact' ?
+<{candidate.category === 'exact' ?
 exactMatchBadge : candidate.category === 'similar' ? similarMatchBadge :
 possibleMatchBadge}>
 {candidate.category === 'exact' ? '100% MATCH' :
@@ -2462,7 +2462,7 @@ post={post} />
 post={post} />
 </div>
 {candidate.totalDetails > 0 && <div style={matchDetailNotice}
->{candidate.matchedDetails} of {candidate.totalDetails} additional preferences
+>{candidate.matchedDetails} of {candidate.totalDetails} additional preferencesspan style=
 match.</div>}
 
 {candidate.checkedDetails.some(detail => !detail.matched) &&
@@ -2831,12 +2831,12 @@ onChange={value => set('Crn', value)}
 </Field>
 </div>
 <div style={twoColumnGrid}>
-<Field label="SECTION">
+<Field label="SECTION" (OPTIONAL)>
 <input type="text" placeholder="e.g. 1" style={modalInput}
 value={pref[`${prefix}Section`]} onChange={event => set('Section',
 event.target.value)} />
 </Field>
-<Field label="PROFESSOR">
+<Field label="PROFESSOR (OPTIONAL)">
 <input type="text" placeholder="e.g. Dr. Smith" style={modalInput}
 value={pref[`${prefix}Prof`]} onChange={event => set('Prof',
 event.target.value)} />
