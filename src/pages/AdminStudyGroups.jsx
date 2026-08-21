@@ -28,6 +28,18 @@ const NAVY = '#0B1A3F';
 const MUTED = '#717786';
 const TEXT = '#1A1B1F';
 
+const formatDate = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
 export default function AdminStudyGroups() {
   const [activeTab, setActiveTab] = useState('study');
 
@@ -472,18 +484,6 @@ export default function AdminStudyGroups() {
     } finally {
       setActionLoading(null);
     }
-  };
-
-  const formatDate = (value) => {
-    if (!value) return '';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '';
-    return date.toLocaleString([], {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
   };
 
   if (loading) {
