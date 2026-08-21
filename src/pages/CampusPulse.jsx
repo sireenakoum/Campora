@@ -28,7 +28,7 @@ import {
   Minimize2} from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
-import { toast } from '../lib/toast';
+import { toast, toastBoth } from '../lib/toast';
 
 import {
   SectionHeader,
@@ -677,7 +677,6 @@ export default function CampusPulse() {
         (payload) => {
           const incoming = payload.new;
           if (!incoming?.sender_id || !isPulseDmNotificationOn(incoming.sender_id)) return;
-          toast('You received a new message.', { source: 'messages', kind: 'message' });
           fetchDmInbox({ silent: true });
         }
       )
@@ -1274,7 +1273,11 @@ export default function CampusPulse() {
       });
 
       if (newPost.reply_alert_preference === 'both') {
-        toast(`Notification + reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`, { source: 'campus-pulse' });
+        toastBoth({
+          source: 'campus-pulse',
+          notificationMessage: 'Notification set for this Campus Pulse post',
+          reminderMessage: `Reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`,
+        });
       } else if (newPost.reply_alert_preference === 'reminder') {
         toast(`Reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`, { source: 'campus-pulse', kind: 'reminder' });
       } else if (newPost.reply_alert_preference === 'notification') {

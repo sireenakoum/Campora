@@ -1,7 +1,7 @@
 /* =========================================================
-   CAMPORA ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â APP.CSS
-   LUMINOUS iOS (NAVY EDITION) ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â TECHNICAL SPEC v2
-   INTER TYPE SCALE ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· LAYERED SURFACES ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· GLASS SIDEBAR
+   CAMPORA ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â APP.CSS
+   LUMINOUS iOS (NAVY EDITION) ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â TECHNICAL SPEC v2
+   INTER TYPE SCALE ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· LAYERED SURFACES ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· GLASS SIDEBAR
    FIXED SIDEBAR + SCROLLABLE APP CONTENT
 ========================================================= */
 
@@ -159,8 +159,8 @@ body {
 
 
 /* =========================================================
-   SIDEBAR ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â DESKTOP iOS CHROME
-   blur(40px) ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· rgba(244,243,248,0.6) ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· border-right
+   SIDEBAR ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â DESKTOP iOS CHROME
+   blur(40px) ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· rgba(244,243,248,0.6) ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· border-right
 ========================================================= */
 
 .sidebar {
@@ -317,9 +317,9 @@ body {
 
 
 /* =========================================================
-   NAVIGATION ITEMS ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â LIGHT NAVY PILLS
+   NAVIGATION ITEMS ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â LIGHT NAVY PILLS
    Inactive: #414755 on transparent
-   Active:   #060D22 text ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· #DCE4F5 bg ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· soft shadow
+   Active:   #060D22 text ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· #DCE4F5 bg ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· soft shadow
 ========================================================= */
 
 .nav-item {
@@ -720,7 +720,7 @@ body {
 
 
 /* =========================================================
-   COLLAPSED SIDEBAR ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ EXPAND PAGE
+   COLLAPSED SIDEBAR ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ EXPAND PAGE
 ========================================================= */
 
 .sidebar.collapsed + .main-content {
@@ -767,7 +767,7 @@ body {
 
 
 /* =========================================================
-   TOP GLASS BAR ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â iOS CHROME
+   TOP GLASS BAR ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â iOS CHROME
    Sticky, translucent, blurs content scrolling beneath it.
 ========================================================= */
 
@@ -839,7 +839,7 @@ body {
   flex-shrink: 0;
 }
 
-/* Search pill Ã¢â‚¬â€ opens the Cmd+K command palette */
+/* Search pill ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â opens the Cmd+K command palette */
 .topbar-search {
   display: flex;
   align-items: center;
@@ -1141,9 +1141,9 @@ body {
 
 
 /* =========================================================
-   TYPOGRAPHY ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â INTER TYPE SCALE
-   Display 34/700/-0.04em ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· H2 22/600/-0.03em
-   H3 20/600/-0.02em ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· H4 17/600/-0.02em
+   TYPOGRAPHY ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â INTER TYPE SCALE
+   Display 34/700/-0.04em ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· H2 22/600/-0.03em
+   H3 20/600/-0.02em ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· H4 17/600/-0.02em
 ========================================================= */
 
 h1 {
@@ -1176,7 +1176,7 @@ h4 {
 
 
 /* =========================================================
-   SURFACES ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â SQUIRCLE GEOMETRY
+   SURFACES ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â SQUIRCLE GEOMETRY
 ========================================================= */
 
 .card {
@@ -1204,7 +1204,7 @@ h4 {
 
 
 /* =========================================================
-   ICONS ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â 1.5px OUTLINED STROKE
+   ICONS ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â 1.5px OUTLINED STROKE
 ========================================================= */
 
 .lucide {
@@ -1225,7 +1225,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â MEDIUM SCREENS
+   RESPONSIVE ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â MEDIUM SCREENS
 ========================================================= */
 
 @media (max-width: 1100px) {
@@ -1238,7 +1238,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â SMALLER SCREENS
+   RESPONSIVE ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â SMALLER SCREENS
 ========================================================= */
 
 @media (max-width: 850px) {
@@ -1259,7 +1259,7 @@ button {
 
 
 /* =========================================================
-   RESPONSIVE ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â VERY SMALL SCREENS
+   RESPONSIVE ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â VERY SMALL SCREENS
 ========================================================= */
 
 @media (max-width: 650px) {
@@ -1381,7 +1381,7 @@ button {
 }
 
 /* Give every dashboard/page section its own breathing room instead of
-   stacking tight against the next one Ã¢â‚¬â€ this is the main lever for
+   stacking tight against the next one ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â this is the main lever for
    making a page with many sections (planner, courses, notifications,
    registration, campus pulse, study groups, campus hub...) feel calm
    instead of crammed. */
@@ -1397,7 +1397,7 @@ button {
 
 
 /* =========================================================
-   COMMAND PALETTE (ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“K)
+   COMMAND PALETTE (ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œK)
 ========================================================= */
 
 .palette-backdrop {
@@ -1646,7 +1646,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â [data-theme='dark']
+   DARK MODE ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â [data-theme='dark']
 ========================================================= */
 
 :root[data-theme='dark'] {
@@ -1876,7 +1876,7 @@ button {
 
 
 /* =========================================================
-   CAMPORA DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â FULL DARK + READABLE
+   CAMPORA DARK MODE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â FULL DARK + READABLE
 ========================================================= */
 
 :root[data-theme='dark'] {
@@ -2130,7 +2130,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â CONTRAST + DASHBOARD COLOR POLISH
+   DARK MODE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â CONTRAST + DASHBOARD COLOR POLISH
 ========================================================= */
 
 /* Stronger readable text hierarchy inside all dark content */
@@ -2183,7 +2183,7 @@ button {
    Assignments, Schedule, and Announcements.
 --------------------------------------------------------- */
 
-/* Courses ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â blue */
+/* Courses ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â blue */
 :root[data-theme='dark'] .main-content [style*="background: #F3F7FD"],
 :root[data-theme='dark'] .main-content [style*="background: rgb(243, 247, 253)"],
 :root[data-theme='dark'] .main-content [style*="background: #EFF6FF"],
@@ -2192,7 +2192,7 @@ button {
   border-color: #29496D !important;
 }
 
-/* Assignments ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â purple */
+/* Assignments ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â purple */
 :root[data-theme='dark'] .main-content [style*="background: #F7F4FC"],
 :root[data-theme='dark'] .main-content [style*="background: rgb(247, 244, 252)"],
 :root[data-theme='dark'] .main-content [style*="background: #F3E8FF"],
@@ -2201,7 +2201,7 @@ button {
   border-color: #4B3D69 !important;
 }
 
-/* Schedule ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â peach/orange */
+/* Schedule ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â peach/orange */
 :root[data-theme='dark'] .main-content [style*="background: #FFF6F2"],
 :root[data-theme='dark'] .main-content [style*="background: rgb(255, 246, 242)"],
 :root[data-theme='dark'] .main-content [style*="background: #FFF4DA"],
@@ -2210,7 +2210,7 @@ button {
   border-color: #684838 !important;
 }
 
-/* Announcements ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â pink */
+/* Announcements ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â pink */
 :root[data-theme='dark'] .main-content [style*="background: #FFF5F6"],
 :root[data-theme='dark'] .main-content [style*="background: rgb(255, 245, 246)"],
 :root[data-theme='dark'] .main-content [style*="background: #FBF5F9"],
@@ -2265,7 +2265,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â FINAL DASHBOARD READABILITY FIX
+   DARK MODE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â FINAL DASHBOARD READABILITY FIX
    Fix progress card + schedule-row contrast only
 ========================================================= */
 
@@ -2349,12 +2349,12 @@ button {
 
 
 /* =========================================================
-   DASHBOARD DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â COLORED DARK CARDS
+   DASHBOARD DARK MODE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â COLORED DARK CARDS
    White/light dashboard cards become dark versions
    of their assigned light-mode colors.
 ========================================================= */
 
-/* COURSE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â blue family */
+/* COURSE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â blue family */
 :root[data-theme='dark'] .main-content [style*="#F3F7FD"],
 :root[data-theme='dark'] .main-content [style*="#EFF6FF"],
 :root[data-theme='dark'] .main-content [style*="rgb(243, 247, 253)"],
@@ -2364,7 +2364,7 @@ button {
   color: #EAF3FF !important;
 }
 
-/* ASSIGNMENTS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â purple family */
+/* ASSIGNMENTS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â purple family */
 :root[data-theme='dark'] .main-content [style*="#F7F4FC"],
 :root[data-theme='dark'] .main-content [style*="#F3E8FF"],
 :root[data-theme='dark'] .main-content [style*="rgb(247, 244, 252)"],
@@ -2374,7 +2374,7 @@ button {
   color: #F2ECFF !important;
 }
 
-/* SCHEDULE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â peach/orange family */
+/* SCHEDULE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â peach/orange family */
 :root[data-theme='dark'] .main-content [style*="#FFF6F2"],
 :root[data-theme='dark'] .main-content [style*="#FFF4DA"],
 :root[data-theme='dark'] .main-content [style*="rgb(255, 246, 242)"],
@@ -2384,7 +2384,7 @@ button {
   color: #FFF0E9 !important;
 }
 
-/* ANNOUNCEMENTS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â pink family */
+/* ANNOUNCEMENTS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â pink family */
 :root[data-theme='dark'] .main-content [style*="#FFF5F6"],
 :root[data-theme='dark'] .main-content [style*="#FBF5F9"],
 :root[data-theme='dark'] .main-content [style*="rgb(255, 245, 246)"],
@@ -2417,7 +2417,7 @@ button {
   opacity: 1 !important;
 }
 
-/* Large dashboard percentages/numbers ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â blue so they stand out */
+/* Large dashboard percentages/numbers ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â blue so they stand out */
 :root[data-theme='dark'] .main-content [style*="fontSize: 48"],
 :root[data-theme='dark'] .main-content [style*="fontSize: 52"],
 :root[data-theme='dark'] .main-content [style*="fontSize: 56"],
@@ -2553,7 +2553,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â FINAL POLISH
+   DARK MODE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â FINAL POLISH
    Dashboard icon colors + Planner cells + Campus Hub accent
 ========================================================= */
 
@@ -2661,7 +2661,7 @@ button {
 
 
 /* =========================================================
-   DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â LAST THREE FIXES
+   DARK MODE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â LAST THREE FIXES
    Progress ring + Planner Up Next + Campus Hub Events count
 ========================================================= */
 
@@ -2708,7 +2708,7 @@ button {
 }
 
 /* ---------------------------------------------------------
-   PLANNER ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â UP NEXT DETAILS
+   PLANNER ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â UP NEXT DETAILS
 --------------------------------------------------------- */
 
 /* Light detail panels inside Up Next -> dark panel */
@@ -2751,7 +2751,7 @@ button {
 }
 
 /* ---------------------------------------------------------
-   CAMPUS HUB ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â EVENTS COUNT
+   CAMPUS HUB ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EVENTS COUNT
 --------------------------------------------------------- */
 
 /* Events stat card light mint -> dark green */
@@ -2779,12 +2779,12 @@ button {
 
 
 /* =========================================================
-   DARK MODE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â EXACT FIXES
+   DARK MODE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXACT FIXES
    Catch backgroundColor-based inline styles too.
 ========================================================= */
 
 /* ---------------------------------------------------------
-   1) TO-DO PROGRESS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â NO MORE WHITE CARD
+   1) TO-DO PROGRESS ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â NO MORE WHITE CARD
 --------------------------------------------------------- */
 
 /* Any pure-white progress/card surface using background-color */
@@ -2836,7 +2836,7 @@ button {
 }
 
 /* ---------------------------------------------------------
-   2) PLANNER UP NEXT ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â DETAILS BOX + TEXT
+   2) PLANNER UP NEXT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â DETAILS BOX + TEXT
 --------------------------------------------------------- */
 
 /* Catch the actual light-gray panel whether it uses background or backgroundColor */
@@ -3206,7 +3206,7 @@ body.campora-messages-fullscreen .main-content > * {
 }
 
 /* =========================================================
-   LIGHT MODE â€” TRUE WHITE APP/DASHBOARD CANVAS
+   LIGHT MODE Ã¢â‚¬â€ TRUE WHITE APP/DASHBOARD CANVAS
 ========================================================= */
 
 :root:not([data-theme='dark']) html,
@@ -3220,7 +3220,7 @@ body.campora-messages-fullscreen .main-content > * {
 
 
 /* =========================================================
-   LIGHT MODE â€” PURE WHITE DASHBOARD / APP CANVAS
+   LIGHT MODE Ã¢â‚¬â€ PURE WHITE DASHBOARD / APP CANVAS
    Removes the remaining gray cast from Dashboard and app chrome.
 ========================================================= */
 
@@ -3285,5 +3285,30 @@ body.campora-messages-fullscreen .main-content > * {
   textarea,
   select {
     font-size: 16px !important;
+  }
+}
+
+/* =========================================================
+   CENTRAL TOAST + MOBILE SAFETY
+========================================================= */
+.toast-viewport {
+  max-height: calc(100dvh - 112px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.toast { min-width: 0; }
+.toast > div:nth-child(2) { min-width: 0; }
+@media (max-width: 650px) {
+  .toast-viewport {
+    top: 76px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: calc(100dvh - 92px);
+    gap: 8px;
+  }
+  .toast {
+    border-radius: 14px !important;
+    padding: 11px 12px !important;
   }
 }

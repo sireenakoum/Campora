@@ -271,7 +271,8 @@ function ToastViewport() {
         const Icon = theme.icon;
 
         const lowerMessage = String(item.message || '').toLowerCase();
-        const isReminder = lowerMessage.includes('reminder');
+        const isReminder = item.kind === 'reminder' || lowerMessage.includes('reminder');
+        const isNotification = item.kind === 'notification';
         const isMessage =
           item.source === 'messages' ||
           lowerMessage.includes('new message') ||
@@ -334,6 +335,8 @@ function ToastViewport() {
                   ? 'New Message'
                   : isReminder
                   ? `${theme.label} Reminder`
+                  : isNotification
+                  ? `${theme.label} Notification`
                   : theme.label}
               </div>
 
@@ -414,12 +417,11 @@ function DmNotificationsListener() {
             message,
           });
 
-          toast(
-            'You received a new message.',
-            'success',
-            3500,
-            'messages'
-          );
+          toast('You received a new message.', {
+            source: 'messages',
+            kind: 'message',
+            duration: 3500,
+          });
         }
       )
       .subscribe();
@@ -427,6 +429,57 @@ function DmNotificationsListener() {
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [userId]);
+
+  return null;
+}
+
+function RealtimeNotificationsListener() {
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setUserId(data.user?.id || null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const sourceFor = (row) => {
+      const text = `${row?.category || ''} ${row?.title || ''}`.toLowerCase();
+      if (text.includes('message')) return 'messages';
+      if (text.includes('study group')) return 'study-groups';
+      if (text.includes('registration') || text.includes('seat')) return 'registration';
+      if (text.includes('course')) return 'courses';
+      if (text.includes('planner')) return 'planner';
+      if (text.includes('campus pulse') || text.includes('reply') || text.includes('comment')) return 'campus-pulse';
+      if (text.includes('announcement') || text.includes('campus hub')) return 'announcements';
+      if (text.includes('todo') || text.includes('to-do')) return 'todo';
+      return 'default';
+    };
+
+    const channel = supabase
+      .channel(`global_notifications_${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new || {};
+          const title = String(row.title || '').trim();
+          const message = String(row.message || row.content || '').trim();
+          const combined = title && message ? `${title} — ${message}` : (message || title || 'You have a new notification.');
+          toast(combined, { source: sourceFor(row), kind: 'notification', duration: 4500 });
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, [userId]);
 
   return null;
@@ -737,6 +790,7 @@ function DashboardLayout() {
   return (
     <div className="layout">
       <DmNotificationsListener />
+      <RealtimeNotificationsListener />
 
       <div
         className={mobileOpen ? 'scrim show' : 'scrim'}

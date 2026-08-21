@@ -8464,6 +8464,78 @@ style={{
 )}
 
 
+<style>{`
+  .study-group-chat-shell { min-width: 0; }
+  .study-group-chat-header > div { min-width: 0; }
+  .study-group-chat-messages { min-height: 0; -webkit-overflow-scrolling: touch; }
+  .study-group-chat-composer { position: relative; z-index: 2; }
+  @media (max-width: 700px) {
+    .study-group-chat-shell {
+      height: calc(100dvh - 126px) !important;
+      min-height: 520px !important;
+      max-height: calc(100dvh - 126px) !important;
+      border-radius: 18px !important;
+    }
+    .study-group-chat-header {
+      padding: 12px !important;
+      gap: 8px !important;
+      align-items: flex-start !important;
+      flex-wrap: wrap !important;
+    }
+    .study-group-chat-header > div:first-child {
+      flex: 1 1 180px !important;
+      gap: 9px !important;
+    }
+    .study-group-chat-header > div:last-child {
+      width: 100% !important;
+      justify-content: flex-start !important;
+      gap: 7px !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      padding-bottom: 2px !important;
+      scrollbar-width: none;
+    }
+    .study-group-chat-header > div:last-child::-webkit-scrollbar { display: none; }
+    .study-group-chat-header h3 {
+      font-size: 16px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      max-width: 58vw !important;
+    }
+    .study-group-chat-messages {
+      padding: 12px !important;
+      gap: 11px !important;
+    }
+    .study-group-reply-preview { padding: 8px 12px !important; }
+    .study-group-chat-composer {
+      padding: 10px !important;
+      gap: 8px !important;
+      padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    }
+    .study-group-chat-input {
+      height: 44px !important;
+      font-size: 16px !important;
+      padding: 0 12px !important;
+    }
+    .study-group-chat-composer button[type='submit'] {
+      width: 44px !important;
+      min-width: 44px !important;
+      height: 44px !important;
+    }
+  }
+  @media (max-width: 430px) {
+    .study-group-chat-shell {
+      height: calc(100dvh - 104px) !important;
+      max-height: calc(100dvh - 104px) !important;
+      min-height: 460px !important;
+      border-radius: 14px !important;
+    }
+    .study-group-chat-header { padding: 10px !important; }
+    .study-group-chat-messages { padding: 10px !important; }
+  }
+`}</style>
+
 {/* =================================================
   GROUP CHAT
 ================================================= */}
@@ -8473,6 +8545,7 @@ style={{
  selectedGroup && (
 <ShellPortal active={chatFullscreen}>
 <div
+className="study-group-chat-shell"
 style={{
  maxWidth:
  '1220px',
@@ -8530,6 +8603,7 @@ overflow:
     CHAT HEADER
   ================================================= */}
 <div
+className="study-group-chat-header"
 style={{
  padding:
  '16px 24px',
@@ -9180,6 +9254,7 @@ Unpin
 ================================================= */}
 
 <div
+className="study-group-chat-messages"
 style={{
  flex:
    1,
@@ -10130,6 +10205,7 @@ style={{
 
 {replyingTo && (
 <div
+ className="study-group-reply-preview"
  style={{
   padding:
   '10px 24px',
@@ -10259,6 +10335,7 @@ style={{
 ================================================= */}
 
 <form
+className="study-group-chat-composer"
 onSubmit={
   handleSendMessage
 }
@@ -10276,6 +10353,7 @@ style={{
 >
 
 <input
+className="study-group-chat-input"
 type="text"
 placeholder={
  replyingTo

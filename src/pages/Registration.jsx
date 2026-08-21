@@ -32,7 +32,7 @@ CheckCheck,
   Maximize2,
   Minimize2} from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from '../lib/toast';
+import { toast, toastBoth } from '../lib/toast';
 import {
 PageShell,
 IconChip,
@@ -1349,11 +1349,15 @@ saveRegistrationAlertLink(data, seatAlertMode);
 setReminders(previous => [{ ...data, alert_type: seatAlertMode }, ...previous]);
 }
 if (seatAlertMode === 'both') {
-toast('Notification + reminder set for this seat alert');
+toastBoth({
+  source: 'registration',
+  notificationMessage: 'Notification set for this seat alert',
+  reminderMessage: 'Reminder set for this seat alert',
+});
 } else if (seatAlertMode === 'reminder') {
-toast('Reminder set for this seat alert');
+toast('Reminder set for this seat alert', { source: 'registration', kind: 'reminder' });
 } else if (seatAlertMode === 'notification') {
-toast('Notification set for this seat alert');
+toast('Notification set for this seat alert', { source: 'registration', kind: 'notification' });
 } else {
 toast('Seat alert saved');
 }

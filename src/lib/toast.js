@@ -1,28 +1,15 @@
 // Campora toast system
-// Backwards-compatible with your original toast.js
+// Centralized + backwards-compatible with existing toast(...) calls.
 
 let toasts = [];
 let listeners = new Set();
 let nextId = 1;
 
 function getSourceFromPage(message, source) {
-  if (source && source !== 'default') {
-    return source;
-  }
+  if (source && source !== 'default') return source;
 
   const text = String(message || '').toLowerCase();
-
-  // Message-specific cases
-  if (
-    text.includes('new message') ||
-    text.includes('direct message') ||
-    text.includes('received a message') ||
-    text.includes('message from')
-  ) {
-    return 'messages';
-  }
-
-  // Message content can identify some sources
+  if (text.includes('new message') || text.includes('direct message') || text.includes('received a message') || text.includes('message from')) return 'messages';
   if (text.includes('campus news')) return 'campus-news';
   if (text.includes('announcement')) return 'announcements';
   if (text.includes('study group')) return 'study-groups';
@@ -30,10 +17,8 @@ function getSourceFromPage(message, source) {
   if (text.includes('campus pulse')) return 'campus-pulse';
   if (text.includes('to-do') || text.includes('todo')) return 'todo';
 
-  // Otherwise use the current page
   if (typeof window !== 'undefined') {
     const path = String(window.location.pathname || '').toLowerCase();
-
     if (path.includes('/campus-pulse')) return 'campus-pulse';
     if (path.includes('/registration')) return 'registration';
     if (path.includes('/planner')) return 'planner';
@@ -43,26 +28,14 @@ function getSourceFromPage(message, source) {
     if (path.includes('/messages')) return 'messages';
     if (path.includes('/announcements')) return 'announcements';
   }
-
   return 'default';
 }
 
-export function toast(
-  message,
-  kind = 'success',
-  duration = 3500,
-  source = 'default'
-) {
-  // Also supports:
-  // toast('Hello', { source: 'planner', kind: 'success' })
+export function toast(message, kind = 'success', duration = 3500, source = 'default') {
   if (kind && typeof kind === 'object') {
     const options = kind;
-
     kind = options.kind || 'success';
-    duration =
-      typeof options.duration === 'number'
-        ? options.duration
-        : 3500;
+    duration = typeof options.duration === 'number' ? options.duration : 3500;
     source = options.source || 'default';
   }
 
@@ -75,10 +48,27 @@ export function toast(
 
   toasts = [...toasts, item];
   emit();
+  setTimeout(() => dismiss(item.id), duration);
+  return item.id;
+}
 
-  setTimeout(() => {
-    dismiss(item.id);
-  }, duration);
+export function toastNotification(message, options = {}) {
+  return toast(message, { ...options, kind: 'notification' });
+}
+
+export function toastReminder(message, options = {}) {
+  return toast(message, { ...options, kind: 'reminder' });
+}
+
+export function toastBoth({
+  notificationMessage = 'Notification set.',
+  reminderMessage = 'Reminder set.',
+  source = 'default',
+  duration = 3500,
+} = {}) {
+  const first = toast(notificationMessage, { source, kind: 'notification', duration });
+  const second = toast(reminderMessage, { source, kind: 'reminder', duration });
+  return [first, second];
 }
 
 export function dismiss(id) {
@@ -86,20 +76,11 @@ export function dismiss(id) {
   emit();
 }
 
-export function getToasts() {
-  return toasts;
-}
+export function getToasts() { return toasts; }
 
-function emit() {
-  listeners.forEach((listener) => {
-    listener(toasts);
-  });
-}
+function emit() { listeners.forEach((listener) => listener(toasts)); }
 
 export function subscribeToasts(listener) {
   listeners.add(listener);
-
-  return () => {
-    listeners.delete(listener);
-  };
+  return () => listeners.delete(listener);
 }

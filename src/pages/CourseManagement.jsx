@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
-import { toast } from '../lib/toast';
+import { toast, toastBoth } from '../lib/toast';
 
 import {
   PageShell,
@@ -1939,7 +1939,17 @@ const saveAssignment = async (e) => {
       : 'Notification is on for this assignment.';
 
   showAlertConfirmation(assignmentMessage);
-  toast(assignmentMessage);
+  if (assignmentReminder && assignmentNotification) {
+    toastBoth({
+      source: 'courses',
+      notificationMessage: 'Notification is on for this assignment.',
+      reminderMessage: `Reminder set for ${formatDate(effectiveAssignmentReminderDate)} at ${effectiveAssignmentReminderTime}.`,
+    });
+  } else if (assignmentReminder) {
+    toast(assignmentMessage, { source: 'courses', kind: 'reminder' });
+  } else {
+    toast(assignmentMessage, { source: 'courses', kind: 'notification' });
+  }
 
   createLinkedCourseAlert({
    itemId: savedAssignmentId,
@@ -2108,7 +2118,17 @@ const saveEvent = async (e) => {
       : 'Notification is on for this course item.';
 
   showAlertConfirmation(eventMessage);
-  toast(eventMessage);
+  if (eventReminder && eventNotification) {
+    toastBoth({
+      source: 'courses',
+      notificationMessage: 'Notification is on for this course item.',
+      reminderMessage: `Reminder set for ${formatDate(effectiveEventReminderDate)} at ${effectiveEventReminderTime}.`,
+    });
+  } else if (eventReminder) {
+    toast(eventMessage, { source: 'courses', kind: 'reminder' });
+  } else {
+    toast(eventMessage, { source: 'courses', kind: 'notification' });
+  }
 
   createLinkedCourseAlert({
    itemId: savedEventId,

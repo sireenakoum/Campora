@@ -920,7 +920,6 @@ export default function Messages() {
         (payload) => {
           const incoming = payload.new;
           if (!incoming?.sender_id || !isMessageNotificationOn(incoming.sender_id)) return;
-          toast('New direct message');
           loadDirectMessages(currentUser.id);
         }
       )

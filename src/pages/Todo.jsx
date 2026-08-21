@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
-import { toast } from '../lib/toast';
+import { toast, toastBoth } from '../lib/toast';
 
 import {
   getTodosForCurrentUser,
@@ -348,8 +348,6 @@ const handleSaveTask = async () => {
      ]);
    }
 
-   toast('Task added');
-
   try {
     if (alertType) {
       await createLinkedTodoAlert({
@@ -361,6 +359,20 @@ const handleSaveTask = async () => {
       });
     } else {
       await removeLinkedTodoAlert(user.id, savedTask?.id);
+    }
+
+    if (alertType === 'both') {
+      toastBoth({
+        source: 'todo',
+        notificationMessage: 'To-Do notification added.',
+        reminderMessage: `To-Do reminder set${alertDate ? ` for ${alertDate}${alertTime ? ` at ${alertTime}` : ''}` : '.'}`,
+      });
+    } else if (alertType === 'reminder') {
+      toast(`To-Do reminder set${alertDate ? ` for ${alertDate}${alertTime ? ` at ${alertTime}` : ''}` : '.'}`, { source: 'todo', kind: 'reminder' });
+    } else if (alertType === 'notification') {
+      toast('To-Do notification added.', { source: 'todo', kind: 'notification' });
+    } else {
+      toast('Task added', { source: 'todo' });
     }
   } catch (alertError) {
     console.error('Could not create To-Do alert:', alertError);

@@ -653,10 +653,7 @@ export default function Notifications() {
           ([todoId, alert]) => {
             if (!alert?.type) return;
 
-            const id = `todo-local-${todoId}`;
-
-            combined.push({
-              id,
+            const base = {
               rawId: todoId,
 
               title:
@@ -678,20 +675,34 @@ export default function Notifications() {
                 .join(' • '),
 
               category: 'To-Do',
+              created_at: getSafeDate(alert.created_at),
+            };
 
-              section:
-                alert.type === 'reminder'
-                  ? 'Reminders'
-                  : 'Notifications',
+            // If the user chooses BOTH, create two independent items:
+            // one Reminder and one Notification.
+            if (alert.type === 'reminder' || alert.type === 'both') {
+              const reminderId = `todo-reminder-${todoId}`;
 
-              source: 'todo_local_alert',
+              combined.push({
+                ...base,
+                id: reminderId,
+                section: 'Reminders',
+                source: 'todo_local_alert',
+                read: savedReadIds.includes(reminderId),
+              });
+            }
 
-              created_at: getSafeDate(
-                alert.created_at
-              ),
+            if (alert.type === 'notification' || alert.type === 'both') {
+              const notificationId = `todo-notification-${todoId}`;
 
-              read: savedReadIds.includes(id),
-            });
+              combined.push({
+                ...base,
+                id: notificationId,
+                section: 'Notifications',
+                source: 'todo_local_alert',
+                read: savedReadIds.includes(notificationId),
+              });
+            }
           }
         );
       } catch (error) {

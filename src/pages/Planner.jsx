@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
-import { toast } from '../lib/toast';
+import { toast, toastBoth } from '../lib/toast';
 
 import { ProgressRing } from '../components/luminous';
 
@@ -1101,15 +1101,15 @@ export default function Planner() {
       }
 
       if (newEntry.alertType === 'both') {
-        toast(
-          `Notification + reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`
-        );
+        toastBoth({
+          source: 'planner',
+          notificationMessage: 'Notification set for this Planner entry',
+          reminderMessage: `Reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`,
+        });
       } else if (newEntry.alertType === 'reminder') {
-        toast(
-          `Reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`
-        );
+        toast(`Reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`, { source: 'planner', kind: 'reminder' });
       } else if (newEntry.alertType === 'notification') {
-        toast('Notification set');
+        toast('Notification set', { source: 'planner', kind: 'notification' });
       } else {
         toast('Planner entry added');
       }
@@ -1182,15 +1182,15 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       });
 
       if (newEntry.alertType === 'both') {
-        toast(
-          `Notification + reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`
-        );
+        toastBoth({
+          source: 'planner',
+          notificationMessage: 'Notification set for this Planner entry',
+          reminderMessage: `Reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`,
+        });
       } else if (newEntry.alertType === 'reminder') {
-        toast(
-          `Reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`
-        );
+        toast(`Reminder set for ${newEntry.reminder_date || newEntry.date} at ${newEntry.reminder_time || newEntry.start_time || '09:00'}`, { source: 'planner', kind: 'reminder' });
       } else if (newEntry.alertType === 'notification') {
-        toast('Notification set');
+        toast('Notification set', { source: 'planner', kind: 'notification' });
       } else {
         toast('Planner entry updated');
       }
