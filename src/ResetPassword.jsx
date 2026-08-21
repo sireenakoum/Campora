@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 
@@ -8,13 +8,49 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active || !session) return;
+      setHasSession(true);
+      setCheckingSession(false);
+    });
+
+    const timer = setTimeout(() => {
+      supabase.auth.getSession().then(({ data }) => {
+        if (!active) return;
+        if (data?.session) {
+          setHasSession(true);
+        }
+        setCheckingSession(false);
+      });
+    }, 600);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
+
+    if (password.trim().length < 6) {
+      setError('Password must be at least 6 characters.');
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
@@ -27,10 +63,13 @@ export default function ResetPassword() {
     if (error) {
       setError(error.message);
     } else {
-      setMessage('Password updated successfully! Redirecting to login…');
+      await supabase.auth.signOut({ scope: 'global' });
+      setMessage(
+        'Password updated successfully! Log in with your NEW password.'
+      );
       setTimeout(() => {
         navigate('/login');
-      }, 1800);
+      }, 2200);
     }
     setLoading(false);
   };
@@ -47,60 +86,86 @@ export default function ResetPassword() {
           <p style={styles.subtitle}>Set a New Password</p>
         </div>
 
-        <p style={styles.description}>
-          Enter a new password for your account.
-        </p>
-
-        {error && typeof error === 'string' && (
-          <div style={styles.errorBox}>
-            <span>{error}</span>
-            <button onClick={() => setError(null)} style={styles.errorClose}>
-              ✕
-            </button>
-          </div>
+        {checkingSession && (
+          <p style={styles.description}>Verifying your reset link…</p>
         )}
 
-        {message && (
-          <div style={styles.successBox}>
-            <span>{message}</span>
-          </div>
+        {!checkingSession && !hasSession && (
+          <>
+            <div style={styles.errorBox}>
+              <span>
+                This password reset link is invalid or has expired.
+              </span>
+              <button onClick={() => setError(null)} style={styles.errorClose}>
+                ✕
+              </button>
+            </div>
+            <div style={styles.footer}>
+              <Link to="/forgot-password" style={styles.link}>
+                Send me a new reset link
+              </Link>
+            </div>
+          </>
         )}
 
-        <form onSubmit={handleUpdatePassword} style={styles.form} noValidate>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>New Password</label>
-            <input
-              type="password"
-              placeholder="At least 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-              required
-              minLength={6}
-            />
-          </div>
+        {!checkingSession && hasSession && (
+          <>
+            <p style={styles.description}>
+              Enter a new password for your account.
+            </p>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Confirm Password</label>
-            <input
-              type="password"
-              placeholder="Re-enter your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              style={styles.input}
-              required
-              minLength={6}
-            />
-          </div>
+            {error && typeof error === 'string' && (
+              <div style={styles.errorBox}>
+                <span>{error}</span>
+                <button onClick={() => setError(null)} style={styles.errorClose}>
+                  ✕
+                </button>
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={loading ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
-          >
-            {loading ? 'Updating Password...' : 'Update Password'}
-          </button>
-        </form>
+            {message && (
+              <div style={styles.successBox}>
+                <span>{message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdatePassword} style={styles.form} noValidate>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>New Password</label>
+                <input
+                  type="password"
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={styles.input}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Confirm Password</label>
+                <input
+                  type="password"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={styles.input}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={loading ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
+              >
+                {loading ? 'Updating Password...' : 'Update Password'}
+              </button>
+            </form>
+          </>
+        )}
 
         <div style={styles.footer}>
           <Link to="/login" style={styles.link}>
