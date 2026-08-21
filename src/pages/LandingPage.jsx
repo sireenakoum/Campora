@@ -32,14 +32,15 @@ import camporaLogo from '../assets/camporanavylogo.png';
 
 import ChatBotWidget from '../components/ChatBotWidget';
 
-import dashboardImg from '../assets/dashboard.png';
-import coursesImg from '../assets/courses.png';
-import studygroupsImg from '../assets/studygroups.png';
-import campuspulseImg from '../assets/campuspulse.png';
-import plannerImg from '../assets/planner.png';
-import toDoImg from '../assets/to_do.png';
-import announcementsImg from '../assets/announcements.png';
-import notificationsImg from '../assets/notifications.png';
+import dashboardImg from '../assets/landing_dashboard_private.jpg';
+import coursesImg from '../assets/landing_courses_private.jpg';
+import registrationImg from '../assets/landing_registration_private.jpg';
+import studygroupsImg from '../assets/landing_studygroups_private.jpg';
+import messagesImg from '../assets/landing_messages_private.jpg';
+import campuspulseImg from '../assets/landing_campuspulse_private.jpg';
+import plannerImg from '../assets/landing_planner_private.jpg';
+import toDoImg from '../assets/landing_todo_private.jpg';
+import campusHubImg from '../assets/landing_campushub_private.jpg';
 
 const NAVY = '#0B1A3F';
 const BLUE = '#648CCB';
@@ -58,10 +59,9 @@ const DEMO_TABS = [
     soft: '#EEF3F9',
     headline: 'Everything that matters, in one glance.',
     points: [
-      'Today’s schedule plus everything coming up',
-      'To-do progress and an academic snapshot',
-      'Quick access to Courses, Registration, Study Groups, Messages, Pulse, and Planner',
-      'A pinned campus update right on the dashboard',
+      'Quick access to your courses, registration, groups, messages, pulse, and planner',
+      'Today and Coming Up panels keep the day clear',
+      'Academic Snapshot and To-Do progress stay visible without switching pages',
     ],
   },
   {
@@ -73,9 +73,23 @@ const DEMO_TABS = [
     soft: '#F4F2F8',
     headline: 'Courses that organize themselves.',
     points: [
-      'Courses grouped by semester, with a stat card for each',
-      'Assignments, upcoming items, resources, and credits tracked automatically',
+      'Courses grouped by semester',
+      'Assignments, upcoming items, resources, and credits at a glance',
       'Search by course, professor, or semester',
+    ],
+  },
+  {
+    id: 'registration',
+    label: 'Registration',
+    icon: UserCheck,
+    img: registrationImg,
+    accent: '#C6824E',
+    soft: '#FFF4E8',
+    headline: 'Registration without the chaos.',
+    points: [
+      'Course Match & Swap in one clear workspace',
+      'Course and professor reviews, curriculum, GPA tools, and seat reminders',
+      'Recent swap requests stay easy to find',
     ],
   },
   {
@@ -87,10 +101,23 @@ const DEMO_TABS = [
     soft: '#FFF3F7',
     headline: 'Find your people. Then stay close.',
     points: [
-      'Discover circles by major, or create your own',
-      'Every circle is reviewed by Campora before it goes public',
-      'Join a private circle with an invite code',
-      'Track circles you’ve created, joined, and your vibe settings',
+      'Discover, create, or join study circles',
+      'Private circles use access codes and requests',
+      'Created and joined circles stay organized in one place',
+    ],
+  },
+  {
+    id: 'messages',
+    label: 'Messages',
+    icon: MessageSquare,
+    img: messagesImg,
+    accent: '#5E7FB4',
+    soft: '#EEF3F9',
+    headline: 'Every conversation in one inbox.',
+    points: [
+      'Direct messages, groups, drafts, mentors, and more',
+      'Filter conversations by source',
+      'Names, profile details, and message previews are blurred in this public preview',
     ],
   },
   {
@@ -102,9 +129,9 @@ const DEMO_TABS = [
     soft: '#FFF4EE',
     headline: 'The feed of what’s happening on campus.',
     points: [
-      'A single Feed with a Create Post button',
-      'Filter by Clubs & Events, Questions, Campus Life, Complaints, Lost & Found, Opportunities, or Other',
-      'Search discussions, announcements, and lost items',
+      'Create posts and search discussions',
+      'Filter by clubs, questions, campus life, complaints, lost & found, and opportunities',
+      'A simple campus-wide student feed',
     ],
   },
   {
@@ -116,9 +143,9 @@ const DEMO_TABS = [
     soft: '#F1F7F5',
     headline: 'A semester you can finally see.',
     points: [
-      'Month, week, and day views with quick-jump navigation',
-      'Upload your class schedule and have it added for you',
-      'An agenda panel for what’s coming up, plus colour stickies for notes',
+      'Month, week, and day planning',
+      'Upload a schedule and jump through dates quickly',
+      'Agenda and sticky-note tools sit beside the calendar',
     ],
   },
   {
@@ -130,36 +157,23 @@ const DEMO_TABS = [
     soft: '#EEF7F3',
     headline: 'Priorities where you can actually see them.',
     points: [
-      'Total tasks, remaining, and completed at a glance',
-      'A progress bar plus a high / medium / low priority breakdown',
-      'Add a task and set its priority in one step',
+      'Total, remaining, and completed tasks at a glance',
+      'High, medium, and low priority breakdown',
+      'Progress tracking and quick task creation',
     ],
   },
   {
     id: 'campus-hub',
     label: 'Campus Hub',
     icon: Network,
-    img: announcementsImg,
+    img: campusHubImg,
     accent: '#B09262',
     soft: '#FAF7F0',
     headline: 'Official campus info, minus the hunt.',
     points: [
-      'Announcements, Campus News, Events, and Resources, each with its own count',
-      'Search announcements and filter by category',
-    ],
-  },
-  {
-    id: 'notifications',
-    label: 'Notifications',
-    icon: Bell,
-    img: notificationsImg,
-    accent: '#A97884',
-    soft: '#FAF3F5',
-    headline: 'Updates that come to you.',
-    points: [
-      'Categorized, live notification feed',
-      'Read states and clean-up that just works',
-      'Arrives in real time, not three tabs later',
+      'Announcements, campus news, events, and resources',
+      'Counts for every category',
+      'Search and filter campus information quickly',
     ],
   },
 ];
@@ -1061,6 +1075,20 @@ export default function LandingPage() {
 
         .lp-hero-visual:hover .lp-hero-glow::before {
           opacity: 1;
+        }
+
+
+        .lp-window-real {
+          overflow: hidden;
+          background: #fff;
+        }
+
+        .lp-hero-real-img {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+          object-position: top left;
         }
 
         .lp-window {
@@ -3017,220 +3045,12 @@ export default function LandingPage() {
           >
             <div className="lp-hero-glow" ref={glowRef} onPointerMove={handleGlowMove} />
 
-            <div className="lp-pulse-ring">
-              <div className="lp-pulse-dot" />
-            </div>
-
-            <div className="hw-float one">
-              <div
-                className="hw-float-icon"
-                style={{ background: '#EEF7F3', color: '#6F948B' }}
-              >
-                <CheckCircle2 size={16} />
-              </div>
-              <div>
-                <div className="hw-float-title">New group chat</div>
-                <div className="hw-float-sub">Algorithms study group</div>
-              </div>
-            </div>
-
-            <div className="hw-float two">
-              <div
-                className="hw-float-icon"
-                style={{ background: '#FBEFF4', color: '#C76E8A' }}
-              >
-                <Heart size={16} />
-              </div>
-              <div>
-                <div className="hw-float-title">Hackathon post</div>
-                <div className="hw-float-sub">Liked on Campus Pulse</div>
-              </div>
-            </div>
-
-            <div className="lp-window">
-              <div className="hw-top">
-                <span className="hw-dot" style={{ background: '#F1A99B' }} />
-                <span className="hw-dot" style={{ background: '#E8C787' }} />
-                <span className="hw-dot" style={{ background: '#8FCFA2' }} />
-                <div className="hw-addr">
-                  <span className="lock">
-                    <ShieldCheck size={10} />
-                  </span>
-                  app.campora.edu/dashboard
-                </div>
-              </div>
-
-              <div className="hw-body">
-                <aside className="hw-rail">
-                  <img src={camporaLogo} alt="Campora logo" />
-
-                  <div className="hw-rail-icon hw-rail-icon-active">
-                    <LayoutDashboard size={13} />
-                  </div>
-
-                  <div className="hw-rail-icon">
-                    <BookOpen size={13} />
-                  </div>
-
-                  <div className="hw-rail-icon">
-                    <UserCheck size={13} />
-                  </div>
-
-                  <div className="hw-rail-icon">
-                    <Users size={13} />
-                  </div>
-
-                  <div className="hw-rail-icon">
-                    <MessageSquare size={13} />
-                  </div>
-                </aside>
-
-                <aside className="hw-side">
-                  <div className="hw-side-title">Dashboard</div>
-                  <div className="hw-side-sub">Tuesday, Apr 14</div>
-
-                  <div className="hw-row">
-                    <div
-                      className="hw-row-icon"
-                      style={{ background: '#EEF3F9', color: '#648CCB' }}
-                    >
-                      <BookOpen size={12} />
-                    </div>
-                    Courses
-                  </div>
-
-                  <div className="hw-row">
-                    <div
-                      className="hw-row-icon"
-                      style={{ background: '#FFF4E8', color: '#C6824E' }}
-                    >
-                      <UserCheck size={12} />
-                    </div>
-                    Registration
-                  </div>
-
-                  <div className="hw-row hw-row-active">
-                    <div
-                      className="hw-row-icon"
-                      style={{ background: '#0B1A3F', color: '#FFFFFF' }}
-                    >
-                      <CalendarDays size={12} />
-                    </div>
-                    Planner
-                  </div>
-
-                  <div className="hw-row">
-                    <div
-                      className="hw-row-icon"
-                      style={{ background: '#FBEFF4', color: '#C76E8A' }}
-                    >
-                      <Users size={12} />
-                    </div>
-                    Study Groups
-                  </div>
-
-                  <div className="hw-row">
-                    <div
-                      className="hw-row-icon"
-                      style={{ background: '#F1F7F5', color: '#6F948B' }}
-                    >
-                      <CheckSquare size={12} />
-                    </div>
-                    To-Do
-                  </div>
-                </aside>
-
-                <div className="hw-main">
-                  <div className="hw-welcome">
-                    <div className="hw-welcome-eyebrow">
-                      Good afternoon
-                    </div>
-                    <h3>Thea’s day at a glance</h3>
-                    <p>Everything important, without hunting for it.</p>
-                  </div>
-
-                  <div className="hw-stats">
-                    <div className="hw-stat">
-                      <div className="hw-stat-num">4</div>
-                      <div className="hw-stat-label">Courses</div>
-                    </div>
-                    <div className="hw-stat">
-                      <div className="hw-stat-num">2</div>
-                      <div className="hw-stat-label">Deadlines</div>
-                    </div>
-                    <div className="hw-stat">
-                      <div className="hw-stat-num">3</div>
-                      <div className="hw-stat-label">To-dos left</div>
-                    </div>
-                  </div>
-
-                  <div className="hw-grid">
-                    <div className="hw-card">
-                      <div className="hw-card-head">
-                        <div className="hw-card-title">
-                          <div
-                            className="hw-card-icon"
-                            style={{ background: '#EEF3F9', color: '#648CCB' }}
-                          >
-                            <CalendarDays size={12} />
-                          </div>
-                          Today
-                        </div>
-                        <div className="hw-chip" />
-                      </div>
-
-                      <div className="hw-list">
-                        <div className="hw-item">
-                          <span className="hw-item-dot" style={{ background: '#648CCB' }} />
-                          <div style={{ flex: 1 }}>
-                            <div className="hw-item-name">Intro to Algorithms</div>
-                          </div>
-                          <span className="hw-item-time">10:00</span>
-                        </div>
-                        <div className="hw-item">
-                          <span className="hw-item-dot" style={{ background: '#8B78B8' }} />
-                          <div style={{ flex: 1 }}>
-                            <div className="hw-item-name">Study group · meet</div>
-                          </div>
-                          <span className="hw-item-time">5:00</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="hw-card">
-                      <div className="hw-card-head">
-                        <div className="hw-card-title">
-                          <div
-                            className="hw-card-icon"
-                            style={{ background: '#F1F7F5', color: '#6F948B' }}
-                          >
-                            <CheckSquare size={12} />
-                          </div>
-                          To-Do
-                        </div>
-                        <div className="hw-chip" />
-                      </div>
-
-                      <div className="hw-progress">
-                        <div className="hw-progress-top">
-                          <div className="hw-progress-num">62%</div>
-                          <div className="hw-progress-pill" style={{ background: '#EEF7F3', color: '#3F8B73' }}>
-                            3 done
-                          </div>
-                        </div>
-                        <div className="hw-progress-track">
-                          <div className="hw-progress-fill" />
-                        </div>
-                      </div>
-
-                      <div className="hw-empty">
-                        <Megaphone size={11} />
-                        + 1 campus update
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="lp-window lp-window-real">
+              <img
+                src={dashboardImg}
+                alt="Campora dashboard preview"
+                className="lp-hero-real-img"
+              />
             </div>
           </section>
         </section>
@@ -3324,8 +3144,8 @@ export default function LandingPage() {
             </div>
             <h2>Every workspace, right here on the landing page.</h2>
             <p>
-              Click a tab to explore a real screen from Campora. No account
-              needed — this is the actual student experience.
+              Click a tab to preview the real Campora interface. Personal profile photos,
+              names, and private message details are blurred for this public view.
             </p>
           </div>
 
