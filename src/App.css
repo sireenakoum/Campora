@@ -1297,6 +1297,13 @@ button {
 
   .sidebar.mobile-open {
     transform: translateX(0);
+
+    /* Sit above the scrim (z-index 110) so nav items stay tappable */
+    z-index: 120;
+
+    width: min(300px, 86vw);
+
+    box-shadow: 0 0 60px rgba(11, 26, 63, 0.3);
   }
 
   /* Content spans the full screen while the sidebar is a drawer */
