@@ -495,6 +495,7 @@ export default function CampusPulse() {
 
   const [activeDmMessageMenu, setActiveDmMessageMenu] = useState(null);
 
+
   const dmChatHistoryRef = useRef(null);
   const dmChatBottomRef = useRef(null);
 
@@ -676,7 +677,7 @@ export default function CampusPulse() {
         (payload) => {
           const incoming = payload.new;
           if (!incoming?.sender_id || !isPulseDmNotificationOn(incoming.sender_id)) return;
-          toast('New direct message');
+          toast('You received a new message.', { source: 'messages', kind: 'message' });
           fetchDmInbox({ silent: true });
         }
       )
@@ -1273,17 +1274,13 @@ export default function CampusPulse() {
       });
 
       if (newPost.reply_alert_preference === 'both') {
-        toast(
-          `Notification + reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`
-        );
+        toast(`Notification + reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`, { source: 'campus-pulse' });
       } else if (newPost.reply_alert_preference === 'reminder') {
-        toast(
-          `Reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`
-        );
+        toast(`Reminder set for ${effectiveReminderDate} at ${effectiveReminderTime}`, { source: 'campus-pulse', kind: 'reminder' });
       } else if (newPost.reply_alert_preference === 'notification') {
-        toast('Notification set for this Campus Pulse post');
+        toast('Notification set for this Campus Pulse post', { source: 'campus-pulse', kind: 'notification' });
       } else {
-        toast('Campus Pulse post created');
+        toast('Campus Pulse post created', { source: 'campus-pulse' });
       }
 
       setIsModalOpen(false);
@@ -2564,10 +2561,10 @@ export default function CampusPulse() {
                 <select
                   style={{
                     ...inputStyle,
-                    minHeight: '54px',
-                    padding: '14px 16px',
-                    fontSize: '14px',
-                    borderRadius: '13px'
+                    minHeight: '46px',
+                    padding: '11px 14px',
+                    fontSize: '13px',
+                    borderRadius: '12px'
                   }}
                   value={newPost.category}
                   onChange={event =>
@@ -2620,7 +2617,7 @@ export default function CampusPulse() {
                   required
                   style={{
                     ...inputStyle,
-                    height: '145px',
+                    height: '112px',
                     resize: 'none'
                   }}
                   value={newPost.content}
@@ -3381,11 +3378,14 @@ const overlay = {
 
 const modalCardStyle = {
   width: '100%',
-  maxWidth: '640px',
-  padding: '38px 40px',
-  borderRadius: 'var(--radius)',
+  maxWidth: '560px',
+  maxHeight: '82vh',
+  overflowY: 'auto',
+  padding: '24px 26px',
+  borderRadius: '20px',
   background: 'var(--surface-container-lowest)',
-  boxShadow: 'var(--shadow-lift)'
+  boxShadow: 'var(--shadow-lift)',
+  boxSizing: 'border-box'
 };
 
 const modalHeaderStyle = {
@@ -3407,7 +3407,7 @@ const modalCloseStyle = {
 const modalFormStyle = {
   display: 'flex',
   flexDirection: 'column',
-  gap: '16px'
+  gap: '13px'
 };
 
 const labelStyle = {

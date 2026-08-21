@@ -301,6 +301,13 @@ function getSystemCategory(item) {
   }
 
   if (
+    fullText.includes('campus pulse') ||
+    fullText.includes('campus_pulse')
+  ) {
+    return 'Campus Pulse';
+  }
+
+  if (
     fullText.includes('registration') ||
     fullText.includes('crn') ||
     fullText.includes('seat available') ||
@@ -461,6 +468,18 @@ export default function Notifications() {
           loadEverything();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${user.id}`,
+        },
+        () => {
+          loadEverything();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -557,6 +576,66 @@ export default function Notifications() {
           'Notifications could not be loaded:',
           error
         );
+      }
+
+      // ===================================================
+      // DIRECT MESSAGES
+      // ===================================================
+
+      try {
+        const { data: dmRows, error: dmError } = await supabase
+          .from('direct_messages')
+          .select('*')
+          .eq('receiver_id', currentUser.id)
+          .order('created_at', { ascending: false });
+
+        if (!dmError && Array.isArray(dmRows)) {
+          const senderIds = [
+            ...new Set(
+              dmRows
+                .map(row => row.sender_id)
+                .filter(Boolean)
+            )
+          ];
+
+          let senderNames = {};
+
+          if (senderIds.length) {
+            const { data: directoryRows } = await supabase.rpc(
+              'get_student_directory_by_ids',
+              { user_ids: senderIds }
+            );
+
+            (directoryRows || []).forEach(profile => {
+              senderNames[profile.id] =
+                profile.name ||
+                profile.email?.split('@')[0] ||
+                'Student';
+            });
+          }
+
+          dmRows.forEach(message => {
+            const id = `direct-message-${message.id}`;
+            const rawContent = String(message.content || '');
+            const cleanContent = rawContent
+              .replace(/^\[\[CAMPORA_DM:[^\]]+\]\]/, '')
+              .replace(/^\[\[CAMPORA_SOURCE:[^\]]+\]\]/, '');
+
+            combined.push({
+              id,
+              rawId: message.id,
+              title: `Message from ${senderNames[message.sender_id] || 'Student'}`,
+              message: cleanContent || 'You received a new message.',
+              category: 'Direct',
+              section: 'Messages',
+              source: 'direct_messages',
+              created_at: getSafeDate(message.created_at),
+              read: savedReadIds.includes(id),
+            });
+          });
+        }
+      } catch (error) {
+        console.log('Direct messages could not be loaded:', error);
       }
 
       // ===================================================
@@ -1403,6 +1482,7 @@ export default function Notifications() {
     'Campus News',
     'Events',
     'Courses',
+    'Campus Pulse',
     'Planner',
     'Registration',
     'To-Do',
@@ -1419,6 +1499,7 @@ export default function Notifications() {
   const reminderFilters = [
     'All',
     'Courses',
+    'Campus Pulse',
     'Planner',
     'Registration',
     'To-Do',

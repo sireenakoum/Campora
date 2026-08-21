@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
-  CalendarDays,
-  Bell,
+  BookOpen,
+  Network,
   Users,
+  MessageSquare,
 } from 'lucide-react';
 
 const NAVY = '#0B1A3F';
@@ -16,33 +17,33 @@ const BORDER = '#E5EAF2';
 export default function Features() {
   const pillars = [
     {
-      icon: CalendarDays,
-      title: 'Organize your academics',
-      text: 'Keep courses, class schedules, tasks, deadlines, and planning easier to follow without jumping between separate tools.',
+      icon: BookOpen,
+      title: 'Courses & Registration',
+      text: 'Organize every course, assignment, and resource by semester, and handle course swaps, reviews, and GPA tracking in the same place.',
       detail: 'Your academic day stays visible and manageable from one place.',
       accent: '#4F7FC7',
       soft: '#EAF2FD',
     },
     {
-      icon: Bell,
-      title: 'Keep up with campus',
-      text: 'See announcements, campus news, events, reminders, and important updates without searching through scattered channels.',
+      icon: Network,
+      title: 'Campus Hub & Pulse',
+      text: 'Announcements, campus news, events, and resources sit alongside Campus Pulse, the student feed for posts, questions, and lost & found.',
       detail: 'You get a clearer view of what is happening and what needs your attention.',
       accent: '#3F8B73',
       soft: '#EAF6F1',
     },
     {
       icon: Users,
-      title: 'Connect with people',
-      text: 'Use direct messages, study groups, mentors, and student communities to stay connected beyond your courses.',
+      title: 'Study Groups & Messages',
+      text: 'Join or create study circles by major, and keep direct messages, group chats, and mentors together in one inbox.',
       detail: 'It is easier to find the right people and continue conversations in one place.',
       accent: '#B76A8A',
       soft: '#FBEFF4',
     },
     {
-      icon: ArrowRight,
-      title: 'Move between everything easily',
-      text: 'Campora is designed so your academic, campus, and social tools feel connected instead of like separate systems.',
+      icon: MessageSquare,
+      title: 'Planner & To-Do',
+      text: 'A month-view planner for your schedule and agenda, paired with a to-do list that tracks priority and progress.',
       detail: 'The goal is less switching, less searching, and a smoother student experience.',
       accent: '#C69746',
       soft: '#FFF7E8',

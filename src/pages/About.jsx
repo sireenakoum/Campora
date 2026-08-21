@@ -12,11 +12,11 @@ import {
 
 export default function About() {
   const team = [
-    { name: 'Lara Mortada', major: 'Mechanical Engineering' },
-    { name: 'Nourhan Adas', major: 'Chemical Engineering' },
-    { name: 'Yasmin Bilal', major: 'Electrical Engineering' },
-    { name: 'Sireen Akoum', major: 'Computer Science' },
-    { name: 'Nadia Bakri', major: 'Computer Science' },
+    { name: 'Sara Malik', major: 'Mechanical Engineering' },
+    { name: 'Maya Haddad', major: 'Chemical Engineering' },
+    { name: 'Lea Karim', major: 'Electrical Engineering' },
+    { name: 'Rana Nasser', major: 'Computer Science' },
+    { name: 'Jana Saad', major: 'Computer Science' },
   ];
 
   return (

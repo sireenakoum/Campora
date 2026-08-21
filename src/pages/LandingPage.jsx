@@ -60,9 +60,8 @@ const DEMO_TABS = [
     points: [
       'Today’s schedule plus everything coming up',
       'To-do progress and an academic snapshot',
-      'Quick access to your most-used workspaces',
-      'A pinned campus update right on top',
-      'An embedded campus map to find your way',
+      'Quick access to Courses, Registration, Study Groups, Messages, Pulse, and Planner',
+      'A pinned campus update right on the dashboard',
     ],
   },
   {
@@ -74,9 +73,9 @@ const DEMO_TABS = [
     soft: '#F4F2F8',
     headline: 'Courses that organize themselves.',
     points: [
-      'Folders and notes for every course',
-      'Snapshot stats for credits and workload',
-      'External links and reminders when you need them',
+      'Courses grouped by semester, with a stat card for each',
+      'Assignments, upcoming items, resources, and credits tracked automatically',
+      'Search by course, professor, or semester',
     ],
   },
   {
@@ -88,10 +87,10 @@ const DEMO_TABS = [
     soft: '#FFF3F7',
     headline: 'Find your people. Then stay close.',
     points: [
-      'Create or join groups filtered by major',
-      'Group chat with pin-and-reply',
-      'Direct messages with a live typing indicator',
-      'Roles and join requests',
+      'Discover circles by major, or create your own',
+      'Every circle is reviewed by Campora before it goes public',
+      'Join a private circle with an invite code',
+      'Track circles you’ve created, joined, and your vibe settings',
     ],
   },
   {
@@ -103,10 +102,9 @@ const DEMO_TABS = [
     soft: '#FFF4EE',
     headline: 'The feed of what’s happening on campus.',
     points: [
-      'Posts, questions, and opportunities',
-      'Likes, comments, and nested replies',
-      'Seven colour-coded categories at a glance',
-      'Search across everything',
+      'A single Feed with a Create Post button',
+      'Filter by Clubs & Events, Questions, Campus Life, Complaints, Lost & Found, Opportunities, or Other',
+      'Search discussions, announcements, and lost items',
     ],
   },
   {
@@ -118,9 +116,9 @@ const DEMO_TABS = [
     soft: '#F1F7F5',
     headline: 'A semester you can finally see.',
     points: [
-      'Month view with next / prev navigation',
-      'Colour-coded events with auto contrast',
-      'Reminders and completion tracking',
+      'Month, week, and day views with quick-jump navigation',
+      'Upload your class schedule and have it added for you',
+      'An agenda panel for what’s coming up, plus colour stickies for notes',
     ],
   },
   {
@@ -132,9 +130,9 @@ const DEMO_TABS = [
     soft: '#EEF7F3',
     headline: 'Priorities where you can actually see them.',
     points: [
-      'High / medium / low priorities',
-      'Due dates and gentle reminders',
-      'Flag the goals that stand out',
+      'Total tasks, remaining, and completed at a glance',
+      'A progress bar plus a high / medium / low priority breakdown',
+      'Add a task and set its priority in one step',
     ],
   },
   {
@@ -146,9 +144,8 @@ const DEMO_TABS = [
     soft: '#FAF7F0',
     headline: 'Official campus info, minus the hunt.',
     points: [
-      'Announcements, news, events and resources',
-      'Pinned items always rise to the top',
-      'Search and category filters',
+      'Announcements, Campus News, Events, and Resources, each with its own count',
+      'Search announcements and filter by category',
     ],
   },
   {
@@ -171,42 +168,42 @@ const PILLARS = [
   {
     icon: CalendarDays,
     title: 'Planner',
-    text: 'A month at a glance with colour-coded events, reminders, and completion tracking.',
+    text: 'Month, week, and day views, a schedule-upload option, and an agenda panel for what’s next.',
     accent: '#4F7FC7',
     soft: '#EAF2FD',
   },
   {
     icon: CheckSquare,
     title: 'To-Do',
-    text: 'Prioritized tasks with due dates, flags, and reminders that stay out of your way.',
+    text: 'High, medium, and low priority tasks with a progress bar that keeps you on track.',
     accent: '#3F8B73',
     soft: '#EAF6F1',
   },
   {
     icon: BookOpen,
     title: 'Courses',
-    text: 'Organize notes, folders, stats, and links for every course you take.',
+    text: 'Courses organized by semester, with stats for assignments, resources, and credits.',
     accent: '#7F7897',
     soft: '#F4F2F8',
   },
   {
     icon: UserCheck,
     title: 'Registration',
-    text: 'Request swaps, read honest reviews, and ask questions on a board made for it.',
+    text: 'Match and swap courses, read course and professor reviews, and calculate your GPA.',
     accent: '#C6824E',
     soft: '#FFF4E8',
   },
   {
     icon: Users,
     title: 'Study Groups',
-    text: 'Create or join groups by major, chat, pin replies, and DM the people in them.',
+    text: 'Discover or create study circles by major — every circle is reviewed before it goes public.',
     accent: '#C76E8A',
     soft: '#FFF3F7',
   },
   {
     icon: MessageSquare,
     title: 'Messages',
-    text: 'Folders, search, and smart timestamps — with updates that arrive live.',
+    text: 'Inbox, sent, drafts, and archived — filtered by direct messages, groups, registration, or Campus Pulse.',
     accent: '#5E7FB4',
     soft: '#EEF3F9',
   },
@@ -220,7 +217,7 @@ const PILLARS = [
   {
     icon: Network,
     title: 'Campus Hub',
-    text: 'Official announcements, news, events, and resources — pinned and searchable.',
+    text: 'Official announcements, campus news, events, and resources, searchable by category.',
     accent: '#B09262',
     soft: '#FAF7F0',
   },
@@ -765,9 +762,9 @@ export default function LandingPage() {
         .lp-brand {
           display: inline-flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           color: ${NAVY};
-          font-size: 22px;
+          font-size: 23px;
           font-weight: 950;
           text-decoration: none;
           letter-spacing: -.02em;
@@ -775,9 +772,19 @@ export default function LandingPage() {
         }
 
         .lp-brand img {
-          width: 44px;
-          height: 44px;
+          width: 56px;
+          height: 56px;
           object-fit: contain;
+          padding: 6px;
+          border-radius: 14px;
+          background: #FFFFFF;
+          box-shadow: 0 6px 18px rgba(11,26,63,.14), 0 1px 0 rgba(11,26,63,.05);
+          transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .lp-brand:hover img {
+          transform: translateY(-1px) scale(1.03);
+          box-shadow: 0 10px 22px rgba(11,26,63,.18), 0 1px 0 rgba(11,26,63,.05);
         }
 
         .lp-nav-links {
@@ -3001,34 +3008,6 @@ export default function LandingPage() {
               </a>
             </div>
 
-            <div className="lp-hero-trust">
-              <div className="lp-avatar-stack">
-                <div style={{ background: '#EEF3FA', color: '#648CCB' }}>
-                  S
-                </div>
-                <div style={{ background: '#FBEFF4', color: '#B76A8A', marginLeft: -8 }}>
-                  N
-                </div>
-                <div style={{ background: '#EAF6F1', color: '#3F8B73', marginLeft: -8 }}>
-                  Y
-                </div>
-                <div style={{ background: '#F5F2FB', color: '#8B78B8', marginLeft: -8 }}>
-                  L
-                </div>
-                <div style={{ background: '#FFF7E8', color: '#C69746', marginLeft: -8 }}>
-                  R
-                </div>
-              </div>
-
-              <div>
-                <div className="lp-trust-text">
-                  <strong>5 students</strong> · one campus, one place
-                </div>
-                <div className="lp-trust-text" style={{ marginTop: 4 }}>
-                  Courses · Planner · Groups · Pulse · Messages
-                </div>
-              </div>
-            </div>
           </section>
 
           <section

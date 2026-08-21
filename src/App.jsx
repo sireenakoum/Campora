@@ -68,6 +68,7 @@ import {
 } from './lib/queries';
 
 import {
+  toast,
   getToasts,
   dismiss,
   subscribeToasts,
@@ -82,111 +83,43 @@ import {
 const NAVY = '#0B1A3F';
 
 const NAV_PRIMARY = [
-  {
-    to: '/dashboard',
-    path: 'dashboard',
-    icon: LayoutDashboard,
-    label: 'Dashboard',
-  },
-  {
-    to: '/courses',
-    path: 'courses',
-    icon: BookOpen,
-    label: 'Courses',
-  },
-  {
-    to: '/registration',
-    path: 'registration',
-    icon: UserCheck,
-    label: 'Registration',
-  },
-  {
-    to: '/study-groups',
-    path: 'study-groups',
-    icon: Users,
-    label: 'Study Groups',
-  },
-  {
-    to: '/messages',
-    path: 'messages',
-    icon: MessageSquare,
-    label: 'Messages',
-  },
-  {
-    to: '/campus-pulse',
-    path: 'campus-pulse',
-    icon: Activity,
-    label: 'Campus Pulse',
-  },
+  { to: '/dashboard', path: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/courses', path: 'courses', icon: BookOpen, label: 'Courses' },
+  { to: '/registration', path: 'registration', icon: UserCheck, label: 'Registration' },
+  { to: '/study-groups', path: 'study-groups', icon: Users, label: 'Study Groups' },
+  { to: '/messages', path: 'messages', icon: MessageSquare, label: 'Messages' },
+  { to: '/campus-pulse', path: 'campus-pulse', icon: Activity, label: 'Campus Pulse' },
 ];
 
 const NAV_TOOLS = [
-  {
-    to: '/planner',
-    path: 'planner',
-    icon: Calendar,
-    label: 'Planner',
-  },
-  {
-    to: '/todo',
-    path: 'todo',
-    icon: CheckSquare,
-    label: 'To-Do',
-  },
-  {
-    to: '/announcements',
-    path: 'announcements',
-    icon: Network,
-    label: 'Campus Hub',
-  },
+  { to: '/planner', path: 'planner', icon: Calendar, label: 'Planner' },
+  { to: '/todo', path: 'todo', icon: CheckSquare, label: 'To-Do' },
+  { to: '/announcements', path: 'announcements', icon: Network, label: 'Campus Hub' },
 ];
 
-function NavRow({
-  to,
-  label,
-  icon: Icon,
-  badge,
-  rail,
-  onNavigate,
-}) {
+function NavRow({ to, label, icon: Icon, badge, rail, onNavigate }) {
   return (
     <NavLink
       to={to}
       data-path={to.slice(1)}
       title={rail ? label : undefined}
-      className={({ isActive }) =>
-        isActive ? 'nav-item active' : 'nav-item'
-      }
+      className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
       onClick={onNavigate}
     >
       <Icon size={20} />
-
       <span>{label}</span>
-
-      {badge > 0 && (
-        <span className="nav-badge">
-          {badge > 99 ? '99+' : badge}
-        </span>
-      )}
+      {badge > 0 && <span className="nav-badge">{badge > 99 ? '99+' : badge}</span>}
     </NavLink>
   );
 }
 
-function CommandPalette({
-  items,
-  onClose,
-  onSelect,
-}) {
+function CommandPalette({ items, onClose, onSelect }) {
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
 
   useEffect(() => {
     setQuery('');
-
-    const t = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 30);
-
+    const t = setTimeout(() => inputRef.current?.focus(), 30);
     return () => clearTimeout(t);
   }, []);
 
@@ -206,58 +139,36 @@ function CommandPalette({
   };
 
   return (
-    <div
-      className="palette-backdrop"
-      onMouseDown={onClose}
-    >
+    <div className="palette-backdrop" onMouseDown={onClose}>
       <div
         className="palette-card"
         role="dialog"
         aria-modal="true"
         aria-label="Quick navigation"
-        onMouseDown={(event) =>
-          event.stopPropagation()
-        }
+        onMouseDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            onClose();
-          }
-
-          if (
-            event.key === 'Enter' &&
-            filtered[0]
-          ) {
-            choose(filtered[0]);
-          }
+          if (event.key === 'Escape') onClose();
+          if (event.key === 'Enter' && filtered[0]) choose(filtered[0]);
         }}
       >
         <div className="palette-input-row">
           <Search size={18} />
-
           <input
             ref={inputRef}
             value={query}
-            onChange={(event) =>
-              setQuery(event.target.value)
-            }
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Jump to a page…"
             className="palette-input"
           />
-
-          <kbd className="palette-kbd">
-            esc
-          </kbd>
+          <kbd className="palette-kbd">esc</kbd>
         </div>
 
         <div className="palette-list">
           {filtered.length === 0 ? (
-            <div className="palette-empty">
-              No matches found.
-            </div>
+            <div className="palette-empty">No matches found.</div>
           ) : (
             filtered.map((item) => {
               const Icon = item.icon;
-
               return (
                 <button
                   key={item.to}
@@ -280,33 +191,176 @@ function CommandPalette({
 function ToastViewport() {
   const [items, setItems] = useState(getToasts);
 
-  useEffect(
-    () => subscribeToasts(setItems),
-    []
-  );
+  useEffect(() => subscribeToasts(setItems), []);
 
-  if (items.length === 0) {
-    return null;
-  }
+  if (items.length === 0) return null;
+
+  const themes = {
+    announcements: {
+      label: 'Announcements',
+      color: '#648CCB',
+      soft: '#F3F7FD',
+      icon: Bell,
+    },
+    'campus-news': {
+      label: 'Campus News',
+      color: '#6F948B',
+      soft: '#F1F7F5',
+      icon: BookOpen,
+    },
+    events: {
+      label: 'Events',
+      color: '#C76E8A',
+      soft: '#FFF3F7',
+      icon: Calendar,
+    },
+    courses: {
+      label: 'Courses',
+      color: '#7D86B5',
+      soft: '#F4F5FB',
+      icon: BookOpen,
+    },
+    planner: {
+      label: 'Planner',
+      color: '#C76E8A',
+      soft: '#FFF3F7',
+      icon: Calendar,
+    },
+    registration: {
+      label: 'Registration',
+      color: '#D47B6A',
+      soft: '#FFF5F2',
+      icon: UserCheck,
+    },
+    todo: {
+      label: 'To-Do',
+      color: '#A87695',
+      soft: '#FBF5F9',
+      icon: CheckSquare,
+    },
+    'study-groups': {
+      label: 'Study Groups',
+      color: '#C99758',
+      soft: '#FFF9F1',
+      icon: Users,
+    },
+    'campus-pulse': {
+      label: 'Campus Pulse',
+      color: '#648CCB',
+      soft: '#F3F7FD',
+      icon: Activity,
+    },
+    messages: {
+      label: 'New Message',
+      color: '#648CCB',
+      soft: '#F3F7FD',
+      icon: MessageSquare,
+    },
+    default: {
+      label: 'Campora',
+      color: '#648CCB',
+      soft: '#F3F7FD',
+      icon: Bell,
+    },
+  };
 
   return (
     <div className="toast-viewport">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className={`toast toast-${item.kind}`}
-        >
-          <span>{item.message}</span>
+      {items.map((item) => {
+        const theme = themes[item.source] || themes.default;
+        const Icon = theme.icon;
 
-          <button
-            type="button"
-            className="toast-dismiss"
-            onClick={() => dismiss(item.id)}
+        const lowerMessage = String(item.message || '').toLowerCase();
+        const isReminder = lowerMessage.includes('reminder');
+        const isMessage =
+          item.source === 'messages' ||
+          lowerMessage.includes('new message') ||
+          lowerMessage.includes('direct message') ||
+          lowerMessage.includes('received a message');
+
+        return (
+          <div
+            key={item.id}
+            className="toast"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '13px 14px',
+              background: '#FFFFFF',
+              border: `1px solid ${theme.color}35`,
+              borderLeft: `4px solid ${theme.color}`,
+              borderRadius: '16px',
+              boxShadow: '0 14px 34px rgba(11,26,63,0.14)',
+              color: '#0B1A3F',
+            }}
           >
-            ✕
-          </button>
-        </div>
-      ))}
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                flexShrink: 0,
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: theme.soft,
+                color: theme.color,
+              }}
+            >
+              {isMessage ? (
+                <MessageSquare size={19} />
+              ) : isReminder ? (
+                <Bell size={19} />
+              ) : (
+                <Icon size={19} />
+              )}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  marginBottom: '3px',
+                  color: theme.color,
+                  fontSize: '10px',
+                  fontWeight: '900',
+                  letterSpacing: '.075em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {isMessage
+                  ? 'New Message'
+                  : isReminder
+                  ? `${theme.label} Reminder`
+                  : theme.label}
+              </div>
+
+              <div
+                style={{
+                  color: '#0B1A3F',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  lineHeight: 1.4,
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {item.message}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="toast-dismiss"
+              onClick={() => dismiss(item.id)}
+              style={{ color: '#8A95A7' }}
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -318,18 +372,14 @@ function DmNotificationsListener() {
     let active = true;
 
     supabase.auth.getUser().then(({ data }) => {
-      if (active) {
-        setUserId(data.user?.id || null);
-      }
+      if (active) setUserId(data.user?.id || null);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUserId(session?.user?.id || null);
-      }
-    );
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
 
     return () => {
       active = false;
@@ -343,9 +393,7 @@ function DmNotificationsListener() {
     catchUpUnreadDmNotifications(userId);
 
     const channel = supabase
-      .channel(
-        `study_group_dm_notifications_${userId}`
-      )
+      .channel(`study_group_dm_notifications_${userId}`)
       .on(
         'postgres_changes',
         {
@@ -357,24 +405,21 @@ function DmNotificationsListener() {
         async (payload) => {
           const message = payload.new;
 
-          if (
-            !message ||
-            message.sender_id === userId
-          ) {
-            return;
-          }
+          if (!message || message.sender_id === userId) return;
 
-          if (
-            dmViewStatus.viewingPartnerId ===
-            message.sender_id
-          ) {
-            return;
-          }
+          if (dmViewStatus.viewingPartnerId === message.sender_id) return;
 
           await ensureDmNotification({
             userId,
             message,
           });
+
+          toast(
+            'You received a new message.',
+            'success',
+            3500,
+            'messages'
+          );
         }
       )
       .subscribe();
@@ -391,11 +436,7 @@ function EmailVerified() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const timer = setTimeout(
-      () => navigate('/login'),
-      4000
-    );
-
+    const timer = setTimeout(() => navigate('/login'), 4000);
     return () => clearTimeout(timer);
   }, [navigate]);
 
@@ -443,66 +484,36 @@ function EmailVerified() {
 
 function DashboardLayout() {
   const [userName, setUserName] = useState('');
-
-  // NEW: the topbar now uses the saved profile picture when available.
   const [userAvatarUrl, setUserAvatarUrl] = useState(
-    () =>
-      localStorage.getItem(
-        'campora_avatar_url'
-      ) || ''
+    () => localStorage.getItem('campora_avatar_url') || ''
   );
-
   const [isAdmin, setIsAdmin] = useState(false);
-
   const [collapsed, setCollapsed] = useState(
-    () =>
-      localStorage.getItem(
-        'campora_sidebar_collapsed'
-      ) === 'true'
+    () => localStorage.getItem('campora_sidebar_collapsed') === 'true'
   );
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [unreadCount, setUnreadCount] =
-    useState(0);
-
-  const [todoCount, setTodoCount] =
-    useState(0);
-
-  const [accountOpen, setAccountOpen] =
-    useState(false);
-
-  const [mobileOpen, setMobileOpen] =
-    useState(false);
-
-  const [paletteOpen, setPaletteOpen] =
-    useState(false);
-
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [todoCount, setTodoCount] = useState(0);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [theme, setTheme] = useState(
-    () =>
-      localStorage.getItem('campora_theme') ||
-      'light'
+    () => localStorage.getItem('campora_theme') || 'light'
   );
 
   useEffect(() => {
-    document.documentElement.dataset.theme =
-      theme;
-
-    localStorage.setItem(
-      'campora_theme',
-      theme
-    );
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('campora_theme', theme);
   }, [theme]);
 
-  // NEW: listen for Profile.jsx avatar updates immediately.
   useEffect(() => {
     const handleAvatarUpdated = (event) => {
       const nextUrl =
         event?.detail?.avatarUrl ||
-        localStorage.getItem(
-          'campora_avatar_url'
-        ) ||
+        localStorage.getItem('campora_avatar_url') ||
         '';
 
       setUserAvatarUrl(nextUrl);
@@ -512,21 +523,13 @@ function DashboardLayout() {
       }
     };
 
-    window.addEventListener(
-      'campora-avatar-updated',
-      handleAvatarUpdated
-    );
+    window.addEventListener('campora-avatar-updated', handleAvatarUpdated);
 
     return () => {
-      window.removeEventListener(
-        'campora-avatar-updated',
-        handleAvatarUpdated
-      );
+      window.removeEventListener('campora-avatar-updated', handleAvatarUpdated);
     };
   }, []);
 
-  // Keep deactivation enforcement live: if an admin deactivates this
-  // account while the session is open, sign the user out on the next check.
   useEffect(() => {
     const interval = setInterval(async () => {
       const {
@@ -558,15 +561,9 @@ function DashboardLayout() {
   }, [navigate]);
 
   const handleLogout = async () => {
-    localStorage.removeItem(
-      'campora_avatar_url'
-    );
-
+    localStorage.removeItem('campora_avatar_url');
     await signOut();
-
-    navigate('/login', {
-      replace: true,
-    });
+    navigate('/login', { replace: true });
   };
 
   useEffect(() => {
@@ -576,31 +573,16 @@ function DashboardLayout() {
         event.key.toLowerCase() === 'k'
       ) {
         event.preventDefault();
-
-        setPaletteOpen(
-          (current) => !current
-        );
+        setPaletteOpen((current) => !current);
       }
     };
 
-    window.addEventListener(
-      'keydown',
-      onKey
-    );
-
-    return () => {
-      window.removeEventListener(
-        'keydown',
-        onKey
-      );
-    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(
-      'campora_sidebar_collapsed',
-      String(collapsed)
-    );
+    localStorage.setItem('campora_sidebar_collapsed', String(collapsed));
   }, [collapsed]);
 
   useEffect(() => {
@@ -610,19 +592,15 @@ function DashboardLayout() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        navigate('/login', {
-          replace: true,
-        });
-
+        navigate('/login', { replace: true });
         return;
       }
 
-      const { data: profile } =
-        await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
 
       if (profile?.is_deactivated) {
         await supabase.auth.signOut();
@@ -638,14 +616,8 @@ function DashboardLayout() {
         return;
       }
 
-      if (
-        !profile ||
-        profile.onboarding_completed !== true
-      ) {
-        navigate('/onboarding', {
-          replace: true,
-        });
-
+      if (!profile || profile.onboarding_completed !== true) {
+        navigate('/onboarding', { replace: true });
         return;
       }
 
@@ -659,10 +631,7 @@ function DashboardLayout() {
         .maybeSingle();
 
       if (adminError) {
-        console.error(
-          'Admin check error:',
-          adminError
-        );
+        console.error('Admin check error:', adminError);
       }
 
       setIsAdmin(!!adminRow);
@@ -673,21 +642,13 @@ function DashboardLayout() {
           'Student'
       );
 
-      // NEW: load the avatar from the same profile row.
-      const nextAvatarUrl =
-        profile.avatar_url || '';
-
+      const nextAvatarUrl = profile.avatar_url || '';
       setUserAvatarUrl(nextAvatarUrl);
 
       if (nextAvatarUrl) {
-        localStorage.setItem(
-          'campora_avatar_url',
-          nextAvatarUrl
-        );
+        localStorage.setItem('campora_avatar_url', nextAvatarUrl);
       } else {
-        localStorage.removeItem(
-          'campora_avatar_url'
-        );
+        localStorage.removeItem('campora_avatar_url');
       }
     }
 
@@ -699,19 +660,11 @@ function DashboardLayout() {
 
     const refreshUnread = async () => {
       try {
-        const unread =
-          await getUnreadNotificationsForCurrentUser();
+        const unread = await getUnreadNotificationsForCurrentUser();
 
-        if (active) {
-          setUnreadCount(
-            unread.length
-          );
-        }
+        if (active) setUnreadCount(unread.length);
       } catch (error) {
-        console.error(
-          'Unread count error:',
-          error
-        );
+        console.error('Unread count error:', error);
       }
     };
 
@@ -739,7 +692,6 @@ function DashboardLayout() {
   const paletteItems = [
     ...NAV_PRIMARY,
     ...NAV_TOOLS,
-
     ...(isAdmin
       ? [
           {
@@ -750,7 +702,6 @@ function DashboardLayout() {
           },
         ]
       : []),
-
     {
       to: '/profile',
       path: 'profile',
@@ -764,21 +715,13 @@ function DashboardLayout() {
 
     (async () => {
       try {
-        const todos =
-          await getTodosForCurrentUser();
+        const todos = await getTodosForCurrentUser();
 
         if (active) {
-          setTodoCount(
-            todos.filter(
-              (todo) => !todo.completed
-            ).length
-          );
+          setTodoCount(todos.filter((todo) => !todo.completed).length);
         }
       } catch (error) {
-        console.error(
-          'To-Do count error:',
-          error
-        );
+        console.error('To-Do count error:', error);
       }
     })();
 
@@ -796,25 +739,14 @@ function DashboardLayout() {
       <DmNotificationsListener />
 
       <div
-        className={
-          mobileOpen
-            ? 'scrim show'
-            : 'scrim'
-        }
-        onClick={() =>
-          setMobileOpen(false)
-        }
+        className={mobileOpen ? 'scrim show' : 'scrim'}
+        onClick={() => setMobileOpen(false)}
       />
 
-      {/* SIDEBAR */}
       <aside
         className={[
-          collapsed
-            ? 'sidebar collapsed'
-            : 'sidebar',
-          mobileOpen
-            ? 'mobile-open'
-            : '',
+          collapsed ? 'sidebar collapsed' : 'sidebar',
+          mobileOpen ? 'mobile-open' : '',
         ].join(' ')}
       >
         <div className="sidebar-brand">
@@ -825,13 +757,8 @@ function DashboardLayout() {
           />
 
           <span className="sidebar-wordmark">
-            <span className="sidebar-wordmark-main">
-              Campora
-            </span>
-
-            <span className="sidebar-wordmark-sub">
-              Academic Portal
-            </span>
+            <span className="sidebar-wordmark-main">Campora</span>
+            <span className="sidebar-wordmark-sub">Academic Portal</span>
           </span>
         </div>
 
@@ -848,19 +775,13 @@ function DashboardLayout() {
             />
           ))}
 
-          <span className="nav-section-label">
-            Tools
-          </span>
+          <span className="nav-section-label">Tools</span>
 
           {NAV_TOOLS.map((item) => (
             <NavRow
               key={item.to}
               {...item}
-              badge={
-                item.path === 'todo'
-                  ? todoCount
-                  : 0
-              }
+              badge={item.path === 'todo' ? todoCount : 0}
               rail={collapsed}
               onNavigate={() => {
                 setMobileOpen(false);
@@ -887,21 +808,9 @@ function DashboardLayout() {
           <button
             type="button"
             className="sidebar-collapse-btn"
-            onClick={() =>
-              setCollapsed(
-                (current) => !current
-              )
-            }
-            title={
-              collapsed
-                ? 'Expand sidebar'
-                : 'Collapse sidebar'
-            }
-            aria-label={
-              collapsed
-                ? 'Expand sidebar'
-                : 'Collapse sidebar'
-            }
+            onClick={() => setCollapsed((current) => !current)}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? (
               <ChevronsRight size={18} />
@@ -912,10 +821,7 @@ function DashboardLayout() {
         </div>
       </aside>
 
-      {/* MAIN */}
       <main className="main-content">
-
-        {/* TOP BAR */}
         <header
           className="app-topbar"
           style={{
@@ -934,7 +840,6 @@ function DashboardLayout() {
             background: 'transparent',
           }}
         >
-          {/* MOBILE MENU */}
           <button
             type="button"
             className="topbar-menu-btn"
@@ -944,68 +849,41 @@ function DashboardLayout() {
             }}
             aria-label="Open navigation menu"
           >
-            <Menu
-              size={22}
-              strokeWidth={1.9}
-            />
+            <Menu size={22} strokeWidth={1.9} />
           </button>
 
-          {/* SEARCH */}
           <button
             type="button"
             className="topbar-search-pill"
-            onClick={() =>
-              setPaletteOpen(true)
-            }
+            onClick={() => setPaletteOpen(true)}
             aria-label="Search Campora"
           >
-            <Search
-              size={18}
-              strokeWidth={1.9}
-              color="#7E899A"
-            />
-
-            <span className="topbar-search-label">
-              Search Campora…
-            </span>
+            <Search size={18} strokeWidth={1.9} color="#7E899A" />
+            <span className="topbar-search-label">Search Campora…</span>
           </button>
 
-          {/* RIGHT CONTROLS */}
           <div className="topbar-controls">
-            {/* NOTIFICATIONS */}
             <button
               type="button"
               title="Notifications"
               aria-label="Notifications"
-              onClick={() =>
-                navigate('/notifications')
-              }
+              onClick={() => navigate('/notifications')}
               style={{
                 position: 'relative',
-
                 width: '28px',
                 height: '36px',
-
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-
                 padding: 0,
                 border: 'none',
                 outline: 'none',
-
-                background:
-                  'transparent',
-
+                background: 'transparent',
                 color: NAVY,
-
                 cursor: 'pointer',
               }}
             >
-              <Bell
-                size={20}
-                strokeWidth={1.85}
-              />
+              <Bell size={20} strokeWidth={1.85} />
 
               {unreadCount > 0 && (
                 <span
@@ -1025,118 +903,64 @@ function DashboardLayout() {
               )}
             </button>
 
-            {/* DARK MODE */}
             <button
               type="button"
-              title={
-                theme === 'dark'
-                  ? 'Light mode'
-                  : 'Dark mode'
-              }
+              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
               aria-label={
                 theme === 'dark'
                   ? 'Switch to light mode'
                   : 'Switch to dark mode'
               }
               onClick={() =>
-                setTheme(
-                  (current) =>
-                    current === 'dark'
-                      ? 'light'
-                      : 'dark'
+                setTheme((current) =>
+                  current === 'dark' ? 'light' : 'dark'
                 )
               }
               style={{
                 width: '28px',
                 height: '36px',
-
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-
                 padding: 0,
                 border: 'none',
                 outline: 'none',
-
-                background:
-                  'transparent',
-
+                background: 'transparent',
                 color: NAVY,
-
                 cursor: 'pointer',
               }}
             >
               {theme === 'dark' ? (
-                <Sun
-                  size={20}
-                  strokeWidth={1.85}
-                />
+                <Sun size={20} strokeWidth={1.85} />
               ) : (
-                <Moon
-                  size={20}
-                  strokeWidth={1.85}
-                />
+                <Moon size={20} strokeWidth={1.85} />
               )}
             </button>
 
-            {/* PROFILE */}
-            <div
-              className="topbar-avatar-wrap"
-              style={{
-                position: 'relative',
-              }}
-            >
+            <div className="topbar-avatar-wrap" style={{ position: 'relative' }}>
               <button
                 type="button"
                 className="topbar-avatar"
                 title="Account menu"
-                aria-expanded={
-                  accountOpen
-                }
+                aria-expanded={accountOpen}
                 aria-label="Account menu"
-                onClick={() =>
-                  setAccountOpen(
-                    (current) =>
-                      !current
-                  )
-                }
+                onClick={() => setAccountOpen((current) => !current)}
                 style={{
                   width: '40px',
                   height: '40px',
-
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-
                   padding: 0,
-
-                  border:
-                    '2px solid #FFFFFF',
-
-                  borderRadius:
-                    '50%',
-
-                  background:
-                    NAVY,
-
-                  color:
-                    '#FFFFFF',
-
-                  fontSize:
-                    '14px',
-
-                  fontWeight:
-                    800,
-
-                  letterSpacing:
-                    '0.01em',
-
-                  cursor:
-                    'pointer',
-
-                  boxShadow:
-                    '0 3px 9px rgba(11, 26, 63, 0.16)',
-
+                  border: '2px solid #FFFFFF',
+                  borderRadius: '50%',
+                  background: NAVY,
+                  color: '#FFFFFF',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  letterSpacing: '0.01em',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 9px rgba(11, 26, 63, 0.16)',
                   overflow: 'hidden',
                 }}
               >
@@ -1153,9 +977,7 @@ function DashboardLayout() {
                     }}
                   />
                 ) : (
-                  userName
-                    .charAt(0)
-                    .toUpperCase() || 'U'
+                  userName.charAt(0).toUpperCase() || 'U'
                 )}
               </button>
 
@@ -1195,15 +1017,12 @@ function DashboardLayout() {
       {paletteOpen && (
         <CommandPalette
           items={paletteItems}
-          onClose={() =>
-            setPaletteOpen(false)
-          }
+          onClose={() => setPaletteOpen(false)}
           onSelect={navigate}
         />
       )}
 
       <ChatBotWidget />
-
       <ToastViewport />
     </div>
   );
@@ -1251,118 +1070,32 @@ export default function App() {
     <Router>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
-          <Route
-            path="/"
-            element={<LandingPage />}
-          />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/dev-planner" element={<DevPlannerHarness />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verified" element={<EmailVerified />} />
+          <Route path="/onboarding" element={<Onboarding />} />
 
-        <Route
-          path="/about"
-          element={<About />}
-        />
-
-        <Route
-          path="/features"
-          element={<Features />}
-        />
-
-        <Route
-          path="/dev-planner"
-          element={<DevPlannerHarness />}
-        />
-
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
-        <Route
-          path="/signup"
-          element={<SignUp />}
-        />
-
-        <Route
-          path="/forgot-password"
-          element={<ForgotPassword />}
-        />
-
-        <Route
-          path="/reset-password"
-          element={<ResetPassword />}
-        />
-
-        <Route
-          path="/verified"
-          element={<EmailVerified />}
-        />
-
-        <Route
-          path="/onboarding"
-          element={<Onboarding />}
-        />
-
-        <Route element={<DashboardLayout />}>
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
-
-          <Route
-            path="/announcements"
-            element={<Announcements />}
-          />
-
-          <Route
-            path="/notifications"
-            element={<Notifications />}
-          />
-
-          <Route
-            path="/campus-pulse"
-            element={<CampusPulse />}
-          />
-
-          <Route
-            path="/courses"
-            element={<CourseManagement />}
-          />
-
-          <Route
-            path="/registration"
-            element={<Registration />}
-          />
-
-          <Route
-            path="/planner"
-            element={<Planner />}
-          />
-
-          <Route
-            path="/todo"
-            element={<Todo />}
-          />
-
-          <Route
-            path="/study-groups"
-            element={<StudyGroups />}
-          />
-
-          <Route
-            path="/messages"
-            element={<Messages />}
-          />
-
-          <Route
-            path="/admin/study-groups"
-            element={<AdminStudyGroups />}
-          />
-
-          <Route
-            path="/profile"
-            element={<Profile />}
-          />
-        </Route>
-      </Routes>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/announcements" element={<Announcements />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/campus-pulse" element={<CampusPulse />} />
+            <Route path="/courses" element={<CourseManagement />} />
+            <Route path="/registration" element={<Registration />} />
+            <Route path="/planner" element={<Planner />} />
+            <Route path="/todo" element={<Todo />} />
+            <Route path="/study-groups" element={<StudyGroups />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/admin/study-groups" element={<AdminStudyGroups />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+        </Routes>
       </Suspense>
     </Router>
   );

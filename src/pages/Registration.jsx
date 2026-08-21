@@ -953,6 +953,48 @@ if (!isValidMeetingTime(searchPref.haveTime) || !isValidMeetingTime(searchPref.w
 alert('Please enter each time like 09:00 AM - 10:00 AM.');
 return;
 }
+
+/* Attribute swaps are saved directly.
+   The regular match-result screen expects exact course/CRN data,
+   so sending attribute-only requests through it can crash the page. */
+if (swapInputMode === 'attribute' && !editingPostId) {
+  const payload = {
+    user_id: currentUserId,
+    author_name: searchPref.isAnonymous ? 'Anonymous Student' : userName,
+    have_course: searchPref.haveCourse.trim(),
+    have_crn: '',
+    have_course_name: '',
+    have_section: searchPref.haveSection.trim(),
+    have_prof: searchPref.haveProf.trim(),
+    have_days: searchPref.haveDays.trim(),
+    have_time: normalizeMeetingTime(searchPref.haveTime).trim(),
+    want_course: searchPref.wantCourse.trim(),
+    want_crn: '',
+    want_course_name: '',
+    want_section: searchPref.wantSection.trim(),
+    want_prof: searchPref.wantProf.trim(),
+    want_days: searchPref.wantDays.trim(),
+    want_time: normalizeMeetingTime(searchPref.wantTime).trim(),
+    is_anonymous: searchPref.isAnonymous,
+    status: 'available'
+  };
+
+  const { data, error } = await supabase
+    .from('registration_swaps')
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    showError('Could not post your attribute swap request.', error);
+    return;
+  }
+
+  setSwapPosts(previous => [data, ...previous]);
+  closeSwapModal();
+  return;
+}
+
 if (editingPostId) {
 const payload = {
 have_course: searchPref.haveCourse.trim().toUpperCase(),
@@ -1770,6 +1812,146 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
 
 </div>
 </div>
+<style>{`
+  @media (max-width: 700px) {
+    .registration-swap-grid {
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 14px !important;
+      width: 100% !important;
+    }
+
+    .registration-swap-card {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    .registration-swap-card-inner {
+      padding: 14px !important;
+    }
+
+    .registration-swap-owner-row {
+      flex-wrap: wrap !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+    }
+
+    .registration-swap-course-pair {
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 10px !important;
+    }
+
+    .registration-swap-arrow-wrap {
+      min-height: 34px !important;
+    }
+
+    .registration-swap-arrow {
+      transform: rotate(90deg);
+      width: 34px !important;
+      height: 34px !important;
+    }
+
+    .registration-swap-course-block {
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      padding: 14px !important;
+    }
+
+    .registration-swap-details {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .registration-swap-details > div {
+      min-width: 0 !important;
+    }
+
+    .registration-swap-actions {
+      justify-content: stretch !important;
+    }
+
+    .registration-swap-actions button {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+  }
+
+  /* Respond to the swap CARD width itself.
+     This fixes cramped cards when the page is zoomed, when the sidebar is open,
+     and on tablets/phones even if the browser viewport is technically wider. */
+  @container swapcard (max-width: 620px) {
+    .registration-swap-card-inner {
+      padding: 14px !important;
+    }
+
+    .registration-swap-owner-row {
+      flex-wrap: wrap !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+    }
+
+    .registration-swap-owner-row > div:last-child {
+      width: 100% !important;
+      justify-content: space-between !important;
+    }
+
+    .registration-swap-course-pair {
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 10px !important;
+    }
+
+    .registration-swap-arrow-wrap {
+      min-height: 34px !important;
+    }
+
+    .registration-swap-arrow {
+      transform: rotate(90deg);
+      width: 34px !important;
+      height: 34px !important;
+    }
+
+    .registration-swap-course-block {
+      width: 100% !important;
+      min-width: 0 !important;
+      padding: 14px !important;
+      box-sizing: border-box !important;
+    }
+
+    .registration-swap-details {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+    }
+
+    .registration-swap-detail-label {
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      line-height: 1.15 !important;
+    }
+
+    .registration-swap-detail-value {
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      line-height: 1.3 !important;
+    }
+  }
+
+  @container swapcard (max-width: 360px) {
+    .registration-swap-details {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+  }
+
+  @media (max-width: 390px) {
+    .registration-swap-details {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+  }
+`}</style>
+
 <div className="stack" style={{ gap: 16 }}>
 <h3 style={sectionHeading}>Recent Swap Requests</h3>
 {loading ? (
@@ -1820,13 +2002,15 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
   </p>
 </div>
 ):(
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+<div className="registration-swap-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
 {swapPosts.map(post => {
 const isTaken = post.status === 'taken';
 return (
 
-<div key={post.id} style={{
+<div key={post.id} className="registration-swap-card" style={{
   ...swapCard,
+  containerType: 'inline-size',
+  containerName: 'swapcard',
   padding: 0,
   borderRadius: '24px',
   border: '1.5px solid rgba(11,26,63,0.16)',
@@ -1838,8 +2022,8 @@ return (
     background: '#E8EDF3'
   }} />
 
-  <div style={{ padding: '20px 22px 22px' }}>
-    <div style={{
+  <div className="registration-swap-card-inner" style={{ padding: '20px 22px 22px' }}>
+    <div className="registration-swap-owner-row" style={{
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -1878,7 +2062,7 @@ return (
       </div>
     </div>
 
-    <div style={{
+    <div className="registration-swap-course-pair" style={{
       display: 'grid',
       gridTemplateColumns: 'minmax(0, 1fr) 44px minmax(0, 1fr)',
       alignItems: 'stretch',
@@ -1886,12 +2070,12 @@ return (
     }}>
       <SwapCourseBlock mode="HAVE" post={post} prefix="have" faded={isTaken} />
 
-      <div style={{
+      <div className="registration-swap-arrow-wrap" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
       }}>
-        <div style={{
+        <div className="registration-swap-arrow" style={{
           width: 38,
           height: 38,
           borderRadius: '50%',
@@ -1917,7 +2101,7 @@ return (
       </div>
     )}
 
-    <div style={{
+    <div className="registration-swap-actions" style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'flex-end',
@@ -2741,8 +2925,11 @@ event.target.checked })} />
 Post anonymously
 </label>
 <button type="submit" style={primarySaveBtn}>
-{editingPostId ? 'Update Swap Request' : <><Search size={16} />
-Run Match Engine</>}
+{editingPostId
+  ? 'Update Swap Request'
+  : swapInputMode === 'attribute'
+  ? 'Save Attribute Swap'
+  : <><Search size={16} /> Run Match Engine</>}
 </button>
 </form>
 
@@ -3252,7 +3439,7 @@ function SwapCourseBlock({ mode, post, prefix, faded }) {
 const isHave = mode === 'HAVE';
 
 return (
-<div style={{
+<div className="registration-swap-course-block" style={{
   background: '#FFFFFF',
   border: '1px solid #E5EAF0',
   borderRadius: '18px',
@@ -3315,7 +3502,7 @@ return (
     </p>
   )}
 
-  <div style={{
+  <div className="registration-swap-details" style={{
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: '8px'
@@ -3333,7 +3520,7 @@ return (
         padding: '9px 10px',
         minWidth: 0
       }}>
-        <div style={{
+        <div className="registration-swap-detail-label" style={{
           fontSize: '8px',
           fontWeight: '900',
           color: 'var(--campora-navy)',
@@ -3343,12 +3530,15 @@ return (
         }}>
           {label}
         </div>
-        <div style={{
+        <div className="registration-swap-detail-value" style={{
           color: 'var(--campora-text)',
           fontSize: '11px',
           fontWeight: '800',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          minWidth: 0,
+          whiteSpace: 'normal',
+          overflowWrap: 'anywhere',
+          wordBreak: 'break-word',
+          lineHeight: 1.3
         }}>
           {value || '—'}
         </div>
