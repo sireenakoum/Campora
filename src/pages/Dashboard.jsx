@@ -24,6 +24,7 @@ import {
 
 import { supabase } from '../lib/supabase';
 import { getAnnouncements } from '../lib/campusHub';
+import aubCampusImage from './aub-campus.jpeg';
 
 // =========================================================
 // CAMPORA THEME
@@ -633,6 +634,12 @@ export default function Dashboard() {
       <div className="dashboard-scroll" style={styles.page}>
         {/* HERO */}
         <section style={styles.hero}>
+          <img
+            src={aubCampusImage}
+            alt="AUB campus"
+            style={styles.heroImage}
+          />
+          <div style={styles.heroImageOverlay} />
           <div style={styles.heroGlowOne} />
           <div style={styles.heroGlowTwo} />
 
@@ -1390,6 +1397,24 @@ const styles = {
       'linear-gradient(135deg, #08152F 0%, #0B1A3F 52%, #142B5A 100%)',
     boxShadow:
       '0 16px 38px rgba(11,26,63,0.14)',
+  },
+
+  heroImage: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    objectPosition: 'center 48%',
+    pointerEvents: 'none',
+  },
+
+  heroImageOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background:
+      'linear-gradient(90deg, rgba(8,21,47,.94) 0%, rgba(11,26,63,.80) 45%, rgba(11,26,63,.28) 100%)',
+    pointerEvents: 'none',
   },
 
   heroGlowOne: {
