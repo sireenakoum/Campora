@@ -3,7 +3,11 @@
 // Deployed automatically by Vercel as /api/chat.
 
 const GEMINI_MODEL = 'gemini-3.6-flash';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+// Free-tier daily quotas are per model, so when one runs dry the handler
+// automatically falls back to the next until one answers.
+const FALLBACK_MODELS = ['gemini-3.5-flash'];
+const GEMINI_URL = (model) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 const MAX_HISTORY = 12;
 const MAX_MESSAGE_CHARS = 2000;
@@ -279,21 +283,39 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: buildSystemPrompt(body?.context) }],
-        },
-        contents: buildContents(history, body?.toolResult),
-        tools: TOOLS,
-        generationConfig: {
-          temperature: 0.6,
-          maxOutputTokens: 512,
-        },
-      }),
+    const requestBody = JSON.stringify({
+      system_instruction: {
+        parts: [{ text: buildSystemPrompt(body?.context) }],
+      },
+      contents: buildContents(history, body?.toolResult),
+      tools: TOOLS,
+      generationConfig: {
+        temperature: 0.6,
+        maxOutputTokens: 512,
+      },
     });
+
+    let response = null;
+
+    for (const model of [GEMINI_MODEL, ...FALLBACK_MODELS]) {
+      response = await fetch(`${GEMINI_URL(model)}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      });
+
+      if (response.status !== 429) break;
+
+      const detail = await response.text();
+      console.error(`Gemini quota exhausted for ${model}:`, detail);
+
+      if (model === FALLBACK_MODELS[FALLBACK_MODELS.length - 1]) {
+        return res.status(502).json({
+          error:
+            'The assistant hit its daily usage limit. Please try again tomorrow.',
+        });
+      }
+    }
 
     if (!response.ok) {
       const detail = await response.text();
