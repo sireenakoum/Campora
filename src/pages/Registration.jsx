@@ -48,6 +48,19 @@ const MAJORS = [
 'Economics',
 'Psychology'
 ];
+
+const COURSE_ATTRIBUTE_OPTIONS = [
+'Humanities',
+'Social Sciences',
+'Natural Sciences',
+'Quantitative / Mathematics',
+'Writing / English',
+'Major Requirement',
+'Major Elective',
+'General Education',
+'Free Elective',
+'Lab / Science Requirement'
+];
 const EMPTY_SWAP = {
 haveCourse: '', haveCrn: '', haveCourseName: '', haveSection: '', haveProf: '',
 haveDays: '', haveTime: '09:00 AM - 10:00 AM',
@@ -465,6 +478,7 @@ const [currentUserId, setCurrentUserId] = useState(null);
 const [userName, setUserName] = useState('Student');
 const [swapPosts, setSwapPosts] = useState([]);
 const [searchPref, setSearchPref] = useState(EMPTY_SWAP);
+const [swapInputMode, setSwapInputMode] = useState('course');
 const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
 
 const [matchResult, setMatchResult] = useState(null);
@@ -920,14 +934,18 @@ setLoading(false);
 const handleFindOrPostMatch = async event => {
 event.preventDefault();
 if (!searchPref.haveCourse.trim() || !searchPref.wantCourse.trim()) {
-alert('Please enter the course you currently have and the course you want.');
+alert(
+  swapInputMode === 'attribute'
+    ? 'Please choose both course attributes.'
+    : 'Please enter the course you currently have and the course you want.'
+);
 return;
 }
-if (!isValidCrn(searchPref.haveCrn)) {
+if (swapInputMode === 'course' && !isValidCrn(searchPref.haveCrn)) {
 alert('Your current course CRN must be exactly 5 digits.');
 return;
 }
-if (!isValidCrn(searchPref.wantCrn)) {
+if (swapInputMode === 'course' && !isValidCrn(searchPref.wantCrn)) {
 alert('The CRN for the course you want must be exactly 5 digits.');
 return;
 }
@@ -2651,10 +2669,71 @@ justifyContent: 'flex-end' }}><ArrowRight size={16} /></div>
 <div style={modalCardLarge}>
 <ModalHeader title={editingPostId ? 'Edit Swap Request' : 'Set Swap Preferences'} onClose={closeSwapModal} /> {!matchResult ? (
 <form onSubmit={handleFindOrPostMatch} style={modalForm}>
-<SwapPreferenceSection mode="HAVE" pref={searchPref}
-setPref={setSearchPref} />
-<SwapPreferenceSection mode="WANTS" pref={searchPref}
-setPref={setSearchPref} />
+<div style={{
+  display: 'flex',
+  gap: '8px',
+  padding: '10px',
+  borderRadius: '14px',
+  border: '1px solid #DDE5EF',
+  background: '#F8FAFD'
+}}>
+  <button
+    type="button"
+    onClick={(event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setSwapInputMode('course');
+    }}
+    style={{
+      border: '1px solid #0B1A3F',
+      background: swapInputMode === 'course' ? '#0B1A3F' : '#FFFFFF',
+      color: swapInputMode === 'course' ? '#FFFFFF' : '#0B1A3F',
+      borderRadius: '10px',
+      padding: '9px 12px',
+      fontFamily: 'inherit',
+      fontSize: '11px',
+      fontWeight: 850,
+      cursor: 'pointer'
+    }}
+  >
+    Course / CRN
+  </button>
+
+  <button
+    type="button"
+    onClick={(event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setSwapInputMode('attribute');
+    }}
+    style={{
+      border: '1px solid #0B1A3F',
+      background: swapInputMode === 'attribute' ? '#0B1A3F' : '#FFFFFF',
+      color: swapInputMode === 'attribute' ? '#FFFFFF' : '#0B1A3F',
+      borderRadius: '10px',
+      padding: '9px 12px',
+      fontFamily: 'inherit',
+      fontSize: '11px',
+      fontWeight: 850,
+      cursor: 'pointer'
+    }}
+  >
+    By Attribute
+  </button>
+</div>
+
+<SwapPreferenceSection
+  mode="HAVE"
+  pref={searchPref}
+  setPref={setSearchPref}
+  inputMode={swapInputMode}
+/>
+<SwapPreferenceSection
+  mode="WANTS"
+  pref={searchPref}
+  setPref={setSearchPref}
+  inputMode={swapInputMode}
+/>
 <label style={checkboxLabel}>
 <input type="checkbox" checked={searchPref.isAnonymous}
 onChange={event => setSearchPref({ ...searchPref, isAnonymous:
@@ -3074,20 +3153,53 @@ return (
 );
 }
 
-function SwapPreferenceSection({ mode, pref, setPref }) {
+function SwapPreferenceSection({ mode, pref, setPref, inputMode = 'course' }) {
 const isHave = mode === 'HAVE';
 const prefix = isHave ? 'have' : 'want';
 const set = (key, value) => setPref({ ...pref, [`${prefix}${key}`]: value });
+
 return (
 <div style={swapFormSection}>
 <div style={swapFormSectionHeader}>
 <span style={isHave ? badgeRed : badgeGreen}>{mode}</span>
 <div>
 <h4 style={swapFormTitle}>{isHave ? 'Course You Have' : 'Course You Want'}</h4>
-<p style={swapFormSubtitle}>{isHave ? 'Enter your current registered section.' : 'Enter your preferred section. Different sections can still appear as similar matches.'}</p>
+<p style={swapFormSubtitle}>
+{inputMode === 'attribute'
+? (isHave ? 'Choose the course attribute you currently have.' : 'Choose the course attribute you want.')
+: (isHave ? 'Enter your current registered section.' : 'Enter your preferred section. Different sections can still appear as similar matches.')}
+</p>
 </div>
 </div>
 
+{inputMode === 'attribute' ? (
+<div style={twoColumnGrid}>
+<Field label={isHave ? 'CURRENT COURSE ATTRIBUTE' : 'WANTED COURSE ATTRIBUTE'}>
+<select
+required
+style={modalInput}
+value={pref[`${prefix}Course`]}
+onChange={event => set('Course', event.target.value)}
+>
+<option value="">Select an attribute...</option>
+{COURSE_ATTRIBUTE_OPTIONS.map(option => (
+<option key={option} value={option}>{option}</option>
+))}
+</select>
+</Field>
+
+<Field label="CRN">
+<input
+type="text"
+disabled
+placeholder="Not needed for attribute search"
+style={{ ...modalInput, background: '#F3F5F8', color: '#9AA4B2' }}
+value=""
+readOnly
+/>
+</Field>
+</div>
+) : (
 <div style={twoColumnGrid}>
 <Field label="COURSE CODE">
 <input type="text" required placeholder="e.g. CMPS 200"
@@ -3103,6 +3215,8 @@ onChange={value => set('Crn', value)}
 />
 </Field>
 </div>
+)}
+
 <div style={twoColumnGrid}>
 <Field label="SECTION (OPTIONAL)">
 <input type="text" placeholder="e.g. 1" style={modalInput}
@@ -3115,6 +3229,7 @@ value={pref[`${prefix}Prof`]} onChange={event => set('Prof',
 event.target.value)} />
 </Field>
 </div>
+
 <div style={twoColumnGrid}>
 <Field label="SCHEDULE / TYPE">
 <ScheduleTypePicker
@@ -3132,6 +3247,7 @@ onChange={value => set('Time', value)}
 </div>
 );
 }
+
 function SwapCourseBlock({ mode, post, prefix, faded }) {
 const isHave = mode === 'HAVE';
 
