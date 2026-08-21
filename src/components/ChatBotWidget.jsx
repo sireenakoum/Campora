@@ -1,5 +1,66 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bot, Send, X } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+
+const CONTEXT_TTL_MS = 5 * 60 * 1000
+
+async function buildStudentContext() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return null
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name, major, year, gpa')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const now = new Date()
+    const dayEnd = new Date()
+    dayEnd.setHours(23, 59, 59, 999)
+
+    const [deadlinesResult, classesResult, todosResult] = await Promise.all([
+      supabase
+        .from('deadlines')
+        .select('title, due_at')
+        .eq('profile_id', user.id)
+        .gte('due_at', now.toISOString())
+        .order('due_at', { ascending: true })
+        .limit(6),
+      supabase
+        .from('classes')
+        .select('title, course_name, starts_at')
+        .eq('profile_id', user.id)
+        .gte('starts_at', now.toISOString())
+        .lte('starts_at', dayEnd.toISOString())
+        .order('starts_at', { ascending: true })
+        .limit(8),
+      supabase
+        .from('todos')
+        .select('title')
+        .eq('profile_id', user.id)
+        .eq('completed', false)
+        .order('created_at', { ascending: false })
+        .limit(6),
+    ])
+
+    return {
+      name: profile?.name || '',
+      major: profile?.major || '',
+      year: profile?.year || '',
+      gpa: typeof profile?.gpa === 'number' ? profile.gpa : undefined,
+      deadlines: deadlinesResult.data || [],
+      todayClasses: classesResult.data || [],
+      todos: todosResult.data || [],
+    }
+  } catch (error) {
+    console.error('Chat context error:', error)
+    return null
+  }
+}
 
 const WIDGET_CSS = `
   @keyframes campora-chat-pop {
@@ -104,40 +165,90 @@ const BUBBLE_USER_STYLE = {
 }
 
 const GREETING =
-  'Hi! I\u2019m the Campora assistant \u2014 still getting set up, so I can\u2019t answer just yet. Soon I\u2019ll help with your courses, planner, and campus life!'
+  'Hi! I\u2019m the Campora assistant. Ask me about your deadlines, today\u2019s classes, study plans, or anything campus life throws at you.'
 
-const PLACEHOLDER_REPLY =
-  'Nice message! My AI brain is still being wired up, so this is just a placeholder for now.'
+const ERROR_REPLY =
+  'Sorry — I couldn\u2019t reach my brain just now. Check your connection and try again in a moment.'
 
 export default function ChatBotWidget() {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
+  const [thinking, setThinking] = useState(false)
   const [messages, setMessages] = useState([
     { id: 1, from: 'bot', text: GREETING },
   ])
 
   const scrollRef = useRef(null)
+  const contextRef = useRef({ data: null, fetchedAt: 0 })
 
   useEffect(() => {
     const node = scrollRef.current
     if (node) node.scrollTop = node.scrollHeight
-  }, [messages, open])
+  }, [messages, open, thinking])
 
-  const send = () => {
+  useEffect(() => {
+    if (!open) return
+
+    const fresh =
+      contextRef.current.data &&
+      Date.now() - contextRef.current.fetchedAt < CONTEXT_TTL_MS
+
+    if (!fresh) {
+      buildStudentContext().then((data) => {
+        contextRef.current = { data, fetchedAt: Date.now() }
+      })
+    }
+  }, [open])
+
+  const send = async () => {
     const text = draft.trim()
-    if (!text) return
-    setMessages((current) => [
-      ...current,
-      { id: Date.now(), from: 'user', text },
-    ])
-    setDraft('')
+    if (!text || thinking) return
 
-    setTimeout(() => {
+    const userMessage = { id: Date.now(), from: 'user', text }
+
+    setMessages((current) => [...current, userMessage])
+    setDraft('')
+    setThinking(true)
+
+    try {
+      const history = messages
+        .filter((m) => m.id !== 1)
+        .concat(userMessage)
+        .map((m) => ({
+          role: m.from === 'user' ? 'user' : 'model',
+          content: m.text,
+        }))
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: history,
+          context: contextRef.current.data,
+        }),
+      })
+
+      const payload = await response.json().catch(() => ({}))
+
       setMessages((current) => [
         ...current,
-        { id: Date.now() + 1, from: 'bot', text: PLACEHOLDER_REPLY },
+        {
+          id: Date.now() + 1,
+          from: 'bot',
+          text:
+            response.ok && payload.reply
+              ? payload.reply
+              : payload.error || ERROR_REPLY,
+        },
       ])
-    }, 500)
+    } catch {
+      setMessages((current) => [
+        ...current,
+        { id: Date.now() + 1, from: 'bot', text: ERROR_REPLY },
+      ])
+    } finally {
+      setThinking(false)
+    }
   }
 
   return (
@@ -174,7 +285,7 @@ export default function ChatBotWidget() {
                     display: 'inline-block',
                   }}
                 />
-                Coming soon
+                Online
               </div>
             </div>
             <button
@@ -222,6 +333,24 @@ export default function ChatBotWidget() {
                 {message.text}
               </div>
             ))}
+
+            {thinking && (
+              <div style={{ ...BUBBLE_BOT_STYLE, display: 'flex', gap: 5, alignItems: 'center' }}>
+                {[0, 1, 2].map((dot) => (
+                  <span
+                    key={dot}
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: '#9aa8c4',
+                      display: 'inline-block',
+                      animation: `camporaTypingPulse 1.1s ease-in-out ${dot * 0.18}s infinite`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <div
