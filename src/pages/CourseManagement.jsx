@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -2505,7 +2506,7 @@ const visibleSemesterCourses = semesterCourses.filter((course) => {
 });
 
  return (
-  <div style={coursesPageShellStyle}>
+  <div className="campora-mobile-page courses-mobile" style={coursesPageShellStyle}>
       {camporaToast && (
         <div style={camporaToastStyle}>
           {camporaToast}
@@ -2972,7 +2973,7 @@ if (selectedCourse) {
     ];
 
  return (
-  <div style={coursesPageShellStyle}>
+  <div className="campora-mobile-page courses-mobile" style={coursesPageShellStyle}>
     <button
        onClick={() => {
         setSelectedCourse(null);
@@ -4661,7 +4662,7 @@ const dashboardViewMeta = {
 // =========================================================
 
 return (
-  <div style={coursesPageShellStyle}>
+  <div className="campora-mobile-page courses-mobile" style={coursesPageShellStyle}>
     <SectionHeader
       title="Courses"
       subtitle="Organize every semester, course, assignment, exam, note, and resource in one place."

@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -5577,7 +5578,7 @@ display:
 
 return (
 
-<div style={studyGroupsPageShellStyle}>
+<div className="campora-mobile-page study-groups-mobile" style={studyGroupsPageShellStyle}>
 {/* =================================================
    HEADER + ALIGNED NAVIGATION
 ================================================= */}

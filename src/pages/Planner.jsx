@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, { useState, useEffect, useRef } from 'react';
 
 import {
@@ -1795,6 +1796,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
   return (
     <div
+      className="campora-mobile-page planner-mobile"
       style={{
         display: 'flex',
         gap: '25px',

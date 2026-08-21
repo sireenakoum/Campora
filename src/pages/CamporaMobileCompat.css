@@ -1,0 +1,242 @@
+/* Campora shared mobile compatibility layer.
+   Desktop styles stay untouched; these rules only apply on tablets/phones. */
+
+@media (max-width: 900px) {
+  .campora-mobile-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .campora-mobile-page img,
+  .campora-mobile-page video,
+  .campora-mobile-page canvas,
+  .campora-mobile-page svg {
+    max-width: 100%;
+  }
+
+  .campora-mobile-page [style*="grid-template-columns: repeat(4"],
+  .campora-mobile-page [style*="gridTemplateColumns: repeat(4"],
+  .campora-mobile-page [style*="grid-template-columns: repeat(6"],
+  .campora-mobile-page [style*="gridTemplateColumns: repeat(6"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .campora-mobile-page [style*="390px minmax"],
+  .campora-mobile-page [style*="minmax(0, 1.45fr)"],
+  .campora-mobile-page [style*="minmax(300px, 0.72fr)"],
+  .campora-mobile-page [style*="minmax(0,1.7fr)"],
+  .campora-mobile-page [style*="1fr 275px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .campora-mobile-page [style*="minmax(360px"],
+  .campora-mobile-page [style*="minmax(320px"],
+  .campora-mobile-page [style*="minmax(300px"] {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
+  }
+
+  .campora-mobile-page [style*="maxWidth: 640"],
+  .campora-mobile-page [style*="max-width: 640"] {
+    max-width: calc(100vw - 28px) !important;
+  }
+
+  .campora-mobile-page button,
+  .campora-mobile-page input,
+  .campora-mobile-page select,
+  .campora-mobile-page textarea {
+    max-width: 100%;
+  }
+
+  .campora-mobile-page .filter-row,
+  .campora-mobile-page .course-stats-scroll {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .campora-mobile-page .filter-row::-webkit-scrollbar,
+  .campora-mobile-page .course-stats-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .campora-mobile-page {
+    font-size: 14px;
+  }
+
+  .campora-mobile-page h1 {
+    font-size: clamp(24px, 7vw, 30px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .campora-mobile-page h2 {
+    font-size: clamp(19px, 5.5vw, 23px) !important;
+  }
+
+  .campora-mobile-page [style*="padding: 40px"],
+  .campora-mobile-page [style*="padding: '40px"] {
+    padding: 24px 16px !important;
+  }
+
+  .campora-mobile-page [style*="grid-template-columns: repeat(4"],
+  .campora-mobile-page [style*="gridTemplateColumns: repeat(4"],
+  .campora-mobile-page [style*="grid-template-columns: repeat(3"],
+  .campora-mobile-page [style*="gridTemplateColumns: repeat(3"],
+  .campora-mobile-page [style*="grid-template-columns: repeat(2"],
+  .campora-mobile-page [style*="gridTemplateColumns: repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .campora-mobile-page [style*="minmax(360px"],
+  .campora-mobile-page [style*="minmax(320px"],
+  .campora-mobile-page [style*="minmax(300px"],
+  .campora-mobile-page [style*="minmax(280px"],
+  .campora-mobile-page [style*="minmax(250px"],
+  .campora-mobile-page [style*="minmax(240px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .campora-mobile-page [style*="minWidth: 240"],
+  .campora-mobile-page [style*="min-width: 240"],
+  .campora-mobile-page [style*="minWidth: 250"],
+  .campora-mobile-page [style*="min-width: 250"],
+  .campora-mobile-page [style*="minWidth: 360"],
+  .campora-mobile-page [style*="min-width: 360"] {
+    min-width: 0 !important;
+  }
+
+  .campora-mobile-page [style*="width: 390"],
+  .campora-mobile-page [style*="width: '390"],
+  .campora-mobile-page [style*="width: 360"],
+  .campora-mobile-page [style*="width: '360"] {
+    width: 100% !important;
+  }
+
+  .campora-mobile-page [style*="display: flex"][style*="justify-content: space-between"],
+  .campora-mobile-page [style*="display: 'flex'"][style*="justifyContent: 'space-between'"] {
+    flex-wrap: wrap !important;
+  }
+
+  .campora-mobile-page input,
+  .campora-mobile-page select,
+  .campora-mobile-page textarea {
+    font-size: 16px !important;
+  }
+
+  .campora-mobile-page button,
+  .campora-mobile-page .btn {
+    min-height: 42px;
+  }
+
+  /* Announcements */
+  .announcements-mobile > div[style*="grid"] {
+    min-width: 0 !important;
+  }
+
+  /* Campus Pulse */
+  .campus-pulse-mobile .panel {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .campus-pulse-mobile [style*="gridTemplateColumns: '390px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dashboard */
+  .dashboard-mobile .dashboard-quick-grid {
+    grid-auto-columns: minmax(78%, 1fr) !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x proximity;
+  }
+  .dashboard-mobile .quick-link {
+    scroll-snap-align: start;
+  }
+  .dashboard-mobile .dashboard-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Messages: list and chat each become a full mobile screen. */
+  .messages-mobile {
+    min-height: calc(100dvh - 82px) !important;
+  }
+  .messages-mobile .wa-top-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .messages-mobile .wa-inbox-shell {
+    grid-template-columns: 1fr !important;
+  }
+  .messages-mobile .wa-folder-panel {
+    display: none !important;
+  }
+  .messages-mobile .wa-chat-screen {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Notifications */
+  .notifications-mobile .filter-row {
+    flex-wrap: nowrap !important;
+    padding-bottom: 4px;
+  }
+  .notifications-mobile .filter-chip {
+    flex: 0 0 auto;
+  }
+
+  /* Planner: calendar remains horizontally scrollable rather than crushing seven days. */
+  .planner-mobile {
+    height: auto !important;
+    min-height: calc(100dvh - 100px) !important;
+    overflow: visible !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .planner-mobile > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .planner-mobile .card {
+    border-radius: 18px !important;
+  }
+  .planner-mobile [style*="repeat(7"] {
+    min-width: 680px !important;
+  }
+  .planner-mobile .card:has([style*="repeat(7"]) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .planner-mobile .planner-upnext-details {
+    padding: 14px !important;
+  }
+
+  /* Registration */
+  .registration-mobile [style*="minmax(150px, 1.4fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+  .registration-mobile [style*="minmax(0, 1fr) 44px minmax(0, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Study Groups */
+  .study-groups-mobile [style*="390px minmax"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* To-do */
+  .todo-mobile .grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .dashboard-mobile .dashboard-stat-grid,
+  .messages-mobile .wa-top-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .campora-mobile-page .card,
+  .campora-mobile-page .panel {
+    border-radius: 16px !important;
+  }
+}

@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -1727,7 +1728,7 @@ export default function CampusPulse() {
   });
 
   return (
-    <div style={campusPulsePageShellStyle}>
+    <div className="campora-mobile-page campus-pulse-mobile" style={campusPulsePageShellStyle}>
       <div ref={pageTopRef}>
         <div className="stack" style={{ gap: '14px' }}>
           <SectionHeader

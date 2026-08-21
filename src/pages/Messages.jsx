@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Inbox,
@@ -3217,7 +3218,7 @@ export default function Messages() {
   }
 
   return (
-    <div className={`wa-messages-page ${selected ? 'chat-open' : 'list-open'}`}>
+    <div className={`wa-messages-page campora-mobile-page messages-mobile ${selected ? 'chat-open' : 'list-open'}`}>
       <style>{`
         .wa-messages-page {
           width: 100%;

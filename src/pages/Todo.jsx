@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -597,7 +598,7 @@ const priorityGroups = useMemo(() => {
 }, [activeTasks]);
 
 return (
- <div style={todoPageShellStyle}>
+ <div className="campora-mobile-page todo-mobile" style={todoPageShellStyle}>
 
  {/* HEADER */}
 

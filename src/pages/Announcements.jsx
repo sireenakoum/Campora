@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, {
   useEffect,
   useMemo,
@@ -283,7 +284,7 @@ export default function Announcements() {
 
   if (loading) {
     return (
-      <div style={styles.page}>
+      <div className="campora-mobile-page announcements-mobile" style={styles.page}>
         <div style={styles.loadingCard}>
           <div style={styles.loadingIcon}>
             <Landmark size={24} />
@@ -311,7 +312,7 @@ export default function Announcements() {
     !resources.length
   ) {
     return (
-      <div style={styles.page}>
+      <div className="campora-mobile-page announcements-mobile" style={styles.page}>
         <div style={styles.errorCard}>
           <div style={styles.errorIcon}>
             !
@@ -332,7 +333,7 @@ export default function Announcements() {
   }
 
   return (
-    <div style={styles.page}>
+    <div className="campora-mobile-page announcements-mobile" style={styles.page}>
       {/* =========================
           NAVY CAMPUS HUB HEADER
       ========================= */}

@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
 AlarmClock,
@@ -1619,7 +1620,7 @@ Date(a.created_at || 0));
 questionReplies]);
 return (
 
-<div style={registrationPageShellStyle}>
+<div className="campora-mobile-page registration-mobile" style={registrationPageShellStyle}>
 <div style={registrationContentStyle}>
 <div className="stack" style={{ gap: 10 }}>
 

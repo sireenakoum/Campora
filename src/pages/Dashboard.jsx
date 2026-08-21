@@ -1,4 +1,5 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import './CamporaMobileCompat.css';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -565,7 +566,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div style={styles.page}>
+      <div className="campora-mobile-page dashboard-mobile" style={styles.page}>
         <div style={styles.loadingCard}>
           <div style={styles.loadingIcon}>
             <Landmark size={25} />
@@ -631,7 +632,7 @@ export default function Dashboard() {
         `}
       </style>
 
-      <div className="dashboard-scroll" style={styles.page}>
+      <div className="dashboard-scroll campora-mobile-page dashboard-mobile" style={styles.page}>
         {/* HERO */}
         <section style={styles.hero}>
           <img
@@ -1883,9 +1884,10 @@ const styles = {
 
   compactEmpty: {
     minHeight: '82px',
-    border: '1px dashed #DDE3EA',
+    border: '1px solid #E2E8F0',
+    boxShadow: '0 8px 22px rgba(11,26,63,0.08), 0 1px 3px rgba(11,26,63,0.05)',
     borderRadius: '13px',
-    background: '#FBFCFE',
+    background: '#FFFFFF',
     color: '#8C98AA',
     display: 'flex',
     alignItems: 'center',
@@ -1915,7 +1917,7 @@ const styles = {
     padding: '0 13px',
     border: '1px solid #EEF1F5',
     borderRadius: '13px',
-    background: '#FBFCFE',
+    background: '#FFFFFF',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',

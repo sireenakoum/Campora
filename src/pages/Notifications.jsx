@@ -1,3 +1,4 @@
+import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -2018,7 +2019,7 @@ export default function Notifications() {
   // =======================================================
 
   return (
-    <div style={notificationsPageStyle}>
+    <div className="campora-mobile-page notifications-mobile" style={notificationsPageStyle}>
       {/* HEADER CONTROL ZONE */}
 
       <div
