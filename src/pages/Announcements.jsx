@@ -1,4 +1,5 @@
 import './CamporaMobileCompat.css';
+import aubAnnouncementsImage from './aub-announcements.jpeg';
 import React, {
   useEffect,
   useMemo,
@@ -339,46 +340,27 @@ export default function Announcements() {
       ========================= */}
 
       <div style={styles.hero}>
-        <div
-          style={styles.heroGlowOne}
+        <img
+          src={aubAnnouncementsImage}
+          alt="AUB campus"
+          style={styles.heroBackgroundImage}
         />
-
-        <div
-          style={styles.heroGlowTwo}
-        />
+        <div style={styles.heroOverlay} />
 
         <div style={styles.heroContent}>
-          <div style={styles.heroLeft}>
-            <div style={styles.heroIcon}>
-              <Landmark
-                size={28}
-                strokeWidth={2.1}
-              />
+          <div>
+            <div style={styles.heroEyebrow}>
+              <Sparkles size={14} strokeWidth={2.2} />
+              <span>YOUR CAMPUS HUB</span>
             </div>
 
-            <div>
-              <div
-                style={styles.heroEyebrow}
-              >
-                YOUR CAMPUS HUB
-              </div>
+            <h1 style={styles.heroTitle}>
+              Campus Hub
+            </h1>
 
-              <h1 style={styles.heroTitle}>
-                Campus Hub
-              </h1>
-
-              <p
-                style={styles.heroSubtitle}
-              >
-                Everything happening around
-                campus, all in one place.
-              </p>
-            </div>
-          </div>
-
-          <div style={styles.heroBadge}>
-            <Sparkles size={15} />
-            <span>Stay connected</span>
+            <p style={styles.heroSubtitle}>
+              Everything happening around campus, all in one place.
+            </p>
           </div>
         </div>
       </div>
@@ -902,116 +884,61 @@ const styles = {
 
   hero: {
     position: "relative",
-    overflow: "hidden",
-
     width: "100%",
-    minHeight: "150px",
-
+    height: "176px",
+    minHeight: "176px",
     borderRadius: "22px",
-
-    padding: "26px 29px",
     marginBottom: "22px",
-
+    padding: 0,
+    overflow: "hidden",
     boxSizing: "border-box",
-
-    background:
-      "linear-gradient(135deg, #08152F 0%, #0B1A3F 52%, #142B5A 100%)",
-
-    boxShadow:
-      "0 15px 35px rgba(11, 26, 63, 0.16)",
+    background: "#0B1A3F",
+    boxShadow: "0 15px 35px rgba(11, 26, 63, 0.16)",
   },
 
-  heroGlowOne: {
+  heroBackgroundImage: {
     position: "absolute",
-
-    width: "260px",
-    height: "260px",
-
-    borderRadius: "50%",
-
-    background:
-      "radial-gradient(circle, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0) 70%)",
-
-    right: "90px",
-    top: "-165px",
-
-    pointerEvents: "none",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    minWidth: "100%",
+    minHeight: "100%",
+    objectFit: "cover",
+    objectPosition: "center 18%",
+    display: "block",
+    zIndex: 0,
   },
 
-  heroGlowTwo: {
+  heroOverlay: {
     position: "absolute",
-
-    width: "210px",
-    height: "210px",
-
-    borderRadius: "50%",
-
+    inset: 0,
+    zIndex: 1,
     background:
-      "radial-gradient(circle, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 70%)",
-
-    right: "-45px",
-    bottom: "-125px",
-
+      "linear-gradient(90deg, rgba(7,20,49,0.93) 0%, rgba(7,20,49,0.78) 40%, rgba(7,20,49,0.50) 68%, rgba(7,20,49,0.22) 100%)",
     pointerEvents: "none",
   },
 
   heroContent: {
     position: "relative",
     zIndex: 2,
-
-    minHeight: "98px",
-
-    display: "flex",
-    justifyContent:
-      "space-between",
-    alignItems: "center",
-
-    gap: "20px",
-  },
-
-  heroLeft: {
+    width: "100%",
+    height: "100%",
+    padding: "28px 34px",
+    boxSizing: "border-box",
     display: "flex",
     alignItems: "center",
-    gap: "17px",
-    minWidth: 0,
-  },
-
-  heroIcon: {
-    width: "58px",
-    height: "58px",
-
-    flexShrink: 0,
-
-    borderRadius: "17px",
-
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-
-    color: "#FFFFFF",
-
-    background:
-      "rgba(255,255,255,0.11)",
-
-    border:
-      "1px solid rgba(255,255,255,0.18)",
-
-    boxShadow:
-      "0 8px 22px rgba(0,0,0,0.12)",
-
-    backdropFilter:
-      "blur(10px)",
-
-    WebkitBackdropFilter:
-      "blur(10px)",
   },
 
   heroEyebrow: {
-    color: "#AFC6F2",
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+
+    color: "#FFFFFF",
 
     fontSize: "10.5px",
     fontWeight: "800",
-
     letterSpacing: "1.6px",
 
     marginBottom: "5px",
@@ -1024,47 +951,18 @@ const styles = {
 
     fontSize: "31px",
     lineHeight: 1.1,
-
     fontWeight: "600",
-
     letterSpacing: "-0.7px",
   },
 
   heroSubtitle: {
     margin: "7px 0 0",
 
-    color:
-      "rgba(255,255,255,0.76)",
+    color: "rgba(255,255,255,0.82)",
 
     fontSize: "14px",
     lineHeight: 1.5,
-
     fontWeight: "500",
-  },
-
-  heroBadge: {
-    display: "flex",
-
-    alignItems: "center",
-
-    gap: "7px",
-
-    padding: "9px 14px",
-
-    borderRadius: "999px",
-
-    color: "#FFFFFF",
-
-    background:
-      "rgba(255,255,255,0.10)",
-
-    border:
-      "1px solid rgba(255,255,255,0.16)",
-
-    fontSize: "12px",
-    fontWeight: "700",
-
-    whiteSpace: "nowrap",
   },
 
   overviewStats: {
