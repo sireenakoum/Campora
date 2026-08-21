@@ -457,7 +457,18 @@ export default function AdminStudyGroups() {
         current.map((item) => (item.id === user.id ? { ...item, ...data } : item))
       );
     } catch (error) {
-      alert(`Could not update this account: ${error.message}`);
+      const needsSql =
+        /does not exist|permission denied|policy|row-level security/i.test(
+          error?.message || ''
+        );
+
+      alert(
+        `Could not update this account: ${error.message}.${
+          needsSql
+            ? ' Run the latest supabase-deactivate-users.sql in the Supabase SQL editor, then try again.'
+            : ''
+        }`
+      );
     } finally {
       setActionLoading(null);
     }
