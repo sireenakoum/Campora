@@ -69,7 +69,7 @@ export default function Login() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.card}>
+      <div style={styles.card} className="auth-card">
         <Link to="/" style={styles.backHome}>
           ← Back to Home
         </Link>

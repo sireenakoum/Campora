@@ -26,7 +26,7 @@ export default function ForgotPassword() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.card}>
+      <div style={styles.card} className="auth-card">
         <div style={styles.header}>
           <h1 style={styles.logoTitle}>Campora</h1>
           <p style={styles.subtitle}>Reset Your Password</p>
