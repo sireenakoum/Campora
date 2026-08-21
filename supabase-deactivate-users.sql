@@ -11,6 +11,20 @@
 --      write policies (reads stay open so the app can detect the flag at
 --      login and sign the user out with a clear message).
 
+-- Helper: run a statement only if the table exists (some tables here are
+-- created in the dashboard and may be missing on fresh projects). Must be
+-- created before any of the guarded sections below.
+create or replace function public.__run_if_table(target text, stmt text)
+returns void
+language plpgsql
+as $$
+begin
+  if to_regclass(target) is not null then
+    execute stmt;
+  end if;
+end;
+$$;
+
 -- -----------------------------------------------------------------------
 -- 1) Deactivation columns on profiles
 -- -----------------------------------------------------------------------
@@ -147,63 +161,118 @@ create trigger on_profile_status_update
 drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id and not public.current_user_is_deactivated()) with check (auth.uid() = id);
 
+-- Helper: run a statement only if the table exists (some tables here are
+-- created in the dashboard and may be missing on fresh projects).
+create or replace function public.__run_if_table(target text, stmt text)
+returns void
+language plpgsql
+as $$
+begin
+  if to_regclass(target) is not null then
+    execute stmt;
+  end if;
+end;
+$$;
+
 -- classes
-drop policy if exists "Users can create own classes" on public.classes;
-create policy "Users can create own classes" on public.classes for insert to authenticated with check (auth.uid() = profile_id and not public.current_user_is_deactivated());
-drop policy if exists "Users can update own classes" on public.classes;
-create policy "Users can update own classes" on public.classes for update to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated()) with check (auth.uid() = profile_id);
-drop policy if exists "Users can delete own classes" on public.classes;
-create policy "Users can delete own classes" on public.classes for delete to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated());
+select public.__run_if_table(
+  'public.classes',
+  $stmt$
+  drop policy if exists "Users can create own classes" on public.classes;
+  create policy "Users can create own classes" on public.classes for insert to authenticated with check (auth.uid() = profile_id and not public.current_user_is_deactivated());
+  drop policy if exists "Users can update own classes" on public.classes;
+  create policy "Users can update own classes" on public.classes for update to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated()) with check (auth.uid() = profile_id);
+  drop policy if exists "Users can delete own classes" on public.classes;
+  create policy "Users can delete own classes" on public.classes for delete to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated());
+  $stmt$
+);
 
 -- deadlines
-drop policy if exists "Users can create own deadlines" on public.deadlines;
-create policy "Users can create own deadlines" on public.deadlines for insert to authenticated with check (auth.uid() = profile_id and not public.current_user_is_deactivated());
-drop policy if exists "Users can update own deadlines" on public.deadlines;
-create policy "Users can update own deadlines" on public.deadlines for update to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated()) with check (auth.uid() = profile_id);
-drop policy if exists "Users can delete own deadlines" on public.deadlines;
-create policy "Users can delete own deadlines" on public.deadlines for delete to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated());
+select public.__run_if_table(
+  'public.deadlines',
+  $stmt$
+  drop policy if exists "Users can create own deadlines" on public.deadlines;
+  create policy "Users can create own deadlines" on public.deadlines for insert to authenticated with check (auth.uid() = profile_id and not public.current_user_is_deactivated());
+  drop policy if exists "Users can update own deadlines" on public.deadlines;
+  create policy "Users can update own deadlines" on public.deadlines for update to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated()) with check (auth.uid() = profile_id);
+  drop policy if exists "Users can delete own deadlines" on public.deadlines;
+  create policy "Users can delete own deadlines" on public.deadlines for delete to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated());
+  $stmt$
+);
 
 -- briefing items
-drop policy if exists "Users can create own briefing items" on public.briefing_items;
-create policy "Users can create own briefing items" on public.briefing_items for insert to authenticated with check (auth.uid() = profile_id and not public.current_user_is_deactivated());
-drop policy if exists "Users can update own briefing items" on public.briefing_items;
-create policy "Users can update own briefing items" on public.briefing_items for update to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated()) with check (auth.uid() = profile_id);
-drop policy if exists "Users can delete own briefing items" on public.briefing_items;
-create policy "Users can delete own briefing items" on public.briefing_items for delete to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated());
+select public.__run_if_table(
+  'public.briefing_items',
+  $stmt$
+  drop policy if exists "Users can create own briefing items" on public.briefing_items;
+  create policy "Users can create own briefing items" on public.briefing_items for insert to authenticated with check (auth.uid() = profile_id and not public.current_user_is_deactivated());
+  drop policy if exists "Users can update own briefing items" on public.briefing_items;
+  create policy "Users can update own briefing items" on public.briefing_items for update to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated()) with check (auth.uid() = profile_id);
+  drop policy if exists "Users can delete own briefing items" on public.briefing_items;
+  create policy "Users can delete own briefing items" on public.briefing_items for delete to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated());
+  $stmt$
+);
 
 -- reminders
-drop policy if exists "Users can create own reminders" on public.reminders;
-create policy "Users can create own reminders" on public.reminders for insert to authenticated with check (auth.uid() = profile_id and not public.current_user_is_deactivated());
-drop policy if exists "Users can update own reminders" on public.reminders;
-create policy "Users can update own reminders" on public.reminders for update to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated()) with check (auth.uid() = profile_id);
-drop policy if exists "Users can delete own reminders" on public.reminders;
-create policy "Users can delete own reminders" on public.reminders for delete to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated());
+select public.__run_if_table(
+  'public.reminders',
+  $stmt$
+  drop policy if exists "Users can create own reminders" on public.reminders;
+  create policy "Users can create own reminders" on public.reminders for insert to authenticated with check (auth.uid() = profile_id and not public.current_user_is_deactivated());
+  drop policy if exists "Users can update own reminders" on public.reminders;
+  create policy "Users can update own reminders" on public.reminders for update to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated()) with check (auth.uid() = profile_id);
+  drop policy if exists "Users can delete own reminders" on public.reminders;
+  create policy "Users can delete own reminders" on public.reminders for delete to authenticated using (auth.uid() = profile_id and not public.current_user_is_deactivated());
+  $stmt$
+);
 
 -- notifications
-drop policy if exists "Users can create own notifications" on public.notifications;
-create policy "Users can create own notifications" on public.notifications for insert to authenticated with check (auth.uid() = user_id and not public.current_user_is_deactivated());
-drop policy if exists "Users can update own notifications" on public.notifications;
-create policy "Users can update own notifications" on public.notifications for update to authenticated using (auth.uid() = user_id and not public.current_user_is_deactivated()) with check (auth.uid() = user_id);
-drop policy if exists "Users can delete own notifications" on public.notifications;
-create policy "Users can delete own notifications" on public.notifications for delete to authenticated using (auth.uid() = user_id and not public.current_user_is_deactivated());
+select public.__run_if_table(
+  'public.notifications',
+  $stmt$
+  drop policy if exists "Users can create own notifications" on public.notifications;
+  create policy "Users can create own notifications" on public.notifications for insert to authenticated with check (auth.uid() = user_id and not public.current_user_is_deactivated());
+  drop policy if exists "Users can update own notifications" on public.notifications;
+  create policy "Users can update own notifications" on public.notifications for update to authenticated using (auth.uid() = user_id and not public.current_user_is_deactivated()) with check (auth.uid() = user_id);
+  drop policy if exists "Users can delete own notifications" on public.notifications;
+  create policy "Users can delete own notifications" on public.notifications for delete to authenticated using (auth.uid() = user_id and not public.current_user_is_deactivated());
+  $stmt$
+);
 
 -- direct messages
-drop policy if exists "Users can send DMs" on public.direct_messages;
-create policy "Users can send DMs" on public.direct_messages for insert to authenticated with check (auth.uid() = sender_id and not public.current_user_is_deactivated());
-drop policy if exists "Recipient can mark DMs read" on public.direct_messages;
-create policy "Recipient can mark DMs read" on public.direct_messages for update to authenticated using (auth.uid() = receiver_id and not public.current_user_is_deactivated()) with check (auth.uid() = receiver_id);
-drop policy if exists "Users can delete own DMs" on public.direct_messages;
-create policy "Users can delete own DMs" on public.direct_messages for delete to authenticated using (auth.uid() = sender_id and not public.current_user_is_deactivated());
+select public.__run_if_table(
+  'public.direct_messages',
+  $stmt$
+  drop policy if exists "Users can send DMs" on public.direct_messages;
+  create policy "Users can send DMs" on public.direct_messages for insert to authenticated with check (auth.uid() = sender_id and not public.current_user_is_deactivated());
+  drop policy if exists "Recipient can mark DMs read" on public.direct_messages;
+  create policy "Recipient can mark DMs read" on public.direct_messages for update to authenticated using (auth.uid() = receiver_id and not public.current_user_is_deactivated()) with check (auth.uid() = receiver_id);
+  drop policy if exists "Users can delete own DMs" on public.direct_messages;
+  create policy "Users can delete own DMs" on public.direct_messages for delete to authenticated using (auth.uid() = sender_id and not public.current_user_is_deactivated());
+  $stmt$
+);
 
 -- legacy messages table
-drop policy if exists "Users can only insert their own messages" on public.messages;
-create policy "Users can only insert their own messages" on public.messages for insert with check (auth.uid() = sender_id and not public.current_user_is_deactivated());
-drop policy if exists "Users can only delete their own messages" on public.messages;
-create policy "Users can only delete their own messages" on public.messages for delete using (auth.uid() = sender_id and not public.current_user_is_deactivated());
+select public.__run_if_table(
+  'public.messages',
+  $stmt$
+  drop policy if exists "Users can only insert their own messages" on public.messages;
+  create policy "Users can only insert their own messages" on public.messages for insert with check (auth.uid() = sender_id and not public.current_user_is_deactivated());
+  drop policy if exists "Users can only delete their own messages" on public.messages;
+  create policy "Users can only delete their own messages" on public.messages for delete using (auth.uid() = sender_id and not public.current_user_is_deactivated());
+  $stmt$
+);
 
 -- message reports: deactivated users cannot file new reports.
-drop policy if exists "Students can report a message" on public.message_reports;
-create policy "Students can report a message"
-  on public.message_reports for insert
-  to authenticated
-  with check (auth.uid() = reporter_id and not public.current_user_is_deactivated());
+select public.__run_if_table(
+  'public.message_reports',
+  $stmt$
+  drop policy if exists "Students can report a message" on public.message_reports;
+  create policy "Students can report a message"
+    on public.message_reports for insert
+    to authenticated
+    with check (auth.uid() = reporter_id and not public.current_user_is_deactivated());
+  $stmt$
+);
+
+drop function public.__run_if_table(text, text);

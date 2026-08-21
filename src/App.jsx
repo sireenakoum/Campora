@@ -525,6 +525,38 @@ function DashboardLayout() {
     };
   }, []);
 
+  // Keep deactivation enforcement live: if an admin deactivates this
+  // account while the session is open, sign the user out on the next check.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_deactivated')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile?.is_deactivated) {
+        await supabase.auth.signOut();
+
+        navigate('/login', {
+          replace: true,
+          state: {
+            message:
+              'This account has been deactivated. Please contact a Campora administrator.',
+          },
+        });
+      }
+    }, 45000);
+
+    return () => clearInterval(interval);
+  }, [navigate]);
+
   const handleLogout = async () => {
     localStorage.removeItem(
       'campora_avatar_url'
