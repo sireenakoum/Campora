@@ -644,7 +644,7 @@ function MiniChatDemo() {
 export default function LandingPage() {
   const [demoTab, setDemoTab] = useState('dashboard');
   const [demoLoaded, setDemoLoaded] = useState(false);
-  const [openFaq, setOpenFaq] = useState(0);
+  const [openFaq, setOpenFaq] = useState(-1);
   const glowRef = useRef(null);
 
   const activeDemo =
@@ -2556,19 +2556,23 @@ export default function LandingPage() {
         }
 
         .lp-faq-body {
-          max-height: 0;
-          overflow: hidden;
-          transition: max-height .3s ease, padding .3s ease;
-          padding: 0 22px;
+          padding: 0 22px 22px;
           color: ${MUTED};
           font-size: 14px;
           line-height: 1.7;
           font-weight: 600;
+          animation: lpFaqAnswerIn .22s ease both;
         }
 
-        .lp-faq-open .lp-faq-body {
-          max-height: 320px;
-          padding: 0 22px 22px;
+        @keyframes lpFaqAnswerIn {
+          from {
+            opacity: 0;
+            transform: translateY(-5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
         /* ---------- CTA ---------- */
@@ -3477,21 +3481,14 @@ export default function LandingPage() {
               return (
                 <div
                   key={item.q}
-                  className={
-                    open
-                      ? 'lp-faq lp-faq-open lp-reveal'
-                      : 'lp-faq lp-reveal'
-                  }
-                  data-reveal
-                  style={{ '--lp-delay': `${idx * 60}ms` }}
+                  className={open ? 'lp-faq lp-faq-open' : 'lp-faq'}
                 >
                   <button
                     type="button"
                     className="lp-faq-btn"
                     aria-expanded={open}
-                    onClick={() =>
-                      setOpenFaq(open ? -1 : idx)
-                    }
+                    aria-controls={`lp-faq-answer-${idx}`}
+                    onClick={() => setOpenFaq((current) => current === idx ? -1 : idx)}
                   >
                     {item.q}
                     <span className="lp-faq-chev">
@@ -3499,7 +3496,14 @@ export default function LandingPage() {
                     </span>
                   </button>
 
-                  <div className="lp-faq-body">{item.a}</div>
+                  {open && (
+                    <div
+                      id={`lp-faq-answer-${idx}`}
+                      className="lp-faq-body"
+                    >
+                      {item.a}
+                    </div>
+                  )}
                 </div>
               );
             })}
