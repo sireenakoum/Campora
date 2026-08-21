@@ -945,6 +945,96 @@ body {
 
 .topbar-menu-btn {
   display: none;
+
+  position: absolute;
+
+  left: 12px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  width: 42px;
+  height: 42px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: none;
+  border-radius: 12px;
+
+  background: transparent;
+
+  color: var(--campora-navy-solid, #0B1A3F);
+
+  cursor: pointer;
+
+  z-index: 10;
+}
+
+.topbar-search-pill {
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  transform: translate(-50%, -50%);
+
+  width: min(560px, calc(100vw - 200px));
+
+  height: 46px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 0 17px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #E2E7EF;
+
+  border-radius: 999px;
+
+  background: #FFFFFF;
+
+  color: #7E899A;
+
+  cursor: pointer;
+
+  box-shadow: 0 2px 8px rgba(11, 26, 63, 0.025);
+
+  z-index: 5;
+}
+
+.topbar-search-label {
+  flex: 1;
+
+  text-align: left;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  color: #8C96A6;
+
+  white-space: nowrap;
+}
+
+.topbar-controls {
+  position: absolute;
+
+  right: 28px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  display: flex;
+  align-items: center;
+
+  gap: 15px;
+
+  z-index: 10;
 }
 
 /* Icon-only bell button with unread dot */
@@ -1209,12 +1299,39 @@ button {
     transform: translateX(0);
   }
 
+  /* Content spans the full screen while the sidebar is a drawer */
+  .main-content,
+  .sidebar.collapsed + .main-content {
+    left: 0;
+  }
+
   .sidebar .sidebar-collapse-btn {
     display: none;
   }
 
   .topbar-menu-btn {
     display: flex;
+  }
+
+  .topbar-search-pill {
+    width: 44px;
+
+    padding: 0;
+
+    justify-content: center;
+    gap: 0;
+
+    border-radius: 50%;
+  }
+
+  .topbar-search-pill .topbar-search-label {
+    display: none;
+  }
+
+  .topbar-controls {
+    right: 10px;
+
+    gap: 6px;
   }
 
   .topbar-search {
@@ -3139,4 +3256,27 @@ body.campora-messages-fullscreen .main-content > * {
 :root:not([data-theme='dark']) .main-content [style*="backgroundColor: #FFFEFF"] {
   background: #FFFFFF !important;
   background-color: #FFFFFF !important;
+}
+
+
+/* =========================================================
+   PHONE COMPATIBILITY
+   Auth cards, tap targets, and iOS input zoom prevention.
+========================================================= */
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 2rem 1.4rem !important;
+
+    border-radius: 16px !important;
+  }
+}
+
+/* Stop iOS Safari from zooming into inputs focused on small screens. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }

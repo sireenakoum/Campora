@@ -26,6 +26,7 @@ import {
   Network,
   LogOut,
   Search,
+  Menu,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -754,6 +755,10 @@ function DashboardLayout() {
     };
   }, [location.pathname]);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="layout">
       <DmNotificationsListener />
@@ -897,48 +902,30 @@ function DashboardLayout() {
             background: 'transparent',
           }}
         >
+          {/* MOBILE MENU */}
+          <button
+            type="button"
+            className="topbar-menu-btn"
+            onClick={() => {
+              setCollapsed(false);
+              setMobileOpen(true);
+            }}
+            aria-label="Open navigation menu"
+          >
+            <Menu
+              size={22}
+              strokeWidth={1.9}
+            />
+          </button>
+
           {/* SEARCH */}
           <button
             type="button"
+            className="topbar-search-pill"
             onClick={() =>
               setPaletteOpen(true)
             }
             aria-label="Search Campora"
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              transform:
-                'translate(-50%, -50%)',
-
-              width: '560px',
-              height: '46px',
-
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-
-              padding: '0 17px',
-
-              boxSizing: 'border-box',
-
-              border:
-                '1px solid #E2E7EF',
-
-              borderRadius: '999px',
-
-              background:
-                '#FFFFFF',
-
-              color: '#7E899A',
-
-              cursor: 'pointer',
-
-              boxShadow:
-                '0 2px 8px rgba(11, 26, 63, 0.025)',
-
-              zIndex: 5,
-            }}
           >
             <Search
               size={18}
@@ -946,36 +933,13 @@ function DashboardLayout() {
               color="#7E899A"
             />
 
-            <span
-              style={{
-                flex: 1,
-                textAlign: 'left',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#8C96A6',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <span className="topbar-search-label">
               Search Campora…
             </span>
           </button>
 
           {/* RIGHT CONTROLS */}
-          <div
-            style={{
-              position: 'absolute',
-              right: '28px',
-              top: '50%',
-              transform:
-                'translateY(-50%)',
-
-              display: 'flex',
-              alignItems: 'center',
-              gap: '15px',
-
-              zIndex: 10,
-            }}
-          >
+          <div className="topbar-controls">
             {/* NOTIFICATIONS */}
             <button
               type="button"
