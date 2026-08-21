@@ -133,6 +133,21 @@ const COURSE_COLORS = [
 
 const DEFAULT_COURSE_COLOR = COURSE_COLORS[0].bg;
 
+const RESOURCE_TYPES = [
+  'Course Notes',
+  'Previous Exam',
+  'Quiz',
+  'Test',
+  'Final',
+  'Midterm'
+];
+
+const RESOURCE_VISIBILITIES = [
+  { id: 'private', label: 'My Private Notes' },
+  { id: 'public', label: 'Public Notes' }
+];
+
+
 const normalizeHex = (hex) => {
  if (!hex) return DEFAULT_COURSE_COLOR;
  let clean = hex.replace('#', '').trim();
@@ -374,6 +389,12 @@ const [activeFolderView, setActiveFolderView] = useState(null);
 const [customFolders, setCustomFolders] = useState([]);
 const [editingFolderName, setEditingFolderName] = useState(null);
 const [renamedFolderValue, setRenamedFolderValue] = useState('');
+const [resourceScope, setResourceScope] = useState('private');
+const [resourceTypeFilter, setResourceTypeFilter] = useState('All Types');
+const [uploadVisibility, setUploadVisibility] = useState('private');
+const [uploadResourceType, setUploadResourceType] = useState('Course Notes');
+const [uploadTargetCourseId, setUploadTargetCourseId] = useState('');
+const [publicResources, setPublicResources] = useState([]);
 
 // ---------------------------------------------------------
 // AUTH + LOCAL DATA
@@ -429,6 +450,7 @@ useEffect(() => {
 
   fetchCourses();
   fetchAllResources();
+  fetchPublicResources();
 }, [userId]);
 
 useEffect(() => {
@@ -640,11 +662,28 @@ const fetchAllResources = async () => {
    let query = supabase.from('course_resources').select('*');
    if (userId) query = query.eq('user_id', userId);
 
-    const { data, error } = await query;
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     setAllResources(data || []);
   } catch (err) {
     console.error('Error fetching all resources:', err);
+  }
+};
+
+const fetchPublicResources = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('course_resources')
+      .select('*')
+      .eq('visibility', 'public')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    setPublicResources(data || []);
+  } catch (err) {
+    // This will happen until the supplied SQL migration is run.
+    console.error('Error fetching public resources:', err);
+    setPublicResources([]);
   }
 };
 
@@ -2278,7 +2317,10 @@ const handleDeleteNote = async (id, e) => {
 const existingFolders = Array.from(
   new Set([
    ...customFolders,
-   ...courseFiles.map((f) => f.folder_name).filter(Boolean)
+   ...courseFiles
+    .filter((file) => (file.visibility || 'private') !== 'public')
+    .map((file) => file.folder_name)
+    .filter(Boolean)
   ])
 );
 
@@ -2291,6 +2333,9 @@ const handleFileSelect = (e) => {
       file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
      setCustomFileName(nameWithoutExt);
+     setUploadVisibility('private');
+     setUploadResourceType('Course Notes');
+     setUploadTargetCourseId(selectedCourse?.id || '');
 
      if (existingFolders.length === 0) {
        setFolderMode('new');
@@ -2333,7 +2378,7 @@ const uploadFile = async (e) => {
      '_'
    );
 
-   const safePath = `${userId || 'public'}/${selectedCourse.id}/${Date.now()}
+   const safePath = `${userId || 'public'}/${targetCourseId}/${Date.now()}
 _${sanitizedFileName}`;
 
    const { error: uploadError } = await supabase.storage
@@ -2349,12 +2394,19 @@ _${sanitizedFileName}`;
     .from('course-files')
     .getPublicUrl(safePath);
 
+   const targetCourse = courses.find(
+     (course) => String(course.id) === String(targetCourseId)
+   );
+
    const resourceData = {
-     course_id: selectedCourse.id,
+     course_id: targetCourseId,
      file_name: finalFileName,
      file_url: urlData.publicUrl,
      folder_name: targetFolder,
-     user_id: userId
+     user_id: userId,
+     visibility: uploadVisibility,
+     resource_type: uploadResourceType,
+     course_name: targetCourse?.name || selectedCourse.name || 'Course'
    };
 
    const { error: dbError } = await supabase
@@ -2382,6 +2434,7 @@ _${sanitizedFileName}`;
 
     await fetchFiles(selectedCourse.id);
     await fetchAllResources();
+    await fetchPublicResources();
   } catch (error) {
     console.error('Upload error details:', error);
     alert(
@@ -2475,6 +2528,36 @@ const handleDeleteFolder = async (folderName, e) => {
       }
   }
 };
+
+const getResourceType = (resource) =>
+  resource?.resource_type || 'Course Notes';
+
+const getResourceVisibility = (resource) =>
+  resource?.visibility || 'private';
+
+const visibleCourseResources =
+  resourceScope === 'public'
+    ? publicResources.filter((resource) => {
+        const resourceCourseName = String(resource.course_name || '')
+          .trim()
+          .toLowerCase();
+        const selectedCourseName = String(selectedCourse?.name || '')
+          .trim()
+          .toLowerCase();
+
+        return Boolean(selectedCourseName) &&
+          resourceCourseName === selectedCourseName;
+      })
+    : courseFiles.filter(
+        (resource) => getResourceVisibility(resource) !== 'public'
+      );
+
+const filteredVisibleCourseResources =
+  resourceTypeFilter === 'All Types'
+    ? visibleCourseResources
+    : visibleCourseResources.filter(
+        (resource) => getResourceType(resource) === resourceTypeFilter
+      );
 
 // =========================================================
 // SELECTED SEMESTER
@@ -3946,6 +4029,38 @@ if (selectedCourse) {
 {/* RESOURCES */}
 {workspaceTab === 'resources' && (
   <div style={whitePanelStyle}>
+   <div className="course-resource-toolbar" style={resourceSharingToolbarStyle}>
+    <div style={resourceScopeTabsStyle}>
+     {RESOURCE_VISIBILITIES.map((scope) => (
+      <button
+       key={scope.id}
+       type="button"
+       onClick={() => {
+        setResourceScope(scope.id);
+        setActiveFolderView(null);
+       }}
+       style={{
+        ...resourceScopeButtonStyle,
+        ...(resourceScope === scope.id ? resourceScopeButtonActiveStyle : {})
+       }}
+      >
+       {scope.label}
+      </button>
+     ))}
+    </div>
+
+    <select
+     value={resourceTypeFilter}
+     onChange={(e) => setResourceTypeFilter(e.target.value)}
+     style={resourceTypeSelectStyle}
+     aria-label="Filter resources by type"
+    >
+     <option value="All Types">All Types</option>
+     {RESOURCE_TYPES.map((type) => (
+      <option key={type} value={type}>{type}</option>
+     ))}
+    </select>
+   </div>
    <div
     style={{
      display: 'flex',
@@ -3987,7 +4102,7 @@ if (selectedCourse) {
   gap: '8px'
  }}
 >
- {courseFiles.length > 0 && (
+ {resourceScope === 'private' && courseFiles.length > 0 && (
   <button
     type="button"
     onClick={clearAllResources}
@@ -4019,8 +4134,35 @@ if (selectedCourse) {
             </div>
            </div>
 
-           {!activeFolderView ? (
-             existingFolders.length === 0 ? (
+           {resourceScope === 'public' ? (
+             filteredVisibleCourseResources.length === 0 ? (
+              <div style={dashboardEmptyStyle}>No public resources for this course yet.</div>
+             ) : (
+              <div style={publicResourceGridStyle}>
+               {filteredVisibleCourseResources.map((file) => (
+                <div key={file.id} style={publicResourceCardStyle}>
+                 <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={publicResourceTypeBadgeStyle}>{getResourceType(file)}</div>
+                  <div style={dashboardItemTitleStyle}>{file.file_name}</div>
+                  <div style={dashboardItemSubtitleStyle}>
+                   {file.course_name || selectedCourse?.name || 'Course'} • Shared publicly
+                  </div>
+                 </div>
+                 <a
+                  href={file.file_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={dashboardOpenFileBtnStyle}
+                  aria-label={`Open ${file.file_name}`}
+                 >
+                  <ExternalLink size={15} />
+                 </a>
+                </div>
+               ))}
+              </div>
+             )
+           ) : !activeFolderView ? (
+             filteredVisibleCourseResources.length === 0 ? (
                <div className="white-pop-empty-icon">
   <style>{`
     .white-pop-empty-icon div:has(> svg) {
@@ -4413,8 +4555,78 @@ if (selectedCourse) {
 </div>
 
 <div>
+ <label style={fieldLabel}>2. Who can see this?</label>
+ <div style={visibilityChoiceGridStyle}>
+  <button
+   type="button"
+   onClick={() => setUploadVisibility('private')}
+   style={{
+    ...visibilityChoiceStyle,
+    ...(uploadVisibility === 'private' ? visibilityChoiceActiveStyle : {})
+   }}
+  >
+   <Folder size={18} />
+   <span>
+    <strong>Private</strong>
+    <small style={visibilityHelpStyle}>Only you can see it in Campora.</small>
+   </span>
+  </button>
+
+  <button
+   type="button"
+   onClick={() => setUploadVisibility('public')}
+   style={{
+    ...visibilityChoiceStyle,
+    ...(uploadVisibility === 'public' ? visibilityChoiceActiveStyle : {})
+   }}
+  >
+   <FolderOpen size={18} />
+   <span>
+    <strong>Public</strong>
+    <small style={visibilityHelpStyle}>Students can find and open it.</small>
+   </span>
+  </button>
+ </div>
+</div>
+
+<div>
+ <label style={fieldLabel}>3. Resource Type</label>
+ <select
+  value={uploadResourceType}
+  onChange={(e) => setUploadResourceType(e.target.value)}
+  style={modalInput}
+ >
+  {RESOURCE_TYPES.map((type) => (
+   <option key={type} value={type}>{type}</option>
+  ))}
+ </select>
+</div>
+
+{uploadVisibility === 'public' && (
+ <div>
+  <label style={fieldLabel}>4. Course</label>
+  <select
+   required
+   value={uploadTargetCourseId}
+   onChange={(e) => setUploadTargetCourseId(e.target.value)}
+   style={modalInput}
+  >
+   <option value="">Choose a course...</option>
+   {courses.map((course) => (
+    <option key={course.id} value={course.id}>
+     {course.name}
+    </option>
+   ))}
+  </select>
+  <div style={publicUploadNoteStyle}>
+   Public resources are organized by course so other students can find the correct material.
+  </div>
+ </div>
+)}
+
+<div>
  <label style={fieldLabel}>
-  2. Destination Folder
+  {uploadVisibility === 'public' ? '5' : '4'}. Destination Folder
  </label>
 
  {existingFolders.length > 0 && (
@@ -4495,7 +4707,7 @@ if (selectedCourse) {
     style={{ margin: '0 auto' }}
   />
  ):(
-  'Save to Folder'
+  uploadVisibility === 'public' ? 'Share Publicly' : 'Save Privately'
  )}
 </button>
 
@@ -4594,7 +4806,21 @@ if (dashboardView === 'upcoming') {
 }
 
  if (dashboardView === 'resources') {
-   return allResources.map((resource) => {
+   const source =
+     resourceScope === 'public'
+       ? publicResources
+       : allResources.filter(
+           (resource) => getResourceVisibility(resource) !== 'public'
+         );
+
+   const filteredSource =
+     resourceTypeFilter === 'All Types'
+       ? source
+       : source.filter(
+           (resource) => getResourceType(resource) === resourceTypeFilter
+         );
+
+   return filteredSource.map((resource) => {
      const course = courses.find(
        (item) => item.id === resource.course_id
      );
@@ -4821,6 +5047,36 @@ return (
   <X size={17} />
  </button>
 </div>
+
+{dashboardView === 'resources' && (
+ <div style={{ ...resourceSharingToolbarStyle, marginBottom: '16px' }}>
+  <div style={resourceScopeTabsStyle}>
+   {RESOURCE_VISIBILITIES.map((scope) => (
+    <button
+     key={scope.id}
+     type="button"
+     onClick={() => setResourceScope(scope.id)}
+     style={{
+      ...resourceScopeButtonStyle,
+      ...(resourceScope === scope.id ? resourceScopeButtonActiveStyle : {})
+     }}
+    >
+     {scope.label}
+    </button>
+   ))}
+  </div>
+  <select
+   value={resourceTypeFilter}
+   onChange={(e) => setResourceTypeFilter(e.target.value)}
+   style={resourceTypeSelectStyle}
+  >
+   <option value="All Types">All Types</option>
+   {RESOURCE_TYPES.map((type) => (
+    <option key={type} value={type}>{type}</option>
+   ))}
+  </select>
+ </div>
+)}
 
 {dashboardItems.length === 0 ? (
  <div style={dashboardEmptyStyle}>
@@ -7296,6 +7552,126 @@ const iconActionBtn = {
   display: 'flex',
   alignItems: 'center',
   flexShrink: 0
+};
+
+const resourceSharingToolbarStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '12px',
+  flexWrap: 'wrap',
+  marginBottom: '18px'
+};
+
+const resourceScopeTabsStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  flexWrap: 'wrap'
+};
+
+const resourceScopeButtonStyle = {
+  border: '1px solid #E4E9F0',
+  background: '#FFFFFF',
+  color: '#64748B',
+  borderRadius: '999px',
+  padding: '9px 13px',
+  fontSize: '12px',
+  fontWeight: '800',
+  cursor: 'pointer'
+};
+
+const resourceScopeButtonActiveStyle = {
+  background: '#0B1A3F',
+  borderColor: '#0B1A3F',
+  color: '#FFFFFF'
+};
+
+const resourceTypeSelectStyle = {
+  minWidth: '160px',
+  maxWidth: '100%',
+  minHeight: '40px',
+  border: '1px solid #E4E9F0',
+  borderRadius: '12px',
+  padding: '8px 12px',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  fontSize: '12px',
+  fontWeight: '800'
+};
+
+const visibilityChoiceGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+  gap: '10px'
+};
+
+const visibilityChoiceStyle = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '10px',
+  width: '100%',
+  minWidth: 0,
+  padding: '13px',
+  border: '1px solid #E4E9F0',
+  borderRadius: '14px',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  textAlign: 'left',
+  cursor: 'pointer'
+};
+
+const visibilityChoiceActiveStyle = {
+  borderColor: '#0B1A3F',
+  background: '#F3F6FB',
+  boxShadow: '0 0 0 2px rgba(11,26,63,0.06)'
+};
+
+const visibilityHelpStyle = {
+  display: 'block',
+  marginTop: '3px',
+  color: '#64748B',
+  fontSize: '11px',
+  fontWeight: '600',
+  lineHeight: 1.4
+};
+
+const publicUploadNoteStyle = {
+  marginTop: '6px',
+  color: '#64748B',
+  fontSize: '11px',
+  fontWeight: '600',
+  lineHeight: 1.45
+};
+
+const publicResourceGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+  gap: '12px'
+};
+
+const publicResourceCardStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  minWidth: 0,
+  padding: '14px',
+  border: '1px solid #E7EBF1',
+  borderRadius: '16px',
+  background: '#FFFFFF'
+};
+
+const publicResourceTypeBadgeStyle = {
+  display: 'inline-flex',
+  marginBottom: '6px',
+  padding: '4px 8px',
+  borderRadius: '999px',
+  background: '#F2F9F7',
+  color: '#487C70',
+  fontSize: '10px',
+  fontWeight: '900',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em'
 };
 
 const uploadIconLabel = {
