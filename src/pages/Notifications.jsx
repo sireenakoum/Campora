@@ -2052,6 +2052,7 @@ export default function Notifications() {
           YOUR CAMPUS HUB
         </div>
 
+        <div className="notification-hero">
         <SectionHeader
           title="Notifications, Messages & Reminders"
           subtitle="Keep campus updates, conversations and reminders organised in one place."
@@ -2108,8 +2109,10 @@ export default function Notifications() {
             </div>
           }
         />
+        </div>
 
         <div
+          className="notification-section-controls"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -2119,6 +2122,7 @@ export default function Notifications() {
           }}
         >
           <div
+            className="notification-section-tabs"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -2191,6 +2195,7 @@ export default function Notifications() {
           </div>
 
           <div
+            className="notification-section-actions"
             style={{
               display: 'flex',
               alignItems: 'center',

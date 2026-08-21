@@ -1814,6 +1814,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         }}
       >
         <div
+          className="planner-toolbar"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -1822,6 +1823,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           }}
         >
           <h1
+            className="planner-title"
             style={{
               fontSize: '28px',
               fontWeight: '900',
@@ -1940,6 +1942,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           </h1>
 
           <div
+            className="planner-toolbar-actions"
             style={{
               display: 'flex',
               gap: '10px',
@@ -2009,6 +2012,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             </div>
 
             <button
+              className="planner-fullscreen-btn"
               onClick={() => setFullscreen((f) => !f)}
               style={{
                 ...navArrowBtn,
@@ -2087,7 +2091,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         )}
 
         <div
-          className="card"
+          className="card planner-calendar-card"
           style={{
             flex: 1,
             padding: '20px',
@@ -2110,6 +2114,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           )}
 
           <div
+            className={`planner-calendar-grid planner-calendar-${viewType.toLowerCase()}`}
             style={{
               display: 'grid',
               gridTemplateColumns:
@@ -2144,6 +2149,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               return (
                 <div
                   key={index}
+                  className={`planner-day-cell ${isSelected ? 'is-selected' : ''}`}
                   onClick={() => setSelectedDate(dateObj)}
                   style={{
                     height:
@@ -2167,7 +2173,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       marginBottom: '6px'
                     }}
                   >
-                    <div style={{ minWidth: '24px' }}>
+                    <div className="planner-cell-add-wrap" style={{ minWidth: '24px' }}>
                       {isSelected && (
                         <button
                           onClick={(event) => {
@@ -2577,6 +2583,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
       {!fullscreen && (
       <div
+        className="planner-side-panel"
         style={{
           width: '330px',
           height: '100%',
@@ -3344,7 +3351,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           </div>
 
         <div
-          className="card"
+          className="card planner-stickies-card"
           style={{
             flex: '0 0 auto',
             border: '1.5px solid #E9EDF7',
@@ -3414,6 +3421,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           </div>
 
           <div
+            className="planner-sticky-colors"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -3521,6 +3529,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           </div>
 
           <div
+            className="planner-sticky-note"
             style={{
               background: stickyColor,
               flex: 1,

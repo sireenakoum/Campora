@@ -4816,6 +4816,7 @@ export default function Messages() {
               </div>
 
               <div
+                className="wa-source-filter-card"
                 style={{
                   margin: '0 0 10px',
                   padding: '18px',
@@ -4837,6 +4838,7 @@ export default function Messages() {
                 </div>
 
                 <div
+                  className="wa-source-filter-grid"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
@@ -4853,6 +4855,7 @@ export default function Messages() {
                     <button
                       key={key}
                       type="button"
+                      className="wa-source-filter-btn"
                       onClick={() => setSourceFilter(key)}
                       style={{
                         border:
