@@ -12,6 +12,9 @@ import {
   GraduationCap,
   Search,
   UserRoundCheck,
+  UserRoundX,
+  RotateCcw,
+  Ban,
   ChevronLeft,
   Flag,
 } from 'lucide-react';
@@ -38,6 +41,11 @@ export default function AdminStudyGroups() {
 
   const [reportFilter, setReportFilter] = useState('all');
   const [messageSearch, setMessageSearch] = useState('');
+
+  const [userList, setUserList] = useState([]);
+  const [adminIds, setAdminIds] = useState([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState('all');
 
   const [loading, setLoading] = useState(true);
   const [sectionLoading, setSectionLoading] = useState(false);
@@ -152,12 +160,33 @@ export default function AdminStudyGroups() {
     await mergeProfilesByIds(userIds);
   };
 
+  const fetchUsers = async () => {
+    const [profilesResult, adminsResult] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select(
+          'id, name, role, account_type, avatar_url, is_deactivated, deactivated_at, created_at'
+        )
+        .order('created_at', { ascending: false }),
+      supabase.from('campora_admins').select('user_id'),
+    ]);
+
+    if (profilesResult.error) {
+      console.error('Users loading error:', profilesResult.error);
+      throw profilesResult.error;
+    }
+
+    setUserList(profilesResult.data || []);
+    setAdminIds((adminsResult.data || []).map((row) => row.user_id));
+  };
+
   const loadTab = async (tab = activeTab) => {
     setSectionLoading(true);
     try {
       if (tab === 'study') await fetchPendingGroups();
       if (tab === 'mentors') await fetchMentorApplications();
       if (tab === 'messages') await fetchReports();
+      if (tab === 'users') await fetchUsers();
     } catch (error) {
       alert(
         `Could not load this admin section: ${
@@ -389,6 +418,51 @@ export default function AdminStudyGroups() {
     }
   };
 
+  const toggleUserDeactivation = async (user) => {
+    const deactivating = !user.is_deactivated;
+
+    if (
+      deactivating &&
+      !window.confirm(
+        `Deactivate ${user.name || 'this user'}? They will be signed out and blocked from logging in until reactivated.`
+      )
+    ) {
+      return;
+    }
+
+    setActionLoading(`user-${user.id}`);
+
+    try {
+      const updates = {
+        is_deactivated: deactivating,
+        deactivated_at: deactivating ? new Date().toISOString() : null,
+        deactivated_by: deactivating ? adminUserId : null,
+      };
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id)
+        .select(
+          'id, name, role, account_type, avatar_url, is_deactivated, deactivated_at, created_at'
+        )
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) {
+        throw new Error('Blocked by database permissions.');
+      }
+
+      setUserList((current) =>
+        current.map((item) => (item.id === user.id ? { ...item, ...data } : item))
+      );
+    } catch (error) {
+      alert(`Could not update this account: ${error.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const formatDate = (value) => {
     if (!value) return '';
     const date = new Date(value);
@@ -481,6 +555,16 @@ export default function AdminStudyGroups() {
           }
           onClick={() => changeTab('messages')}
         />
+
+        <AdminTab
+          active={activeTab === 'users'}
+          icon={<Ban size={17} />}
+          label="User Accounts"
+          count={
+            userList.filter((user) => user.is_deactivated).length
+          }
+          onClick={() => changeTab('users')}
+        />
       </div>
 
       {sectionLoading ? (
@@ -523,6 +607,20 @@ export default function AdminStudyGroups() {
               formatDate={formatDate}
               actionLoading={actionLoading}
               onResolve={resolveReport}
+            />
+          )}
+
+          {activeTab === 'users' && (
+            <UsersSection
+              users={userList}
+              adminIds={adminIds}
+              currentUserId={adminUserId}
+              search={userSearch}
+              setSearch={setUserSearch}
+              statusFilter={userStatusFilter}
+              setStatusFilter={setUserStatusFilter}
+              actionLoading={actionLoading}
+              onToggle={toggleUserDeactivation}
             />
           )}
         </>
@@ -584,6 +682,192 @@ function AdminTab({ active, icon, label, count, onClick }) {
     </button>
   );
 }
+
+function UsersSection({
+  users,
+  adminIds,
+  currentUserId,
+  search,
+  setSearch,
+  statusFilter,
+  setStatusFilter,
+  actionLoading,
+  onToggle,
+}) {
+  const filtered = useMemo(() => {
+    let rows = [...users];
+
+    if (statusFilter === 'active') {
+      rows = rows.filter((user) => !user.is_deactivated);
+    } else if (statusFilter === 'deactivated') {
+      rows = rows.filter((user) => user.is_deactivated);
+    }
+
+    const query = search.trim().toLowerCase();
+
+    if (query) {
+      rows = rows.filter((user) =>
+        [user.name || '', user.role || '', user.account_type || '']
+          .join(' ')
+          .toLowerCase()
+          .includes(query)
+      );
+    }
+
+    return rows;
+  }, [users, statusFilter, search]);
+
+  const deactivatedCount = users.filter((user) => user.is_deactivated).length;
+
+  return (
+    <>
+      <SectionIntro
+        icon={<Ban size={21} />}
+        title={`${users.length} account${users.length === 1 ? '' : 's'} registered`}
+        description={
+          deactivatedCount
+            ? `${deactivatedCount} deactivated. Deactivated users cannot log in or write data until reactivated.`
+            : 'Deactivate an account to block its access. Admin accounts and your own account are protected.'
+        }
+      />
+
+      <div style={moderationToolbar}>
+        <div style={searchBox}>
+          <Search size={17} color="#717786" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by name, role, or account type..."
+            style={searchInput}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'active', label: 'Active' },
+            { key: 'deactivated', label: 'Deactivated' },
+          ].map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setStatusFilter(option.key)}
+              style={{
+                ...filterButton,
+                ...(statusFilter === option.key
+                  ? {
+                      background: '#0B1A3F',
+                      color: '#FFFFFF',
+                      borderColor: '#0B1A3F',
+                    }
+                  : {}),
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!filtered.length ? (
+        <EmptyState
+          icon={<Users size={32} />}
+          title="No accounts found"
+          text="Try a different search or status filter."
+        />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {filtered.map((user) => (
+            <UserRow
+              key={user.id}
+              user={user}
+              isAdminAccount={adminIds.includes(user.id)}
+              isSelf={user.id === currentUserId}
+              actionLoading={actionLoading}
+              onToggle={onToggle}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function UserRow({ user, isAdminAccount, isSelf, actionLoading, onToggle }) {
+  const busy = actionLoading === `user-${user.id}`;
+  const deactivated = !!user.is_deactivated;
+  const protectedAccount = isSelf || isAdminAccount;
+
+  return (
+    <div
+      style={{
+        ...userRow,
+        ...(deactivated ? userRowDeactivated : {}),
+      }}
+    >
+      <div style={conversationAvatar}>
+        {user.avatar_url ? (
+          <img
+            src={user.avatar_url}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 15 }}
+          />
+        ) : (
+          (user.name || '?').charAt(0).toUpperCase()
+        )}
+      </div>
+
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={conversationTitleRow}>
+          <span style={userName}>{user.name || 'Unnamed student'}</span>
+
+          {isAdminAccount && (
+            <span style={{ ...accountChip, background: '#E8F0FA', color: NAVY }}>
+              <ShieldCheck size={11} />
+              ADMIN
+            </span>
+          )}
+
+          <span style={accountChip}>{user.account_type || user.role || 'Student'}</span>
+
+          <span
+            style={{
+              ...accountChip,
+              background: deactivated ? '#FDECEC' : '#E7F6EC',
+              color: deactivated ? '#C0392B' : '#1E8449',
+            }}
+          >
+            {deactivated ? 'DEACTIVATED' : 'ACTIVE'}
+          </span>
+        </div>
+
+        <p style={userMeta}>
+          Joined {formatDate(user.created_at) || 'unknown date'}
+          {deactivated && user.deactivated_at
+            ? ` · Deactivated ${formatDate(user.deactivated_at)}`
+            : ''}
+        </p>
+      </div>
+
+      {protectedAccount ? (
+        <span style={protectedNote}>
+          {isSelf ? 'This is you' : 'Admin account'}
+        </span>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onToggle(user)}
+          style={deactivated ? reactivateButton : deactivateButton}
+        >
+          {deactivated ? <RotateCcw size={15} /> : <UserRoundX size={15} />}
+          {busy ? 'Saving...' : deactivated ? 'Reactivate' : 'Deactivate'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 
 function StudyReviewSection({
   pendingGroups,
@@ -1493,6 +1777,82 @@ const filterButton = {
   fontWeight: 900,
   cursor: 'pointer',
   fontSize: 12,
+};
+
+const userRow = {
+  border: '1.5px solid #E5EAF1',
+  background: '#FFFFFF',
+  borderRadius: 18,
+  padding: '14px 16px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 13,
+  boxShadow: '0 8px 24px rgba(0,45,98,.035)',
+};
+
+const userRowDeactivated = {
+  background: '#FBF6F6',
+  borderColor: '#F2DCDC',
+};
+
+const userName = {
+  color: TEXT,
+  fontSize: 15,
+  fontWeight: 900,
+};
+
+const accountChip = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  background: '#EEF3FB',
+  color: '#42506D',
+  borderRadius: 999,
+  padding: '4px 9px',
+  fontSize: 10,
+  fontWeight: 900,
+};
+
+const userMeta = {
+  margin: '6px 0 0',
+  color: MUTED,
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const protectedNote = {
+  color: '#8A91A0',
+  fontSize: 11,
+  fontWeight: 900,
+  flexShrink: 0,
+};
+
+const deactivateButton = {
+  border: '1.5px solid #FFD0D0',
+  background: '#FFF1F1',
+  color: '#D84C4C',
+  borderRadius: 12,
+  padding: '10px 14px',
+  fontWeight: 900,
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 7,
+  flexShrink: 0,
+};
+
+const reactivateButton = {
+  border: 'none',
+  background: NAVY,
+  color: '#FFFFFF',
+  borderRadius: 12,
+  padding: '10px 14px',
+  fontWeight: 900,
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 7,
+  flexShrink: 0,
 };
 
 const reportRow = {

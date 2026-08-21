@@ -591,6 +591,20 @@ function DashboardLayout() {
           .eq('id', user.id)
           .maybeSingle();
 
+      if (profile?.is_deactivated) {
+        await supabase.auth.signOut();
+
+        navigate('/login', {
+          replace: true,
+          state: {
+            message:
+              'This account has been deactivated. Please contact a Campora administrator.',
+          },
+        });
+
+        return;
+      }
+
       if (
         !profile ||
         profile.onboarding_completed !== true

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "./lib/supabase"; 
 import ErrorMessage from "./ErrorMessage";
 
@@ -9,6 +9,15 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setError(location.state.message);
+      window.history.replaceState({}, document.title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault(); 
@@ -23,16 +32,34 @@ export default function Login() {
     }
 
     setLoading(true);
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: cleanEmail,
       password,
     });
 
     if (authError) {
       setError(authError.message);
-    } else {
-      navigate('/dashboard');
+      setLoading(false);
+      return;
     }
+
+    // Block accounts that have been deactivated by a Campora admin.
+    if (authData?.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_deactivated")
+        .eq("id", authData.user.id)
+        .maybeSingle();
+
+      if (profile?.is_deactivated) {
+        await supabase.auth.signOut();
+        setError("This account has been deactivated. Please contact a Campora administrator.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    navigate('/dashboard');
     setLoading(false);
   };
 
