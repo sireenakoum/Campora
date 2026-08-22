@@ -3411,7 +3411,7 @@ body.campora-messages-fullscreen .main-content > * {
 ========================================================= */
 @media (min-width: 651px) and (max-width: 1100px) {
   .sidebar-footer {
-    transform: translateY(8px);
+    transform: translateY(24px);
   }
 
   .sidebar.collapsed .sidebar-collapse-btn {
