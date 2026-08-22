@@ -5542,9 +5542,9 @@ function CourseModal({
         padding: 16px !important;
       }
       .course-modal-card {
-        width: min(700px, calc(100% - 8px)) !important;
-        max-width: 700px !important;
-        padding: 22px !important;
+        width: min(650px, calc(100% - 8px)) !important;
+        max-width: 650px !important;
+        padding: 20px !important;
         border-radius: 20px !important;
         max-height: calc(100dvh - 32px) !important;
       }

@@ -3368,3 +3368,38 @@ body.campora-messages-fullscreen .main-content > * {
     min-height: 100vh;
   }
 }
+
+
+/* =========================================================
+   IPAD / TABLET STABILITY
+   Keep the top search bar visually consistent when rotating
+   between portrait and landscape.
+========================================================= */
+@media (min-width: 651px) and (max-width: 1100px) {
+  .topbar-search-pill {
+    width: clamp(320px, 52vw, 520px) !important;
+    height: 46px !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    padding: 0 17px !important;
+    justify-content: flex-start !important;
+    border-radius: 999px !important;
+  }
+
+  .topbar-search-pill .topbar-search-label {
+    display: block !important;
+  }
+
+  .topbar-controls {
+    right: 16px !important;
+  }
+}
+
+/* Portrait iPad has less room beside the controls, so keep the same
+   search treatment but trim its width rather than changing its shape. */
+@media (min-width: 651px) and (max-width: 820px) {
+  .topbar-search-pill {
+    width: clamp(280px, 44vw, 360px) !important;
+  }
+}
