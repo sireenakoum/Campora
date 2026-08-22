@@ -5529,6 +5529,40 @@ function CourseModal({
  const hasExistingSemester = semesterOptions.length > 0;
 
  return (
+  <div className="course-modal-style-wrap" style={{ display: 'contents' }}>
+  <style>{`
+    .course-modal-overlay {
+      box-sizing: border-box;
+    }
+    .course-modal-card {
+      box-sizing: border-box;
+    }
+    @media (min-width: 651px) and (max-width: 1100px) {
+      .course-modal-overlay {
+        padding: 16px !important;
+      }
+      .course-modal-card {
+        width: min(700px, calc(100% - 8px)) !important;
+        max-width: 700px !important;
+        padding: 22px !important;
+        border-radius: 20px !important;
+        max-height: calc(100dvh - 32px) !important;
+      }
+    }
+    @media (max-width: 650px) {
+      .course-modal-overlay {
+        padding: 10px !important;
+        align-items: flex-start !important;
+      }
+      .course-modal-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 16px !important;
+        border-radius: 18px !important;
+        max-height: calc(100dvh - 20px) !important;
+      }
+    }
+  `}</style>
   <div className="course-modal-overlay" style={overlayStyle}>
     <div className="course-modal-card" style={modalCardStyle}>
      <div
@@ -6086,6 +6120,7 @@ function CourseModal({
         </form>
        </div>
       </div>
+     </div>
     );
 }
 
