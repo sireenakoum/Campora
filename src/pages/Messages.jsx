@@ -5751,6 +5751,150 @@ export default function Messages() {
           padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
         }
 
+
+        /* =========================================================
+           FINAL PHONE CHAT BEHAVIOR
+           Normal: stays below Campora's top navigation + bot visible.
+           Enlarged: portal fills the entire viewport and covers both.
+        ========================================================= */
+        body.campora-phone-messages .wa-chat-screen.is-phone-chat:not(.is-fullscreen) {
+          position: relative !important;
+          inset: auto !important;
+          top: auto !important;
+          right: auto !important;
+          bottom: auto !important;
+          left: auto !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          height: 100% !important;
+          min-height: 0 !important;
+          max-height: 100% !important;
+          margin: 0 !important;
+          z-index: auto !important;
+          border-radius: 0 !important;
+          overflow: hidden !important;
+          background: #FFFFFF !important;
+        }
+
+        body.campora-phone-messages .wa-chat-screen.is-phone-chat.is-fullscreen {
+          position: fixed !important;
+          inset: 0 !important;
+          width: 100vw !important;
+          max-width: 100vw !important;
+          height: 100dvh !important;
+          min-height: 100dvh !important;
+          max-height: 100dvh !important;
+          margin: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          overflow: hidden !important;
+          background: #FFFFFF !important;
+          z-index: 9990 !important;
+        }
+
+        body.campora-phone-messages .wa-chat-header {
+          display: grid !important;
+          grid-template-columns: 46px minmax(0, 1fr) !important;
+          column-gap: 10px !important;
+          row-gap: 10px !important;
+          align-items: center !important;
+          padding: 10px 12px !important;
+          padding-top: max(10px, env(safe-area-inset-top)) !important;
+          overflow: visible !important;
+          flex: 0 0 auto !important;
+        }
+
+        body.campora-phone-messages .wa-chat-header > .wa-avatar {
+          display: none !important;
+        }
+
+        body.campora-phone-messages .wa-back-btn {
+          grid-column: 1 !important;
+          grid-row: 1 !important;
+        }
+
+        body.campora-phone-messages .wa-chat-header-copy {
+          grid-column: 2 !important;
+          grid-row: 1 !important;
+          min-width: 0 !important;
+        }
+
+        body.campora-phone-messages .wa-chat-header-copy h3,
+        body.campora-phone-messages .wa-chat-header-copy p {
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+
+        /* Match the StudyGroups action row: every icon remains on-screen. */
+        body.campora-phone-messages .wa-chat-toolbar {
+          grid-column: 1 / -1 !important;
+          grid-row: 2 !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: flex !important;
+          flex-wrap: nowrap !important;
+          justify-content: flex-start !important;
+          align-items: center !important;
+          gap: 6px !important;
+          overflow: visible !important;
+          scrollbar-width: none !important;
+        }
+
+        body.campora-phone-messages .wa-chat-toolbar::-webkit-scrollbar {
+          display: none !important;
+        }
+
+        body.campora-phone-messages .wa-chat-tool-btn,
+        body.campora-phone-messages .wa-chat-toolbar > div {
+          flex: 0 0 36px !important;
+          width: 36px !important;
+          min-width: 36px !important;
+          max-width: 36px !important;
+          height: 36px !important;
+          min-height: 36px !important;
+          max-height: 36px !important;
+          box-sizing: border-box !important;
+        }
+
+        body.campora-phone-messages .wa-chat-toolbar > div > .wa-chat-tool-btn {
+          width: 36px !important;
+          min-width: 36px !important;
+          max-width: 36px !important;
+          height: 36px !important;
+          min-height: 36px !important;
+          max-height: 36px !important;
+        }
+
+        /* The enlarge button MUST always be directly after Pin on phones. */
+        body.campora-phone-messages .wa-fullscreen-tool {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          position: relative !important;
+          order: -99 !important;
+          flex: 0 0 36px !important;
+          width: 36px !important;
+          min-width: 36px !important;
+          max-width: 36px !important;
+          height: 36px !important;
+          pointer-events: auto !important;
+        }
+
+        body.campora-phone-messages .wa-chat-history {
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          height: 0 !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+
+        body.campora-phone-messages .wa-composer {
+          flex: 0 0 auto !important;
+          padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+        }
+
 `}</style>
 
       {!selected ? (
@@ -6240,7 +6384,7 @@ export default function Messages() {
               <button
                 type="button"
                 className="wa-chat-tool-btn"
-                style={{ order: 1, flexShrink: 0 }}
+                style={{ order: -100, flexShrink: 0 }}
                 title={
                   pinnedMessageChats.includes(
                     selected.type === 'dm'
