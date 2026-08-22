@@ -462,6 +462,21 @@ export default function Messages() {
     setMessagesFullscreen(false);
   }, [selected?.type, selected?.partnerId, selected?.groupId]);
 
+
+  // Match StudyGroups: small screens open the selected conversation fullscreen.
+  useEffect(() => {
+    if (!selected || typeof window === 'undefined') return;
+
+    const mobileQuery = window.matchMedia('(max-width: 700px)');
+    const ua = navigator.userAgent || '';
+    const isPhoneDevice =
+      /iPhone|iPod|Android.*Mobile|Windows Phone|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+    if (mobileQuery.matches || isPhoneDevice) {
+      setMessagesFullscreen(true);
+    }
+  }, [selected?.type, selected?.partnerId, selected?.groupId]);
+
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [profilePreview, setProfilePreview] = useState(null);
@@ -5952,6 +5967,178 @@ export default function Messages() {
           z-index: 9990 !important;
         }
 
+
+
+        /* =========================================================
+           FINAL PHONE CHAT — MIRRORS STUDYGROUPS
+           ========================================================= */
+        @media (max-width: 700px) {
+          body.campora-phone-messages .wa-chat-screen.is-phone-chat.is-fullscreen {
+            position: fixed !important;
+            inset: 0 !important;
+            top: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100dvh !important;
+            min-width: 100vw !important;
+            min-height: 100dvh !important;
+            max-width: 100vw !important;
+            max-height: 100dvh !important;
+            margin: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: #FFFFFF !important;
+            overflow: hidden !important;
+            z-index: 9990 !important;
+          }
+
+          body.campora-phone-messages .wa-chat-header {
+            min-height: 0 !important;
+            padding: max(10px, env(safe-area-inset-top)) 10px 10px !important;
+            display: grid !important;
+            grid-template-columns: 44px minmax(0, 1fr) !important;
+            column-gap: 9px !important;
+            row-gap: 9px !important;
+            align-items: center !important;
+            flex: 0 0 auto !important;
+            overflow: visible !important;
+          }
+
+          body.campora-phone-messages .wa-chat-header > .wa-avatar {
+            display: none !important;
+          }
+
+          body.campora-phone-messages .wa-back-btn {
+            grid-column: 1 !important;
+            grid-row: 1 !important;
+            width: 44px !important;
+            height: 44px !important;
+          }
+
+          body.campora-phone-messages .wa-chat-header-copy {
+            grid-column: 2 !important;
+            grid-row: 1 !important;
+            min-width: 0 !important;
+          }
+
+          body.campora-phone-messages .wa-chat-header-copy h3 {
+            margin: 0 !important;
+            max-width: 100% !important;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            word-break: normal !important;
+            overflow-wrap: anywhere !important;
+            font-size: 16px !important;
+            line-height: 1.15 !important;
+          }
+
+          body.campora-phone-messages .wa-chat-header-copy p {
+            margin-top: 3px !important;
+            max-width: 100% !important;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            font-size: 10px !important;
+            line-height: 1.2 !important;
+          }
+
+          /* Same single action row as StudyGroups. */
+          body.campora-phone-messages .wa-chat-toolbar {
+            grid-column: 1 / -1 !important;
+            grid-row: 2 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 0 2px !important;
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 6px !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+          }
+
+          body.campora-phone-messages .wa-chat-toolbar::-webkit-scrollbar {
+            display: none !important;
+          }
+
+          /* Put Pin first, enlarge/minimize second, all remaining actions after. */
+          body.campora-phone-messages .wa-chat-toolbar > * {
+            order: 2 !important;
+          }
+
+          body.campora-phone-messages .wa-pin-tool {
+            order: 0 !important;
+          }
+
+          body.campora-phone-messages .wa-fullscreen-tool {
+            order: 1 !important;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+          }
+
+          body.campora-phone-messages .wa-chat-tool-btn,
+          body.campora-phone-messages .wa-chat-toolbar > div {
+            flex: 0 0 40px !important;
+            width: 40px !important;
+            min-width: 40px !important;
+            max-width: 40px !important;
+            height: 40px !important;
+            min-height: 40px !important;
+            max-height: 40px !important;
+            box-sizing: border-box !important;
+            border-radius: 11px !important;
+          }
+
+          body.campora-phone-messages .wa-chat-toolbar > div > .wa-chat-tool-btn {
+            width: 40px !important;
+            min-width: 40px !important;
+            max-width: 40px !important;
+            height: 40px !important;
+            min-height: 40px !important;
+            max-height: 40px !important;
+          }
+
+          body.campora-phone-messages .wa-chat-history {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            height: 0 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding: 12px 10px 16px !important;
+          }
+
+          body.campora-phone-messages .wa-composer {
+            flex: 0 0 auto !important;
+            padding: 10px !important;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+          }
+
+          body.campora-phone-messages .wa-message-avatar,
+          body.campora-phone-messages .wa-message-avatar img {
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 50% !important;
+          }
+
+          body.campora-phone-messages .wa-message-avatar {
+            flex: 0 0 30px !important;
+            width: 30px !important;
+            min-width: 30px !important;
+            max-width: 30px !important;
+            height: 30px !important;
+            min-height: 30px !important;
+            max-height: 30px !important;
+          }
+        }
+
 `}</style>
 
       {!selected ? (
@@ -6440,7 +6627,7 @@ export default function Messages() {
               {/* PIN */}
               <button
                 type="button"
-                className="wa-chat-tool-btn"
+                className="wa-chat-tool-btn wa-pin-tool"
                 style={{ flexShrink: 0 }}
                 title={
                   pinnedMessageChats.includes(
