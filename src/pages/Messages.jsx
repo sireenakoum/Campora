@@ -463,20 +463,6 @@ export default function Messages() {
   }, [selected?.type, selected?.partnerId, selected?.groupId]);
 
 
-  // Match StudyGroups: small screens open the selected conversation fullscreen.
-  useEffect(() => {
-    if (!selected || typeof window === 'undefined') return;
-
-    const mobileQuery = window.matchMedia('(max-width: 700px)');
-    const ua = navigator.userAgent || '';
-    const isPhoneDevice =
-      /iPhone|iPod|Android.*Mobile|Windows Phone|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-
-    if (mobileQuery.matches || isPhoneDevice) {
-      setMessagesFullscreen(true);
-    }
-  }, [selected?.type, selected?.partnerId, selected?.groupId]);
-
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [profilePreview, setProfilePreview] = useState(null);
