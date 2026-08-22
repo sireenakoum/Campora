@@ -129,93 +129,50 @@ import {
 const MAJORS_CREATION = [
   'All Majors Welcome',
   'Agri-Business — BS',
-  'Agri-culture',
   'Agri-culture — BS',
-  'Applied Mathematics',
   'Applied Mathematics — BA/BS',
-  'Arabic Language and Literature',
   'Arabic Language and Literature — BA',
-  'Archaeology',
   'Archaeology — BA',
-  'Architecture',
   'Architecture — BArch',
-  'Art History',
   'Art History — BA',
-  'Biology',
   'Biology — BS',
-  'Business Administration',
   'Business Administration — BBA',
-  'Chemical Engineering',
   'Chemical Engineering — BE/BS',
-  'Chemistry',
   'Chemistry — BS',
-  'Civil and Environmental Engineering',
   'Civil and Environmental Engineering — BE',
-  'Computer and Communications Engineering',
   'Computer and Communications Engineering — BEN',
-  'Computer Science',
   'Computer Science — BS',
-  'Construction Engineering',
   'Construction Engineering — BS',
-  'Earth Sciences',
   'Earth Sciences — BS',
-  'Economics',
   'Economics — BA',
-  'Electrical and Computer Engineering',
   'Electrical and Computer Engineering — BE',
-  'Elementary Education',
   'Elementary Education — BA',
-  'English Language',
   'English Language — BA',
-  'English Literature',
   'English Literature — BA',
-  'Environmental Health',
   'Environmental Health — BS',
-  'Food Sciences and Management',
   'Food Sciences and Management — BS',
-  'Graphic Design',
   'Graphic Design — BFA',
-  'Health Communication',
   'Health Communication — BA',
-  'History',
   'History — BA',
-  'Industrial Engineering',
   'Industrial Engineering — BE',
-  'Landscape Architecture (BLA)',
   'Landscape Architecture (BLA) — BLA',
-  'Mathematics',
   'Mathematics — BA/BS',
-  'Mechanical Engineering',
   'Mechanical Engineering — BE',
-  'Media and Communication',
   'Media and Communication — BA',
-  'Medical Imaging Sciences',
   'Medical Imaging Sciences — BS',
-  'Medical Laboratory Sciences',
   'Medical Laboratory Sciences — BS',
-  'Nursing',
   'Nursing — BA/BS-BSN',
   'Nursing — BSN',
   'Nursing — RN-BSN',
-  'Nutrition and Dietetics',
   'Nutrition and Dietetics — BS',
-  'Nutrition and Dietetics Coordinated Program',
   'Nutrition and Dietetics Coordinated Program — BS',
-  'Philosophy',
   'Philosophy — BA',
-  'Physics',
   'Physics — BS',
-  'Political Studies',
   'Political Studies — BA',
-  'Psychology',
   'Psychology — BA',
-  'Public Administration',
   'Public Administration — BA',
-  'Sociology-Anthropology',
   'Sociology-Anthropology — BA',
-  'Statistics',
   'Statistics — BA/BS',
-  'Studio Arts',
   'Studio Arts — BA',
   "Anthropology — Residential Master's (MA)",
   "History — Residential Master's (MA)",
@@ -9866,6 +9823,59 @@ style={{
     }
   }
 
+
+
+  /* =========================================================
+     CREATE / EDIT CIRCLE — PHONE WIDTH FIX
+     Prevent long major names and inputs from spilling off-screen.
+  ========================================================= */
+  .study-group-form-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .study-group-major-select {
+    text-overflow: ellipsis !important;
+  }
+
+  @media (max-width: 700px) {
+    .study-groups-mobile form,
+    .study-groups-mobile form > div,
+    .study-groups-mobile [style*="flexDirection: 'column'"],
+    .study-groups-mobile [style*="flex-direction: column"] {
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+
+    .study-groups-mobile .study-group-form-control {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      font-size: 16px !important;
+    }
+
+    .study-groups-mobile input.study-group-form-control {
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    .study-groups-mobile select.study-group-form-control {
+      padding-right: 42px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    .study-groups-mobile .study-group-major-select {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  }
+
 `}</style>
 
 {/* =================================================
@@ -12416,6 +12426,7 @@ NAME
 
 <input
 type="text"
+className="study-group-form-control"
 
 required
 style={
