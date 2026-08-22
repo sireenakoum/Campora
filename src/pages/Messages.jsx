@@ -1,6 +1,5 @@
 import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Inbox,
   Send,
@@ -6502,9 +6501,6 @@ export default function Messages() {
           </div>
         </section>
       ) : (
-        <>
-        {(() => {
-          const chatScreen = (
         <section
           ref={chatScreenRef}
           className={`wa-chat-screen ${messagesFullscreen ? 'is-fullscreen' : ''} ${isPhoneViewport ? 'is-phone-chat' : ''}`}
@@ -7667,13 +7663,6 @@ export default function Messages() {
             </button>
           </div>
         </section>
-          );
-
-          return messagesFullscreen && isPhoneViewport
-            ? createPortal(chatScreen, document.body)
-            : chatScreen;
-        })()}
-        </>
       )}
 
       {showPollModal && selected?.type === 'group' && (
