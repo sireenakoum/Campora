@@ -339,28 +339,55 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [messagesFullscreen, setMessagesFullscreen] = useState(false);
-  const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(max-width: 700px)').matches
-      : false
-  );
+  const detectPhoneViewport = () => {
+    if (typeof window === 'undefined') return false;
+
+    const ua = navigator.userAgent || '';
+    const isPhoneDevice =
+      /iPhone|iPod|Android.*Mobile|Windows Phone|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+    return isPhoneDevice || window.matchMedia('(max-width: 700px)').matches;
+  };
+
+  const [isPhoneViewport, setIsPhoneViewport] = useState(detectPhoneViewport);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
     const query = window.matchMedia('(max-width: 700px)');
-    const syncViewport = () => setIsPhoneViewport(query.matches);
+    const syncViewport = () => setIsPhoneViewport(detectPhoneViewport());
 
     syncViewport();
+    window.addEventListener('resize', syncViewport);
+    window.addEventListener('orientationchange', syncViewport);
 
     if (query.addEventListener) {
       query.addEventListener('change', syncViewport);
-      return () => query.removeEventListener('change', syncViewport);
+    } else if (query.addListener) {
+      query.addListener(syncViewport);
     }
 
-    query.addListener(syncViewport);
-    return () => query.removeListener(syncViewport);
+    return () => {
+      window.removeEventListener('resize', syncViewport);
+      window.removeEventListener('orientationchange', syncViewport);
+
+      if (query.removeEventListener) {
+        query.removeEventListener('change', syncViewport);
+      } else if (query.removeListener) {
+        query.removeListener(syncViewport);
+      }
+    };
   }, []);
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    document.body.classList.toggle('campora-phone-messages', isPhoneViewport);
+
+    return () => {
+      document.body.classList.remove('campora-phone-messages');
+    };
+  }, [isPhoneViewport]);
+
   useEffect(() => {
     if (messagesFullscreen) {
       document.body.style.overflow = 'hidden';
@@ -5634,6 +5661,96 @@ export default function Messages() {
             font-size: 12px !important;
           }
         }
+
+        /* FINAL PHONE OVERRIDE — matches StudyGroups interaction */
+        body.campora-phone-messages .wa-chat-screen.is-phone-chat {
+          position: fixed !important;
+          inset: 0 !important;
+          width: 100vw !important;
+          height: 100dvh !important;
+          min-width: 100vw !important;
+          min-height: 100dvh !important;
+          max-width: 100vw !important;
+          max-height: 100dvh !important;
+          margin: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: #fff !important;
+          overflow: hidden !important;
+          z-index: 900 !important;
+        }
+
+        body.campora-phone-messages .wa-chat-screen.is-phone-chat.is-fullscreen {
+          z-index: 9990 !important;
+        }
+
+        body.campora-phone-messages .wa-chat-header {
+          display: grid !important;
+          grid-template-columns: 48px minmax(0, 1fr) !important;
+          column-gap: 12px !important;
+          row-gap: 10px !important;
+          align-items: center !important;
+          padding: max(10px, env(safe-area-inset-top)) 12px 10px !important;
+          overflow: visible !important;
+        }
+
+        body.campora-phone-messages .wa-chat-header > .wa-avatar {
+          display: none !important;
+        }
+
+        body.campora-phone-messages .wa-back-btn {
+          grid-column: 1 !important;
+          grid-row: 1 !important;
+        }
+
+        body.campora-phone-messages .wa-chat-header-copy {
+          grid-column: 2 !important;
+          grid-row: 1 !important;
+          min-width: 0 !important;
+        }
+
+        body.campora-phone-messages .wa-chat-toolbar {
+          grid-column: 1 / -1 !important;
+          grid-row: 2 !important;
+          width: 100% !important;
+          display: flex !important;
+          flex-wrap: wrap !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+          gap: 7px !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
+
+        body.campora-phone-messages .wa-chat-tool-btn,
+        body.campora-phone-messages .wa-chat-toolbar > div {
+          flex: 0 0 44px !important;
+          width: 44px !important;
+          min-width: 44px !important;
+          max-width: 44px !important;
+          height: 44px !important;
+        }
+
+        body.campora-phone-messages .wa-fullscreen-tool {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          order: 2 !important;
+        }
+
+        body.campora-phone-messages .wa-chat-history {
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+
+        body.campora-phone-messages .wa-composer {
+          flex: 0 0 auto !important;
+          padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+        }
+
 `}</style>
 
       {!selected ? (
@@ -6123,6 +6240,7 @@ export default function Messages() {
               <button
                 type="button"
                 className="wa-chat-tool-btn"
+                style={{ order: 1, flexShrink: 0 }}
                 title={
                   pinnedMessageChats.includes(
                     selected.type === 'dm'
@@ -6164,9 +6282,17 @@ export default function Messages() {
               {/* FULL SCREEN */}
               <button
                 type="button"
-                className="wa-chat-tool-btn"
+                className="wa-chat-tool-btn wa-fullscreen-tool"
                 title={messagesFullscreen ? 'Exit full screen' : 'Full screen'}
+                aria-label={messagesFullscreen ? 'Exit full screen' : 'Full screen'}
                 onClick={() => setMessagesFullscreen((value) => !value)}
+                style={{
+                  display: 'flex',
+                  visibility: 'visible',
+                  opacity: 1,
+                  order: 2,
+                  flexShrink: 0
+                }}
               >
                 {messagesFullscreen ? (
                   <Minimize2 size={18} color="#0B1A3F" />
@@ -6175,7 +6301,7 @@ export default function Messages() {
                 )}
               </button>
 
-              {selected.type === 'group' && (
+              {(selected.type === 'group' || selected.type === 'custom-group') && (
                 <>
                   {/* POLL */}
                   <button
@@ -6183,6 +6309,7 @@ export default function Messages() {
                     className="wa-chat-tool-btn"
                     title="Create poll"
                     onClick={() => setShowPollModal(true)}
+                    style={{ order: 3, flexShrink: 0 }}
                   >
                     <BarChart2 size={18} color="#0B1A3F" />
                   </button>
@@ -6193,21 +6320,11 @@ export default function Messages() {
                     className="wa-chat-tool-btn"
                     title="View members"
                     onClick={openMembersPanel}
+                    style={{ order: 4, flexShrink: 0 }}
                   >
                     <Users size={18} color="#0B1A3F" />
                   </button>
                 </>
-              )}
-
-              {selected.type === 'custom-group' && (
-                <button
-                  type="button"
-                  className="wa-chat-tool-btn"
-                  title="View members"
-                  onClick={openMembersPanel}
-                >
-                  <Users size={18} color="#0B1A3F" />
-                </button>
               )}
 
               {/* SHARED MEDIA + FILES */}
