@@ -127,28 +127,180 @@ import {
 // =====================================================
 
 const MAJORS_CREATION = [
- 'All Majors Welcome',
- 'Architecture',
- 'Biology',
-
- 'Business / Finance',
- 'Civil Engineering',
+  'All Majors Welcome',
+  'Agri-Business — BS',
+  'Agri-culture',
+  'Agri-culture — BS',
+  'Applied Mathematics',
+  'Applied Mathematics — BA/BS',
+  'Arabic Language and Literature',
+  'Arabic Language and Literature — BA',
+  'Archaeology',
+  'Archaeology — BA',
+  'Architecture',
+  'Architecture — BArch',
+  'Art History',
+  'Art History — BA',
+  'Biology',
+  'Biology — BS',
+  'Business Administration',
+  'Business Administration — BBA',
   'Chemical Engineering',
+  'Chemical Engineering — BE/BS',
+  'Chemistry',
+  'Chemistry — BS',
+  'Civil and Environmental Engineering',
+  'Civil and Environmental Engineering — BE',
+  'Computer and Communications Engineering',
+  'Computer and Communications Engineering — BEN',
   'Computer Science',
+  'Computer Science — BS',
+  'Construction Engineering',
+  'Construction Engineering — BS',
+  'Earth Sciences',
+  'Earth Sciences — BS',
   'Economics',
-  'Electrical Engineering',
+  'Economics — BA',
+  'Electrical and Computer Engineering',
+  'Electrical and Computer Engineering — BE',
+  'Elementary Education',
+  'Elementary Education — BA',
+  'English Language',
+  'English Language — BA',
+  'English Literature',
+  'English Literature — BA',
+  'Environmental Health',
+  'Environmental Health — BS',
+  'Food Sciences and Management',
+  'Food Sciences and Management — BS',
   'Graphic Design',
+  'Graphic Design — BFA',
+  'Health Communication',
+  'Health Communication — BA',
   'History',
+  'History — BA',
+  'Industrial Engineering',
+  'Industrial Engineering — BE',
+  'Landscape Architecture (BLA)',
+  'Landscape Architecture (BLA) — BLA',
   'Mathematics',
+  'Mathematics — BA/BS',
   'Mechanical Engineering',
-  'Media & Communication',
+  'Mechanical Engineering — BE',
+  'Media and Communication',
+  'Media and Communication — BA',
+  'Medical Imaging Sciences',
+  'Medical Imaging Sciences — BS',
+  'Medical Laboratory Sciences',
+  'Medical Laboratory Sciences — BS',
   'Nursing',
-  'Nutrition',
+  'Nursing — BA/BS-BSN',
+  'Nursing — BSN',
+  'Nursing — RN-BSN',
+  'Nutrition and Dietetics',
+  'Nutrition and Dietetics — BS',
+  'Nutrition and Dietetics Coordinated Program',
+  'Nutrition and Dietetics Coordinated Program — BS',
   'Philosophy',
+  'Philosophy — BA',
   'Physics',
-  'Political Science',
+  'Physics — BS',
+  'Political Studies',
+  'Political Studies — BA',
   'Psychology',
-  'Sociology'
+  'Psychology — BA',
+  'Public Administration',
+  'Public Administration — BA',
+  'Sociology-Anthropology',
+  'Sociology-Anthropology — BA',
+  'Statistics',
+  'Statistics — BA/BS',
+  'Studio Arts',
+  'Studio Arts — BA',
+  "Anthropology — Residential Master's (MA)",
+  "History — Residential Master's (MA)",
+  'Arab and Middle Eastern History — Residential PhD',
+  "Archaeology — Residential Master's (MA)",
+  "Art History and Curating — Residential Master's (MA)",
+  "Biology — Residential Master's (MS)",
+  "Biomedical Engineering — Residential Master's (MS)",
+  'Biomedical Engineering — Residential PhD',
+  "Biomedical Sciences — Residential Master's (MS)",
+  'Biomedical Sciences — Residential PhD',
+  "Business Administration — Residential Master's (MBA)",
+  "Business Administration — Online Master's (OMBA)",
+  "Business Analytics — Residential Master's (MSBA)",
+  'Cell and Molecular Biology — Residential PhD',
+  "Chemical Engineering — Residential Master's (ME/MS)",
+  "Chemistry — Residential Master's (MS)",
+  'Chemistry — Residential PhD',
+  "Civil Engineering — Residential Master's (ME)",
+  'Civil Engineering — Residential PhD',
+  "Clinical Psychology — Residential Master's (MA)",
+  "Computational Science — Residential Master's (MS)",
+  "Computer Science — Residential Master's (MS)",
+  "Computing in Education — Online Master's (MA)",
+  "Economics — Residential Master's (MA)",
+  "Education — Residential Master's (MA)",
+  "Electrical and Computer Engineering — Residential Master's (ME)",
+  'Electrical and Computer Engineering — Residential PhD',
+  "Energy Studies — Residential Master's (MS)",
+  "Engineering Management And Energy Studies — Dual Residential Master's (ME)",
+  "Engineering Management — Residential Master's (MEM)",
+  "Engineering Management — Online Master's (MEM)",
+  "English Literature — Residential Master's (MA)",
+  "English Language — Residential Master's (MA)",
+  "Environmental and Water Resources Engineering — Residential Master's (ME)",
+  'Environmental and Water Resources Engineering — Residential PhD',
+  "Environmental Sciences - Ecosystem Management (ECOM) — Residential Master's (MS)",
+  "Environmental Sciences – Environmental Health — Residential Master's (MS)",
+  "Environmental Sciences - Environmental Policy Planning — Residential Master's (MS)",
+  "Environmental Sciences - Environmental Technology — Residential Master's (MS)",
+  "Epidemiology — Residential Master's (MS)",
+  'Epidemiology — Residential PhD',
+  "Finance — Residential Master's (MFIN)",
+  "Financial Economics — Residential Master's (MA)",
+  "Food Safety — Residential Master's (MS)",
+  "Food Security — Residential Master's (MS)",
+  "Food Technology — Residential Master's (MS)",
+  "Geology — Residential Master's (MS)",
+  "Health Care Leadership Executive Master — Online Executive Master's (EMHCL)",
+  'Healthcare Financing and Management — Online Graduate Academic Diploma',
+  'Healthcare Management and Leadership — Online Graduate Academic Diploma',
+  "Human Resources Management — Residential Master's (MHRM)",
+  'Humanitarian Engineering and Public Health Innovations — Residential Graduate Academic Diploma',
+  "Islamic Studies — Residential Master's (MA)",
+  'Islamic Studies — Online Graduate Academic Diploma',
+  "Mathematics — Residential Master's (MS)",
+  'Mathematics — Residential PhD',
+  "Mechanical Engineering — Residential Master's (ME)",
+  'Mechanical Engineering — Residential PhD',
+  "Media Studies — Residential Master's (MA)",
+  "Middle Eastern Studies — Residential Master's (MA)",
+  "Nursing Administration and Management — Blended Master's (MSN)",
+  'Nursing Administration — Online Graduate Academic Diploma',
+  "Nursing — Residential Master's (MS)",
+  'Nursing Science — Residential PhD',
+  'Medical Program — MD',
+  "Nutrition — Residential Master's (MS)",
+  "Nutrition and Dietetics Coordinated — Residential Master's (MS)",
+  'Online Education — Online Graduate Academic Diploma',
+  "Orthodontics — Residential Master's (MS)",
+  "Philosophy — Residential Master's (MA)",
+  "Physics — Residential Master's (MS)",
+  "Political Studies — Residential Master's (MA)",
+  "Public Health Nutrition — Residential Master's (MS)",
+  "Public Health — Residential Master's (MPH)",
+  "Public Policy and International Affairs — Residential Master's (MA)",
+  "Rural Community Development (RCODE) — Residential Master's (MS)",
+  "Scholars in HeAlth Research Program (SHARP) — Residential Master's (MS)",
+  'Scholars in HeAlth Research Program (SHARP) — Residential Graduate Academic Summer Diploma',
+  'Scholars in HeAlth Research Program (SHARP) — Online Graduate Academic 2-Semester Diploma',
+  "Sociology — Residential Master's (MA)",
+  "Smart Agriculture — Residential Master's (MS)",
+  'Theoretical Physics — Residential PhD',
+  "Urban Design — Residential Master's (MUD)",
+  "Urban Planning and Policy — Residential Master's (MUPP)",
 ];
 
 const MAJORS_PREFERENCES = MAJORS_CREATION.filter(
@@ -495,16 +647,6 @@ const [
   chatFullscreen,
   setChatFullscreen
 ] = useState(false);
-
-// Small screens go straight into the full-screen chat experience.
-useEffect(() => {
-  if (view !== 'chat' || !selectedGroup || typeof window === 'undefined') return;
-
-  const mobileQuery = window.matchMedia('(max-width: 700px)');
-  if (mobileQuery.matches) {
-    setChatFullscreen(true);
-  }
-}, [view, selectedGroup?.id]);
 
 
 useEffect(() => {
@@ -9543,6 +9685,187 @@ style={{
       font-size: 12px !important;
     }
   }
+
+
+  /* =========================================================
+     FINAL PHONE STUDY-GROUP CHAT — MATCH MESSAGES
+     Normal chat stays inside the app with Campora chrome visible.
+     Enlarge switches to the existing portal fullscreen.
+  ========================================================= */
+  @media (max-width: 700px) {
+    .study-group-chat-shell:not(.is-fullscreen) {
+      position: relative !important;
+      inset: auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: calc(100dvh - 166px) !important;
+      min-height: 0 !important;
+      max-height: calc(100dvh - 166px) !important;
+      margin: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      z-index: auto !important;
+      box-shadow: none !important;
+      overflow: hidden !important;
+      background: #FFFFFF !important;
+    }
+
+    .study-group-chat-shell.is-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      height: 100dvh !important;
+      min-height: 100dvh !important;
+      max-height: 100dvh !important;
+      margin: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: #FFFFFF !important;
+      z-index: 9990 !important;
+      overflow: hidden !important;
+    }
+
+    .study-group-chat-header {
+      min-height: 0 !important;
+      padding: 10px 12px !important;
+      padding-top: max(10px, env(safe-area-inset-top)) !important;
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      row-gap: 9px !important;
+      align-items: center !important;
+      background: #FFFFFF !important;
+      border-bottom: 1px solid #E5EAF2 !important;
+      flex: 0 0 auto !important;
+      overflow: visible !important;
+    }
+
+    .study-group-chat-title-row {
+      width: 100% !important;
+      min-width: 0 !important;
+      display: grid !important;
+      grid-template-columns: 44px minmax(0, 1fr) !important;
+      gap: 10px !important;
+      align-items: center !important;
+    }
+
+    .study-group-chat-title-row > button {
+      width: 44px !important;
+      height: 44px !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+      padding: 0 !important;
+      border-radius: 11px !important;
+    }
+
+    .study-group-chat-title-row > div {
+      min-width: 0 !important;
+    }
+
+    .study-group-chat-header h3 {
+      margin: 0 !important;
+      max-width: 100% !important;
+      color: #0B1A3F !important;
+      font-size: 16px !important;
+      line-height: 1.15 !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      overflow-wrap: anywhere !important;
+    }
+
+    .study-group-chat-title-row p {
+      font-size: 10px !important;
+      line-height: 1.2 !important;
+    }
+
+    .study-group-chat-actions {
+      width: 100% !important;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      justify-content: flex-start !important;
+      align-items: center !important;
+      gap: 7px !important;
+      padding: 0 0 2px !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: none !important;
+    }
+
+    .study-group-chat-actions::-webkit-scrollbar {
+      display: none !important;
+    }
+
+    .study-group-chat-actions > button,
+    .study-group-chat-actions > div {
+      flex: 0 0 40px !important;
+      width: 40px !important;
+      min-width: 40px !important;
+      max-width: 40px !important;
+      height: 40px !important;
+      min-height: 40px !important;
+      max-height: 40px !important;
+      box-sizing: border-box !important;
+    }
+
+    .study-group-chat-actions > div > button {
+      width: 40px !important;
+      min-width: 40px !important;
+      max-width: 40px !important;
+      height: 40px !important;
+      min-height: 40px !important;
+      max-height: 40px !important;
+    }
+
+    .study-group-chat-messages {
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      padding: 12px 10px 16px !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+
+    .study-group-chat-composer {
+      flex: 0 0 auto !important;
+      padding: 10px !important;
+      padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+      gap: 7px !important;
+      background: #FFFFFF !important;
+      border-top: 1px solid #E5EAF2 !important;
+    }
+
+    .study-group-chat-input {
+      min-width: 0 !important;
+      height: 44px !important;
+      font-size: 16px !important;
+      padding: 0 12px !important;
+    }
+
+    .study-group-chat-composer button[type='submit'] {
+      width: 44px !important;
+      min-width: 44px !important;
+      height: 44px !important;
+    }
+
+    .study-message-avatar,
+    .study-message-avatar img {
+      aspect-ratio: 1 / 1 !important;
+      border-radius: 50% !important;
+    }
+
+    .study-message-avatar {
+      flex: 0 0 30px !important;
+      width: 30px !important;
+      min-width: 30px !important;
+      max-width: 30px !important;
+      height: 30px !important;
+      min-height: 30px !important;
+      max-height: 30px !important;
+    }
+  }
+
 `}</style>
 
 {/* =================================================
@@ -9554,7 +9877,7 @@ style={{
  selectedGroup && (
 <ShellPortal active={chatFullscreen}>
 <div
-className="study-group-chat-shell"
+className={`study-group-chat-shell ${chatFullscreen ? 'is-fullscreen' : ''}`}
 style={{
  maxWidth:
  '1220px',
@@ -9639,6 +9962,7 @@ alignItems:
 >
 
 <div
+className="study-group-chat-title-row"
 style={{
  display:
  'flex',
@@ -9767,6 +10091,7 @@ Members Active Now
 {/* CHAT ACTIONS */}
 
 <div
+className="study-group-chat-actions"
 style={{
  display:
  'flex',
