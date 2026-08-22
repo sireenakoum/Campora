@@ -34,6 +34,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { toast } from '../lib/toast';
 
+
 const FOLDERS = [
   { key: 'all', label: 'All Conversations', icon: MessageSquare },
   { key: 'inbox', label: 'Inbox', icon: Inbox },
@@ -5435,6 +5436,166 @@ export default function Messages() {
           }
         }
 
+
+
+        /* =========================================================
+           DEVICE-SAFE FULLSCREEN BEHAVIOR
+           Phone: fullscreen overlays the floating bot.
+           Tablet: preserve the existing tablet layout/behavior.
+           Desktop: fullscreen stays in the app tree so it never blanks.
+        ========================================================= */
+        @media (max-width: 700px) {
+          .wa-chat-screen[style*="position: fixed"] {
+            z-index: 2147483000 !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100dvh !important;
+            max-width: none !important;
+            max-height: none !important;
+            border-radius: 0 !important;
+            background: #fff !important;
+          }
+        }
+
+        @media (min-width: 701px) and (max-width: 1024px) {
+          .wa-chat-screen {
+            /* intentionally no forced mobile fullscreen rules here */
+          }
+        }
+
+        @media (min-width: 1025px) {
+          .wa-chat-screen[style*="position: fixed"] {
+            position: fixed !important;
+            inset: 0 !important;
+            top: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            min-height: 100vh !important;
+            max-width: none !important;
+            max-height: none !important;
+            margin: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            z-index: 2147483000 !important;
+            background: #fff !important;
+            box-shadow: none !important;
+          }
+        }
+
+        /* =========================================================
+           MOBILE CHAT HEADER — MATCH STUDYGROUPS
+           Keep every control visible instead of hiding it off-screen.
+        ========================================================= */
+        @media (max-width: 700px) {
+          .wa-chat-header {
+            display: grid !important;
+            grid-template-columns: 48px minmax(0, 1fr) !important;
+            align-items: center !important;
+            column-gap: 12px !important;
+            row-gap: 12px !important;
+            padding: max(12px, env(safe-area-inset-top)) 14px 12px !important;
+            overflow: visible !important;
+          }
+
+          .wa-chat-header > .wa-avatar {
+            display: none !important;
+          }
+
+          .wa-back-btn {
+            grid-column: 1 !important;
+            grid-row: 1 !important;
+          }
+
+          .wa-chat-header-copy {
+            grid-column: 2 !important;
+            grid-row: 1 !important;
+            min-width: 0 !important;
+          }
+
+          .wa-chat-header-copy h3,
+          .wa-chat-header-copy p {
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+          }
+
+          .wa-chat-toolbar {
+            grid-column: 1 / -1 !important;
+            grid-row: 2 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            gap: 8px !important;
+            overflow: visible !important;
+            scrollbar-width: none !important;
+          }
+
+          .wa-chat-toolbar::-webkit-scrollbar {
+            display: none !important;
+          }
+
+          .wa-chat-tool-btn,
+          .wa-chat-toolbar > div {
+            flex: 0 0 48px !important;
+            width: 48px !important;
+            min-width: 48px !important;
+            max-width: 48px !important;
+          }
+
+          .wa-chat-toolbar > div > .wa-chat-tool-btn {
+            width: 48px !important;
+            min-width: 48px !important;
+            max-width: 48px !important;
+          }
+
+          .wa-chat-tool-btn {
+            height: 48px !important;
+            border-radius: 13px !important;
+          }
+
+          .wa-chat-screen {
+            width: 100% !important;
+            height: 100dvh !important;
+            min-height: 100dvh !important;
+            max-height: 100dvh !important;
+            border-radius: 0 !important;
+          }
+
+          .wa-chat-history {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .wa-chat-toolbar {
+            gap: 7px !important;
+          }
+
+          .wa-chat-tool-btn,
+          .wa-chat-toolbar > div {
+            flex-basis: 44px !important;
+            width: 44px !important;
+            min-width: 44px !important;
+            max-width: 44px !important;
+          }
+
+          .wa-chat-toolbar > div > .wa-chat-tool-btn {
+            width: 44px !important;
+            min-width: 44px !important;
+            max-width: 44px !important;
+          }
+
+          .wa-chat-tool-btn {
+            height: 44px !important;
+          }
+        }
+
         @media (max-width: 700px) {
           .wa-message-row {
             gap: 7px !important;
@@ -5840,6 +6001,7 @@ export default function Messages() {
         <section
           ref={chatScreenRef}
           className="wa-chat-screen"
+
           style={
             messagesFullscreen
               ? {
@@ -5856,9 +6018,10 @@ export default function Messages() {
                   maxHeight: '100dvh',
                   margin: 0,
                   borderRadius: 0,
-                  zIndex: 2147483647,
+                  zIndex: 2147483000,
+                  border: 'none',
                   background: '#FFFFFF',
-                  boxShadow: '0 0 0 100vmax #FFFFFF'
+                  boxShadow: 'none'
                 }
               : undefined
           }
