@@ -5529,8 +5529,8 @@ function CourseModal({
  const hasExistingSemester = semesterOptions.length > 0;
 
  return (
-  <div style={overlayStyle}>
-    <div style={modalCardStyle}>
+  <div className="course-modal-overlay" style={overlayStyle}>
+    <div className="course-modal-card" style={modalCardStyle}>
      <div
       style={{
        display: 'flex',

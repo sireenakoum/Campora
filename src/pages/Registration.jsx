@@ -1785,7 +1785,7 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
     color: '#FFFFFF'
   }}
 >
-  <div style={{
+  <div className="registration-register-swap-icon" style={{
     ...heroIconWrap,
     width: 60,
     height: 60,
@@ -1796,12 +1796,12 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
   }}>
     <ArrowLeftRight size={28} />
   </div>
-  <div style={{ flex: 1, minWidth: 0 }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+  <div className="registration-register-swap-content" style={{ flex: 1, minWidth: 0 }}>
+    <div className="registration-register-swap-heading" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
       <h2 style={{ ...heroCardTitle, fontSize: 26, fontWeight: 600, color: '#FFFFFF' }}>Register &amp; Swap</h2>
       <span style={{ ...heroCardPill, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}>COURSE MATCH &amp; SWAP</span>
     </div>
-    <p style={{
+    <p className="registration-register-swap-copy" style={{
       ...heroCardCopy,
       maxWidth: 900,
       margin: 0,
@@ -1811,7 +1811,7 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
       Enter the course you currently have and the course you want. Campora helps you register, compare available options, find reciprocal swap matches, and browse useful alternatives all in one place.
     </p>
   </div>
-  <ArrowRight size={24} color="#FFFFFF" style={{ flexShrink: 0 }} />
+  <span className="registration-register-swap-arrow"><ArrowRight size={24} color="#FFFFFF" /></span>
 </button>
 
 </div>
