@@ -16,6 +16,8 @@ import {
   Sliders,
   UserPlus,
   Trash2,
+  Archive,
+  Eraser,
   Edit3,
   Send,
   Crown,
@@ -24,6 +26,7 @@ import {
   BellOff,
   Target,
   MoreVertical,
+  MoreHorizontal,
   BarChart2,
   User,
   MessageCircle,
@@ -37,6 +40,8 @@ import {
   Minimize2,
   Loader2,
   FileText,
+  ImageIcon,
+  Paperclip,
   Calendar,
   Clock,
   Lock,
@@ -56,6 +61,59 @@ import {
 
 const ShellPortal = ({ active, children }) =>
   active ? createPortal(children, document.body) : children;
+
+function parseStudyGroupAttachment(rawValue) {
+  const value = String(rawValue || '');
+
+  const match = value.match(
+    /\[\[CAMPORA_ATTACHMENT:([^\]]+)\]\]/
+  );
+
+  if (!match) {
+    return {
+      attachment: null,
+      text: value
+    };
+  }
+
+  try {
+    const attachment = JSON.parse(
+      decodeURIComponent(match[1])
+    );
+
+    return {
+      attachment,
+      text: value.replace(match[0], '').trim()
+    };
+  } catch {
+    return {
+      attachment: null,
+      text: value
+    };
+  }
+}
+
+function formatStudyGroupFileSize(bytes) {
+  const size = Number(bytes || 0);
+
+  if (!size) return '';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatStudyGroupMessageTime(value) {
+  if (!value) return '';
+
+  return new Date(value).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+
 import {
   dmViewStatus,
   markDmNotificationsRead
@@ -333,6 +391,8 @@ export default function StudyGroups() {
 // =====================================================
 
 const [currentUser, setCurrentUser] = useState(null);
+const [currentProfileAvatarUrl, setCurrentProfileAvatarUrl] = useState('');
+const [groupReadReceipts, setGroupReadReceipts] = useState({});
 const [groups, setGroups] = useState([]);
 
 const [joinedGroupIds, setJoinedGroupIds] =
@@ -378,6 +438,18 @@ const [messages, setMessages] =
 const [newMessage, setNewMessage] =
  useState('');
 
+const [showSharedMedia, setShowSharedMedia] =
+ useState(false);
+
+const [pendingGroupAttachment, setPendingGroupAttachment] =
+ useState(null);
+
+const [uploadingGroupAttachment, setUploadingGroupAttachment] =
+ useState(false);
+
+const groupAttachmentInputRef =
+ useRef(null);
+
 const [
   notificationsMuted,
   setNotificationsMuted
@@ -393,6 +465,31 @@ const [
   activeMessageMenu,
   setActiveMessageMenu
 ] = useState(null);
+
+const [
+  headerChatMenuOpen,
+  setHeaderChatMenuOpen
+] = useState(false);
+
+const [clearedGroupChats, setClearedGroupChats] = useState(() => {
+  try {
+    return JSON.parse(
+      localStorage.getItem('campora_study_group_cleared_chats') || '{}'
+    );
+  } catch {
+    return {};
+  }
+});
+
+const [archivedGroupChats, setArchivedGroupChats] = useState(() => {
+  try {
+    return JSON.parse(
+      localStorage.getItem('campora_study_group_archived_chats') || '{}'
+    );
+  } catch {
+    return {};
+  }
+});
 
 const [
   chatFullscreen,
@@ -425,8 +522,130 @@ useEffect(() => {
   }
 }, [view]);
 
+const sharedGroupAttachments = (messages || [])
+  .map((message) => {
+    const { attachment } = parseStudyGroupAttachment(
+      message?.content
+    );
+
+    if (!attachment?.url) return null;
+
+    return {
+      ...attachment,
+      messageId: message?.id,
+      senderName: message?.sender_name || 'Student',
+      createdAt: message?.created_at,
+      isImage: String(attachment?.type || '').startsWith('image/')
+    };
+  })
+  .filter(Boolean)
+  .reverse();
+
+useEffect(() => {
+  setHeaderChatMenuOpen(false);
+  setShowSharedMedia(false);
+  setPendingGroupAttachment((previous) => {
+    if (previous?.previewUrl) {
+      URL.revokeObjectURL(previous.previewUrl);
+    }
+    return null;
+  });
+}, [selectedGroup?.id, view]);
 
 
+
+
+useEffect(() => {
+  if (!currentUser?.id) {
+    setCurrentProfileAvatarUrl('');
+    return;
+  }
+
+  let cancelled = false;
+
+  const loadOwnProfileAvatar = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', currentUser.id)
+      .maybeSingle();
+
+    if (cancelled) return;
+
+    if (error) {
+      console.error('Could not load Study Groups profile avatar:', error);
+    }
+
+    setCurrentProfileAvatarUrl(
+      data?.avatar_url ||
+      currentUser?.user_metadata?.avatar_url ||
+      currentUser?.user_metadata?.avatarUrl ||
+      ''
+    );
+  };
+
+  loadOwnProfileAvatar();
+
+  return () => {
+    cancelled = true;
+  };
+}, [currentUser?.id]);
+
+const syncStudyGroupReadReceipts = async (messageRows) => {
+  if (!currentUser?.id) return;
+
+  const rows = (messageRows || []).filter(
+    (message) =>
+      message?.id &&
+      !String(message.id).startsWith('temp-')
+  );
+
+  if (!rows.length) {
+    setGroupReadReceipts({});
+    return;
+  }
+
+  const toMark = rows
+    .filter((message) => message.user_id !== currentUser.id)
+    .map((message) => ({
+      message_id: message.id,
+      user_id: currentUser.id
+    }));
+
+  if (toMark.length) {
+    const { error: markError } = await supabase
+      .from('group_message_reads')
+      .upsert(toMark, {
+        onConflict: 'message_id,user_id',
+        ignoreDuplicates: true
+      });
+
+    if (markError) {
+      console.error('Could not mark Study Group messages read:', markError);
+    }
+  }
+
+  const ids = rows.map((message) => message.id);
+
+  const { data, error } = await supabase
+    .from('group_message_reads')
+    .select('message_id,user_id,read_at')
+    .in('message_id', ids);
+
+  if (error) {
+    console.error('Could not load Study Group read receipts:', error);
+    return;
+  }
+
+  const next = {};
+
+  (data || []).forEach((row) => {
+    if (!next[row.message_id]) next[row.message_id] = [];
+    next[row.message_id].push(row);
+  });
+
+  setGroupReadReceipts(next);
+};
 
 // =====================================================
 // PINNED GROUP MESSAGES
@@ -1080,6 +1299,43 @@ directoryError);
  (directoryProfiles || []).forEach((profile) => directoryMap.set(profile.id,
 profile));
 
+ // Load the full public profile rows as well so the creator/member views
+ // consistently have avatar_url and profile details such as major/year.
+ const { data: fullProfileRows, error: fullProfileError } = await supabase
+  .from('profiles')
+  .select('*')
+  .in('id', userIdsArray);
+
+ if (fullProfileError) {
+   console.error('Could not load full member profiles:', fullProfileError);
+ }
+
+ (fullProfileRows || []).forEach((profile) => {
+   const existing = directoryMap.get(profile.id) || {};
+
+   directoryMap.set(profile.id, {
+     ...existing,
+     ...profile,
+     avatar_url:
+       profile.avatar_url ||
+       existing.avatar_url ||
+       existing.avatar ||
+       '',
+     full_name:
+       profile.full_name ||
+       profile.name ||
+       existing.full_name ||
+       existing.name ||
+       '',
+     name:
+       profile.name ||
+       profile.full_name ||
+       existing.name ||
+       existing.full_name ||
+       ''
+   });
+ });
+
  const { data: recentMessages } = await supabase
   .from('group_messages')
   .select('user_id, sender_name')
@@ -1144,7 +1400,9 @@ const resolvedMembers = userIdsArray.map((userId) => {
       avatar_url:
         directoryProfile?.avatar_url ||
         directoryProfile?.avatar ||
+        (isSelf ? currentProfileAvatarUrl : '') ||
         (isSelf ? currentUser?.user_metadata?.avatar_url : '') ||
+        (isSelf ? currentUser?.user_metadata?.avatarUrl : '') ||
         '',
       courses_taken:
         directoryProfile?.courses_taken ||
@@ -1174,7 +1432,21 @@ if (view === 'details' || view === 'chat') {
       return;
     }
 
-      setMessages(data || []);
+      const clearedAt =
+        Number(clearedGroupChats[selectedGroup.id] || 0);
+
+      const visibleMessages =
+        (data || []).filter((message) => {
+          if (!clearedAt) return true;
+
+          return (
+            new Date(message.created_at || 0).getTime() >
+            clearedAt
+          );
+        });
+
+      setMessages(visibleMessages);
+      await syncStudyGroupReadReceipts(visibleMessages);
     };
 
     fetchMessages();
@@ -1197,7 +1469,13 @@ if (view === 'details' || view === 'chat') {
 }
 
   setMessages([]);
-}, [selectedGroup?.id, view, currentUser, joinedGroupIds]);
+}, [
+  selectedGroup?.id,
+  view,
+  currentUser,
+  joinedGroupIds,
+  clearedGroupChats
+]);
 
 useEffect(() => {
   if (view === 'chat') chatBottomRef.current?.scrollIntoView({ behavior:
@@ -2512,6 +2790,86 @@ setSelectedGroup(
 };
 
 
+const handlePickGroupAttachment = (event) => {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  if (file.size > 20 * 1024 * 1024) {
+    window.alert('Please choose a file smaller than 20 MB.');
+    event.target.value = '';
+    return;
+  }
+
+  if (pendingGroupAttachment?.previewUrl) {
+    URL.revokeObjectURL(pendingGroupAttachment.previewUrl);
+  }
+
+  setPendingGroupAttachment({
+    file,
+    name: file.name,
+    type: file.type || 'application/octet-stream',
+    size: file.size,
+    previewUrl: String(file.type || '').startsWith('image/')
+      ? URL.createObjectURL(file)
+      : null
+  });
+
+  event.target.value = '';
+};
+
+const removePendingGroupAttachment = () => {
+  setPendingGroupAttachment((previous) => {
+    if (previous?.previewUrl) {
+      URL.revokeObjectURL(previous.previewUrl);
+    }
+    return null;
+  });
+};
+
+const uploadPendingGroupAttachment = async () => {
+  if (!pendingGroupAttachment?.file || !currentUser?.id || !selectedGroup?.id) {
+    return null;
+  }
+
+  setUploadingGroupAttachment(true);
+
+  try {
+    const safeName = pendingGroupAttachment.name.replace(
+      /[^a-zA-Z0-9._-]/g,
+      '_'
+    );
+
+    const path =
+      `study-groups/${selectedGroup.id}/${currentUser.id}/${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('message-attachments')
+      .upload(path, pendingGroupAttachment.file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: pendingGroupAttachment.type
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from('message-attachments')
+      .getPublicUrl(path);
+
+    return {
+      url: data?.publicUrl,
+      name: pendingGroupAttachment.name,
+      type: pendingGroupAttachment.type,
+      size: pendingGroupAttachment.size
+    };
+  } finally {
+    setUploadingGroupAttachment(false);
+  }
+};
+
 // =====================================================
 // SEND GROUP MESSAGE
 // =====================================================
@@ -2524,14 +2882,38 @@ const handleSendMessage =
 
   const trimmed =
    newMessage.trim();
+
 if (
-  !trimmed ||
+  (!trimmed && !pendingGroupAttachment) ||
   !selectedGroup ||
   !currentUser
 ){
 
       return;
 }
+
+let attachmentPayload = null;
+
+if (pendingGroupAttachment) {
+  try {
+    attachmentPayload = await uploadPendingGroupAttachment();
+  } catch (error) {
+    console.error('GROUP ATTACHMENT UPLOAD ERROR:', error);
+    window.alert(
+      `Could not upload attachment: ${error.message}. Make sure the message-attachments storage bucket is configured.`
+    );
+    return;
+  }
+}
+
+const attachmentMarker = attachmentPayload
+  ? `[[CAMPORA_ATTACHMENT:${encodeURIComponent(
+      JSON.stringify(attachmentPayload)
+    )}]]`
+  : '';
+
+const messageContent =
+  `${attachmentMarker}${trimmed}`;
 
 
 const senderName =
@@ -2602,7 +2984,7 @@ sender_name:
  senderName,
 
 content:
- trimmed,
+ messageContent,
 
 type:
  'text',
@@ -2626,6 +3008,7 @@ setMessages(
 
 setNewMessage('');
 
+removePendingGroupAttachment();
 
 setReplyingTo(null);
 
@@ -2652,7 +3035,7 @@ const {
   senderName,
 
  content:
-  trimmed,
+  messageContent,
 
  type:
   'text',
@@ -2988,6 +3371,63 @@ if (data) {
   fetchDirectMessageConversations();
 };
 
+
+useEffect(() => {
+  localStorage.setItem(
+    'campora_study_group_cleared_chats',
+    JSON.stringify(clearedGroupChats)
+  );
+}, [clearedGroupChats]);
+
+useEffect(() => {
+  localStorage.setItem(
+    'campora_study_group_archived_chats',
+    JSON.stringify(archivedGroupChats)
+  );
+}, [archivedGroupChats]);
+
+const clearSelectedGroupChatForMe = () => {
+  if (!selectedGroup?.id) return;
+
+  const clearedAt = Date.now();
+
+  setClearedGroupChats((previous) => ({
+    ...previous,
+    [selectedGroup.id]: clearedAt
+  }));
+
+  setMessages([]);
+  setReplyingTo(null);
+  setHeaderChatMenuOpen(false);
+};
+
+const archiveSelectedGroupConversation = () => {
+  if (!selectedGroup?.id) return;
+
+  setArchivedGroupChats((previous) => ({
+    ...previous,
+    [selectedGroup.id]: true
+  }));
+
+  setHeaderChatMenuOpen(false);
+  setView(
+    selectedGroup.creator_id === currentUser?.id
+      ? 'created'
+      : 'joined'
+  );
+};
+
+const restoreSelectedGroupConversation = () => {
+  if (!selectedGroup?.id) return;
+
+  setArchivedGroupChats((previous) => {
+    const next = { ...previous };
+    delete next[selectedGroup.id];
+    return next;
+  });
+
+  setHeaderChatMenuOpen(false);
+};
 
 // =====================================================
 // DELETE MESSAGE
@@ -8343,9 +8783,7 @@ style={{
     <div
       key={member.user_id}
       onClick={() => {
-        if (member.user_id !== currentUser?.id) {
-          openMemberProfile(member);
-        }
+        openMemberProfile(member);
       }}
       style={{
         padding: '10px',
@@ -8355,7 +8793,7 @@ style={{
         display: 'flex',
         alignItems: 'center',
         gap: '9px',
-        cursor: member.user_id === currentUser?.id ? 'default' : 'pointer'
+        cursor: 'pointer'
       }}
     >
       <div
@@ -8373,13 +8811,32 @@ style={{
           fontWeight: '900',
           fontSize: '11px',
           flexShrink: 0,
+          overflow: 'hidden',
           border: `2px solid ${selectedGroup?.color || '#E0F2FE'}`
         }}
       >
-        {getInitials(
-          member.profiles?.full_name ||
-            member.profiles?.email ||
-            'Student'
+        {member.profiles?.avatar_url ? (
+          <img
+            src={member.profiles.avatar_url}
+            alt={
+              member.profiles?.full_name ||
+              member.profiles?.name ||
+              'Student'
+            }
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block'
+            }}
+          />
+        ) : (
+          getInitials(
+            member.profiles?.full_name ||
+              member.profiles?.name ||
+              member.profiles?.email ||
+              'Student'
+          )
         )}
       </div>
 
@@ -8533,6 +8990,451 @@ style={{
     }
     .study-group-chat-header { padding: 10px !important; }
     .study-group-chat-messages { padding: 10px !important; }
+  }
+
+  .study-group-shared-panel {
+    flex: 0 0 auto;
+    max-height: min(46vh, 430px);
+    overflow-y: auto;
+    padding: 16px 20px 18px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #E5EAF2;
+    box-shadow: 0 10px 24px rgba(11,26,63,.045);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .study-group-shared-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .study-group-shared-head > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .study-group-shared-head strong {
+    color: #0B1A3F;
+    font-size: 15px;
+    font-weight: 900;
+  }
+
+  .study-group-shared-head span {
+    color: #8792A2;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .study-group-shared-head > button {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border: 1px solid #E3E8EF;
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: #0B1A3F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .study-group-shared-section + .study-group-shared-section {
+    margin-top: 18px;
+  }
+
+  .study-group-shared-label {
+    margin-bottom: 8px;
+    color: #8A95A6;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .08em;
+  }
+
+  .study-group-shared-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+  }
+
+  .study-group-shared-image {
+    min-width: 0;
+    overflow: hidden;
+    text-decoration: none;
+    color: #0B1A3F;
+    border: 1px solid #E2E8F0;
+    border-radius: 13px;
+    background: #F8FAFD;
+  }
+
+  .study-group-shared-image img {
+    display: block;
+    width: 100%;
+    height: 96px;
+    object-fit: cover;
+  }
+
+  .study-group-shared-image span {
+    display: block;
+    padding: 7px 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  .study-group-shared-files {
+    display: grid;
+    gap: 8px;
+  }
+
+  .study-group-shared-file {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    text-decoration: none;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    background: #FAFBFD;
+  }
+
+  .study-group-shared-file-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: #0B1A3F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #E6EAF0;
+  }
+
+  .study-group-shared-file-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .study-group-shared-file-copy strong {
+    color: #0B1A3F;
+    font-size: 10px;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .study-group-shared-file-copy small {
+    color: #8A95A6;
+    font-size: 8px;
+    font-weight: 700;
+  }
+
+  .study-group-shared-empty {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 5px;
+    color: #8A95A6;
+  }
+
+  .study-group-shared-empty strong {
+    color: #0B1A3F;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .study-group-shared-empty span {
+    max-width: 320px;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 700px) {
+    .study-group-shared-panel {
+      max-height: 40vh;
+      padding: 14px;
+    }
+
+    .study-group-shared-images {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .study-group-shared-image img {
+      height: 82px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .study-group-shared-images {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .study-message-row {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 9px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .study-message-row.mine {
+    justify-content: flex-end;
+  }
+
+  .study-message-avatar {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    padding: 0;
+    border: 1px solid rgba(11,26,63,.08);
+    border-radius: 50%;
+    background: #DCE4F5;
+    color: #0B1A3F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .study-message-avatar.mine {
+    order: 3;
+  }
+
+  .study-message-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .study-message-avatar span {
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .study-message-row > div {
+    max-width: min(72%, 760px);
+  }
+
+  .study-message-sender {
+    margin-bottom: 5px;
+    color: #66758E;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .study-message-row.mine .study-message-sender {
+    text-align: right;
+  }
+
+  .study-message-bubble {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+  }
+
+  .study-message-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    margin-top: 5px;
+    font-size: 9px;
+    line-height: 1;
+    font-weight: 700;
+    color: #98A2B3;
+    white-space: nowrap;
+  }
+
+  .study-message-meta.seen {
+    color: #526987;
+  }
+
+  @media (max-width: 700px) {
+    .study-message-row {
+      gap: 7px;
+      margin-bottom: 13px;
+    }
+
+    .study-message-avatar {
+      width: 30px;
+      height: 30px;
+      flex-basis: 30px;
+    }
+
+    .study-message-row > div {
+      max-width: min(78%, 520px);
+    }
+  }
+
+  /* =========================================================
+     FINAL MESSAGE ALIGNMENT — MATCHES MESSAGES.JSX
+  ========================================================= */
+
+  .study-message-row {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: flex-end !important;
+    gap: 9px !important;
+    margin-bottom: 16px !important;
+    width: auto !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  .study-message-row.mine {
+    justify-content: flex-end !important;
+  }
+
+  .study-message-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: min(72%, 760px);
+    min-width: 0;
+    position: relative;
+  }
+
+  .study-message-row.mine .study-message-content {
+    align-items: flex-end;
+  }
+
+  .study-message-row > .study-message-content {
+    max-width: min(72%, 760px) !important;
+  }
+
+  .study-message-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #0B1A3F !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    border: 1px solid rgba(11,26,63,.06) !important;
+    overflow: hidden !important;
+    cursor: pointer !important;
+  }
+
+  .study-message-avatar.mine {
+    order: 3 !important;
+  }
+
+  .study-message-bubble {
+    max-width: 100% !important;
+    padding: 11px 14px !important;
+    border-radius: 16px !important;
+    background: #F7F8FA !important;
+    color: #0B1A3F !important;
+    font-size: 13px !important;
+    font-weight: 650 !important;
+    line-height: 1.5 !important;
+    box-shadow: none !important;
+  }
+
+  .study-message-row.mine .study-message-bubble {
+    background: #0B1A3F !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-bottom-right-radius: 5px !important;
+  }
+
+  .study-message-row:not(.mine) .study-message-bubble {
+    border: none !important;
+    border-bottom-left-radius: 5px !important;
+  }
+
+  .study-message-sender {
+    margin-bottom: 5px !important;
+    color: #66758E !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-align: left !important;
+  }
+
+  .study-message-row.mine .study-message-sender {
+    color: rgba(255,255,255,.72) !important;
+    text-align: right !important;
+  }
+
+  .study-message-meta {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 5px !important;
+    margin-top: 5px !important;
+    padding-right: 2px;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    font-weight: 700 !important;
+    color: #98A2B3 !important;
+    white-space: nowrap !important;
+  }
+
+  .study-message-row.mine .study-message-meta {
+    color: #98A2B3 !important;
+  }
+
+  .study-message-meta.seen {
+    color: #526987 !important;
+  }
+
+  /* The reaction pills follow the same message width instead of
+     changing the alignment of the bubble itself. */
+  .study-message-content > div[style*="flexWrap"] {
+    max-width: 100%;
+  }
+
+  @media (max-width: 700px) {
+    .study-message-row {
+      gap: 7px !important;
+      margin-bottom: 13px !important;
+    }
+
+    .study-message-avatar {
+      width: 30px !important;
+      height: 30px !important;
+      flex-basis: 30px !important;
+    }
+
+    .study-message-content {
+      max-width: min(78%, 520px) !important;
+    }
+
+    .study-message-row > .study-message-content {
+      max-width: min(78%, 520px) !important;
+    }
+
+    .study-message-bubble {
+      padding: 10px 12px !important;
+      font-size: 12px !important;
+    }
   }
 `}</style>
 
@@ -8927,6 +9829,34 @@ color="#1A1B1F"
 />
 
 </button>
+{/* SHARED MEDIA + FILES */}
+
+<button
+type="button"
+title="Shared media & files"
+onClick={() =>
+  setShowSharedMedia(
+    (previous) => !previous
+  )
+}
+style={{
+  ...iconBtnStyle,
+  background: showSharedMedia
+    ? '#EEF2FF'
+    : '#FFFFFF',
+  border: showSharedMedia
+    ? '1px solid #C7D2FE'
+    : `1px solid ${getContrastBorder(
+        selectedGroup?.color || '#E0F2FE'
+      )}`
+}}
+>
+<ImageIcon
+ size={18}
+ color="#1A1B1F"
+/>
+</button>
+
 {/* NOTIFICATIONS */}
 
 <button
@@ -8967,6 +9897,128 @@ background:
 )}
 
 </button>
+
+{/* MORE OPTIONS */}
+
+<div
+style={{
+  position: 'relative',
+  flexShrink: 0
+}}
+>
+<button
+type="button"
+title="More options"
+onClick={() =>
+  setHeaderChatMenuOpen(
+    (previous) => !previous
+  )
+}
+style={{
+  ...iconBtnStyle,
+  background: '#FFFFFF',
+  border:
+    `1px solid ${getContrastBorder(
+      selectedGroup?.color ||
+      '#E0F2FE'
+    )}`
+}}
+>
+<MoreHorizontal
+ size={18}
+ color="#1A1B1F"
+/>
+</button>
+
+{headerChatMenuOpen && (
+<div
+style={{
+  position: 'absolute',
+  top: '48px',
+  right: 0,
+  width: '220px',
+  zIndex: 2000,
+  padding: '7px',
+  borderRadius: '13px',
+  border: '1px solid #E3E8EF',
+  background: '#FFFFFF',
+  boxShadow: '0 14px 32px rgba(11,26,63,.16)'
+}}
+>
+<button
+type="button"
+onClick={clearSelectedGroupChatForMe}
+style={{
+  width: '100%',
+  minHeight: '38px',
+  border: 'none',
+  borderRadius: '9px',
+  padding: '0 10px',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  fontSize: '11px',
+  fontWeight: '800',
+  cursor: 'pointer'
+}}
+>
+<Eraser size={15} />
+Clear chat for me
+</button>
+
+{archivedGroupChats[selectedGroup.id] ? (
+<button
+type="button"
+onClick={restoreSelectedGroupConversation}
+style={{
+  width: '100%',
+  minHeight: '38px',
+  border: 'none',
+  borderRadius: '9px',
+  padding: '0 10px',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  fontSize: '11px',
+  fontWeight: '800',
+  cursor: 'pointer'
+}}
+>
+<Archive size={15} />
+Restore from archive
+</button>
+) : (
+<button
+type="button"
+onClick={archiveSelectedGroupConversation}
+style={{
+  width: '100%',
+  minHeight: '38px',
+  border: 'none',
+  borderRadius: '9px',
+  padding: '0 10px',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  fontSize: '11px',
+  fontWeight: '800',
+  cursor: 'pointer'
+}}
+>
+<Archive size={15} />
+Archive conversation
+</button>
+)}
+</div>
+)}
+</div>
+
 {/* DELETE / LEAVE */}
 
 {selectedGroup.creator_id ===
@@ -9024,6 +10076,104 @@ onClick={() =>
 </div>
 
 </div>
+
+{showSharedMedia && (
+<div className="study-group-shared-panel">
+  <div className="study-group-shared-head">
+    <div>
+      <strong>Shared Media & Files</strong>
+      <span>
+        {sharedGroupAttachments.length
+          ? `${sharedGroupAttachments.length} shared item${sharedGroupAttachments.length === 1 ? '' : 's'}`
+          : 'Images and files shared in this group'}
+      </span>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => setShowSharedMedia(false)}
+      aria-label="Close shared media"
+    >
+      <X size={17} />
+    </button>
+  </div>
+
+  {sharedGroupAttachments.length ? (
+    <>
+      {sharedGroupAttachments.some((item) => item.isImage) && (
+        <div className="study-group-shared-section">
+          <div className="study-group-shared-label">IMAGES</div>
+
+          <div className="study-group-shared-images">
+            {sharedGroupAttachments
+              .filter((item) => item.isImage)
+              .map((item, index) => (
+                <a
+                  key={`${item.messageId || item.url}-image-${index}`}
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="study-group-shared-image"
+                >
+                  <img
+                    src={item.url}
+                    alt={item.name || 'Shared image'}
+                  />
+                  <span>{item.name || 'Image'}</span>
+                </a>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {sharedGroupAttachments.some((item) => !item.isImage) && (
+        <div className="study-group-shared-section">
+          <div className="study-group-shared-label">FILES</div>
+
+          <div className="study-group-shared-files">
+            {sharedGroupAttachments
+              .filter((item) => !item.isImage)
+              .map((item, index) => (
+                <a
+                  key={`${item.messageId || item.url}-file-${index}`}
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="study-group-shared-file"
+                >
+                  <span className="study-group-shared-file-icon">
+                    <FileText size={18} />
+                  </span>
+
+                  <span className="study-group-shared-file-copy">
+                    <strong>
+                      {item.name || 'Shared file'}
+                    </strong>
+
+                    <small>
+                      {item.senderName}
+                      {item.size
+                        ? ` · ${formatStudyGroupFileSize(item.size)}`
+                        : ''}
+                    </small>
+                  </span>
+                </a>
+              ))}
+          </div>
+        </div>
+      )}
+    </>
+  ) : (
+    <div className="study-group-shared-empty">
+      <ImageIcon size={25} />
+      <strong>No shared media yet</strong>
+      <span>
+        Images and files sent in this group will appear here automatically.
+      </span>
+    </div>
+  )}
+</div>
+)}
 
 {/* =================================================
   PINNED MESSAGE BANNER
@@ -9358,6 +10508,24 @@ messages.map(
        message.user_id ===
        currentUser?.id;
 
+      const messageMember =
+        groupMembers.find(
+          (member) =>
+            member.user_id ===
+            message.user_id
+        );
+
+      const messageAvatarUrl =
+        messageMember?.profiles?.avatar_url ||
+        (
+          isMe
+            ? currentProfileAvatarUrl ||
+              currentUser?.user_metadata?.avatar_url ||
+              currentUser?.user_metadata?.avatarUrl ||
+              ''
+            : ''
+        );
+
 
 
 
@@ -9370,48 +10538,39 @@ messages.map(
 return (
 
 <div
-key={
- message.id
-}
-style={{
-  alignSelf:
-   isMe
-     ? 'flex-end'
-     : 'flex-start',
-
-maxWidth:
-'75%',
-
- position:
-   'relative'
-}}
+key={message.id}
+className={`study-message-row ${isMe ? 'mine' : ''}`}
 >
 
-{/* SENDER NAME */}
+{/* PROFILE PICTURE BESIDE MESSAGE */}
 
-<div
-style={{
- fontSize:
-  '11px',
+<button
+type="button"
+className={`study-message-avatar ${isMe ? 'mine' : ''}`}
+onClick={() => {
+  if (messageMember) openMemberProfile(messageMember);
+}}
+title={`View ${message.sender_name || 'Student'}'s profile`}
+>
+{messageAvatarUrl ? (
+  <img
+    src={messageAvatarUrl}
+    alt={message.sender_name || (isMe ? 'You' : 'Student')}
+  />
+) : (
+  <span>
+    {(message.sender_name || (isMe ? 'Y' : 'S'))
+      .charAt(0)
+      .toUpperCase()}
+  </span>
+)}
+</button>
 
- fontWeight:
-  '800',
+<div className="study-message-content">
 
- color:
-  '#717786',
+{/* SENDER NAME MOVED INTO MESSAGE BUBBLE */}
 
- marginBottom:
- '4px',
-
-  textAlign:
-    isMe
-      ? 'right'
-      : 'left'
- }}
- >
- {message.sender_name}
- </div>
-        {/*
+{/*
 =================================================
           POLL MESSAGE
        =================================================
@@ -9438,6 +10597,12 @@ style={{
      '0 4px 12px rgba(0,0,0,0.03)'
   }}
   >
+
+<div className="study-message-sender">
+ {isMe
+   ? `${message.sender_name || 'You'} · You`
+   : message.sender_name || 'Student'}
+</div>
 
    <p
    style={{
@@ -9673,19 +10838,20 @@ fontSize:
 ================================================= */
 
  <div
+ className="study-message-bubble"
  style={{
   padding:
-  '14px 18px',
+  '11px 14px',
 
        borderRadius:
        isMe
-         ? '20px 20px 4px 20px'
-         : '20px 20px 20px 4px',
+         ? '16px 16px 5px 16px'
+         : '16px 16px 16px 5px',
 
     background:
     isMe
       ? '#0B1A3F'
-      : '#F1F5F9',
+      : '#F7F8FA',
 
 color:
  isMe
@@ -9693,21 +10859,25 @@ color:
    : '#1A1B1F',
 
 fontWeight:
- '700',
+ '650',
 
 fontSize:
- '14px',
+ '13px',
 
 border:
 isMe
   ? 'none'
   : '1px solid #E3E2E7',
  boxShadow:
-   isMe
-     ? `inset 4px 0 0 ${selectedGroup?.color || '#E0F2FE'}, 0 2px 8px rgba(0,0,0,0.03)`
-     : '0 2px 8px rgba(0,0,0,0.03)'
+   'none'
 }}
 >
+
+<div className="study-message-sender">
+ {isMe
+   ? `${message.sender_name || 'You'} · You`
+   : message.sender_name || 'Student'}
+</div>
 
 {/* REPLIED MESSAGE */}
 
@@ -9766,12 +10936,120 @@ borderLeft:
 
 
 
- {message.content}
+ {(() => {
+   const parsed = parseStudyGroupAttachment(
+     message.content
+   );
+
+   return (
+     <>
+       {parsed.text && (
+         <span>{parsed.text}</span>
+       )}
+
+       {parsed.attachment?.url && (
+         parsed.attachment.type?.startsWith('image/') ? (
+           <a
+             href={parsed.attachment.url}
+             target="_blank"
+             rel="noreferrer"
+             style={{
+               display: 'block',
+               marginTop: parsed.text ? '10px' : 0,
+               textDecoration: 'none'
+             }}
+           >
+             <img
+               src={parsed.attachment.url}
+               alt={parsed.attachment.name || 'Shared image'}
+               style={{
+                 display: 'block',
+                 width: 'min(280px, 100%)',
+                 maxHeight: '240px',
+                 objectFit: 'cover',
+                 borderRadius: '12px'
+               }}
+             />
+           </a>
+         ) : (
+           <a
+             href={parsed.attachment.url}
+             target="_blank"
+             rel="noreferrer"
+             style={{
+               display: 'flex',
+               alignItems: 'center',
+               gap: '9px',
+               marginTop: parsed.text ? '10px' : 0,
+               padding: '9px 10px',
+               borderRadius: '10px',
+               textDecoration: 'none',
+               background: isMe
+                 ? 'rgba(255,255,255,.10)'
+                 : '#FFFFFF',
+               border: isMe
+                 ? '1px solid rgba(255,255,255,.16)'
+                 : '1px solid #DDE4EE',
+               color: isMe ? '#FFFFFF' : '#0B1A3F'
+             }}
+           >
+             <FileText size={17} />
+             <span
+               style={{
+                 minWidth: 0,
+                 overflow: 'hidden',
+                 textOverflow: 'ellipsis',
+                 whiteSpace: 'nowrap',
+                 fontSize: '12px',
+                 fontWeight: '800'
+               }}
+             >
+               {parsed.attachment.name || 'Shared file'}
+             </span>
+           </a>
+         )
+       )}
+     </>
+   );
+ })()}
 
   </div>
  )}
 
 
+
+
+  <div
+  className={`study-message-meta ${
+    isMe &&
+    (groupReadReceipts[message.id] || []).some(
+      (receipt) =>
+        receipt.user_id !== currentUser?.id
+    )
+      ? 'seen'
+      : ''
+  }`}
+  >
+    <span>
+      {formatStudyGroupMessageTime(message.created_at)}
+    </span>
+
+    {isMe && (
+      <>
+        <span>·</span>
+        <span>
+          {(groupReadReceipts[message.id] || []).some(
+            (receipt) =>
+              receipt.user_id !== currentUser?.id
+          )
+            ? 'Seen'
+            : isTemp
+            ? 'Sending'
+            : 'Sent'}
+        </span>
+      </>
+    )}
+  </div>
 
 
   {/*
@@ -9870,6 +11148,8 @@ flexWrap:
 
 
 
+
+</div>
 
   {/*
 =================================================
@@ -10334,6 +11614,101 @@ style={{
   MESSAGE INPUT
 ================================================= */}
 
+{pendingGroupAttachment && (
+<div
+style={{
+  margin: '0 20px 10px',
+  padding: '10px 12px',
+  borderRadius: '12px',
+  background: '#F7F8FA',
+  border: '1px solid #E3E8F2',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px'
+}}
+>
+  {pendingGroupAttachment.previewUrl ? (
+    <img
+      src={pendingGroupAttachment.previewUrl}
+      alt={pendingGroupAttachment.name}
+      style={{
+        width: '44px',
+        height: '44px',
+        objectFit: 'cover',
+        borderRadius: '9px'
+      }}
+    />
+  ) : (
+    <div
+      style={{
+        width: '44px',
+        height: '44px',
+        borderRadius: '9px',
+        background: '#FFFFFF',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '1px solid #E3E8F2',
+        color: '#0B1A3F'
+      }}
+    >
+      <FileText size={18} />
+    </div>
+  )}
+
+  <div
+    style={{
+      minWidth: 0,
+      flex: 1
+    }}
+  >
+    <div
+      style={{
+        fontSize: '11px',
+        fontWeight: '900',
+        color: '#0B1A3F',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      }}
+    >
+      {pendingGroupAttachment.name}
+    </div>
+
+    <div
+      style={{
+        marginTop: '2px',
+        fontSize: '9px',
+        fontWeight: '700',
+        color: '#8A95A6'
+      }}
+    >
+      {formatStudyGroupFileSize(pendingGroupAttachment.size)}
+    </div>
+  </div>
+
+  <button
+    type="button"
+    onClick={removePendingGroupAttachment}
+    aria-label="Remove attachment"
+    style={{
+      width: '32px',
+      height: '32px',
+      border: 'none',
+      borderRadius: '9px',
+      background: '#FFFFFF',
+      color: '#717786',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer'
+    }}
+  >
+    <X size={15} />
+  </button>
+</div>
+)}
+
 <form
 className="study-group-chat-composer"
 onSubmit={
@@ -10351,6 +11726,42 @@ style={{
  flexShrink: 0
 }}
 >
+
+<input
+ref={groupAttachmentInputRef}
+type="file"
+accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip"
+onChange={handlePickGroupAttachment}
+style={{ display: 'none' }}
+/>
+
+<button
+type="button"
+title="Attach image or file"
+onClick={() =>
+  groupAttachmentInputRef.current?.click()
+}
+disabled={uploadingGroupAttachment}
+style={{
+  width: '48px',
+  height: '48px',
+  minWidth: '48px',
+  margin: 0,
+  padding: 0,
+  borderRadius: '14px',
+  border: '1.5px solid #E3E8F2',
+  background: '#FFFFFF',
+  color: '#0B1A3F',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: uploadingGroupAttachment ? 'default' : 'pointer',
+  opacity: uploadingGroupAttachment ? 0.55 : 1,
+  flexShrink: 0
+}}
+>
+<Paperclip size={18} />
+</button>
 
 <input
 className="study-group-chat-input"
@@ -10388,7 +11799,8 @@ style={{
 <button
 type="submit"
   disabled={
-   !newMessage.trim()
+   uploadingGroupAttachment ||
+   (!newMessage.trim() && !pendingGroupAttachment)
   }
   className="btn"
   style={{
@@ -10407,9 +11819,17 @@ type="submit"
  background: selectedGroup?.color || '#0B1A3F',
  color: getContrastColor(selectedGroup?.color || '#0B1A3F'),
  boxShadow: 'none',
- cursor: newMessage.trim() ? 'pointer' : 'default',
+ cursor:
+   uploadingGroupAttachment ||
+   (!newMessage.trim() && !pendingGroupAttachment)
+     ? 'default'
+     : 'pointer',
  flexShrink: 0,
- opacity: newMessage.trim() ? 1 : 0.5
+ opacity:
+   uploadingGroupAttachment ||
+   (!newMessage.trim() && !pendingGroupAttachment)
+     ? 0.5
+     : 1
 }}
 >
 
@@ -11724,9 +13144,6 @@ color:
 
 
 
-{member.user_id !==
- currentUser?.id && (
-
 <div
 style={{
 display:
@@ -11795,7 +13212,6 @@ onClick={(event) => {
       </button>
 
       </div>
-     )}
 
      </div>
  )

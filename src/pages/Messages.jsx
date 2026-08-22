@@ -5,6 +5,7 @@ import {
   Send,
   FileText,
   Users,
+  BarChart2,
   MessageSquare,
   Search,
   Mail,
@@ -410,6 +411,15 @@ export default function Messages() {
   const [replyingTo, setReplyingTo] = useState(null);
   const [profilePreview, setProfilePreview] = useState(null);
   const [chatActionsOpen, setChatActionsOpen] = useState(false);
+  const [showSharedMedia, setShowSharedMedia] = useState(false);
+  const [groupReadReceipts, setGroupReadReceipts] = useState({});
+  const [showMembersPanel, setShowMembersPanel] = useState(false);
+  const [chatMemberRows, setChatMemberRows] = useState([]);
+  const [chatMembersLoading, setChatMembersLoading] = useState(false);
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState(['', '']);
+  const [pollSubmitting, setPollSubmitting] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const attachmentInputRef = useRef(null);
@@ -954,6 +964,60 @@ export default function Messages() {
     await mergeProfilesByIds(partnerIds);
   }
 
+  async function syncGroupReadReceipts(messagesList, userId) {
+    const rows = (messagesList || []).filter(
+      (message) =>
+        message?.id &&
+        !String(message.id).startsWith('temp-')
+    );
+
+    if (!rows.length || !userId) {
+      setGroupReadReceipts({});
+      return;
+    }
+
+    const toMark = rows
+      .filter((message) => message.user_id !== userId)
+      .map((message) => ({
+        message_id: message.id,
+        user_id: userId
+      }));
+
+    if (toMark.length) {
+      const { error: markError } = await supabase
+        .from('group_message_reads')
+        .upsert(toMark, {
+          onConflict: 'message_id,user_id',
+          ignoreDuplicates: true
+        });
+
+      if (markError) {
+        console.error('Could not mark Study Group messages read:', markError);
+      }
+    }
+
+    const ids = rows.map((message) => message.id);
+
+    const { data, error } = await supabase
+      .from('group_message_reads')
+      .select('message_id,user_id,read_at')
+      .in('message_id', ids);
+
+    if (error) {
+      console.error('Could not load Study Group read receipts:', error);
+      return;
+    }
+
+    const next = {};
+
+    (data || []).forEach((row) => {
+      if (!next[row.message_id]) next[row.message_id] = [];
+      next[row.message_id].push(row);
+    });
+
+    setGroupReadReceipts(next);
+  }
+
   async function loadGroupsAndMessages(userId) {
     if (!userId) return;
 
@@ -1102,6 +1166,8 @@ export default function Messages() {
       });
 
       setGroupMessages(messageMap);
+
+      await syncGroupReadReceipts(messages || [], userId);
     } catch (error) {
       console.error(
         'Study Group sync error:',
@@ -1493,6 +1559,80 @@ export default function Messages() {
     );
   }, [selected, customGroupMessages, clearedChats]);
 
+  useEffect(() => {
+    setShowSharedMedia(false);
+    setShowMembersPanel(false);
+    setShowPollModal(false);
+    setChatActionsOpen(false);
+  }, [selected?.type, selected?.partnerId, selected?.groupId]);
+
+  const sharedAttachments = useMemo(() => {
+    let sourceMessages = [];
+
+    if (selected?.type === 'dm') {
+      sourceMessages = selectedDmMessages;
+    } else if (selected?.type === 'custom-group') {
+      sourceMessages = selectedCustomGroupMessages;
+    } else if (selected?.type === 'group') {
+      sourceMessages = selectedStudyGroupMessages;
+    }
+
+    return sourceMessages
+      .map((message) => {
+        const raw = message?.content || message?.message || '';
+        const { attachment } = parseMessageAttachment(raw);
+        if (!attachment?.url) return null;
+
+        const mine =
+          selected?.type === 'group'
+            ? message?.user_id === currentUser?.id
+            : message?.sender_id === currentUser?.id;
+
+        const senderId =
+          message?.sender_id ||
+          message?.user_id ||
+          null;
+
+        const senderProfile = senderId
+          ? profiles[senderId]
+          : null;
+
+        const senderName = mine
+          ? (
+              currentProfile?.name ||
+              currentProfile?.full_name ||
+              currentUser?.email?.split('@')[0] ||
+              'You'
+            )
+          : (
+              senderProfile?.name ||
+              senderProfile?.full_name ||
+              message?.sender_name ||
+              senderProfile?.email?.split('@')[0] ||
+              selected?.name ||
+              'Student'
+            );
+
+        return {
+          ...attachment,
+          messageId: message?.id,
+          createdAt: message?.created_at,
+          senderName,
+          isImage: String(attachment?.type || '').startsWith('image/')
+        };
+      })
+      .filter(Boolean)
+      .reverse();
+  }, [
+    selected,
+    selectedDmMessages,
+    selectedCustomGroupMessages,
+    selectedStudyGroupMessages,
+    currentUser?.id,
+    profiles,
+    currentProfile
+  ]);
+
   const getMessageSenderDisplay = (message, mine = false) => {
     if (mine) {
       return {
@@ -1501,7 +1641,13 @@ export default function Messages() {
           currentProfile?.name ||
           currentProfile?.full_name ||
           currentUser?.email?.split('@')[0] ||
-          'You'
+          'You',
+        avatarUrl:
+          currentProfile?.avatar_url ||
+          currentProfile?.avatarUrl ||
+          currentUser?.user_metadata?.avatar_url ||
+          currentUser?.user_metadata?.avatarUrl ||
+          ''
       };
     }
 
@@ -1520,7 +1666,11 @@ export default function Messages() {
         message?.sender_name ||
         profile?.email?.split('@')[0] ||
         selected?.name ||
-        'Student'
+        'Student',
+      avatarUrl:
+        profile?.avatar_url ||
+        profile?.avatarUrl ||
+        ''
     };
   };
 
@@ -1564,6 +1714,242 @@ export default function Messages() {
 
     setProfilePreview(null);
     openDm(profilePreview.id, person);
+  };
+
+  const loadSelectedChatMembers = async () => {
+    if (
+      !selected?.groupId ||
+      !['group', 'custom-group'].includes(selected.type)
+    ) {
+      return;
+    }
+
+    setChatMembersLoading(true);
+
+    try {
+      const membershipTable =
+        selected.type === 'group'
+          ? 'group_members'
+          : 'message_group_members';
+
+      const { data: memberships, error: membershipError } =
+        await supabase
+          .from(membershipTable)
+          .select('user_id')
+          .eq('group_id', selected.groupId);
+
+      if (membershipError) throw membershipError;
+
+      const memberIds = [
+        ...new Set(
+          (memberships || [])
+            .map((row) => row.user_id)
+            .filter(Boolean)
+        )
+      ];
+
+      if (!memberIds.length) {
+        setChatMemberRows([]);
+        return;
+      }
+
+      const { data: profileRows, error: profileError } =
+        await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', memberIds);
+
+      if (profileError) throw profileError;
+
+      const profileMap = Object.fromEntries(
+        (profileRows || []).map((profile) => [
+          profile.id,
+          profile
+        ])
+      );
+
+      setChatMemberRows(
+        memberIds.map((id) => {
+          const profile = profileMap[id] || profiles[id] || {};
+
+          return {
+            id,
+            name:
+              profile.name ||
+              profile.full_name ||
+              profile.email?.split('@')[0] ||
+              'Student',
+            email: profile.email || '',
+            major:
+              profile.major ||
+              profile.program ||
+              '',
+            avatarUrl:
+              profile.avatar_url ||
+              profile.avatarUrl ||
+              ''
+          };
+        })
+      );
+    } catch (error) {
+      console.error('Could not load chat members:', error);
+      toast.error?.('Could not load group members.');
+    } finally {
+      setChatMembersLoading(false);
+    }
+  };
+
+  const openMembersPanel = async () => {
+    setShowMembersPanel(true);
+    await loadSelectedChatMembers();
+  };
+
+  const updateStudyGroupPollVote = async (
+    message,
+    optionIndex
+  ) => {
+    if (
+      !message?.id ||
+      !message?.poll_data ||
+      !currentUser?.id
+    ) {
+      return;
+    }
+
+    const currentOptions =
+      Array.isArray(message.poll_data.options)
+        ? message.poll_data.options
+        : [];
+
+    const nextOptions = currentOptions.map((option, index) => {
+      const votes = Array.isArray(option.votes)
+        ? option.votes.filter(Boolean)
+        : [];
+
+      const withoutMe = votes.filter(
+        (userId) => userId !== currentUser.id
+      );
+
+      return {
+        ...option,
+        votes:
+          index === optionIndex
+            ? [...withoutMe, currentUser.id]
+            : withoutMe
+      };
+    });
+
+    const nextPollData = {
+      ...message.poll_data,
+      options: nextOptions
+    };
+
+    setGroupMessages((previous) => ({
+      ...previous,
+      [selected.groupId]: (
+        previous[selected.groupId] || []
+      ).map((item) =>
+        item.id === message.id
+          ? {
+              ...item,
+              poll_data: nextPollData
+            }
+          : item
+      )
+    }));
+
+    const { error } = await supabase
+      .from('group_messages')
+      .update({
+        poll_data: nextPollData
+      })
+      .eq('id', message.id);
+
+    if (error) {
+      console.error('Could not save poll vote:', error);
+      await loadGroupsAndMessages(currentUser.id);
+    }
+  };
+
+  const createStudyGroupPoll = async (event) => {
+    event.preventDefault();
+
+    if (
+      selected?.type !== 'group' ||
+      !selected.groupId ||
+      !currentUser?.id
+    ) {
+      return;
+    }
+
+    const question = pollQuestion.trim();
+    const options = pollOptions
+      .map((option) => option.trim())
+      .filter(Boolean);
+
+    if (!question || options.length < 2) {
+      return;
+    }
+
+    setPollSubmitting(true);
+
+    try {
+      const senderName =
+        currentProfile?.name ||
+        currentProfile?.full_name ||
+        currentUser?.user_metadata?.full_name ||
+        currentUser?.email?.split('@')[0] ||
+        'Student';
+
+      const pollData = {
+        question,
+        options: options.map((option) => ({
+          text: option,
+          votes: []
+        }))
+      };
+
+      const { data, error } = await supabase
+        .from('group_messages')
+        .insert([
+          {
+            group_id: selected.groupId,
+            user_id: currentUser.id,
+            sender_name: senderName,
+            content: question,
+            type: 'poll',
+            poll_data: pollData,
+            reactions: {}
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setGroupMessages((previous) => ({
+        ...previous,
+        [selected.groupId]: [
+          ...(previous[selected.groupId] || []),
+          data
+        ].sort(
+          (a, b) =>
+            new Date(a.created_at) -
+            new Date(b.created_at)
+        )
+      }));
+
+      setPollQuestion('');
+      setPollOptions(['', '']);
+      setShowPollModal(false);
+    } catch (error) {
+      console.error('Could not create poll:', error);
+      window.alert(
+        `Could not create poll: ${error.message}`
+      );
+    } finally {
+      setPollSubmitting(false);
+    }
   };
 
   const getSelectedChatKey = () => {
@@ -4228,10 +4614,16 @@ export default function Messages() {
         }
 
         .wa-message-sender {
-          margin-bottom: 4px;
+          margin-bottom: 5px;
           color: #66758E;
           font-size: 9px;
-          font-weight: 700;
+          font-weight: 800;
+          line-height: 1.2;
+        }
+
+        .wa-message-row.mine .wa-message-sender {
+          color: rgba(255,255,255,.72);
+          text-align: right;
         }
 
         .wa-message-time {
@@ -4582,7 +4974,431 @@ export default function Messages() {
             max-width: 84%;
           }
         }
-      `}</style>
+
+        .wa-chat-tool-btn {
+          width: 42px;
+          height: 42px;
+          flex: 0 0 42px;
+          border: 1px solid #E3E8EF;
+          border-radius: 12px;
+          background: #FFFFFF;
+          color: #0B1A3F;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background .18s ease, border-color .18s ease, transform .18s ease;
+        }
+
+        .wa-chat-tool-btn:hover,
+        .wa-chat-tool-btn.active {
+          background: #F4F7FB;
+          border-color: #CBD5E3;
+        }
+
+        .wa-chat-tool-btn.danger {
+          background: #FEECEC;
+          border-color: #F9C7C7;
+        }
+
+        .wa-shared-panel {
+          flex: 0 0 auto;
+          max-height: min(48vh, 430px);
+          overflow-y: auto;
+          padding: 16px 18px 18px;
+          background: #FFFFFF;
+          border-bottom: 1px solid #E5EAF2;
+          box-shadow: 0 10px 25px rgba(11, 26, 63, .055);
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .wa-shared-panel-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 14px;
+          margin-bottom: 16px;
+        }
+
+        .wa-shared-panel-head > div {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .wa-shared-panel-head strong {
+          color: #0B1A3F;
+          font-size: 15px;
+          font-weight: 900;
+        }
+
+        .wa-shared-panel-head span {
+          color: #8792A2;
+          font-size: 10px;
+          font-weight: 700;
+        }
+
+        .wa-shared-panel-head > button {
+          width: 34px;
+          height: 34px;
+          flex: 0 0 34px;
+          border: 1px solid #E3E8EF;
+          border-radius: 10px;
+          background: #FFFFFF;
+          color: #0B1A3F;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .wa-shared-section + .wa-shared-section {
+          margin-top: 18px;
+        }
+
+        .wa-shared-label {
+          margin-bottom: 8px;
+          color: #8A95A6;
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: .08em;
+        }
+
+        .wa-shared-image-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+          gap: 10px;
+        }
+
+        .wa-shared-image {
+          min-width: 0;
+          text-decoration: none;
+          color: #0B1A3F;
+          border: 1px solid #E2E8F0;
+          border-radius: 13px;
+          overflow: hidden;
+          background: #F8FAFD;
+        }
+
+        .wa-shared-image img {
+          width: 100%;
+          height: 96px;
+          object-fit: cover;
+          display: block;
+        }
+
+        .wa-shared-image span {
+          display: block;
+          padding: 7px 8px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        .wa-shared-file-list {
+          display: grid;
+          gap: 8px;
+        }
+
+        .wa-shared-file {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px;
+          text-decoration: none;
+          border: 1px solid #E2E8F0;
+          border-radius: 12px;
+          background: #FAFBFD;
+        }
+
+        .wa-shared-file-icon {
+          width: 38px;
+          height: 38px;
+          flex: 0 0 38px;
+          border-radius: 10px;
+          background: #FFFFFF;
+          color: #0B1A3F;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #E6EAF0;
+        }
+
+        .wa-shared-file-copy {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .wa-shared-file-copy strong {
+          color: #0B1A3F;
+          font-size: 10px;
+          font-weight: 900;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .wa-shared-file-copy small {
+          color: #8A95A6;
+          font-size: 8px;
+          font-weight: 700;
+        }
+
+        .wa-shared-empty {
+          min-height: 120px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          gap: 5px;
+          color: #8A95A6;
+        }
+
+        .wa-shared-empty strong {
+          color: #0B1A3F;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .wa-shared-empty span {
+          max-width: 320px;
+          font-size: 9px;
+          font-weight: 700;
+          line-height: 1.45;
+        }
+
+        @media (max-width: 700px) {
+          .wa-chat-header {
+            display: grid !important;
+            grid-template-columns: 44px minmax(0, 1fr) !important;
+            gap: 10px !important;
+            align-items: center !important;
+            padding: 12px !important;
+          }
+
+          .wa-chat-header > .wa-avatar {
+            display: none !important;
+          }
+
+          .wa-chat-header-copy {
+            min-width: 0 !important;
+          }
+
+          .wa-chat-toolbar {
+            grid-column: 1 / -1;
+            width: 100%;
+            margin-left: 0 !important;
+            display: grid !important;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 8px !important;
+          }
+
+          .wa-chat-tool-btn,
+          .wa-chat-toolbar > div {
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+
+          .wa-chat-toolbar > div > .wa-chat-tool-btn {
+            width: 100% !important;
+          }
+
+          .wa-chat-tool-btn {
+            height: 46px !important;
+            flex-basis: auto !important;
+          }
+
+          .wa-shared-panel {
+            max-height: 42vh;
+            padding: 14px;
+          }
+
+          .wa-shared-image-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+          }
+
+          .wa-shared-image img {
+            height: 82px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .wa-chat-toolbar {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 6px !important;
+          }
+
+          .wa-chat-tool-btn {
+            height: 44px !important;
+            border-radius: 11px !important;
+          }
+
+          .wa-shared-image-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+      
+        /* =========================================================
+           FINAL — EXACT SAME MESSAGE GEOMETRY AS STUDYGROUPS
+        ========================================================= */
+
+        .wa-message-row {
+          width: 100% !important;
+          display: flex !important;
+          justify-content: flex-start !important;
+          align-items: flex-end !important;
+          gap: 9px !important;
+          margin-bottom: 16px !important;
+          overflow: visible !important;
+          position: relative !important;
+        }
+
+        .wa-message-row.mine {
+          justify-content: flex-end !important;
+        }
+
+        .wa-message-content {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          max-width: min(72%, 760px) !important;
+          min-width: 0 !important;
+          position: relative !important;
+        }
+
+        .wa-message-row.mine .wa-message-content {
+          align-items: flex-end !important;
+        }
+
+        .wa-message-avatar {
+          width: 34px !important;
+          height: 34px !important;
+          flex: 0 0 34px !important;
+          padding: 0 !important;
+          border-radius: 50% !important;
+          border: 1px solid rgba(11,26,63,.08) !important;
+          background: #DCE4F5 !important;
+          color: #0B1A3F !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          overflow: hidden !important;
+          cursor: pointer !important;
+          order: 0 !important;
+        }
+
+        .wa-message-avatar.mine {
+          order: 3 !important;
+        }
+
+        .wa-message-avatar img {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          display: block !important;
+          border-radius: inherit !important;
+        }
+
+        .wa-message-bubble {
+          max-width: 100% !important;
+          padding: 11px 14px !important;
+          border-radius: 16px !important;
+          background: #F7F8FA !important;
+          color: #0B1A3F !important;
+          font-size: 13px !important;
+          font-weight: 650 !important;
+          line-height: 1.5 !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+
+        .wa-message-row.mine .wa-message-bubble {
+          background: #0B1A3F !important;
+          color: #FFFFFF !important;
+          border-bottom-right-radius: 5px !important;
+        }
+
+        .wa-message-row:not(.mine) .wa-message-bubble {
+          border-bottom-left-radius: 5px !important;
+        }
+
+        .wa-message-sender {
+          display: block !important;
+          margin: 0 0 5px !important;
+          color: #66758E !important;
+          font-size: 9px !important;
+          font-weight: 800 !important;
+          line-height: 1.2 !important;
+          text-align: left !important;
+          white-space: nowrap !important;
+        }
+
+        .wa-message-row.mine .wa-message-sender {
+          color: rgba(255,255,255,.72) !important;
+          text-align: right !important;
+        }
+
+        .wa-message-text {
+          font-size: 13px !important;
+          line-height: 1.5 !important;
+          font-weight: 650 !important;
+          white-space: pre-wrap !important;
+          overflow-wrap: anywhere !important;
+        }
+
+        .wa-message-meta,
+        .wa-message-time {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-end !important;
+          gap: 5px !important;
+          margin-top: 5px !important;
+          padding-right: 2px !important;
+          color: #98A2B3 !important;
+          font-size: 9px !important;
+          line-height: 1 !important;
+          font-weight: 700 !important;
+          white-space: nowrap !important;
+        }
+
+        .wa-message-meta.seen {
+          color: #526987 !important;
+        }
+
+        @media (max-width: 700px) {
+          .wa-message-row {
+            gap: 7px !important;
+            margin-bottom: 13px !important;
+          }
+
+          .wa-message-avatar {
+            width: 30px !important;
+            height: 30px !important;
+            flex-basis: 30px !important;
+          }
+
+          .wa-message-content {
+            max-width: min(78%, 520px) !important;
+          }
+
+          .wa-message-bubble {
+            padding: 10px 12px !important;
+            font-size: 12px !important;
+          }
+
+          .wa-message-text {
+            font-size: 12px !important;
+          }
+        }
+`}</style>
 
       {!selected ? (
         <section className="wa-list-screen">
@@ -4786,10 +5602,28 @@ export default function Messages() {
                               ),
                             }}
                           >
-                            {getInitials(
-                              profile.name ||
-                                profile.email ||
-                                'Student'
+                            {profile.avatar_url || profile.avatarUrl ? (
+                              <img
+                                src={profile.avatar_url || profile.avatarUrl}
+                                alt={
+                                  profile.name ||
+                                  profile.full_name ||
+                                  'Student'
+                                }
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  borderRadius: 'inherit',
+                                  display: 'block'
+                                }}
+                              />
+                            ) : (
+                              getInitials(
+                                profile.name ||
+                                  profile.email ||
+                                  'Student'
+                              )
                             )}
                           </span>
 
@@ -4989,10 +5823,30 @@ export default function Messages() {
                     : selected.type === 'group'
                     ? '#D4E8E2'
                     : avatarColor(selected.name),
+                overflow: 'hidden'
               }}
             >
               {selected.type === 'dm' ? (
-                getInitials(selected.name)
+                (
+                  profiles[selected.partnerId]?.avatar_url ||
+                  profiles[selected.partnerId]?.avatarUrl
+                ) ? (
+                  <img
+                    src={
+                      profiles[selected.partnerId]?.avatar_url ||
+                      profiles[selected.partnerId]?.avatarUrl
+                    }
+                    alt={selected.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block'
+                    }}
+                  />
+                ) : (
+                  getInitials(selected.name)
+                )
               ) : (
                 <Users size={20} />
               )}
@@ -5010,6 +5864,7 @@ export default function Messages() {
             </div>
 
             <div
+              className="wa-chat-toolbar"
               style={{
                 marginLeft: 'auto',
                 display: 'flex',
@@ -5018,8 +5873,10 @@ export default function Messages() {
                 flexShrink: 0
               }}
             >
+              {/* PIN */}
               <button
                 type="button"
+                className="wa-chat-tool-btn"
                 title={
                   pinnedMessageChats.includes(
                     selected.type === 'dm'
@@ -5040,25 +5897,16 @@ export default function Messages() {
                       : `custom-group:${selected.groupId}`
                   )
                 }
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  border: '1px solid #E3E8EF',
-                  borderRadius: '11px',
-                  background: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
               >
                 <Pin
-                  size={17}
+                  size={18}
                   fill={
                     pinnedMessageChats.includes(
                       selected.type === 'dm'
                         ? `dm:${selected.partnerId}`
-                        : `${selected.type}:${selected.groupId}`
+                        : selected.type === 'group'
+                        ? `study-group:${selected.groupId}`
+                        : `custom-group:${selected.groupId}`
                     )
                       ? '#0B1A3F'
                       : 'none'
@@ -5067,6 +5915,66 @@ export default function Messages() {
                 />
               </button>
 
+              {/* FULL SCREEN */}
+              <button
+                type="button"
+                className="wa-chat-tool-btn"
+                title={messagesFullscreen ? 'Exit full screen' : 'Full screen'}
+                onClick={() => setMessagesFullscreen((value) => !value)}
+              >
+                {messagesFullscreen ? (
+                  <Minimize2 size={18} color="#0B1A3F" />
+                ) : (
+                  <Maximize2 size={18} color="#0B1A3F" />
+                )}
+              </button>
+
+              {selected.type === 'group' && (
+                <>
+                  {/* POLL */}
+                  <button
+                    type="button"
+                    className="wa-chat-tool-btn"
+                    title="Create poll"
+                    onClick={() => setShowPollModal(true)}
+                  >
+                    <BarChart2 size={18} color="#0B1A3F" />
+                  </button>
+
+                  {/* MEMBERS */}
+                  <button
+                    type="button"
+                    className="wa-chat-tool-btn"
+                    title="View members"
+                    onClick={openMembersPanel}
+                  >
+                    <Users size={18} color="#0B1A3F" />
+                  </button>
+                </>
+              )}
+
+              {selected.type === 'custom-group' && (
+                <button
+                  type="button"
+                  className="wa-chat-tool-btn"
+                  title="View members"
+                  onClick={openMembersPanel}
+                >
+                  <Users size={18} color="#0B1A3F" />
+                </button>
+              )}
+
+              {/* SHARED MEDIA + FILES */}
+              <button
+                type="button"
+                className={`wa-chat-tool-btn ${showSharedMedia ? 'active' : ''}`}
+                title="Shared media & files"
+                onClick={() => setShowSharedMedia((value) => !value)}
+              >
+                <ImageIcon size={18} color="#0B1A3F" />
+              </button>
+
+              {/* NOTIFICATIONS */}
               {(() => {
                 const notificationKey =
                   selected.type === 'dm'
@@ -5083,59 +5991,35 @@ export default function Messages() {
                 return (
                   <button
                     type="button"
+                    className="wa-chat-tool-btn"
                     title={notificationsOn ? 'Notifications on' : 'Notifications off'}
-                    onClick={() =>
-                      toggleMessageNotification(notificationKey)
-                    }
-                    style={{
-                      width: '38px',
-                      height: '38px',
-                      border: '1px solid #E3E8EF',
-                      borderRadius: '11px',
-                      background: '#FFFFFF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer'
-                    }}
+                    onClick={() => toggleMessageNotification(notificationKey)}
                   >
                     {notificationsOn ? (
-                      <Bell size={17} color="#0B1A3F" />
+                      <Bell size={18} color="#0B1A3F" />
                     ) : (
-                      <BellOff size={17} color="#EF4444" />
+                      <BellOff size={18} color="#EF4444" />
                     )}
                   </button>
                 );
               })()}
 
+              {/* MORE OPTIONS */}
               <div style={{ position: 'relative' }}>
                 <button
                   type="button"
+                  className="wa-chat-tool-btn"
                   title="Chat options"
-                  onClick={() =>
-                    setChatActionsOpen((value) => !value)
-                  }
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    border: '1px solid #E3E8EF',
-                    borderRadius: '11px',
-                    background: '#FFFFFF',
-                    color: '#0B1A3F',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => setChatActionsOpen((value) => !value)}
                 >
-                  <MoreHorizontal size={17} />
+                  <MoreHorizontal size={18} color="#0B1A3F" />
                 </button>
 
                 {chatActionsOpen && (
                   <div
                     style={{
                       position: 'absolute',
-                      top: '46px',
+                      top: '50px',
                       right: 0,
                       zIndex: 1500,
                       width: '220px',
@@ -5221,85 +6105,10 @@ export default function Messages() {
                       </button>
                     )}
 
-                    {selected.type === 'dm' && (
-                      <button
-                        type="button"
-                        onClick={deleteSelectedDirectConversationForEveryone}
-                        style={{
-                          width: '100%',
-                          minHeight: '38px',
-                          padding: '0 10px',
-                          border: 'none',
-                          borderRadius: '9px',
-                          background: '#FFFFFF',
-                          color: '#C53D3D',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '10px',
-                          fontWeight: '800',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Trash2 size={14} />
-                        Delete conversation for everyone
-                      </button>
-                    )}
-
                     {selected.type === 'custom-group' && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={leaveSelectedGroupForMe}
-                          style={{
-                            width: '100%',
-                            minHeight: '38px',
-                            padding: '0 10px',
-                            border: 'none',
-                            borderRadius: '9px',
-                            background: '#FFFFFF',
-                            color: '#0B1A3F',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontSize: '10px',
-                            fontWeight: '800',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <LogOut size={14} />
-                          Leave / Exit group
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={deleteSelectedPrivateGroupForMe}
-                          style={{
-                            width: '100%',
-                            minHeight: '38px',
-                            padding: '0 10px',
-                            border: 'none',
-                            borderRadius: '9px',
-                            background: '#FFFFFF',
-                            color: '#C53D3D',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontSize: '10px',
-                            fontWeight: '800',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Trash2 size={14} />
-                          Delete group for me
-                        </button>
-                      </>
-                    )}
-
-                    {selected.type === 'group' && (
                       <button
                         type="button"
-                        onClick={deleteSelectedStudyGroupForMe}
+                        onClick={leaveSelectedGroupForMe}
                         style={{
                           width: '100%',
                           minHeight: '38px',
@@ -5307,7 +6116,7 @@ export default function Messages() {
                           border: 'none',
                           borderRadius: '9px',
                           background: '#FFFFFF',
-                          color: '#C53D3D',
+                          color: '#0B1A3F',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
@@ -5316,88 +6125,186 @@ export default function Messages() {
                           cursor: 'pointer'
                         }}
                       >
-                        <Trash2 size={14} />
-                        Delete Study Group for me
-                      </button>
-                    )}
-
-                    {canDeleteSelectedCustomGroup && (
-                      <button
-                        type="button"
-                        onClick={deleteSelectedCustomGroup}
-                        style={{
-                          width: '100%',
-                          minHeight: '38px',
-                          padding: '0 10px',
-                          border: 'none',
-                          borderRadius: '9px',
-                          background: '#FFFFFF',
-                          color: '#C53D3D',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '10px',
-                          fontWeight: '800',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Trash2 size={14} />
-                        Delete private group for everyone
-                      </button>
-                    )}
-
-                    {canDeleteSelectedStudyGroup && (
-                      <button
-                        type="button"
-                        onClick={deleteSelectedStudyGroupForEveryone}
-                        style={{
-                          width: '100%',
-                          minHeight: '38px',
-                          padding: '0 10px',
-                          border: 'none',
-                          borderRadius: '9px',
-                          background: '#FFFFFF',
-                          color: '#C53D3D',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '10px',
-                          fontWeight: '800',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Trash2 size={14} />
-                        Delete Study Group for everyone
+                        <LogOut size={14} />
+                        Leave / Exit group
                       </button>
                     )}
                   </div>
                 )}
               </div>
 
+              {/* CLEAR / DELETE STYLE BUTTON — matches Study Groups */}
               <button
                 type="button"
-                title={messagesFullscreen ? 'Exit full screen' : 'Full screen'}
-                onClick={() => setMessagesFullscreen((value) => !value)}
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  border: '1px solid #E3E8EF',
-                  borderRadius: '11px',
-                  background: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
+                className="wa-chat-tool-btn danger"
+                title="Clear this chat for me"
+                onClick={clearSelectedChatForMe}
               >
-                {messagesFullscreen ? (
-                  <Minimize2 size={17} color="#667085" />
-                ) : (
-                  <Maximize2 size={17} color="#667085" />
-                )}
+                <Trash2 size={18} color="#B91C1C" />
               </button>
             </div>
           </header>
+
+          {showMembersPanel && (
+            <div className="wa-shared-panel">
+              <div className="wa-shared-panel-head">
+                <div>
+                  <strong>Members</strong>
+                  <span>
+                    {chatMembersLoading
+                      ? 'Loading members...'
+                      : `${chatMemberRows.length} member${chatMemberRows.length === 1 ? '' : 's'}`}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowMembersPanel(false)}
+                  aria-label="Close members"
+                >
+                  <X size={17} />
+                </button>
+              </div>
+
+              {chatMembersLoading ? (
+                <div className="wa-shared-empty">
+                  <Users size={24} />
+                  <strong>Loading members...</strong>
+                </div>
+              ) : chatMemberRows.length ? (
+                <div className="wa-shared-file-list">
+                  {chatMemberRows.map((member) => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      className="wa-shared-file"
+                      onClick={() =>
+                        openMessageProfile({
+                          id: member.id,
+                          name: member.name
+                        })
+                      }
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span
+                        className="wa-shared-file-icon"
+                        style={{
+                          borderRadius: '50%',
+                          background: avatarColor(member.name)
+                        }}
+                      >
+                        {getInitials(member.name)}
+                      </span>
+
+                      <span className="wa-shared-file-copy">
+                        <strong>{member.name}</strong>
+                        <small>
+                          {member.major ||
+                            member.email ||
+                            'Campora member'}
+                        </small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="wa-shared-empty">
+                  <Users size={24} />
+                  <strong>No members found</strong>
+                </div>
+              )}
+            </div>
+          )}
+
+          {showSharedMedia && (
+            <div className="wa-shared-panel">
+              <div className="wa-shared-panel-head">
+                <div>
+                  <strong>Shared Media & Files</strong>
+                  <span>
+                    {sharedAttachments.length
+                      ? `${sharedAttachments.length} shared item${sharedAttachments.length === 1 ? '' : 's'}`
+                      : 'Images and files from this conversation'}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowSharedMedia(false)}
+                  aria-label="Close shared media"
+                >
+                  <X size={17} />
+                </button>
+              </div>
+
+              {sharedAttachments.length ? (
+                <>
+                  {sharedAttachments.some((item) => item.isImage) && (
+                    <div className="wa-shared-section">
+                      <div className="wa-shared-label">IMAGES</div>
+                      <div className="wa-shared-image-grid">
+                        {sharedAttachments
+                          .filter((item) => item.isImage)
+                          .map((item, index) => (
+                            <a
+                              key={`${item.messageId || item.url}-image-${index}`}
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="wa-shared-image"
+                              title={item.name || 'Shared image'}
+                            >
+                              <img src={item.url} alt={item.name || 'Shared image'} />
+                              <span>{item.name || 'Image'}</span>
+                            </a>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {sharedAttachments.some((item) => !item.isImage) && (
+                    <div className="wa-shared-section">
+                      <div className="wa-shared-label">FILES</div>
+                      <div className="wa-shared-file-list">
+                        {sharedAttachments
+                          .filter((item) => !item.isImage)
+                          .map((item, index) => (
+                            <a
+                              key={`${item.messageId || item.url}-file-${index}`}
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="wa-shared-file"
+                            >
+                              <span className="wa-shared-file-icon">
+                                <FileText size={18} />
+                              </span>
+                              <span className="wa-shared-file-copy">
+                                <strong>{item.name || 'Shared file'}</strong>
+                                <small>
+                                  {item.senderName}
+                                  {item.createdAt ? ` · ${formatDate(item.createdAt)}` : ''}
+                                </small>
+                              </span>
+                            </a>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="wa-shared-empty">
+                  <ImageIcon size={25} />
+                  <strong>No shared media yet</strong>
+                  <span>Images and files sent in this chat will appear here automatically.</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="wa-chat-history">
             <div className="wa-day-divider">Today</div>
@@ -5432,32 +6339,52 @@ export default function Messages() {
                             border: '1px solid rgba(11,26,63,.06)'
                           }}
                         >
-                          {getInitials(sender.name)}
+                          {sender.avatarUrl ? (
+                            <img
+                              src={sender.avatarUrl}
+                              alt={sender.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: 'inherit',
+                                display: 'block'
+                              }}
+                            />
+                          ) : (
+                            getInitials(sender.name)
+                          )}
                         </button>
                       )}
 
-                      <div
-                        className="wa-message-bubble"
-                        style={{
-                          position: 'relative',
-                          overflow: 'visible'
-                        }}
-                      >
-                        {renderMessageActions({
-                          message,
-                          mine,
-                          parsedText: parsed.text,
-                          conversationKey,
-                          senderName: sender.name,
-                          messageType: 'dm'
-                        })}
+                      <div className="wa-message-content">
+                        <div
+                          className="wa-message-bubble"
+                          style={{
+                            position: 'relative',
+                            overflow: 'visible'
+                          }}
+                        >
+                          {renderMessageActions({
+                            message,
+                            mine,
+                            parsedText: parsed.text,
+                            conversationKey,
+                            senderName: sender.name,
+                            messageType: 'dm'
+                          })}
 
-                        {renderAttachment(
-                          message.content || message.message || ''
-                        )}
+                          <div className="wa-message-sender">
+                            {mine ? `${sender.name} · You` : sender.name}
+                          </div>
 
-                        <div className="wa-message-text">
-                          {parsed.text}
+                          {renderAttachment(
+                            message.content || message.message || ''
+                          )}
+
+                          <div className="wa-message-text">
+                            {parsed.text}
+                          </div>
                         </div>
 
                         <div
@@ -5489,7 +6416,21 @@ export default function Messages() {
                             border: '1px solid rgba(11,26,63,.06)'
                           }}
                         >
-                          {getInitials(sender.name)}
+                          {sender.avatarUrl ? (
+                            <img
+                              src={sender.avatarUrl}
+                              alt={sender.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: 'inherit',
+                                display: 'block'
+                              }}
+                            />
+                          ) : (
+                            getInitials(sender.name)
+                          )}
                         </button>
                       )}
                     </div>
@@ -5528,34 +6469,60 @@ export default function Messages() {
                             border: '1px solid rgba(11,26,63,.06)'
                           }}
                         >
-                          {getInitials(sender.name)}
+                          {sender.avatarUrl ? (
+                            <img
+                              src={sender.avatarUrl}
+                              alt={sender.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: 'inherit',
+                                display: 'block'
+                              }}
+                            />
+                          ) : (
+                            getInitials(sender.name)
+                          )}
                         </button>
                       )}
 
-                      <div
-                        className="wa-message-bubble"
-                        style={{
-                          position: 'relative',
-                          overflow: 'visible'
-                        }}
-                      >
-                        {renderMessageActions({
-                          message,
-                          mine,
-                          parsedText,
-                          conversationKey,
-                          senderName: sender.name,
-                          messageType: 'custom-group'
-                        })}
+                      <div className="wa-message-content">
+                        <div
+                          className="wa-message-bubble"
+                          style={{
+                            position: 'relative',
+                            overflow: 'visible'
+                          }}
+                        >
+                          {renderMessageActions({
+                            message,
+                            mine,
+                            parsedText,
+                            conversationKey,
+                            senderName: sender.name,
+                            messageType: 'custom-group'
+                          })}
 
-                        {renderAttachment(message.content || '')}
+                          <div className="wa-message-sender">
+                            {mine ? `${sender.name} · You` : sender.name}
+                          </div>
 
-                        <div className="wa-message-text">
-                          {parsedText}
+                          {renderAttachment(message.content || '')}
+
+                          <div className="wa-message-text">
+                            {parsedText}
+                          </div>
                         </div>
 
                         <div className="wa-message-meta">
                           <span>{formatMessageTime(message.created_at)}</span>
+                          {mine && (
+                            <>
+                              <span>·</span>
+                              <span>Sent</span>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -5570,7 +6537,21 @@ export default function Messages() {
                             border: '1px solid rgba(11,26,63,.06)'
                           }}
                         >
-                          {getInitials(sender.name)}
+                          {sender.avatarUrl ? (
+                            <img
+                              src={sender.avatarUrl}
+                              alt={sender.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: 'inherit',
+                                display: 'block'
+                              }}
+                            />
+                          ) : (
+                            getInitials(sender.name)
+                          )}
                         </button>
                       )}
                     </div>
@@ -5608,17 +6589,32 @@ export default function Messages() {
                           border: '1px solid rgba(11,26,63,.06)'
                         }}
                       >
-                        {getInitials(sender.name)}
+                        {sender.avatarUrl ? (
+                          <img
+                            src={sender.avatarUrl}
+                            alt={sender.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              borderRadius: 'inherit',
+                              display: 'block'
+                            }}
+                          />
+                        ) : (
+                          getInitials(sender.name)
+                        )}
                       </button>
                     )}
 
-                    <div
-                      className="wa-message-bubble"
-                      style={{
-                        position: 'relative',
-                        overflow: 'visible'
-                      }}
-                    >
+                    <div className="wa-message-content">
+                      <div
+                        className="wa-message-bubble"
+                        style={{
+                          position: 'relative',
+                          overflow: 'visible'
+                        }}
+                      >
                       {renderMessageActions({
                         message,
                         mine,
@@ -5628,20 +6624,118 @@ export default function Messages() {
                         messageType: 'group'
                       })}
 
-                      {!mine && (
-                        <div className="wa-message-sender">
-                          {sender.name}
-                        </div>
-                      )}
-
-                      {renderAttachment(message.content || '')}
-
-                      <div className="wa-message-text">
-                        {parsedText}
+                      <div className="wa-message-sender">
+                        {mine ? `${sender.name} · You` : sender.name}
                       </div>
 
-                      <div className="wa-message-time">
-                        {formatDate(message.created_at)}
+                      {message.type === 'poll' && message.poll_data ? (
+                        <div
+                          style={{
+                            width: 'min(330px, 100%)',
+                            marginTop: '4px'
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: 900,
+                              marginBottom: '10px',
+                              color: mine ? '#FFFFFF' : '#0B1A3F'
+                            }}
+                          >
+                            {message.poll_data.question || parsedText}
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'grid',
+                              gap: '7px'
+                            }}
+                          >
+                            {(message.poll_data.options || []).map(
+                              (option, optionIndex) => {
+                                const votes = Array.isArray(option.votes)
+                                  ? option.votes
+                                  : [];
+                                const selectedByMe =
+                                  votes.includes(currentUser.id);
+
+                                return (
+                                  <button
+                                    key={`${message.id}-poll-${optionIndex}`}
+                                    type="button"
+                                    onClick={() =>
+                                      updateStudyGroupPollVote(
+                                        message,
+                                        optionIndex
+                                      )
+                                    }
+                                    style={{
+                                      width: '100%',
+                                      minHeight: '38px',
+                                      padding: '8px 10px',
+                                      borderRadius: '10px',
+                                      border: selectedByMe
+                                        ? '1px solid #7C9EDB'
+                                        : '1px solid rgba(11,26,63,.15)',
+                                      background: selectedByMe
+                                        ? '#EEF4FF'
+                                        : '#FFFFFF',
+                                      color: '#0B1A3F',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      gap: '10px',
+                                      fontSize: '11px',
+                                      fontWeight: 800,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <span>{option.text}</span>
+                                    <span>{votes.length}</span>
+                                  </button>
+                                );
+                              }
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {renderAttachment(message.content || '')}
+
+                          <div className="wa-message-text">
+                            {parsedText}
+                          </div>
+                        </>
+                      )}
+
+
+                                          </div>
+
+                      <div
+                        className={`wa-message-meta ${
+                          mine &&
+                          (groupReadReceipts[message.id] || []).some(
+                            (receipt) =>
+                              receipt.user_id !== currentUser.id
+                          )
+                            ? 'seen'
+                            : ''
+                        }`}
+                      >
+                        <span>{formatMessageTime(message.created_at)}</span>
+                        {mine && (
+                          <>
+                            <span>·</span>
+                            <span>
+                              {(groupReadReceipts[message.id] || []).some(
+                                (receipt) =>
+                                  receipt.user_id !== currentUser.id
+                              )
+                                ? 'Seen'
+                                : 'Sent'}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -5656,7 +6750,21 @@ export default function Messages() {
                           border: '1px solid rgba(11,26,63,.06)'
                         }}
                       >
-                        {getInitials(sender.name)}
+                        {sender.avatarUrl ? (
+                          <img
+                            src={sender.avatarUrl}
+                            alt={sender.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              borderRadius: 'inherit',
+                              display: 'block'
+                            }}
+                          />
+                        ) : (
+                          getInitials(sender.name)
+                        )}
                       </button>
                     )}
                   </div>
@@ -5821,6 +6929,221 @@ export default function Messages() {
             </button>
           </div>
         </section>
+      )}
+
+      {showPollModal && selected?.type === 'group' && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2200,
+            background: 'rgba(15,20,34,.38)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setShowPollModal(false);
+            }
+          }}
+        >
+          <form
+            onSubmit={createStudyGroupPoll}
+            style={{
+              width: 'min(460px, 100%)',
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1px solid #E3E8EF',
+              boxShadow: '0 24px 70px rgba(11,26,63,.22)',
+              padding: '20px'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                marginBottom: '16px'
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '18px',
+                    color: '#0B1A3F'
+                  }}
+                >
+                  Create Poll
+                </h3>
+                <p
+                  style={{
+                    margin: '3px 0 0',
+                    fontSize: '11px',
+                    color: '#8792A2'
+                  }}
+                >
+                  Ask the Study Group a quick question.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPollModal(false)}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  border: '1px solid #E3E8EF',
+                  borderRadius: '10px',
+                  background: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <input
+              type="text"
+              value={pollQuestion}
+              onChange={(event) =>
+                setPollQuestion(event.target.value)
+              }
+              placeholder="Poll question"
+              style={{
+                width: '100%',
+                minHeight: '46px',
+                padding: '0 12px',
+                border: '1px solid #DDE4EE',
+                borderRadius: '12px',
+                marginBottom: '12px'
+              }}
+            />
+
+            <div
+              style={{
+                display: 'grid',
+                gap: '9px'
+              }}
+            >
+              {pollOptions.map((option, index) => (
+                <div
+                  key={`poll-option-${index}`}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 36px',
+                    gap: '8px'
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={option}
+                    onChange={(event) => {
+                      const next = [...pollOptions];
+                      next[index] = event.target.value;
+                      setPollOptions(next);
+                    }}
+                    placeholder={`Option ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      minHeight: '44px',
+                      padding: '0 12px',
+                      border: '1px solid #DDE4EE',
+                      borderRadius: '12px'
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    disabled={pollOptions.length <= 2}
+                    onClick={() =>
+                      setPollOptions((previous) =>
+                        previous.filter(
+                          (_, optionIndex) =>
+                            optionIndex !== index
+                        )
+                      )
+                    }
+                    style={{
+                      width: '36px',
+                      height: '44px',
+                      border: '1px solid #F1C6C6',
+                      borderRadius: '10px',
+                      background: '#FFF4F4',
+                      color: '#B91C1C',
+                      cursor:
+                        pollOptions.length <= 2
+                          ? 'default'
+                          : 'pointer',
+                      opacity:
+                        pollOptions.length <= 2
+                          ? 0.45
+                          : 1
+                    }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setPollOptions((previous) => [
+                  ...previous,
+                  ''
+                ])
+              }
+              style={{
+                width: '100%',
+                minHeight: '42px',
+                marginTop: '10px',
+                border: '1px dashed #BFCBDD',
+                borderRadius: '11px',
+                background: '#FAFBFD',
+                color: '#0B1A3F',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              + Add option
+            </button>
+
+            <button
+              type="submit"
+              disabled={
+                pollSubmitting ||
+                !pollQuestion.trim() ||
+                pollOptions.filter(
+                  (option) => option.trim()
+                ).length < 2
+              }
+              style={{
+                width: '100%',
+                minHeight: '46px',
+                marginTop: '14px',
+                border: 'none',
+                borderRadius: '12px',
+                background: '#0B1A3F',
+                color: '#FFFFFF',
+                fontWeight: 900,
+                cursor: pollSubmitting
+                  ? 'default'
+                  : 'pointer',
+                opacity: pollSubmitting ? 0.6 : 1
+              }}
+            >
+              {pollSubmitting ? 'Posting...' : 'Post poll'}
+            </button>
+          </form>
+        </div>
       )}
 
       {profilePreview && (

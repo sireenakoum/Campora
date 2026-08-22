@@ -4909,20 +4909,76 @@ const dashboardViewMeta = {
 
 return (
   <div className="campora-mobile-page courses-mobile" style={coursesPageShellStyle}>
-    <SectionHeader
-      title="Courses"
-      subtitle="Organize every semester, course, assignment, exam, note, and resource in one place."
-      action={
-        <button
-          type="button"
-          onClick={openAddCourseModal}
-          className="btn btn-primary"
-        >
-          <Plus size={20} strokeWidth={3} />
-          <span>Add Course</span>
-        </button>
+    <style>{`
+      @media (max-width: 640px) {
+        .courses-mobile .courses-main-header-wrap {
+          width: 100% !important;
+          min-width: 0 !important;
+        }
+
+        .courses-mobile .courses-main-header-wrap > * {
+          width: 100% !important;
+          min-width: 0 !important;
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          align-items: start !important;
+          gap: 14px !important;
+        }
+
+        .courses-mobile .courses-main-header-wrap > * > * {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          margin-left: 0 !important;
+        }
+
+        .courses-mobile .courses-main-header-wrap h1,
+        .courses-mobile .courses-main-header-wrap h2,
+        .courses-mobile .courses-main-header-wrap h3 {
+          display: block !important;
+          width: 100% !important;
+          margin: 0 !important;
+          font-size: 34px !important;
+          line-height: 1.08 !important;
+          white-space: normal !important;
+        }
+
+        .courses-mobile .courses-main-header-wrap p {
+          display: block !important;
+          width: 100% !important;
+          max-width: none !important;
+          margin: 8px 0 0 !important;
+          font-size: 14px !important;
+          line-height: 1.5 !important;
+          white-space: normal !important;
+          word-break: normal !important;
+          overflow-wrap: normal !important;
+        }
+
+        .courses-mobile .courses-main-header-wrap button {
+          width: 100% !important;
+          justify-content: center !important;
+          margin: 0 !important;
+        }
       }
-     />
+    `}</style>
+
+    <div className="courses-main-header-wrap">
+      <SectionHeader
+        title="Courses"
+        subtitle="Organize every semester, course, assignment, exam, note, and resource in one place."
+        action={
+          <button
+            type="button"
+            onClick={openAddCourseModal}
+            className="btn btn-primary"
+          >
+            <Plus size={20} strokeWidth={3} />
+            <span>Add Course</span>
+          </button>
+        }
+       />
+    </div>
 
 {/* STATS */}
 <div className="course-stats-scroll" style={statsGridStyle}>

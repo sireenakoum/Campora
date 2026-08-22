@@ -2847,6 +2847,43 @@ const campusPulsePageShellStyle = {
   padding: '8px 4px 28px'
 };
 
+
+useEffect(() => {
+  if (!currentUser?.id) {
+    setCurrentProfileAvatarUrl('');
+    return;
+  }
+
+  let cancelled = false;
+
+  const loadCampusPulseAvatar = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', currentUser.id)
+      .maybeSingle();
+
+    if (cancelled) return;
+
+    if (error) {
+      console.error('Could not load Campus Pulse profile avatar:', error);
+    }
+
+    setCurrentProfileAvatarUrl(
+      data?.avatar_url ||
+      currentUser?.user_metadata?.avatar_url ||
+      currentUser?.user_metadata?.avatarUrl ||
+      ''
+    );
+  };
+
+  loadCampusPulseAvatar();
+
+  return () => {
+    cancelled = true;
+  };
+}, [currentUser?.id]);
+
 // =========================================================
 // COMMENT COMPONENT
 // =========================================================

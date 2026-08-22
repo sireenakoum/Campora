@@ -477,6 +477,7 @@ const [loading, setLoading] = useState(true);
 const [currentUserId, setCurrentUserId] = useState(null);
 const [userName, setUserName] = useState('Student');
 const [swapPosts, setSwapPosts] = useState([]);
+const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState('');
 const [searchPref, setSearchPref] = useState(EMPTY_SWAP);
 const [swapInputMode, setSwapInputMode] = useState('course');
 const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
@@ -894,7 +895,7 @@ const user = authData?.user;
 if (!user) return;
 
 setCurrentUserId(user.id);
-const profilePromise = supabase.from('profiles').select('name').eq('id',
+const profilePromise = supabase.from('profiles').select('name, avatar_url').eq('id',
 user.id).maybeSingle();
 const dataPromise = Promise.all([
 supabase.from('registration_swaps').select('*').order('created_at',
@@ -913,6 +914,12 @@ user.id).order('created_at', { ascending: false })
 const [{ data: profile }, results] = await Promise.all([profilePromise,
 dataPromise]);
 setUserName(profile?.name || user.user_metadata?.name || 'Student');
+setCurrentUserAvatarUrl(
+  profile?.avatar_url ||
+  user.user_metadata?.avatar_url ||
+  user.user_metadata?.avatarUrl ||
+  ''
+);
 const [swapsResult, reviewsResult, reviewRepliesResult, questionsResult,
 questionRepliesResult, remindersResult] = results;
 
@@ -1433,7 +1440,12 @@ const profileMap = {};
 (directoryRows || []).forEach(profile => {
 profileMap[profile.id] = {
 name: profile.name || profile.email?.split('@')[0] || 'Student',
-email: profile.email || ''
+email: profile.email || '',
+avatarUrl:
+  profile.avatar_url ||
+  profile.avatar ||
+  profile.avatarUrl ||
+  ''
 };
 });
 const knownItems = [
@@ -1456,7 +1468,8 @@ item.author_name !== 'Anonymous Student'
 if (knownAuthor) {
 profileMap[userId] = {
 name: knownAuthor.author_name,
-email: profileMap[userId]?.email || ''
+email: profileMap[userId]?.email || '',
+avatarUrl: profileMap[userId]?.avatarUrl || ''
 };
 }
 });
@@ -1785,7 +1798,7 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
     color: '#FFFFFF'
   }}
 >
-  <div className="registration-register-swap-icon" style={{
+  <div style={{
     ...heroIconWrap,
     width: 60,
     height: 60,
@@ -1796,12 +1809,12 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
   }}>
     <ArrowLeftRight size={28} />
   </div>
-  <div className="registration-register-swap-content" style={{ flex: 1, minWidth: 0 }}>
-    <div className="registration-register-swap-heading" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+  <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
       <h2 style={{ ...heroCardTitle, fontSize: 26, fontWeight: 600, color: '#FFFFFF' }}>Register &amp; Swap</h2>
       <span style={{ ...heroCardPill, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}>COURSE MATCH &amp; SWAP</span>
     </div>
-    <p className="registration-register-swap-copy" style={{
+    <p style={{
       ...heroCardCopy,
       maxWidth: 900,
       margin: 0,
@@ -1811,7 +1824,7 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
       Enter the course you currently have and the course you want. Campora helps you register, compare available options, find reciprocal swap matches, and browse useful alternatives all in one place.
     </p>
   </div>
-  <span className="registration-register-swap-arrow"><ArrowRight size={24} color="#FFFFFF" /></span>
+  <ArrowRight size={24} color="#FFFFFF" style={{ flexShrink: 0 }} />
 </button>
 
 </div>
@@ -2041,6 +2054,13 @@ return (
     }}>
       <StudentIdentity
         name={post.author_name}
+        avatarUrl={
+          post.is_anonymous
+            ? ''
+            : post.user_id === currentUserId
+            ? currentUserAvatarUrl
+            : dmInboxProfiles[post.user_id]?.avatarUrl || ''
+        }
         isAnonymous={post.is_anonymous}
         clickable={canMessageUser(post.user_id, post.is_anonymous, post.status)}
         onClick={() => openDm(post.user_id, post.author_name,
@@ -2518,15 +2538,115 @@ Student</button>
 </div>
 )}
 {activeTab === 'reminders' && (
-<div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-  <div style={{
+<div className="seat-reminders-section" style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+<style>{`
+@media (max-width: 640px) {
+  .registration-mobile .seat-reminders-section {
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 14px !important;
+  }
+
+  .registration-mobile .seat-reminder-editor-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+  }
+
+  .registration-mobile .seat-reminder-editor-header {
+    padding: 16px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+    align-items: start !important;
+  }
+
+  .registration-mobile .seat-reminder-title-row {
+    width: 100% !important;
+    min-width: 0 !important;
+    align-items: flex-start !important;
+  }
+
+  .registration-mobile .seat-reminder-title-row > div:first-child {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    border-radius: 13px !important;
+  }
+
+  .registration-mobile .seat-reminder-title-row h3 {
+    font-size: 18px !important;
+    line-height: 1.2 !important;
+  }
+
+  .registration-mobile .seat-reminder-title-row p {
+    max-width: none !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  .registration-mobile .seat-reminder-header-badges {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+  }
+
+  .registration-mobile .seat-reminder-form {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 11px !important;
+  }
+
+  .registration-mobile .seat-reminder-form > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    grid-column: 1 / -1 !important;
+  }
+
+  .registration-mobile .seat-alert-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .registration-mobile .seat-alert-mode-grid button {
+    min-height: 44px !important;
+    padding: 8px 6px !important;
+  }
+
+  .registration-mobile .seat-reminder-time-field {
+    grid-column: 1 / -1 !important;
+  }
+
+  .registration-mobile .seat-alerts-list-header {
+    align-items: flex-start !important;
+    margin-bottom: 10px !important;
+  }
+
+  .registration-mobile .seat-alerts-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .registration-mobile .seat-alerts-grid > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 16px !important;
+  }
+}
+`}</style>
+
+  <div className="seat-reminder-editor-card" style={{
     background: '#FFFFFF',
     border: '1px solid #E3E9F2',
     borderRadius: '24px',
     boxShadow: '0 10px 28px rgba(11,26,63,0.05)',
     overflow: 'hidden'
   }}>
-    <div style={{
+    <div className="seat-reminder-editor-header" style={{
       padding: '23px 25px',
       background: '#F8FAFD',
       borderBottom: '1px solid #E6EBF3',
@@ -2536,7 +2656,7 @@ Student</button>
       gap: '16px',
       flexWrap: 'wrap'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="seat-reminder-title-row" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{
           width: 48, height: 48, borderRadius: 15, background: '#0B1A3F',
           color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2547,7 +2667,7 @@ Student</button>
           <p style={{ ...sectionDescription, margin: 0 }}>Add the course once and Campora keeps it in your seat-alert list.</p>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="seat-reminder-header-badges" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <span style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px',
           borderRadius: 999, background: '#F7F4FC', border: '1px solid #E7E0F2',
@@ -2561,7 +2681,7 @@ Student</button>
       </div>
     </div>
 
-    <form onSubmit={handleSaveReminder} style={{ ...reminderFormGrid, padding: '24px 25px 25px' }}>
+    <form className="seat-reminder-form" onSubmit={handleSaveReminder} style={{ ...reminderFormGrid, padding: '24px 25px 25px' }}>
       <div style={{ gridColumn: '1 / -1' }}>
         <div
           style={{
@@ -2576,6 +2696,7 @@ Student</button>
         </div>
 
         <div
+          className="seat-alert-mode-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
@@ -2694,7 +2815,7 @@ Student</button>
         value={newReminder.meeting_days}
         onChange={value => setNewReminder({ ...newReminder, meeting_days: value })}
       />
-      <div style={{ gridColumn: 'span 2', minWidth: 0 }}>
+      <div className="seat-reminder-time-field" style={{ gridColumn: 'span 2', minWidth: 0 }}>
         <EditablePresetTimeInput
           value={newReminder.meeting_time}
           onChange={value => setNewReminder({ ...newReminder, meeting_time: value })}
@@ -2712,7 +2833,7 @@ Student</button>
   </div>
 
   <div>
-    <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+    <div className="seat-alerts-list-header" style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
       <div>
         <h3 style={{ ...sectionHeading, marginBottom: 3 }}>Your Seat Alerts</h3>
         <p style={{ ...sectionDescription, margin: 0 }}>Every active seat alert is set up as both a reminder and a notification.</p>
@@ -2720,7 +2841,7 @@ Student</button>
     </div>
 
     {reminders.length === 0 ? <div style={emptyCard}>You have no seat alerts yet.</div> : (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '18px' }}>
+    <div className="seat-alerts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '18px' }}>
       {reminders.map(reminder => (
       <div key={reminder.id} style={{
         ...swapCard,
@@ -3570,12 +3691,24 @@ return (
 </div>
 );
 }
-function StudentIdentity({ name, isAnonymous, clickable, onClick }) {
+function StudentIdentity({ name, avatarUrl, isAnonymous, clickable, onClick }) {
 const displayName = name || 'Student';
 return (
 <div onClick={clickable ? onClick : undefined} style={{ display: 'flex',
 alignItems: 'center', gap: '10px', cursor: clickable ? 'pointer' : 'default' }}>
+{avatarUrl && !isAnonymous ? (
+<img
+src={avatarUrl}
+alt={displayName}
+style={{
+  ...avatarCircle,
+  objectFit: 'cover',
+  display: 'block'
+}}
+/>
+) : (
 <div style={avatarCircle}>{displayName.charAt(0).toUpperCase()}</div>
+)}
 <div>
 <p style={{ margin: 0, fontWeight: '900', color: 'var(--campora-text)', fontSize:
 
