@@ -1,5 +1,6 @@
 import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Inbox,
   Send,
@@ -338,6 +339,28 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [messagesFullscreen, setMessagesFullscreen] = useState(false);
+  const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(max-width: 700px)').matches
+      : false
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const query = window.matchMedia('(max-width: 700px)');
+    const syncViewport = () => setIsPhoneViewport(query.matches);
+
+    syncViewport();
+
+    if (query.addEventListener) {
+      query.addEventListener('change', syncViewport);
+      return () => query.removeEventListener('change', syncViewport);
+    }
+
+    query.addListener(syncViewport);
+    return () => query.removeListener(syncViewport);
+  }, []);
   useEffect(() => {
     if (messagesFullscreen) {
       document.body.style.overflow = 'hidden';
@@ -408,16 +431,10 @@ export default function Messages() {
   const [customGroupMessages, setCustomGroupMessages] = useState({});
 
   const [selected, setSelected] = useState(null);
-
-  // On phones, opening a conversation should immediately use the whole app viewport.
   useEffect(() => {
-    if (!selected || typeof window === 'undefined') return;
+    setMessagesFullscreen(false);
+  }, [selected?.type, selected?.partnerId, selected?.groupId]);
 
-    const mobileQuery = window.matchMedia('(max-width: 700px)');
-    if (mobileQuery.matches) {
-      setMessagesFullscreen(true);
-    }
-  }, [selected]);
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [profilePreview, setProfilePreview] = useState(null);
@@ -5438,65 +5455,51 @@ export default function Messages() {
 
 
 
+
+
         /* =========================================================
-           DEVICE-SAFE FULLSCREEN BEHAVIOR
-           Phone: fullscreen overlays the floating bot.
-           Tablet: preserve the existing tablet layout/behavior.
-           Desktop: fullscreen stays in the app tree so it never blanks.
+           PHONE CHAT — SAME INTERACTION AS STUDY GROUPS
+           Normal phone chat fills the phone content area while the
+           floating Campora robot can remain above it. Pressing the
+           enlarge icon portals the chat above the app/robot.
         ========================================================= */
         @media (max-width: 700px) {
-          .wa-chat-screen[style*="position: fixed"] {
-            z-index: 2147483000 !important;
-            inset: 0 !important;
-            width: 100vw !important;
+          .wa-messages-page.chat-open {
             height: 100dvh !important;
-            max-width: none !important;
-            max-height: none !important;
-            border-radius: 0 !important;
-            background: #fff !important;
+            min-height: 100dvh !important;
+            max-height: 100dvh !important;
+            overflow: hidden !important;
           }
-        }
 
-        @media (min-width: 701px) and (max-width: 1024px) {
-          .wa-chat-screen {
-            /* intentionally no forced mobile fullscreen rules here */
-          }
-        }
-
-        @media (min-width: 1025px) {
-          .wa-chat-screen[style*="position: fixed"] {
+          .wa-chat-screen.is-phone-chat {
             position: fixed !important;
             inset: 0 !important;
-            top: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            left: 0 !important;
             width: 100vw !important;
-            height: 100vh !important;
-            min-height: 100vh !important;
-            max-width: none !important;
-            max-height: none !important;
+            max-width: 100vw !important;
+            height: 100dvh !important;
+            min-height: 100dvh !important;
+            max-height: 100dvh !important;
             margin: 0 !important;
             border: 0 !important;
             border-radius: 0 !important;
-            z-index: 2147483000 !important;
-            background: #fff !important;
-            box-shadow: none !important;
+            background: #FFFFFF !important;
+            overflow: hidden !important;
+            /* below the floating Campora bot in normal phone mode */
+            z-index: 900 !important;
           }
-        }
 
-        /* =========================================================
-           MOBILE CHAT HEADER — MATCH STUDYGROUPS
-           Keep every control visible instead of hiding it off-screen.
-        ========================================================= */
-        @media (max-width: 700px) {
+          .wa-chat-screen.is-phone-chat.is-fullscreen {
+            z-index: 9990 !important;
+          }
+
           .wa-chat-header {
             display: grid !important;
             grid-template-columns: 48px minmax(0, 1fr) !important;
             align-items: center !important;
             column-gap: 12px !important;
-            row-gap: 12px !important;
-            padding: max(12px, env(safe-area-inset-top)) 14px 12px !important;
+            row-gap: 10px !important;
+            padding: max(10px, env(safe-area-inset-top)) 12px 10px !important;
+            flex: 0 0 auto !important;
             overflow: visible !important;
           }
 
@@ -5526,12 +5529,16 @@ export default function Messages() {
             grid-column: 1 / -1 !important;
             grid-row: 2 !important;
             width: 100% !important;
-            margin: 0 !important;
             display: flex !important;
-            flex-wrap: wrap !important;
+            flex-wrap: nowrap !important;
+            justify-content: flex-start !important;
             align-items: center !important;
-            gap: 8px !important;
-            overflow: visible !important;
+            gap: 7px !important;
+            margin: 0 !important;
+            padding: 0 0 2px !important;
+            overflow-x: auto !important;
+            overflow-y: visible !important;
+            -webkit-overflow-scrolling: touch !important;
             scrollbar-width: none !important;
           }
 
@@ -5541,45 +5548,7 @@ export default function Messages() {
 
           .wa-chat-tool-btn,
           .wa-chat-toolbar > div {
-            flex: 0 0 48px !important;
-            width: 48px !important;
-            min-width: 48px !important;
-            max-width: 48px !important;
-          }
-
-          .wa-chat-toolbar > div > .wa-chat-tool-btn {
-            width: 48px !important;
-            min-width: 48px !important;
-            max-width: 48px !important;
-          }
-
-          .wa-chat-tool-btn {
-            height: 48px !important;
-            border-radius: 13px !important;
-          }
-
-          .wa-chat-screen {
-            width: 100% !important;
-            height: 100dvh !important;
-            min-height: 100dvh !important;
-            max-height: 100dvh !important;
-            border-radius: 0 !important;
-          }
-
-          .wa-chat-history {
-            flex: 1 1 auto !important;
-            min-height: 0 !important;
-          }
-        }
-
-        @media (max-width: 430px) {
-          .wa-chat-toolbar {
-            gap: 7px !important;
-          }
-
-          .wa-chat-tool-btn,
-          .wa-chat-toolbar > div {
-            flex-basis: 44px !important;
+            flex: 0 0 44px !important;
             width: 44px !important;
             min-width: 44px !important;
             max-width: 44px !important;
@@ -5593,6 +5562,50 @@ export default function Messages() {
 
           .wa-chat-tool-btn {
             height: 44px !important;
+            border-radius: 12px !important;
+          }
+
+          .wa-chat-history {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+
+          .wa-composer {
+            flex: 0 0 auto !important;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+          }
+        }
+
+        /* iPad/tablet deliberately keeps the existing Messages layout. */
+        @media (min-width: 701px) and (max-width: 1024px) {
+          .wa-chat-screen {
+            position: relative;
+          }
+        }
+
+        /* Desktop/laptop true fullscreen, without using a portal. */
+        @media (min-width: 1025px) {
+          .wa-chat-screen.is-fullscreen {
+            position: fixed !important;
+            inset: 0 !important;
+            top: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            margin: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: #FFFFFF !important;
+            z-index: 2147483000 !important;
+            box-shadow: none !important;
           }
         }
 
@@ -5998,9 +6011,12 @@ export default function Messages() {
           </div>
         </section>
       ) : (
+        <>
+        {(() => {
+          const chatScreen = (
         <section
           ref={chatScreenRef}
-          className="wa-chat-screen"
+          className={`wa-chat-screen ${messagesFullscreen ? 'is-fullscreen' : ''} ${isPhoneViewport ? 'is-phone-chat' : ''}`}
 
           style={
             messagesFullscreen
@@ -6018,10 +6034,12 @@ export default function Messages() {
                   maxHeight: '100dvh',
                   margin: 0,
                   borderRadius: 0,
-                  zIndex: 2147483000,
+                  zIndex: isPhoneViewport ? 9990 : 2147483000,
                   border: 'none',
                   background: '#FFFFFF',
-                  boxShadow: 'none'
+                  boxShadow: isPhoneViewport
+                    ? '0 0 60px rgba(0,45,98,0.35)'
+                    : 'none'
                 }
               : undefined
           }
@@ -7157,6 +7175,13 @@ export default function Messages() {
             </button>
           </div>
         </section>
+          );
+
+          return messagesFullscreen && isPhoneViewport
+            ? createPortal(chatScreen, document.body)
+            : chatScreen;
+        })()}
+        </>
       )}
 
       {showPollModal && selected?.type === 'group' && (
