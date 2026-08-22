@@ -3403,3 +3403,19 @@ body.campora-messages-fullscreen .main-content > * {
     width: clamp(280px, 44vw, 360px) !important;
   }
 }
+
+
+/* =========================================================
+   IPAD COLLAPSE ARROWS â€” SLIGHTLY LOWER
+   Keeps laptop + phone unchanged.
+========================================================= */
+@media (min-width: 651px) and (max-width: 1100px) {
+  .sidebar-footer {
+    transform: translateY(8px);
+  }
+
+  .sidebar.collapsed .sidebar-collapse-btn {
+    margin-top: 11px !important;
+    margin-bottom: 8px !important;
+  }
+}
