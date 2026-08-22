@@ -407,6 +407,16 @@ export default function Messages() {
   const [customGroupMessages, setCustomGroupMessages] = useState({});
 
   const [selected, setSelected] = useState(null);
+
+  // On phones, opening a conversation should immediately use the whole app viewport.
+  useEffect(() => {
+    if (!selected || typeof window === 'undefined') return;
+
+    const mobileQuery = window.matchMedia('(max-width: 700px)');
+    if (mobileQuery.matches) {
+      setMessagesFullscreen(true);
+    }
+  }, [selected]);
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [profilePreview, setProfilePreview] = useState(null);
@@ -5374,6 +5384,58 @@ export default function Messages() {
         }
 
         @media (max-width: 700px) {
+          .wa-messages-page.chat-open {
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+          }
+
+          .wa-chat-screen {
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+            border-radius: 0 !important;
+          }
+
+          .wa-chat-header {
+            flex: 0 0 auto !important;
+            padding-top: max(12px, env(safe-area-inset-top)) !important;
+          }
+
+          .wa-chat-history {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            padding: 14px 12px 18px !important;
+          }
+
+          .wa-message-avatar,
+          .wa-message-avatar img {
+            aspect-ratio: 1 / 1 !important;
+          }
+
+          .wa-message-avatar {
+            min-width: 30px !important;
+            min-height: 30px !important;
+            max-width: 30px !important;
+            max-height: 30px !important;
+          }
+
+          .wa-chat-toolbar {
+            overflow-x: auto !important;
+            display: flex !important;
+            grid-template-columns: none !important;
+            scrollbar-width: none !important;
+          }
+
+          .wa-chat-toolbar::-webkit-scrollbar { display: none !important; }
+
+          .wa-chat-tool-btn,
+          .wa-chat-toolbar > div {
+            flex: 0 0 44px !important;
+            width: 44px !important;
+            min-width: 44px !important;
+          }
+        }
+
+        @media (max-width: 700px) {
           .wa-message-row {
             gap: 7px !important;
             margin-bottom: 13px !important;
@@ -5787,11 +5849,11 @@ export default function Messages() {
                   right: 0,
                   bottom: 0,
                   width: '100vw',
-                  height: '100vh',
+                  height: '100dvh',
                   minWidth: '100vw',
-                  minHeight: '100vh',
+                  minHeight: '100dvh',
                   maxWidth: '100vw',
-                  maxHeight: '100vh',
+                  maxHeight: '100dvh',
                   margin: 0,
                   borderRadius: 0,
                   zIndex: 2147483647,
@@ -5805,7 +5867,10 @@ export default function Messages() {
             <button
               type="button"
               className="wa-back-btn"
-              onClick={() => setSelected(null)}
+              onClick={() => {
+                setMessagesFullscreen(false);
+                setSelected(null);
+              }}
               aria-label="Back to chats"
             >
               <ArrowLeft size={20} />

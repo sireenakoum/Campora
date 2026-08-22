@@ -1774,6 +1774,7 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
 <div className="stack" style={{ width: '100%' }}>
 <button
   type="button"
+  className="registration-mobile-hero"
   onClick={() => {
     setEditingPostId(null);
     setSearchPref(EMPTY_SWAP);
@@ -1798,7 +1799,7 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
     color: '#FFFFFF'
   }}
 >
-  <div style={{
+  <div className="registration-mobile-hero-icon" style={{
     ...heroIconWrap,
     width: 60,
     height: 60,
@@ -1809,8 +1810,8 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
   }}>
     <ArrowLeftRight size={28} />
   </div>
-  <div style={{ flex: 1, minWidth: 0 }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+  <div className="registration-mobile-hero-copy" style={{ flex: 1, minWidth: 0 }}>
+    <div className="registration-mobile-hero-title-row" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
       <h2 style={{ ...heroCardTitle, fontSize: 26, fontWeight: 600, color: '#FFFFFF' }}>Register &amp; Swap</h2>
       <span style={{ ...heroCardPill, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}>COURSE MATCH &amp; SWAP</span>
     </div>
@@ -1824,13 +1825,67 @@ setActiveTab('myposts')} icon={<UserRound size={16} />} label="My Posts" />
       Enter the course you currently have and the course you want. Campora helps you register, compare available options, find reciprocal swap matches, and browse useful alternatives all in one place.
     </p>
   </div>
-  <ArrowRight size={24} color="#FFFFFF" style={{ flexShrink: 0 }} />
+  <ArrowRight className="registration-mobile-hero-arrow" size={24} color="#FFFFFF" style={{ flexShrink: 0 }} />
 </button>
 
 </div>
 </div>
 <style>{`
   @media (max-width: 700px) {
+    .registration-mobile-hero {
+      min-height: 0 !important;
+      padding: 24px 20px !important;
+      border-radius: 24px !important;
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      align-items: center !important;
+      gap: 18px !important;
+      text-align: left !important;
+    }
+
+    .registration-mobile-hero-icon {
+      width: 52px !important;
+      height: 52px !important;
+      border-radius: 15px !important;
+      grid-column: 1 !important;
+      grid-row: 2 !important;
+      justify-self: start !important;
+    }
+
+    .registration-mobile-hero-copy {
+      grid-column: 1 / -1 !important;
+      grid-row: 1 !important;
+      width: 100% !important;
+    }
+
+    .registration-mobile-hero-title-row {
+      display: block !important;
+      margin-bottom: 14px !important;
+    }
+
+    .registration-mobile-hero-title-row h2 {
+      font-size: 25px !important;
+      line-height: 1.08 !important;
+      margin-bottom: 12px !important;
+    }
+
+    .registration-mobile-hero-title-row span {
+      display: inline-flex !important;
+    }
+
+    .registration-mobile-hero-copy p {
+      font-size: 15px !important;
+      line-height: 1.6 !important;
+      max-width: none !important;
+    }
+
+    .registration-mobile-hero-arrow {
+      grid-column: 2 !important;
+      grid-row: 2 !important;
+      justify-self: end !important;
+      margin: 0 8px 0 0 !important;
+    }
+
     .registration-swap-grid {
       grid-template-columns: minmax(0, 1fr) !important;
       gap: 14px !important;
@@ -3693,10 +3748,14 @@ return (
 }
 function StudentIdentity({ name, avatarUrl, isAnonymous, clickable, onClick }) {
 const displayName = name || 'Student';
+const anonymousIdentity =
+  Boolean(isAnonymous) ||
+  String(displayName).trim().toLowerCase() === 'anonymous student' ||
+  String(displayName).trim().toLowerCase() === 'anonymous';
 return (
-<div onClick={clickable ? onClick : undefined} style={{ display: 'flex',
-alignItems: 'center', gap: '10px', cursor: clickable ? 'pointer' : 'default' }}>
-{avatarUrl && !isAnonymous ? (
+<div onClick={anonymousIdentity ? undefined : (clickable ? onClick : undefined)} style={{ display: 'flex',
+alignItems: 'center', gap: '10px', cursor: anonymousIdentity ? 'default' : (clickable ? 'pointer' : 'default') }}>
+{anonymousIdentity ? null : avatarUrl ? (
 <img
 src={avatarUrl}
 alt={displayName}
@@ -3715,7 +3774,7 @@ style={{
 '14px' }}>{displayName}</p>
 <span style={{ fontSize: '10px', color: 'var(--campora-muted)', fontWeight: '700' }}
 
->{isAnonymous ? 'Anonymous' : clickable ? 'Click to message' : 'Student'}</span>
+>{anonymousIdentity ? 'Anonymous' : clickable ? 'Click to message' : 'Student'}</span>
 </div>
 </div>
 );

@@ -383,6 +383,8 @@ export default function CampusPulse() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [currentProfileAvatarUrl, setCurrentProfileAvatarUrl] = useState('');
   const [userName, setUserName] = useState('Student');
 
   const [userLikes, setUserLikes] = useState(new Set());
@@ -499,6 +501,44 @@ export default function CampusPulse() {
   const dmChatHistoryRef = useRef(null);
   const dmChatBottomRef = useRef(null);
 
+  // Keep the user's Campus Pulse profile photo without crashing mobile.
+  // This effect used to sit outside the component, which caused the blank page.
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setCurrentProfileAvatarUrl('');
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadCampusPulseAvatar = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error('Could not load Campus Pulse profile avatar:', error);
+      }
+
+      setCurrentProfileAvatarUrl(
+        data?.avatar_url ||
+        currentUser?.user_metadata?.avatar_url ||
+        currentUser?.user_metadata?.avatarUrl ||
+        ''
+      );
+    };
+
+    loadCampusPulseAvatar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
+
   useEffect(() => {
     localStorage.setItem(
       'campora_registration_pinned_dm_users',
@@ -552,6 +592,7 @@ export default function CampusPulse() {
       if (user) {
         uid = user.id;
 
+        setCurrentUser(user);
         setCurrentUserId(uid);
 
         const { data: profile } = await supabase
@@ -2086,6 +2127,7 @@ export default function CampusPulse() {
                         <div
                           style={{
                             ...avatarCircle,
+                            display: (post.is_anonymous || post.author_name === 'Anonymous Student') ? 'none' : 'flex',
                             background: post.is_anonymous
                               ? 'var(--campora-navy)'
                               : getAvatarColor(
@@ -2101,8 +2143,18 @@ export default function CampusPulse() {
                             border: '1px solid var(--hairline)'
                           }}
                         >
-                          {post.is_anonymous ? (
-                            <EyeOff size={18} />
+                          {(post.is_anonymous || post.author_name === 'Anonymous Student') ? null : post.user_id === currentUserId && currentProfileAvatarUrl ? (
+                            <img
+                              src={currentProfileAvatarUrl}
+                              alt={post.author_name || 'Profile'}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: '50%',
+                                display: 'block'
+                              }}
+                            />
                           ) : (
                             getInitials(
                               post.author_name || 'Student'
@@ -2848,41 +2900,6 @@ const campusPulsePageShellStyle = {
 };
 
 
-useEffect(() => {
-  if (!currentUser?.id) {
-    setCurrentProfileAvatarUrl('');
-    return;
-  }
-
-  let cancelled = false;
-
-  const loadCampusPulseAvatar = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('avatar_url')
-      .eq('id', currentUser.id)
-      .maybeSingle();
-
-    if (cancelled) return;
-
-    if (error) {
-      console.error('Could not load Campus Pulse profile avatar:', error);
-    }
-
-    setCurrentProfileAvatarUrl(
-      data?.avatar_url ||
-      currentUser?.user_metadata?.avatar_url ||
-      currentUser?.user_metadata?.avatarUrl ||
-      ''
-    );
-  };
-
-  loadCampusPulseAvatar();
-
-  return () => {
-    cancelled = true;
-  };
-}, [currentUser?.id]);
 
 // =========================================================
 // COMMENT COMPONENT
@@ -2960,6 +2977,7 @@ function CommentItem({
             <div
               style={{
                 ...commentAvatarStyle,
+                display: isAnonymous ? 'none' : 'flex',
                 background: isAnonymous
                   ? 'var(--campora-navy)'
                   : getAvatarColor(

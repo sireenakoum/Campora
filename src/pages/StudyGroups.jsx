@@ -496,6 +496,17 @@ const [
   setChatFullscreen
 ] = useState(false);
 
+// Small screens go straight into the full-screen chat experience.
+useEffect(() => {
+  if (view !== 'chat' || !selectedGroup || typeof window === 'undefined') return;
+
+  const mobileQuery = window.matchMedia('(max-width: 700px)');
+  if (mobileQuery.matches) {
+    setChatFullscreen(true);
+  }
+}, [view, selectedGroup?.id]);
+
+
 useEffect(() => {
   const handleKey = (event) => {
     if (event.key === 'Escape') {
@@ -5069,7 +5080,7 @@ const status =
 return (
 
 <div
-className="panel"
+className="panel study-group-card"
 onClick={() => {
 setSelectedGroup(
   group
@@ -5097,6 +5108,7 @@ display:
 >
 
 <div
+className="study-group-card-top"
 style={{
 
 display:
@@ -5117,6 +5129,7 @@ gap:
 >
 
 <div
+className="study-group-card-badges"
 style={{
 
 display:
@@ -5343,6 +5356,7 @@ fontWeight:
 </div>
 
 <div
+className="study-group-card-actions"
 style={{
  display:
  'flex',
@@ -6411,7 +6425,7 @@ style={{
  'grid',
 
 gridTemplateColumns:
-'repeat(auto-fill,minmax(380px,1fr))',
+'repeat(auto-fill,minmax(min(100%, 380px),1fr))',
 
  gap:
    '30px'
@@ -6551,7 +6565,7 @@ style={{
   'grid',
 
    gridTemplateColumns:
-   'repeat(auto-fill,minmax(380px,1fr))',
+   'repeat(auto-fill,minmax(min(100%, 380px),1fr))',
 
  gap:
    '30px'
@@ -6610,7 +6624,7 @@ style={{
  'grid',
 
 gridTemplateColumns:
-   'repeat(auto-fill,minmax(380px,1fr))',
+   'repeat(auto-fill,minmax(min(100%, 380px),1fr))',
  gap:
    '30px'
 }}
@@ -8922,6 +8936,49 @@ style={{
 
 
 <style>{`
+  /* Mobile study-circle cards */
+  @media (max-width: 700px) {
+    .study-groups-mobile {
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+    }
+
+    .study-groups-mobile .study-group-card {
+      width: 100% !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      box-sizing: border-box !important;
+      padding: 18px 16px !important;
+      border-radius: 20px !important;
+      overflow: hidden !important;
+    }
+
+    .study-group-card-top {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 14px !important;
+    }
+
+    .study-group-card-badges {
+      width: 100% !important;
+      display: flex !important;
+      gap: 8px !important;
+      flex-wrap: wrap !important;
+    }
+
+    .study-group-card-badges > span {
+      max-width: 100% !important;
+      white-space: normal !important;
+    }
+
+    .study-group-card-actions {
+      width: 100% !important;
+      justify-content: flex-start !important;
+      flex-wrap: wrap !important;
+    }
+  }
+
   .study-group-chat-shell { min-width: 0; }
   .study-group-chat-header > div { min-width: 0; }
   .study-group-chat-messages { min-height: 0; -webkit-overflow-scrolling: touch; }
@@ -8990,6 +9047,56 @@ style={{
     }
     .study-group-chat-header { padding: 10px !important; }
     .study-group-chat-messages { padding: 10px !important; }
+  }
+
+  @media (max-width: 700px) {
+    .study-group-chat-shell {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      height: 100dvh !important;
+      min-height: 100dvh !important;
+      max-height: 100dvh !important;
+      margin: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      z-index: 2147483000 !important;
+    }
+
+    .study-group-chat-header {
+      padding-top: max(10px, env(safe-area-inset-top)) !important;
+      flex: 0 0 auto !important;
+    }
+
+    .study-group-chat-messages {
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+    }
+
+    .study-group-chat-composer {
+      padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    }
+
+    .study-message-avatar {
+      width: 30px !important;
+      height: 30px !important;
+      min-width: 30px !important;
+      min-height: 30px !important;
+      max-width: 30px !important;
+      max-height: 30px !important;
+      flex: 0 0 30px !important;
+      aspect-ratio: 1 / 1 !important;
+      border-radius: 50% !important;
+    }
+
+    .study-message-avatar img {
+      width: 100% !important;
+      height: 100% !important;
+      aspect-ratio: 1 / 1 !important;
+      object-fit: cover !important;
+      border-radius: 50% !important;
+    }
   }
 
   .study-group-shared-panel {
@@ -9489,9 +9596,9 @@ overflow:
    right: 0,
    bottom: 0,
    width: '100vw',
-   height: '100vh',
-   minHeight: '100vh',
-   maxHeight: '100vh',
+   height: '100dvh',
+   minHeight: '100dvh',
+   maxHeight: '100dvh',
    maxWidth: '100vw',
    borderRadius: 0,
    border: 'none',
@@ -9546,11 +9653,10 @@ alignItems:
  {/* BACK */}
 
  <button
-  onClick={() =>
- setView(
-   'details'
- )
-}
+  onClick={() => {
+  setChatFullscreen(false);
+  setView('details');
+}}
 style={{
   border:
    '1px solid #E3E8F2',
