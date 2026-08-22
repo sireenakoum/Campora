@@ -1842,7 +1842,13 @@ export default function Messages() {
             avatarUrl:
               profile.avatar_url ||
               profile.avatarUrl ||
-              ''
+              (id === currentUser?.id
+                ? currentProfile?.avatar_url ||
+                  currentProfile?.avatarUrl ||
+                  currentUser?.user_metadata?.avatar_url ||
+                  currentUser?.user_metadata?.avatarUrl ||
+                  ''
+                : '')
           };
         })
       );
@@ -6928,10 +6934,27 @@ export default function Messages() {
                         className="wa-shared-file-icon"
                         style={{
                           borderRadius: '50%',
-                          background: avatarColor(member.name)
+                          background: avatarColor(member.name),
+                          overflow: 'hidden'
                         }}
                       >
-                        {getInitials(member.name)}
+                        {member.avatarUrl ? (
+                          <img
+                            src={member.avatarUrl}
+                            alt={member.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              display: 'block'
+                            }}
+                            onError={(event) => {
+                              event.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          getInitials(member.name)
+                        )}
                       </span>
 
                       <span className="wa-shared-file-copy">

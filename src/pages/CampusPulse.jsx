@@ -2092,8 +2092,8 @@ export default function CampusPulse() {
                       border: '1px solid #E5EAF2',
                       borderLeft: `4px solid ${categoryBadge.accent}`,
                       borderRadius: '18px',
-                      background: '#FFFFFF',
-                      boxShadow: '0 8px 22px rgba(11,26,63,0.04)',
+                      background: categoryBadge.bg,
+                      boxShadow: `0 8px 22px ${categoryBadge.accent}14`,
                       marginBottom: '24px'
                     }}
                   >

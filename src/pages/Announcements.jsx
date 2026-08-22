@@ -694,14 +694,15 @@ export default function Announcements() {
             ) : (
               <EmptyState
                 icon={Megaphone}
-                title="No announcements found"
-                text="There aren't any announcements matching your search right now."
+                title="Coming soon"
+                text="Announcements are coming soon."
                 color={
                   activeTabData.color
                 }
                 softColor={
                   activeTabData.softColor
                 }
+                background="#FFFFFF"
               />
             ))}
 
@@ -722,14 +723,15 @@ export default function Announcements() {
             ) : (
               <EmptyState
                 icon={BookOpen}
-                title="No campus news found"
-                text="There aren't any news posts matching your search right now."
+                title="Coming soon"
+                text="Campus news is coming soon."
                 color={
                   activeTabData.color
                 }
                 softColor={
                   activeTabData.softColor
                 }
+                background="#FFFFFF"
               />
             ))}
 
@@ -750,14 +752,15 @@ export default function Announcements() {
             ) : (
               <EmptyState
                 icon={CalendarDays}
-                title="No events found"
-                text="There aren't any upcoming events matching your search."
+                title="Coming soon"
+                text="Events are coming soon."
                 color={
                   activeTabData.color
                 }
                 softColor={
                   activeTabData.softColor
                 }
+                background="#FFFFFF"
               />
             ))}
 
@@ -780,14 +783,15 @@ export default function Announcements() {
             ) : (
               <EmptyState
                 icon={ExternalLink}
-                title="No resources found"
-                text="There aren't any resources matching your search right now."
+                title="Coming soon"
+                text="Resources are coming soon."
                 color={
                   activeTabData.color
                 }
                 softColor={
                   activeTabData.softColor
                 }
+                background="#FFFFFF"
               />
             ))}
         </div>
@@ -844,9 +848,15 @@ function EmptyState({
   text,
   color,
   softColor,
+  background,
 }) {
   return (
-    <div style={styles.emptyState}>
+    <div
+      style={{
+        ...styles.emptyState,
+        ...(background ? { background } : {}),
+      }}
+    >
       <div
         style={{
           ...styles.emptyIcon,
@@ -1411,11 +1421,11 @@ const styles = {
   emptyTitle: {
     margin: 0,
 
-    color: "#737B88",
+    color: "#0F172A",
 
     fontSize: "15px",
 
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   emptyText: {
@@ -1424,7 +1434,7 @@ const styles = {
     margin:
       "6px 0 0",
 
-    color: "#94A3B8",
+    color: "#334155",
 
     fontSize: "12px",
 
