@@ -624,6 +624,7 @@ export default function CampusPulse() {
           campus_pulse_comments(count),
           campus_pulse_likes(count)
         `)
+        .eq('approval_status', 'approved')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -1257,6 +1258,7 @@ export default function CampusPulse() {
         category: newPost.category,
         image_url: newPost.image_url.trim() || null,
         is_anonymous: newPost.is_anonymous,
+        approval_status: 'pending',
         reply_alert_preference: newPost.reply_alert_preference,
         reminder_date:
           newPost.reply_alert_preference === 'reminder' ||
@@ -1268,6 +1270,7 @@ export default function CampusPulse() {
           newPost.reply_alert_preference === 'both'
             ? effectiveReminderTime
             : null
+            
       };
 
       let result = await supabase
@@ -1326,7 +1329,7 @@ export default function CampusPulse() {
       } else {
         toast('Campus Pulse post created', { source: 'campus-pulse' });
       }
-
+alert('Your post was submitted for admin review.');
       setIsModalOpen(false);
 
       setNewPost({

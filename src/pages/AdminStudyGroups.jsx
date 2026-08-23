@@ -17,6 +17,7 @@ import {
   Ban,
   ChevronLeft,
   Flag,
+  MessageSquareText,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -45,6 +46,7 @@ export default function AdminStudyGroups() {
 
   const [pendingGroups, setPendingGroups] = useState([]);
   const [mentorApplications, setMentorApplications] = useState([]);
+  const [pendingPulsePosts, setPendingPulsePosts] = useState([]);
 
   const [reports, setReports] = useState([]);
 
@@ -132,6 +134,23 @@ export default function AdminStudyGroups() {
     setPendingGroups(data || []);
   };
 
+  const fetchPendingPulsePosts = async () => {
+    const { data, error } = await supabase
+      .from('campus_pulse_posts')
+      .select('*')
+      .eq('approval_status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Campus Pulse reviews error:', error);
+      throw error;
+    }
+
+    const rows = data || [];
+    setPendingPulsePosts(rows);
+    await mergeProfilesByIds(rows.map((post) => post.user_id));
+  };
+
   const fetchMentorApplications = async () => {
     const { data, error } = await supabase
       .from('mentor_profiles')
@@ -196,6 +215,7 @@ export default function AdminStudyGroups() {
     setSectionLoading(true);
     try {
       if (tab === 'study') await fetchPendingGroups();
+      if (tab === 'pulse') await fetchPendingPulsePosts();
       if (tab === 'mentors') await fetchMentorApplications();
       if (tab === 'messages') await fetchReports();
       if (tab === 'users') await fetchUsers();
@@ -282,6 +302,32 @@ export default function AdminStudyGroups() {
       );
     } catch (error) {
       alert(`Could not decline this study circle: ${error.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const reviewPulsePost = async (postId, status) => {
+    if (status === 'rejected' && !window.confirm('Reject this Campus Pulse post? It will remain hidden from the public feed.')) return;
+
+    setActionLoading(`pulse-${postId}`);
+    try {
+      const { data, error } = await supabase
+        .from('campus_pulse_posts')
+        .update({
+          approval_status: status,
+          reviewed_by: adminUserId,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', postId)
+        .select('id, approval_status, reviewed_by, reviewed_at')
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) throw new Error('This moderation action was blocked by database permissions.');
+      setPendingPulsePosts((current) => current.filter((post) => post.id !== postId));
+    } catch (error) {
+      alert(`Could not ${status === 'approved' ? 'approve' : 'reject'} this post: ${error.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -546,6 +592,14 @@ export default function AdminStudyGroups() {
         />
 
         <AdminTab
+          active={activeTab === 'pulse'}
+          icon={<MessageSquareText size={17} />}
+          label="Campus Pulse Reviews"
+          count={pendingPulsePosts.length}
+          onClick={() => changeTab('pulse')}
+        />
+
+        <AdminTab
           active={activeTab === 'mentors'}
           icon={<GraduationCap size={17} />}
           label="Mentor Applications"
@@ -591,6 +645,15 @@ export default function AdminStudyGroups() {
               actionLoading={actionLoading}
               approveGroup={approveGroup}
               declineGroup={declineGroup}
+            />
+          )}
+
+          {activeTab === 'pulse' && (
+            <CampusPulseReviewSection
+              posts={pendingPulsePosts}
+              profiles={profiles}
+              actionLoading={actionLoading}
+              onReview={reviewPulsePost}
             />
           )}
 
@@ -645,26 +708,47 @@ function AdminTab({ active, icon, label, count, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`filter-chip ${active ? 'active' : ''}`}
-      style={
-        active
-          ? {
-              background: '#0B1A3F',
-              color: '#FFFFFF',
-              borderColor: '#0B1A3F',
-              boxShadow: '0 5px 16px rgba(11,26,63,.18)',
-              transform: 'translateY(-1px)',
-            }
-          : {
-              background: '#EEF3FB',
-              color: '#0B1A3F',
-              borderColor: '#D8E2FF',
-              boxShadow: 'none',
-            }
-      }
+      style={{
+        appearance: 'none',
+        WebkitAppearance: 'none',
+        border: active
+          ? '1.5px solid #0B1A3F'
+          : '1.5px solid #D8E0EB',
+        borderRadius: '999px',
+        padding: '11px 18px',
+        minHeight: '46px',
+        background: active ? '#0B1A3F' : '#F1F4F8',
+        color: active ? '#FFFFFF' : '#0B1A3F',
+        boxShadow: active
+          ? '0 8px 20px rgba(11,26,63,.16)'
+          : '0 3px 10px rgba(11,26,63,.04)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        fontSize: '14px',
+        fontWeight: '900',
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+        cursor: 'pointer',
+        outline: 'none',
+        transition:
+          'transform .16s ease, box-shadow .16s ease, background .16s ease',
+        transform: active ? 'translateY(-1px)' : 'none',
+      }}
     >
-      {icon}
-      {label}
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </span>
+
+      <span>{label}</span>
 
       {typeof count === 'number' && count > 0 && (
         <span
@@ -677,14 +761,15 @@ function AdminTab({ active, icon, label, count, onClick }) {
             alignItems: 'center',
             justifyContent: 'center',
             background: active
-              ? 'rgba(255,255,255,.18)'
+              ? 'rgba(255,255,255,.16)'
               : '#FFFFFF',
             color: active ? '#FFFFFF' : '#0B1A3F',
             border: active
-              ? '1px solid rgba(255,255,255,.14)'
-              : '1px solid #D8E2FF',
+              ? '1px solid rgba(255,255,255,.18)'
+              : '1px solid #D8E0EB',
             fontSize: '10px',
             fontWeight: '900',
+            lineHeight: 1,
           }}
         >
           {count}
@@ -974,6 +1059,77 @@ function StudyReviewSection({
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function CampusPulseReviewSection({ posts, profiles, actionLoading, onReview }) {
+  return (
+    <>
+      <SectionIntro
+        icon={<MessageSquareText size={21} />}
+        title={`${posts.length} Campus Pulse post${posts.length === 1 ? '' : 's'} waiting for review`}
+        description="Approve posts to publish them on Campus Pulse. Rejected posts remain hidden from the public feed."
+      />
+
+      {!posts.length ? (
+        <EmptyState
+          icon={<Check size={32} />}
+          title="All caught up"
+          text="There are no Campus Pulse posts waiting for review."
+        />
+      ) : (
+        <div style={cardGrid}>
+          {posts.map((post) => {
+            const profile = profiles[post.user_id];
+            const author = post.is_anonymous
+              ? 'Anonymous Student'
+              : post.author_name || profile?.name || 'Student';
+            const busy = actionLoading === `pulse-${post.id}`;
+
+            return (
+              <div key={post.id} style={reviewCard}>
+                <div style={cardTop}>
+                  <div style={{ minWidth: 0 }}>
+                    <StatusBadge status="pending" />
+                    <h2 style={cardTitle}>{post.title || 'Untitled post'}</h2>
+                    <p style={cardSubtitle}>
+                      {author} · {post.category || 'Campus Pulse'} · {formatDate(post.created_at)}
+                    </p>
+                  </div>
+                  <div style={{ ...smallIcon, background: '#E8F0FA', color: NAVY }}>
+                    <MessageSquareText size={22} />
+                  </div>
+                </div>
+
+                <DetailBlock label="POST CONTENT" value={post.content || '(No text)'} />
+
+                {post.image_url && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={miniLabel}>ATTACHED IMAGE</div>
+                    <img
+                      src={post.image_url}
+                      alt="Campus Pulse attachment"
+                      style={{ width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 14, marginTop: 8 }}
+                    />
+                  </div>
+                )}
+
+                <div style={twoButtons}>
+                  <button disabled={busy} onClick={() => onReview(post.id, 'rejected')} style={denyButton}>
+                    <X size={17} />
+                    {busy ? 'Saving...' : 'Reject'}
+                  </button>
+                  <button disabled={busy} onClick={() => onReview(post.id, 'approved')} style={approveButton}>
+                    <Check size={17} />
+                    {busy ? 'Saving...' : 'Approve Post'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </>
@@ -1555,9 +1711,10 @@ const refreshButton = {
 const tabBar = {
   display: 'flex',
   flexWrap: 'wrap',
-  gap: 9,
-  marginBottom: 26,
-  paddingBottom: 18,
+  alignItems: 'center',
+  gap: 12,
+  marginBottom: 28,
+  paddingBottom: 20,
   borderBottom: '1px solid #E6EBF2',
 };
 
