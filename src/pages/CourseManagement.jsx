@@ -4971,6 +4971,18 @@ return (
           box-sizing: border-box !important;
         }
 
+        .courses-mobile .semester-heading-block {
+          position: absolute !important;
+          left: 0 !important;
+          right: 0 !important;
+          top: 118px !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          text-align: center !important;
+          box-sizing: border-box !important;
+        }
+
         .courses-mobile .semester-folder-title {
           width: 100% !important;
           max-width: 100% !important;
@@ -5407,17 +5419,18 @@ return (
    </div>
 </div>
 
-<div className="semester-folder-title" style={semesterFolderTitleStyle}>
- {semester}
+<div className="semester-heading-block" style={semesterHeadingBlockStyle}>
+  <div className="semester-folder-title" style={semesterFolderTitleStyle}>
+    {semester}
+  </div>
+
+  <div style={semesterFolderSubtitleStyle}>
+    {semesterCourses.length}{' '}
+    {semesterCourses.length === 1 ? 'course' : 'courses'}
+  </div>
 </div>
 
-<div style={semesterFolderSubtitleStyle}>
- {semesterCourses.length}{' '}
-
-        {semesterCourses.length === 1
-         ? 'course'
-         : 'courses'}
-       </div>
+<div aria-hidden="true" style={{ height: '48px', flexShrink: 0 }} />
 
         <div style={semesterFolderStatsStyle}>
          <SemesterMiniCount
@@ -6990,6 +7003,7 @@ const openWorkspaceText = {
 
 
 const semesterFolderCardStyle = {
+  position: 'relative',
   textAlign: 'center',
   width: '100%',
   background: '#FFFFFF',
@@ -7022,6 +7036,19 @@ const semesterFolderIconStyle = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center'
+};
+
+const semesterHeadingBlockStyle = {
+  width: '100%',
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  top: '118px',
+  margin: 0,
+  padding: 0,
+  textAlign: 'center',
+  pointerEvents: 'none',
+  boxSizing: 'border-box'
 };
 
 const semesterFolderTitleStyle = {
