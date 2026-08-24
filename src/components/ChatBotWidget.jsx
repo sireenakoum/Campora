@@ -386,7 +386,7 @@ const ERROR_REPLY =
   'Sorry — I couldn\u2019t reach my brain just now. Check your connection and try again in a moment.'
 
 export default function ChatBotWidget() {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const [draft, setDraft] = useState('')
   const [thinking, setThinking] = useState(false)
   const [messages, setMessages] = useState([
