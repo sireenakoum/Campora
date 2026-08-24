@@ -4972,15 +4972,15 @@ return (
         }
 
         .courses-mobile .semester-folder-title {
-          width: 100% !important;
-          max-width: 100% !important;
-          margin-left: auto !important;
-          margin-right: auto !important;
-          padding-left: 0 !important;
-          padding-right: 0 !important;
+          width: max-content !important;
+          max-width: calc(100% - 44px) !important;
+          margin: 0 0 5px !important;
+          padding: 0 !important;
           text-align: center !important;
-          justify-content: center !important;
           align-self: center !important;
+          position: relative !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
           box-sizing: border-box !important;
         }
       }
@@ -7024,15 +7024,18 @@ const semesterFolderIconStyle = {
 };
 
 const semesterFolderTitleStyle = {
-  width: '100%',
-  maxWidth: '100%',
+  width: 'max-content',
+  maxWidth: 'calc(100% - 44px)',
   fontSize: '21px',
   fontWeight: '900',
   color: '#1A1B1F',
-  margin: '0 auto 5px',
+  margin: '0 0 5px',
   padding: 0,
   textAlign: 'center',
   alignSelf: 'center',
+  position: 'relative',
+  left: '50%',
+  transform: 'translateX(-50%)',
   boxSizing: 'border-box'
 };
 

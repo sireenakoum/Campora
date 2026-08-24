@@ -1842,6 +1842,60 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           .planner-mobile .planner-quick-jump-date { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; max-width: 30px !important; max-height: 30px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; margin: 0 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
           .planner-mobile .planner-cell-add-button { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; flex: 0 0 28px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; }
           .planner-entry-color { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; max-width: 44px !important; max-height: 44px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; flex: 0 0 44px !important; padding: 0 !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
+          .planner-mobile .planner-month-event {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            min-height: 0 !important;
+            height: auto !important;
+            padding: 4px 3px !important;
+            border-radius: 6px !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+          }
+          .planner-mobile .planner-month-event-header {
+            display: block !important;
+            min-width: 0 !important;
+          }
+          .planner-mobile .planner-month-event-time {
+            display: block !important;
+            width: 100% !important;
+            font-size: 8.5px !important;
+            line-height: 1.05 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+          .planner-mobile .planner-month-event-name {
+            display: block !important;
+            width: 100% !important;
+            margin-top: 2px !important;
+            font-size: 9.5px !important;
+            line-height: 1.08 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+          .planner-mobile .planner-month-event-edit {
+            display: none !important;
+          }
+          .planner-mobile .planner-agenda-add {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            min-height: 40px !important;
+            max-width: 40px !important;
+            max-height: 40px !important;
+            flex: 0 0 40px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 50% !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+          }
         }
       `}</style>
       <div
@@ -2547,6 +2601,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                           }}
                         >
                           <div
+                            className="planner-month-event-header"
                             style={{
                               display: 'flex',
                               justifyContent: 'space-between',
@@ -2569,6 +2624,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             </span>
 
                             <Edit3
+                              className="planner-month-event-edit"
                               size={11}
                               color={eventTextColor}
                               style={{
@@ -2875,8 +2931,23 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   type="button"
                   title="Add entry"
                   onClick={() => handleOpenModal(selectedDateStr)}
-                  className="btn btn-sm btn-primary"
-                  style={{ width: '36px', height: '36px', padding: 0 }}
+                  className="btn btn-sm btn-primary planner-agenda-add"
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    minWidth: '40px',
+                    minHeight: '40px',
+                    maxWidth: '40px',
+                    maxHeight: '40px',
+                    flex: '0 0 40px',
+                    padding: 0,
+                    margin: 0,
+                    borderRadius: '50%',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxSizing: 'border-box'
+                  }}
                 >
                   <Plus size={16} />
                 </button>
