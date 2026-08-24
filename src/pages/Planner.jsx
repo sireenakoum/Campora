@@ -207,6 +207,34 @@ export default function Planner() {
     return new Date(year, month - 1, day);
   };
 
+  const getTimeParts12 = (timeValue) => {
+    const [rawHour = '09', rawMinute = '00'] = String(timeValue || '09:00').split(':');
+    const hour24 = Number(rawHour);
+    return {
+      hour: hour24 % 12 || 12,
+      minute: String(rawMinute).padStart(2, '0'),
+      period: hour24 >= 12 ? 'PM' : 'AM'
+    };
+  };
+
+  const to24HourTime = (hour12, minute, period) => {
+    let hour = Number(hour12) % 12;
+    if (period === 'PM') hour += 12;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  };
+
+  const formatTime12 = (timeValue) => {
+    if (!timeValue) return '';
+    const { hour, minute, period } = getTimeParts12(timeValue);
+    return `${hour}:${minute} ${period}`;
+  };
+
+  const timeToMinutes = (timeValue) => {
+    if (!timeValue) return 0;
+    const [hour = '0', minute = '0'] = String(timeValue).split(':');
+    return Number(hour) * 60 + Number(minute);
+  };
+
   const selectedDateStr = formatDate(selectedDate);
 
   const getDefaultEndDate = () => {
@@ -282,6 +310,7 @@ export default function Planner() {
     type: 'Class',
     start_time: '09:00',
     end_time: '10:00',
+    all_day: false,
     color: '#E1F2FF',
     repeat: 'none',
     reminder: false,
@@ -291,6 +320,10 @@ export default function Planner() {
   };
 
   const [newEntry, setNewEntry] = useState(initialEntryState);
+  const [timeDrafts, setTimeDrafts] = useState({
+    start_time: '',
+    end_time: ''
+  });
 
   // =========================================================
   // TWO-WAY COURSE SYNC
@@ -897,6 +930,7 @@ export default function Planner() {
   const handleOpenModal = (dateStr) => {
     setEditingEntry(null);
     setShowEntryCustomColor(false);
+    setTimeDrafts({ start_time: '', end_time: '' });
 
     setNewEntry({
       ...initialEntryState,
@@ -913,6 +947,10 @@ export default function Planner() {
     setEditingEntry(entry);
 
     setShowEntryCustomColor(!camporaColors.includes(entry.color));
+    setTimeDrafts({
+      start_time: '',
+      end_time: ''
+    });
 
     setNewEntry({
       name: entry.name || '',
@@ -926,6 +964,9 @@ export default function Planner() {
       end_time: entry.end_time
         ? entry.end_time.substring(0, 5)
         : '10:00',
+      all_day:
+        String(entry.start_time || '').substring(0, 5) === '00:00' &&
+        String(entry.end_time || '').substring(0, 5) === '23:59',
       color: entry.color || '#E1F2FF',
       repeat: repeatPattern,
       reminder: !!entry.reminder,
@@ -945,10 +986,16 @@ export default function Planner() {
 
   const buildSeriesEntries = ({ entryData, groupId }) => {
     const entries = [];
-    const { repeat, until_date, alertType, ...dbEntry } = entryData;
+    const { repeat, until_date, alertType, all_day, ...dbEntry } = entryData;
+
+    const normalizedDbEntry = {
+      ...dbEntry,
+      start_time: all_day ? '00:00' : dbEntry.start_time,
+      end_time: all_day ? '23:59' : dbEntry.end_time
+    };
 
     const makeEntry = (date) => ({
-      ...dbEntry,
+      ...normalizedDbEntry,
       date,
       reminder_date: hasReminderAlert(alertType)
         ? (entryData.reminder_date || date || null)
@@ -1155,8 +1202,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         : newEntry.description,
       type: newEntry.type,
       date: newEntry.date,
-      start_time: newEntry.start_time,
-      end_time: newEntry.end_time,
+      start_time: newEntry.all_day ? '00:00' : newEntry.start_time,
+      end_time: newEntry.all_day ? '23:59' : newEntry.end_time,
       color: newEntry.color,
       reminder: hasReminderAlert(newEntry.alertType),
       reminder_date: hasReminderAlert(newEntry.alertType)
@@ -1432,6 +1479,14 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
     if (newEntry.repeat !== 'none' && !newEntry.until_date) {
       alert('Please choose an end date.');
+      return;
+    }
+
+    if (
+      !newEntry.all_day &&
+      timeToMinutes(newEntry.end_time) <= timeToMinutes(newEntry.start_time)
+    ) {
+      alert('End time must be after the start time.');
       return;
     }
 
@@ -1850,6 +1905,18 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             min-width: 76px !important;
             padding: 7px 6px !important;
             border-radius: 14px !important;
+          }
+          .planner-mobile .planner-day-cell.is-selected {
+            background: #FFFFFF !important;
+            background-color: #FFFFFF !important;
+            border-color: #F1F4F9 !important;
+            box-shadow: none !important;
+            outline: none !important;
+          }
+          .planner-mobile .planner-day-cell.is-selected .planner-date-number {
+            background: transparent !important;
+            color: #0B1A3F !important;
+            box-shadow: none !important;
           }
           .planner-mobile .planner-calendar-month .planner-day-cell {
             height: 112px !important;
@@ -2357,8 +2424,19 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       const CARD_TIME_FONT = isDayView ? '11px' : '10px';
                       const MIN_CARD_HEIGHT = isDayView ? 38 : 32;
 
+                      const isAllDayEvent = (entry) =>
+                        String(entry.start_time || '').substring(0, 5) === '00:00' &&
+                        String(entry.end_time || '').substring(0, 5) === '23:59';
+
+                      const allDayEvents = dayEvents.filter(isAllDayEvent);
+
                       const timedEvents = dayEvents
-                        .filter((e) => e.start_time && e.end_time)
+                        .filter(
+                          (e) =>
+                            e.start_time &&
+                            e.end_time &&
+                            !isAllDayEvent(e)
+                        )
                         .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
                       const untimedEvents = dayEvents.filter(
@@ -2382,6 +2460,81 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             cursor: 'pointer'
                           }}
                         >
+                          {allDayEvents.length > 0 && (
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '5px',
+                                marginBottom: '8px',
+                                paddingLeft: isDayView ? 0 : `${LABEL_WIDTH}px`,
+                                position: 'sticky',
+                                top: 0,
+                                zIndex: 6,
+                                background: '#FFFFFF',
+                                paddingTop: '4px',
+                                paddingBottom: '6px'
+                              }}
+                            >
+                              {allDayEvents.map((event) => {
+                                const eventBackground = event.is_completed
+                                  ? '#F1F5F9'
+                                  : event.color || '#E1F2FF';
+                                const eventTextColor = event.is_completed
+                                  ? '#0B1A3F'
+                                  : getContrastText(eventBackground);
+
+                                return (
+                                  <div
+                                    key={`all-day-${event.id}`}
+                                    onClick={(clickEvent) => {
+                                      clickEvent.stopPropagation();
+                                      handleOpenEditModal(event);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      minHeight: isDayView ? '52px' : '38px',
+                                      padding: isDayView ? '8px 12px' : '5px 7px',
+                                      borderRadius: '7px',
+                                      background: eventBackground,
+                                      color: eventTextColor,
+                                      border: '1px solid rgba(0,0,0,0.06)',
+                                      boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                                      cursor: 'pointer',
+                                      boxSizing: 'border-box',
+                                      overflow: 'hidden'
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        fontSize: isDayView ? '11px' : '9px',
+                                        fontWeight: '800',
+                                        opacity: 0.78,
+                                        lineHeight: 1.1,
+                                        marginBottom: '2px'
+                                      }}
+                                    >
+                                      All Day
+                                    </div>
+
+                                    <div
+                                      style={{
+                                        fontSize: isDayView ? '14px' : '11px',
+                                        fontWeight: '900',
+                                        lineHeight: 1.15,
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                      }}
+                                    >
+                                      {event.name}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
                           <div style={{ position: 'relative', minHeight: `${totalHours * HOUR_HEIGHT}px` }}>
                             {Array.from({ length: totalHours + 1 }, (_, i) => {
                               const hour = TIMELINE_START + i;
@@ -2669,9 +2822,10 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                                 color: eventTextColor
                               }}
                             >
-                              {viewType === 'Month'
-                                ? event.start_time?.substring(0, 5) || 'No time'
-                                : `${event.start_time?.substring(0, 5) || ''}–${event.end_time?.substring(0, 5) || ''}`}
+                              {String(event.start_time || '').substring(0, 5) === '00:00' &&
+                               String(event.end_time || '').substring(0, 5) === '23:59'
+                                ? 'All Day'
+                                : `${formatTime12(event.start_time)} – ${formatTime12(event.end_time)}`}
                             </span>
 
                             <Edit3
@@ -3250,10 +3404,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                                   color: 'var(--campora-muted)'
                                 }}
                               >
-                                {event.start_time?.substring(0, 5) || ''}
-                                {event.end_time
-                                  ? ` – ${event.end_time.substring(0, 5)}`
-                                  : ''}
+                                {String(event.start_time || '').substring(0, 5) === '00:00' &&
+                                 String(event.end_time || '').substring(0, 5) === '23:59'
+                                  ? 'All Day'
+                                  : `${formatTime12(event.start_time)}${
+                                      event.end_time ? ` – ${formatTime12(event.end_time)}` : ''
+                                    }`}
                               </span>
 
                               {agendaAlertMode === 'notification' && (
@@ -4394,95 +4550,233 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                 </div>
               )}
 
-              <div
+              <button
+                type="button"
+                onClick={() =>
+                  setNewEntry((current) => ({
+                    ...current,
+                    all_day: !current.all_day,
+                    start_time: !current.all_day ? '00:00' : '09:00',
+                    end_time: !current.all_day ? '23:59' : '10:00'
+                  }))
+                }
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: '10px'
+                  width: '100%',
+                  marginBottom: '10px',
+                  padding: '11px 13px',
+                  borderRadius: '14px',
+                  border: newEntry.all_day
+                    ? '1.5px solid #0B1A3F'
+                    : '1px solid #DCE4EF',
+                  background: newEntry.all_day ? '#0B1A3F' : '#FFFFFF',
+                  color: newEntry.all_day ? '#FFFFFF' : '#0B1A3F',
+                  fontWeight: '900',
+                  fontSize: '12px',
+                  cursor: 'pointer'
                 }}
               >
-                {[
-                  { key: 'start_time', label: 'START TIME' },
-                  { key: 'end_time', label: 'END TIME' }
-                ].map(({ key, label }) => {
-                  const timeValue = newEntry[key] || '09:00';
-                  const hour = Number(timeValue.split(':')[0] || 0);
-                  const period = hour >= 12 ? 'PM' : 'AM';
+                {newEntry.all_day ? 'All Day Selected' : 'All Day'}
+              </button>
 
-                  return (
-                    <div
-                      key={key}
-                      style={{
-                        padding: '11px 13px',
-                        background: '#FFFFFF',
-                        border: '1px solid #DCE4EF',
-                        borderRadius: '14px'
-                      }}
-                    >
+              {!newEntry.all_day && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: '10px'
+                  }}
+                >
+                  {[
+                    { key: 'start_time', label: 'START TIME' },
+                    { key: 'end_time', label: 'END TIME' }
+                  ].map(({ key, label }) => {
+                    const timeValue = newEntry[key] || '09:00';
+                    const parts = getTimeParts12(timeValue);
+
+                    const changePeriod = (nextPeriod) => {
+                      setNewEntry((current) => ({
+                        ...current,
+                        [key]: to24HourTime(
+                          parts.hour,
+                          parts.minute,
+                          nextPeriod
+                        )
+                      }));
+                    };
+
+                    return (
                       <div
+                        key={key}
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          marginBottom: '6px',
-                          color: '#94A3B8',
-                          fontSize: '9px',
-                          fontWeight: '900',
-                          letterSpacing: '0.05em'
+                          padding: '11px 13px',
+                          background: '#FFFFFF',
+                          border: '1px solid #DCE4EF',
+                          borderRadius: '14px'
                         }}
                       >
-                        <AlarmClock size={13} strokeWidth={2.3} />
-                        {label}
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}
-                      >
-                        <input
-                          type="time"
-                          value={timeValue}
-                          onChange={(event) =>
-                            setNewEntry({
-                              ...newEntry,
-                              [key]: event.target.value
-                            })
-                          }
+                        <div
                           style={{
-                            flex: 1,
-                            minWidth: 0,
-                            border: 'none',
-                            outline: 'none',
-                            background: 'transparent',
-                            color: '#0B1A3F',
-                            fontSize: '16px',
-                            fontWeight: '850',
-                            fontFamily: 'inherit',
-                            padding: 0
-                          }}
-                        />
-
-                        <span
-                          style={{
-                            flexShrink: 0,
-                            padding: '5px 8px',
-                            borderRadius: '9px',
-                            background: '#F1F5F9',
-                            color: '#0B1A3F',
-                            fontSize: '10px',
-                            fontWeight: '900'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginBottom: '6px',
+                            color: '#94A3B8',
+                            fontSize: '9px',
+                            fontWeight: '900',
+                            letterSpacing: '0.05em'
                           }}
                         >
-                          {period}
-                        </span>
+                          <AlarmClock size={13} strokeWidth={2.3} />
+                          {label}
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="9:30"
+                            value={
+                              timeDrafts[key] !== ''
+                                ? timeDrafts[key]
+                                : `${parts.hour}:${parts.minute}`
+                            }
+                            onFocus={(event) => {
+                              setTimeDrafts((current) => ({
+                                ...current,
+                                [key]: `${parts.hour}:${parts.minute}`
+                              }));
+                              requestAnimationFrame(() =>
+                                event.currentTarget.select()
+                              );
+                            }}
+                            onChange={(event) => {
+                              let raw = event.target.value
+                                .replace(/[^0-9:]/g, '')
+                                .slice(0, 5);
+
+                              // Let the user type naturally: 930 -> 9:30, 1230 -> 12:30.
+                              if (!raw.includes(':')) {
+                                if (raw.length === 3) {
+                                  raw = `${raw.slice(0, 1)}:${raw.slice(1)}`;
+                                } else if (raw.length === 4) {
+                                  raw = `${raw.slice(0, 2)}:${raw.slice(2)}`;
+                                }
+                              }
+
+                              setTimeDrafts((current) => ({
+                                ...current,
+                                [key]: raw
+                              }));
+                            }}
+                            onBlur={() => {
+                              const raw = String(timeDrafts[key] || '').trim();
+
+                              if (!raw) {
+                                setTimeDrafts((current) => ({
+                                  ...current,
+                                  [key]: ''
+                                }));
+                                return;
+                              }
+
+                              let hourText = '';
+                              let minuteText = '';
+
+                              if (raw.includes(':')) {
+                                [hourText, minuteText = '00'] = raw.split(':');
+                              } else if (raw.length <= 2) {
+                                hourText = raw;
+                                minuteText = '00';
+                              } else if (raw.length === 3) {
+                                hourText = raw.slice(0, 1);
+                                minuteText = raw.slice(1);
+                              } else {
+                                hourText = raw.slice(0, 2);
+                                minuteText = raw.slice(2, 4);
+                              }
+
+                              const hour = Math.min(
+                                12,
+                                Math.max(1, Number(hourText) || parts.hour)
+                              );
+                              const minute = Math.min(
+                                59,
+                                Math.max(0, Number(minuteText) || 0)
+                              );
+
+                              setNewEntry((current) => ({
+                                ...current,
+                                [key]: to24HourTime(
+                                  hour,
+                                  String(minute).padStart(2, '0'),
+                                  parts.period
+                                )
+                              }));
+
+                              setTimeDrafts((current) => ({
+                                ...current,
+                                [key]: ''
+                              }));
+                            }}
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              border: 'none',
+                              outline: 'none',
+                              background: 'transparent',
+                              color: '#0B1A3F',
+                              fontSize: '16px',
+                              fontWeight: '850',
+                              fontFamily: 'inherit',
+                              padding: 0
+                            }}
+                          />
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '4px',
+                              flexShrink: 0
+                            }}
+                          >
+                            {['AM', 'PM'].map((optionPeriod) => {
+                              const selected = parts.period === optionPeriod;
+                              return (
+                                <button
+                                  key={optionPeriod}
+                                  type="button"
+                                  onClick={() => changePeriod(optionPeriod)}
+                                  style={{
+                                    minWidth: '34px',
+                                    padding: '5px 6px',
+                                    borderRadius: '9px',
+                                    border: selected
+                                      ? '1.5px solid #0B1A3F'
+                                      : '1px solid #DCE4EF',
+                                    background: selected ? '#0B1A3F' : '#F8FAFC',
+                                    color: selected ? '#FFFFFF' : '#0B1A3F',
+                                    fontSize: '10px',
+                                    fontWeight: '900',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {optionPeriod}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div
                 style={{
