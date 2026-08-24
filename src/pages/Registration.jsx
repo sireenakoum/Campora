@@ -3420,7 +3420,7 @@ Number(event.target.value) })}>
 <Field label="YOUR FEEDBACK">
 <textarea required placeholder="Tell students about the course, professor,
 workload, exams, assignments, attendance, or anything useful."
-style={{ ...modalInput, height: '120px', resize: 'vertical' }}
+style={{ ...modalInput, height: '150px', minHeight: '150px', borderRadius: '18px', resize: 'vertical', lineHeight: '1.45', padding: '16px' }}
 value={newReview.comment} onChange={event =>
 setNewReview({ ...newReview, comment: event.target.value })} />
 </Field>

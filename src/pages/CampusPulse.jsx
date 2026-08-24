@@ -385,6 +385,7 @@ export default function CampusPulse() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [currentProfileAvatarUrl, setCurrentProfileAvatarUrl] = useState('');
+  const [profileAvatarUrls, setProfileAvatarUrls] = useState({});
   const [userName, setUserName] = useState('Student');
 
   const [userLikes, setUserLikes] = useState(new Set());
@@ -597,11 +598,15 @@ export default function CampusPulse() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('name')
+          .select('name, avatar_url')
           .eq('id', uid)
           .maybeSingle();
 
         setUserName(profile?.name || 'Student');
+        if (profile?.avatar_url) {
+          setCurrentProfileAvatarUrl(profile.avatar_url);
+          setProfileAvatarUrls(previous => ({ ...previous, [uid]: profile.avatar_url }));
+        }
 
         const { data: likesData, error: likesError } = await supabase
           .from('campus_pulse_likes')
@@ -1493,6 +1498,32 @@ alert('Your post was submitted for admin review.');
 
     if (error) {
       console.error('Comment fetch error:', error);
+    }
+
+    const visibleCommentUserIds = Array.from(
+      new Set((data || [])
+        .filter(comment => comment.user_id && comment.author_name !== 'Anonymous Student')
+        .map(comment => comment.user_id))
+    );
+
+    if (visibleCommentUserIds.length > 0) {
+      const { data: avatarRows, error: avatarError } = await supabase
+        .from('profiles')
+        .select('id, avatar_url')
+        .in('id', visibleCommentUserIds);
+
+      if (!avatarError && avatarRows?.length) {
+        setProfileAvatarUrls(previous => ({
+          ...previous,
+          ...Object.fromEntries(
+            avatarRows
+              .filter(row => row.avatar_url)
+              .map(row => [row.id, row.avatar_url])
+          )
+        }));
+      } else if (avatarError) {
+        console.warn('Could not load comment profile photos:', avatarError.message);
+      }
     }
 
     setCommentsState(previous => ({
@@ -2551,6 +2582,7 @@ alert('Your post was submitted for admin review.');
                                   currentUserId
                                 }
                                 userName={userName}
+                                profileAvatarUrls={profileAvatarUrls}
                                 replyingToComment={
                                   replyingToComment
                                 }
@@ -2915,6 +2947,7 @@ function CommentItem({
   postContext,
   currentUserId,
   userName,
+  profileAvatarUrls,
   replyingToComment,
   setReplyingToComment,
   replyText,
@@ -2996,12 +3029,17 @@ function CommentItem({
                 border: '1px solid var(--hairline)'
               }}
             >
-              {isAnonymous ? (
+              {!isAnonymous && profileAvatarUrls?.[comment.user_id] ? (
+                <img
+                  src={profileAvatarUrls[comment.user_id]}
+                  alt=""
+                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                  onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                />
+              ) : isAnonymous ? (
                 <EyeOff size={12} />
               ) : (
-                getInitials(
-                  comment.author_name
-                )
+                getInitials(comment.author_name)
               )}
             </div>
 
@@ -3146,6 +3184,7 @@ function CommentItem({
                 postContext={postContext}
                 currentUserId={currentUserId}
                 userName={userName}
+                profileAvatarUrls={profileAvatarUrls}
                 replyingToComment={
                   replyingToComment
                 }

@@ -1060,9 +1060,11 @@ return (
     backdropFilter: 'blur(6px)',
     WebkitBackdropFilter: 'blur(6px)',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
-    padding: '20px',
+    padding: 'max(12px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom))',
+    overflowY: 'auto',
+    WebkitOverflowScrolling: 'touch',
    }}
   >
    <div
@@ -1072,6 +1074,11 @@ return (
      maxWidth: '520px',
      padding: '25px',
      boxShadow: 'var(--shadow-lift)',
+     maxHeight: 'calc(100dvh - 28px)',
+     overflowY: 'auto',
+     WebkitOverflowScrolling: 'touch',
+     margin: 'auto 0',
+     boxSizing: 'border-box',
     }}
    >
     <div

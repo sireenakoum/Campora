@@ -1722,6 +1722,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           <button
             key={color}
             type="button"
+            className="planner-entry-color"
             onClick={() => {
               onChange(color);
               setShowCustom(false);
@@ -1828,6 +1829,18 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         overflow: 'hidden'
       }}
     >
+      <style>{`
+        @media (max-width: 650px) {
+          .planner-mobile { height: auto !important; min-height: 100dvh !important; overflow: visible !important; gap: 12px !important; }
+          .planner-mobile .planner-calendar-grid { gap: 7px !important; }
+          .planner-mobile .planner-day-cell { min-width: 0 !important; padding: 7px 5px !important; border-radius: 14px !important; }
+          .planner-mobile .planner-calendar-month .planner-day-cell { height: 140px !important; min-height: 140px !important; }
+          .planner-mobile .planner-month-event { font-size: 11px !important; line-height: 1.25 !important; padding: 7px 6px !important; min-height: 34px !important; border-radius: 8px !important; overflow: visible !important; }
+          .planner-mobile .planner-month-event-time { font-size: 9px !important; white-space: normal !important; }
+          .planner-mobile .planner-date-number { width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; }
+          .planner-entry-color { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; max-width: 44px !important; max-height: 44px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; flex: 0 0 44px !important; padding: 0 !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
+        }
+      `}</style>
       <div
         style={{
           flex: 1,
@@ -2211,6 +2224,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     </div>
 
                     <span
+                      className="planner-date-number"
                       style={{
                         fontWeight: '900',
                         color: '#0B1A3F',
@@ -2505,6 +2519,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       return (
                         <div
                           key={event.id}
+                          className="planner-month-event"
                           onClick={(clickEvent) => {
                             clickEvent.stopPropagation();
                             handleOpenEditModal(event);
@@ -2536,6 +2551,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                             }}
                           >
                             <span
+                              className="planner-month-event-time"
                               style={{
                                 opacity: 0.78,
                                 fontSize: '9px',

@@ -5377,7 +5377,7 @@ return (
       <CalendarDays size={23} color="#0B1A3F" />
     </div>
 
-   <div style={{ display: 'flex', alignItems: 'center' }}>
+   <div style={{ display: 'flex', alignItems: 'center', position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
     <ChevronRight size={22} color="#9AA7C6" />
    </div>
 </div>
@@ -7166,12 +7166,22 @@ const colorGridStyle = {
 };
 
 const colorCircleStyle = {
-  width: '36px',
-  height: '36px',
+  width: '44px',
+  height: '44px',
+  minWidth: '44px',
+  maxWidth: '44px',
+  minHeight: '44px',
+  maxHeight: '44px',
+  aspectRatio: '1 / 1',
+  flex: '0 0 44px',
   borderRadius: '50%',
   border: '1px solid rgba(11,26,63,0.10)',
   cursor: 'pointer',
-  padding: 0
+  padding: 0,
+  lineHeight: 0,
+  WebkitAppearance: 'none',
+  appearance: 'none',
+  boxSizing: 'border-box'
 };
 
 const customColorRow = {
