@@ -1840,28 +1840,56 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
           .planner-mobile .planner-main-calendar-scroll .planner-calendar-month,
           .planner-mobile .planner-main-calendar-scroll .planner-calendar-week {
-            min-width: 860px !important;
-            grid-template-columns: repeat(7, minmax(105px, 1fr)) !important;
+            min-width: 690px !important;
+            grid-template-columns: repeat(7, minmax(82px, 1fr)) !important;
             gap: 12px !important;
           }
 
           .planner-mobile .planner-main-calendar-scroll .planner-day-cell {
-            min-width: 105px !important;
-            padding: 10px !important;
+            min-width: 82px !important;
+            padding: 8px !important;
           }
 
           .planner-mobile .planner-main-calendar-scroll .planner-calendar-month .planner-day-cell {
-            height: 155px !important;
-            min-height: 155px !important;
+            height: 138px !important;
+            min-height: 138px !important;
           }
 
           .planner-mobile { height: auto !important; min-height: 100dvh !important; overflow: visible !important; gap: 12px !important; }
           .planner-mobile .planner-calendar-grid { gap: 7px !important; }
           .planner-mobile .planner-day-cell { min-width: 0 !important; padding: 7px 5px !important; border-radius: 14px !important; }
           .planner-mobile .planner-calendar-month .planner-day-cell { height: 140px !important; min-height: 140px !important; }
-          .planner-mobile .planner-month-event { font-size: 12px !important; line-height: 1.25 !important; padding: 7px 6px !important; min-height: 40px !important; border-radius: 8px !important; overflow: hidden !important; }
-          .planner-mobile .planner-month-event-time { font-size: 10px !important; line-height: 1.1 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-          .planner-mobile .planner-month-event-name { font-size: 11px !important; line-height: 1.15 !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important; overflow: hidden !important; }
+          .planner-mobile .planner-main-calendar-scroll .planner-month-event {
+            width: 100% !important;
+            min-width: 0 !important;
+            min-height: 48px !important;
+            padding: 6px 7px !important;
+            border-radius: 9px !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+            display: block !important;
+          }
+          .planner-mobile .planner-main-calendar-scroll .planner-month-event-time {
+            display: block !important;
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            line-height: 1.15 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            margin-bottom: 3px !important;
+          }
+          .planner-mobile .planner-main-calendar-scroll .planner-month-event-name {
+            display: -webkit-box !important;
+            font-size: 11px !important;
+            font-weight: 900 !important;
+            line-height: 1.2 !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            white-space: normal !important;
+            overflow: hidden !important;
+            word-break: break-word !important;
+          }
           .planner-mobile .planner-date-number { width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; max-width: 32px !important; max-height: 32px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; padding: 0 !important; flex: 0 0 32px !important; box-sizing: border-box !important; }
           .planner-mobile .planner-quick-jump-date { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; max-width: 30px !important; max-height: 30px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; margin: 0 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
           .planner-mobile .planner-cell-add-button { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; flex: 0 0 28px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; }
@@ -2239,12 +2267,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               gridTemplateColumns:
                 viewType === 'Day'
                   ? '1fr'
-                  : 'repeat(7, minmax(105px, 1fr))',
+                  : 'repeat(7, minmax(82px, 1fr))',
               gridTemplateRows:
                 viewType !== 'Day' ? 'auto 1fr' : '1fr',
               gap: '12px',
               alignItems: 'start',
-              minWidth: viewType === 'Day' ? '100%' : '860px'
+              minWidth: viewType === 'Day' ? '100%' : '690px'
             }}
           >
             {viewType !== 'Day' &&
@@ -2273,8 +2301,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   onClick={() => setSelectedDate(dateObj)}
                   style={{
                     height:
-                      viewType === 'Month' ? '155px' : '500px',
-                    padding: '12px',
+                      viewType === 'Month' ? '138px' : '470px',
+                    padding: '9px',
                     borderRadius: '14px',
                     cursor: 'pointer',
                     transition: '0.2s',
