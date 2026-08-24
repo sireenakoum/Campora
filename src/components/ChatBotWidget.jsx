@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bot, Send, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { clearCache } from '../lib/cache'
 
 const CONTEXT_TTL_MS = 5 * 60 * 1000
 
@@ -280,7 +281,15 @@ async function executeAction(action) {
     const userId = await getCurrentUserId()
     if (!userId) return actionFailure('Not signed in')
 
-    return await executor(action.args || {}, userId)
+    const result = await executor(action.args || {}, userId)
+
+    // The action changed data other pages display; drop their caches so
+    // the next visit revalidates instead of showing stale content.
+    if (result.ok) {
+      clearCache()
+    }
+
+    return result
   } catch (error) {
     console.error('Assistant action error:', error)
     return actionFailure(error?.message || 'Unexpected error')

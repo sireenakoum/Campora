@@ -61,6 +61,7 @@ const ResetPassword = lazy(() => import('./ResetPassword'));
 
 import { supabase } from './lib/supabase';
 import { signOut } from './lib/auth';
+import { clearCache } from './lib/cache';
 
 import {
   getUnreadNotificationsForCurrentUser,
@@ -599,6 +600,7 @@ function DashboardLayout() {
 
       if (profile?.is_deactivated) {
         await supabase.auth.signOut();
+        clearCache();
 
         navigate('/login', {
           replace: true,
@@ -657,6 +659,7 @@ function DashboardLayout() {
 
       if (profile?.is_deactivated) {
         await supabase.auth.signOut();
+        clearCache();
 
         navigate('/login', {
           replace: true,

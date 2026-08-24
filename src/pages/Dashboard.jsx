@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import { cachedFetch, peekCache } from '../lib/cache';
 import { getAnnouncements } from '../lib/campusHub';
 import aubCampusImage from './aub-campus.jpeg';
 
@@ -290,78 +291,93 @@ export default function Dashboard() {
       );
       setCourseAssignments(assignments);
 
-      const [
-        profileResult,
-        plannerResult,
-        coursesResult,
-        todosResult,
-        notificationsResult,
-        announcementsResult,
-      ] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle(),
+      const fetchSnapshot = async () => {
+        const [
+          profileResult,
+          plannerResult,
+          coursesResult,
+          todosResult,
+          notificationsResult,
+          announcementsResult,
+        ] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle(),
 
-        supabase
-          .from('planner_courses')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: true })
-          .order('start_time', { ascending: true }),
+          supabase
+            .from('planner_courses')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: true })
+            .order('start_time', { ascending: true }),
 
-        supabase
-          .from('courses')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false }),
+          supabase
+            .from('courses')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false }),
 
-        supabase
-          .from('todos')
-          .select('*')
-          .eq('profile_id', user.id)
-          .order('created_at', { ascending: false }),
+          supabase
+            .from('todos')
+            .select('*')
+            .eq('profile_id', user.id)
+            .order('created_at', { ascending: false }),
 
-        supabase
-          .from('notifications')
-          .select('id,read')
-          .eq('user_id', user.id),
+          supabase
+            .from('notifications')
+            .select('id,read')
+            .eq('user_id', user.id),
 
-        getAnnouncements().catch(() => []),
-      ]);
+          getAnnouncements().catch(() => []),
+        ]);
 
-      setProfile(
-        profileResult.data || {
-          name:
-            user.user_metadata?.name ||
-            user.email?.split('@')[0] ||
-            'Student',
-        }
-      );
+        const announcements = Array.isArray(announcementsResult)
+          ? announcementsResult
+          : [];
 
-      setPlannerItems(plannerResult.data || []);
-      setCourses(coursesResult.data || []);
-      setTodos(todosResult.data || []);
+        return {
+          profile:
+            profileResult.data ||
+            {
+              name:
+                user.user_metadata?.name ||
+                user.email?.split('@')[0] ||
+                'Student',
+            },
+          plannerItems: plannerResult.data || [],
+          courses: coursesResult.data || [],
+          todos: todosResult.data || [],
+          unreadCount: (notificationsResult.data || []).filter(
+            item => !item.read
+          ).length,
+          announcement:
+            announcements.find(item => item.is_pinned) ||
+            announcements[0] ||
+            null,
+        };
+      };
 
-      const notifications =
-        notificationsResult.data || [];
+      const applySnapshot = (snapshot) => {
+        setProfile(snapshot.profile);
+        setPlannerItems(snapshot.plannerItems);
+        setCourses(snapshot.courses);
+        setTodos(snapshot.todos);
+        setUnreadCount(snapshot.unreadCount);
+        setAnnouncement(snapshot.announcement);
+      };
 
-      setUnreadCount(
-        notifications.filter(item => !item.read).length
-      );
+      const dashboardKey = `dashboard:${user.id}`;
 
-      const announcements = Array.isArray(
-        announcementsResult
-      )
-        ? announcementsResult
-        : [];
+      // Paint instantly from a previous visit when possible, then let
+      // cachedFetch revalidate quietly if the entry went stale.
+      const cachedSnapshot = peekCache(dashboardKey);
+      if (cachedSnapshot) {
+        applySnapshot(cachedSnapshot);
+      }
 
-      setAnnouncement(
-        announcements.find(item => item.is_pinned) ||
-          announcements[0] ||
-          null
-      );
+      applySnapshot(await cachedFetch(dashboardKey, 20_000, fetchSnapshot));
     } catch (err) {
       console.error('Dashboard load error:', err);
 

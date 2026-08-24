@@ -24,6 +24,7 @@ import {
 
 import { supabase } from '../lib/supabase';
 import { toast, toastBoth } from '../lib/toast';
+import { cachedFetch, peekCache, putCache } from '../lib/cache';
 
 import { ProgressRing } from '../components/luminous';
 
@@ -480,20 +481,42 @@ export default function Planner() {
 
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from('planner_courses')
-      .select('*')
-      .eq('user_id', userId)
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true });
+    const plannerKey = `planner:${userId}`;
 
-    if (error) {
-      console.error('Planner fetch error:', error);
+    // Instant paint from the last visit; cachedFetch revalidates quietly.
+    const cachedEntries = peekCache(plannerKey);
+    if (cachedEntries) {
+      setCourses(cachedEntries);
+      setLoading(false);
     }
 
-    setCourses(data || []);
-    setLoading(false);
+    try {
+      const data = await cachedFetch(plannerKey, 20_000, async () => {
+        const { data: rows, error } = await supabase
+          .from('planner_courses')
+          .select('*')
+          .eq('user_id', userId)
+          .order('date', { ascending: true })
+          .order('start_time', { ascending: true });
+
+        if (error) {
+          console.error('Planner fetch error:', error);
+        }
+
+        return rows || [];
+      });
+
+      setCourses(data);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Keep the shared cache in sync with in-page edits (add, delete,
+  // toggle, import) so other pages see them on the next visit.
+  useEffect(() => {
+    if (user) putCache(`planner:${user.id}`, courses);
+  }, [courses, user]);
 
   const handleUploadClick = () => scheduleInputRef.current?.click();
 

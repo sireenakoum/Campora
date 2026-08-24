@@ -1,5 +1,5 @@
 import './CamporaMobileCompat.css';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Plus,
@@ -21,6 +21,7 @@ import {
 
 import { supabase } from '../lib/supabase';
 import { toast, toastBoth } from '../lib/toast';
+import { cachedFetch, peekCache, putCache } from '../lib/cache';
 
 import {
   getTodosForCurrentUser,
@@ -79,6 +80,7 @@ const PRIORITY_CONFIG = {
 
 export default function Todo() {
  const [tasks, setTasks] = useState([]);
+ const todosKeyRef = useRef('todos:anon');
  const [showTaskModal, setShowTaskModal] = useState(false);
  const [editingTask, setEditingTask] = useState(null);
  const [formError, setFormError] = useState('');
@@ -99,8 +101,6 @@ export default function Todo() {
 
  const loadTasks = async () => {
   try {
-    const data = await getTodosForCurrentUser();
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -109,18 +109,36 @@ export default function Todo() {
       ? readTodoAlertLinks(user.id)
       : {};
 
-    setTasks(
+    const withAlerts = (data) =>
       (data || []).map((task) => ({
         ...task,
         _alertType: links[task.id]?.type || '',
         _alertDate: links[task.id]?.date || '',
         _alertTime: links[task.id]?.time || '',
-      }))
-    );
+      }));
+
+    const todosKey = `todos:${user?.id || 'anon'}`;
+    todosKeyRef.current = todosKey;
+
+    // Instant paint from the last visit; cachedFetch revalidates quietly.
+    const cachedTasks = peekCache(todosKey);
+    if (cachedTasks) {
+      setTasks(withAlerts(cachedTasks));
+    }
+
+    const data = await cachedFetch(todosKey, 15_000, getTodosForCurrentUser);
+
+    setTasks(withAlerts(data));
   } catch (error) {
     console.error('Error loading tasks:', error);
   }
  };
+
+ // Mirror in-page task edits into the shared cache so the dashboard
+ // and revisits see them without waiting for the TTL.
+ useEffect(() => {
+  putCache(todosKeyRef.current, tasks.map(({ _alertType: _a, _alertDate: _d, _alertTime: _t, ...task }) => task));
+ }, [tasks]);
 
  const openAddTask = () => {
   setEditingTask(null);

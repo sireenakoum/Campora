@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { clearCache } from './cache'
 
 // Sign up a new user
 export async function signUp(email, password, profileData = {}) {
@@ -25,6 +26,8 @@ export async function signIn(email, password) {
 // Log out the current user
 export async function signOut() {
   const { error } = await supabase.auth.signOut()
+  // Never leave one account's cached data visible to the next.
+  clearCache()
   return { error }
 }
 
