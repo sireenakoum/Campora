@@ -1906,6 +1906,35 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
             padding: 7px 6px !important;
             border-radius: 14px !important;
           }
+          .planner-mobile .planner-day-cell.is-selected,
+          .planner-mobile .planner-day-cell.is-selected:hover,
+          .planner-mobile .planner-day-cell.is-selected:focus,
+          .planner-mobile .planner-day-cell.is-selected:active {
+            background: #FFFFFF !important;
+            background-color: #FFFFFF !important;
+            border: 1px solid #F1F4F9 !important;
+            border-color: #F1F4F9 !important;
+            box-shadow: none !important;
+            outline: none !important;
+            filter: none !important;
+          }
+
+          .planner-mobile .planner-day-cell.is-selected .planner-date-number,
+          .planner-mobile .planner-day-cell.is-selected:hover .planner-date-number,
+          .planner-mobile .planner-day-cell.is-selected:focus .planner-date-number {
+            background: transparent !important;
+            background-color: transparent !important;
+            color: #0B1A3F !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+          }
+
+          .planner-mobile .planner-day-cell.is-selected::before,
+          .planner-mobile .planner-day-cell.is-selected::after {
+            display: none !important;
+            content: none !important;
+          }
           .planner-mobile .planner-day-cell.is-selected {
             background: #FFFFFF !important;
             background-color: #FFFFFF !important;
@@ -1955,6 +1984,64 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           .planner-mobile .planner-date-number { width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; max-width: 32px !important; max-height: 32px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; padding: 0 !important; flex: 0 0 32px !important; box-sizing: border-box !important; }
           .planner-mobile .planner-quick-jump-date { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; max-width: 30px !important; max-height: 30px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; margin: 0 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
           .planner-mobile .planner-cell-add-button { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; flex: 0 0 28px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; }
+
+          .planner-mobile .planner-cell-add-wrap {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            min-width: 28px !important;
+            min-height: 28px !important;
+          }
+
+          .planner-mobile .planner-cell-add-button,
+          .planner-mobile .planner-cell-add-button:hover,
+          .planner-mobile .planner-cell-add-button:focus,
+          .planner-mobile .planner-cell-add-button:active {
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            min-height: 28px !important;
+            max-width: 28px !important;
+            max-height: 28px !important;
+            flex: 0 0 28px !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 999px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            line-height: 1 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+            transform: none !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+          }
+
+          .planner-mobile .planner-agenda-add,
+          .planner-mobile .planner-agenda-add:hover,
+          .planner-mobile .planner-agenda-add:focus,
+          .planner-mobile .planner-agenda-add:active {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            min-height: 40px !important;
+            max-width: 40px !important;
+            max-height: 40px !important;
+            flex: 0 0 40px !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 999px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            line-height: 1 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+            transform: none !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+          }
           .planner-entry-color { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; max-width: 44px !important; max-height: 44px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; flex: 0 0 44px !important; padding: 0 !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
           .planner-mobile .planner-month-event {
             width: 100% !important;
@@ -3147,7 +3234,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     flex: '0 0 40px',
                     padding: 0,
                     margin: 0,
-                    borderRadius: '50%',
+                    borderRadius: '999px',
+                    aspectRatio: '1 / 1',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -5204,7 +5292,7 @@ const cellAddIcon = {
   flex: '0 0 28px',
   padding: 0,
   aspectRatio: '1 / 1',
-  borderRadius: '50%',
+  borderRadius: '999px',
   background: '#0B1A3F',
   color: 'white',
   display: 'flex',
