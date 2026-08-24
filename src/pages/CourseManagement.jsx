@@ -4936,7 +4936,7 @@ return (
         .courses-mobile .courses-main-header-wrap h2,
         .courses-mobile .courses-main-header-wrap h3 {
           display: block !important;
-          width: calc(100% - 44px) !important;
+          width: 100% !important;
           margin: 0 !important;
           font-size: 34px !important;
           line-height: 1.08 !important;
@@ -4961,18 +4961,6 @@ return (
           margin: 0 !important;
         }
 
-        .courses-mobile .semester-folder-item {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: 100% !important;
-          display: flex !important;
-          justify-content: center !important;
-          align-items: stretch !important;
-          margin: 0 auto !important;
-          padding: 0 !important;
-          box-sizing: border-box !important;
-        }
-
         .courses-mobile .semester-folder-grid {
           display: grid !important;
           grid-template-columns: minmax(0, 1fr) !important;
@@ -4985,12 +4973,9 @@ return (
         }
 
         .courses-mobile .semester-folder-card {
-          display: flex !important;
           width: 100% !important;
           min-width: 0 !important;
           max-width: 100% !important;
-          margin-left: auto !important;
-          margin-right: auto !important;
           text-align: center !important;
           align-items: center !important;
           justify-content: flex-start !important;
@@ -5001,10 +4986,9 @@ return (
 
         .courses-mobile .semester-heading-block {
           position: absolute !important;
-          left: 50% !important;
-          right: auto !important;
-          transform: translateX(-50%) !important;
-          top: 118px !important;
+          left: 0 !important;
+          right: 0 !important;
+          top: 108px !important;
           width: 100% !important;
           margin: 0 !important;
           padding: 0 !important;
@@ -5431,12 +5415,8 @@ const resourceCount = allResources.filter(
 const creditCount = getSemesterCredits(semester);
 
 return (
- <div
-   key={semester}
-   className="semester-folder-item"
-   style={{ width: '100%', display: 'flex', justifyContent: 'center', minWidth: 0 }}
- >
  <button
+   key={semester}
    type="button"
    onClick={() => {
     setSelectedSemester(semester);
@@ -5466,7 +5446,7 @@ return (
   </div>
 </div>
 
-<div aria-hidden="true" style={{ height: '48px', flexShrink: 0 }} />
+<div aria-hidden="true" style={{ height: '72px', flexShrink: 0 }} />
 
         <div style={semesterFolderStatsStyle}>
          <SemesterMiniCount
@@ -5495,7 +5475,6 @@ return (
          />
         </div>
        </button>
- </div>
      );
    })}
  </div>
@@ -7080,7 +7059,7 @@ const semesterHeadingBlockStyle = {
   position: 'absolute',
   left: 0,
   right: 0,
-  top: '118px',
+  top: '108px',
   margin: 0,
   padding: 0,
   textAlign: 'center',
@@ -7094,7 +7073,7 @@ const semesterFolderTitleStyle = {
   fontSize: '21px',
   fontWeight: '900',
   color: '#1A1B1F',
-  margin: '0 auto 5px',
+  margin: '0 auto 10px',
   padding: 0,
   textAlign: 'center',
   alignSelf: 'stretch',
@@ -7109,9 +7088,8 @@ const semesterFolderSubtitleStyle = {
  fontSize: '12px',
  fontWeight: '800',
  color: '#8795B4',
- marginBottom: '18px',
-
-  textAlign: 'center'
+ marginBottom: '0',
+ textAlign: 'center'
 };
 
 const semesterFolderStatsStyle = {
