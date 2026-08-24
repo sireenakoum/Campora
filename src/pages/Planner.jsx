@@ -1831,64 +1831,59 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     >
       <style>{`
         @media (max-width: 650px) {
-          .planner-mobile .planner-main-calendar-scroll {
+          .planner-mobile { height: auto !important; min-height: 100dvh !important; overflow: visible !important; gap: 12px !important; }
+          .planner-mobile .planner-calendar-scroll {
             overflow-x: auto !important;
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch !important;
             padding-bottom: 14px !important;
           }
-
-          .planner-mobile .planner-main-calendar-scroll .planner-calendar-month,
-          .planner-mobile .planner-main-calendar-scroll .planner-calendar-week {
-            min-width: 690px !important;
-            grid-template-columns: repeat(7, minmax(82px, 1fr)) !important;
+          .planner-mobile .planner-calendar-grid {
             gap: 12px !important;
           }
-
-          .planner-mobile .planner-main-calendar-scroll .planner-day-cell {
-            min-width: 82px !important;
-            padding: 8px !important;
+          .planner-mobile .planner-calendar-month,
+          .planner-mobile .planner-calendar-week {
+            min-width: 620px !important;
+            grid-template-columns: repeat(7, minmax(76px, 1fr)) !important;
           }
-
-          .planner-mobile .planner-main-calendar-scroll .planner-calendar-month .planner-day-cell {
-            height: 138px !important;
-            min-height: 138px !important;
+          .planner-mobile .planner-day-cell {
+            min-width: 76px !important;
+            padding: 7px 6px !important;
+            border-radius: 14px !important;
           }
-
-          .planner-mobile { height: auto !important; min-height: 100dvh !important; overflow: visible !important; gap: 12px !important; }
-          .planner-mobile .planner-calendar-grid { gap: 7px !important; }
-          .planner-mobile .planner-day-cell { min-width: 0 !important; padding: 7px 5px !important; border-radius: 14px !important; }
-          .planner-mobile .planner-calendar-month .planner-day-cell { height: 140px !important; min-height: 140px !important; }
-          .planner-mobile .planner-main-calendar-scroll .planner-month-event {
+          .planner-mobile .planner-calendar-month .planner-day-cell {
+            height: 112px !important;
+            min-height: 112px !important;
+          }
+          .planner-mobile .planner-month-event {
             width: 100% !important;
-            min-width: 0 !important;
-            min-height: 48px !important;
-            padding: 6px 7px !important;
-            border-radius: 9px !important;
+            min-height: 34px !important;
+            height: auto !important;
+            padding: 4px 6px !important;
+            border-radius: 7px !important;
             overflow: hidden !important;
             box-sizing: border-box !important;
             display: block !important;
           }
-          .planner-mobile .planner-main-calendar-scroll .planner-month-event-time {
+          .planner-mobile .planner-month-event-time {
             display: block !important;
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            line-height: 1.15 !important;
+            width: 100% !important;
+            margin: 0 0 1px !important;
+            font-size: 9px !important;
+            line-height: 1.05 !important;
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
-            margin-bottom: 3px !important;
           }
-          .planner-mobile .planner-main-calendar-scroll .planner-month-event-name {
-            display: -webkit-box !important;
-            font-size: 11px !important;
-            font-weight: 900 !important;
-            line-height: 1.2 !important;
-            -webkit-line-clamp: 2 !important;
-            -webkit-box-orient: vertical !important;
-            white-space: normal !important;
+          .planner-mobile .planner-month-event-name {
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            font-size: 10px !important;
+            line-height: 1.1 !important;
+            white-space: nowrap !important;
             overflow: hidden !important;
-            word-break: break-word !important;
+            text-overflow: ellipsis !important;
           }
           .planner-mobile .planner-date-number { width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; max-width: 32px !important; max-height: 32px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; padding: 0 !important; flex: 0 0 32px !important; box-sizing: border-box !important; }
           .planner-mobile .planner-quick-jump-date { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; max-width: 30px !important; max-height: 30px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; margin: 0 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
@@ -2236,7 +2231,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         )}
 
         <div
-          className="card planner-calendar-card planner-main-calendar-scroll"
+          className="card planner-calendar-card planner-calendar-scroll"
           style={{
             flex: 1,
             padding: '20px',
@@ -2267,12 +2262,13 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               gridTemplateColumns:
                 viewType === 'Day'
                   ? '1fr'
-                  : 'repeat(7, minmax(82px, 1fr))',
+                  : 'repeat(7, minmax(0, 1fr))',
               gridTemplateRows:
                 viewType !== 'Day' ? 'auto 1fr' : '1fr',
-              gap: '12px',
+              gap: '10px',
               alignItems: 'start',
-              minWidth: viewType === 'Day' ? '100%' : '690px'
+              minWidth:
+                viewType === 'Day' ? '100%' : '620px'
             }}
           >
             {viewType !== 'Day' &&
@@ -2301,8 +2297,8 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                   onClick={() => setSelectedDate(dateObj)}
                   style={{
                     height:
-                      viewType === 'Month' ? '138px' : '470px',
-                    padding: '9px',
+                      viewType === 'Month' ? '130px' : '480px',
+                    padding: '10px',
                     borderRadius: '14px',
                     cursor: 'pointer',
                     transition: '0.2s',
