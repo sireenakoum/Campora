@@ -4961,8 +4961,21 @@ return (
           margin: 0 !important;
         }
 
+        .courses-mobile .semester-folder-grid {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          overflow: visible !important;
+          justify-items: stretch !important;
+          box-sizing: border-box !important;
+        }
+
         .courses-mobile .semester-folder-card {
           width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
           text-align: center !important;
           align-items: center !important;
           justify-content: flex-start !important;
@@ -5330,11 +5343,14 @@ return (
  </div>
 ):(
  <div
+  className="semester-folder-grid"
   style={{
     display: 'grid',
     gridTemplateColumns:
       'repeat(auto-fill, minmax(330px, 1fr))',
-    gap: '20px'
+    gap: '20px',
+    width: '100%',
+    minWidth: 0
   }}
  >
   {semesterOptions
