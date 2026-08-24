@@ -4960,6 +4960,29 @@ return (
           justify-content: center !important;
           margin: 0 !important;
         }
+
+        .courses-mobile .semester-folder-card {
+          width: 100% !important;
+          text-align: center !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+          padding-left: 22px !important;
+          padding-right: 22px !important;
+          box-sizing: border-box !important;
+        }
+
+        .courses-mobile .semester-folder-title {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          text-align: center !important;
+          justify-content: center !important;
+          align-self: center !important;
+          box-sizing: border-box !important;
+        }
       }
     `}</style>
 
@@ -5370,6 +5393,7 @@ return (
     setSelectedSemester(semester);
     setSearchTerm('');
    }}
+   className="semester-folder-card"
    style={semesterFolderCardStyle}
  >
    <div style={semesterFolderTopStyle}>
@@ -5382,7 +5406,7 @@ return (
    </div>
 </div>
 
-<div style={semesterFolderTitleStyle}>
+<div className="semester-folder-title" style={semesterFolderTitleStyle}>
  {semester}
 </div>
 
@@ -7001,11 +7025,15 @@ const semesterFolderIconStyle = {
 
 const semesterFolderTitleStyle = {
   width: '100%',
+  maxWidth: '100%',
   fontSize: '21px',
   fontWeight: '900',
   color: '#1A1B1F',
-  marginBottom: '5px',
-  textAlign: 'center'
+  margin: '0 auto 5px',
+  padding: 0,
+  textAlign: 'center',
+  alignSelf: 'center',
+  boxSizing: 'border-box'
 };
 
 const semesterFolderSubtitleStyle = {

@@ -1835,9 +1835,12 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           .planner-mobile .planner-calendar-grid { gap: 7px !important; }
           .planner-mobile .planner-day-cell { min-width: 0 !important; padding: 7px 5px !important; border-radius: 14px !important; }
           .planner-mobile .planner-calendar-month .planner-day-cell { height: 140px !important; min-height: 140px !important; }
-          .planner-mobile .planner-month-event { font-size: 11px !important; line-height: 1.25 !important; padding: 7px 6px !important; min-height: 34px !important; border-radius: 8px !important; overflow: visible !important; }
-          .planner-mobile .planner-month-event-time { font-size: 9px !important; white-space: normal !important; }
-          .planner-mobile .planner-date-number { width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; }
+          .planner-mobile .planner-month-event { font-size: 12px !important; line-height: 1.25 !important; padding: 7px 6px !important; min-height: 40px !important; border-radius: 8px !important; overflow: hidden !important; }
+          .planner-mobile .planner-month-event-time { font-size: 10px !important; line-height: 1.1 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+          .planner-mobile .planner-month-event-name { font-size: 11px !important; line-height: 1.15 !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important; overflow: hidden !important; }
+          .planner-mobile .planner-date-number { width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; max-width: 32px !important; max-height: 32px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; padding: 0 !important; flex: 0 0 32px !important; box-sizing: border-box !important; }
+          .planner-mobile .planner-quick-jump-date { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; max-width: 30px !important; max-height: 30px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; margin: 0 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
+          .planner-mobile .planner-cell-add-button { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; flex: 0 0 28px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; }
           .planner-entry-color { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; max-width: 44px !important; max-height: 44px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; flex: 0 0 44px !important; padding: 0 !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
         }
       `}</style>
@@ -2212,6 +2215,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     <div className="planner-cell-add-wrap" style={{ minWidth: '24px' }}>
                       {isSelected && (
                         <button
+                          className="planner-cell-add-button"
                           onClick={(event) => {
                             event.stopPropagation();
                             handleOpenModal(dateStr);
@@ -2244,9 +2248,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                       const TIMELINE_END = 23;
                       const totalHours = TIMELINE_END - TIMELINE_START;
                       const LABEL_WIDTH = isDayView ? 42 : 0;
-                      const CARD_FONT = isDayView ? '12px' : '10px';
-                      const CARD_TIME_FONT = isDayView ? '9px' : '8px';
-                      const MIN_CARD_HEIGHT = isDayView ? 28 : 22;
+                      const CARD_FONT = isDayView ? '14px' : '12px';
+                      const CARD_TIME_FONT = isDayView ? '11px' : '10px';
+                      const MIN_CARD_HEIGHT = isDayView ? 38 : 32;
 
                       const timedEvents = dayEvents
                         .filter((e) => e.start_time && e.end_time)
@@ -2559,8 +2563,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                                 color: eventTextColor
                               }}
                             >
-                              {event.start_time?.substring(0, 5)} -{' '}
-                              {event.end_time?.substring(0, 5)}
+                              {viewType === 'Month'
+                                ? event.start_time?.substring(0, 5) || 'No time'
+                                : `${event.start_time?.substring(0, 5) || ''}–${event.end_time?.substring(0, 5) || ''}`}
                             </span>
 
                             <Edit3
@@ -2574,6 +2579,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                           </div>
 
                           <div
+                            className="planner-month-event-name"
                             style={{
                               fontWeight: '900',
                               marginTop: '2px',
@@ -2729,6 +2735,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     <button
                       key={dayIndex}
                       type="button"
+                      className="planner-quick-jump-date"
                       onClick={() => {
                         setSelectedDate(dayObject);
                         setViewDate(dayObject);
@@ -4772,8 +4779,15 @@ const dayHeader = {
 };
 
 const cellAddIcon = {
-  width: '22px',
-  height: '22px',
+  width: '28px',
+  height: '28px',
+  minWidth: '28px',
+  minHeight: '28px',
+  maxWidth: '28px',
+  maxHeight: '28px',
+  flex: '0 0 28px',
+  padding: 0,
+  aspectRatio: '1 / 1',
   borderRadius: '50%',
   background: '#0B1A3F',
   color: 'white',
