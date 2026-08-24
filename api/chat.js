@@ -12,6 +12,49 @@ const GEMINI_URL = (model) =>
 const MAX_HISTORY = 12;
 const MAX_MESSAGE_CHARS = 2000;
 
+// Per-client message limits. These protect the small free-tier Gemini
+// quota from being burned by one spammy client. Tool-result round-trips
+// (part of the same user message) are not counted.
+const RATE_LIMITS = {
+  hour: { max: 12, windowMs: 60 * 60 * 1000 },
+  day: { max: 40, windowMs: 24 * 60 * 60 * 1000 },
+};
+const rateBuckets = new Map();
+
+function checkRateLimit(clientKey) {
+  const now = Date.now();
+  const bucket = rateBuckets.get(clientKey) || {};
+
+  if (!bucket.hourStart || now - bucket.hourStart >= RATE_LIMITS.hour.windowMs) {
+    bucket.hourStart = now;
+    bucket.hourCount = 0;
+  }
+  if (!bucket.dayStart || now - bucket.dayStart >= RATE_LIMITS.day.windowMs) {
+    bucket.dayStart = now;
+    bucket.dayCount = 0;
+  }
+
+  bucket.hourCount += 1;
+  bucket.dayCount += 1;
+  rateBuckets.set(clientKey, bucket);
+
+  // Occasionally drop stale buckets so the map cannot grow forever.
+  if (rateBuckets.size > 5000) {
+    for (const [key, entry] of rateBuckets) {
+      if (
+        now - (entry.hourStart || 0) >= RATE_LIMITS.hour.windowMs &&
+        now - (entry.dayStart || 0) >= RATE_LIMITS.day.windowMs
+      ) {
+        rateBuckets.delete(key);
+      }
+    }
+  }
+
+  if (bucket.hourCount > RATE_LIMITS.hour.max) return 'hour';
+  if (bucket.dayCount > RATE_LIMITS.day.max) return 'day';
+  return null;
+}
+
 // Tools the assistant can invoke. They are executed client-side by
 // ChatBotWidget against Supabase (scoped to the signed-in user via RLS),
 // and the result is sent back here so the model can confirm.
@@ -66,7 +109,7 @@ const TOOLS = [
       {
         name: 'add_deadline',
         description:
-          "Add an assignment, exam, or project deadline to the student's dashboard.",
+          "Add an assignment, exam, or project deadline. It appears on the student's dashboard and weekly planner.",
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -280,6 +323,30 @@ export default async function handler(req, res) {
 
   if (!history.length) {
     return res.status(400).json({ error: 'No message provided' });
+  }
+
+  // Tool-result follow-ups belong to the same user message, so only new
+  // messages count against the rate limit.
+  if (!body?.toolResult) {
+    const clientKey =
+      String(body?.userId || '').trim() ||
+      String(req.headers['x-forwarded-for'] || '')
+        .split(',')[0]
+        .trim() ||
+      'anonymous';
+    const limitHit = checkRateLimit(clientKey);
+
+    if (limitHit === 'hour') {
+      return res.status(429).json({
+        error:
+          'You are sending messages too quickly. Take a short break and try again.',
+      });
+    }
+    if (limitHit === 'day') {
+      return res.status(429).json({
+        error: 'You reached your daily chat limit. Please come back tomorrow.',
+      });
+    }
   }
 
   try {

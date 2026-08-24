@@ -31,40 +31,32 @@ async function buildStudentContext() {
     weekEnd.setDate(weekEnd.getDate() + 7)
     weekEnd.setHours(23, 59, 59, 999)
 
-    const [deadlinesResult, classesResult, todosResult, plannerResult] =
-      await Promise.all([
-        supabase
-          .from('deadlines')
-          .select('id, title, due_at')
-          .eq('profile_id', user.id)
-          .gte('due_at', now.toISOString())
-          .order('due_at', { ascending: true })
-          .limit(8),
-        supabase
-          .from('classes')
-          .select('title, course_name, starts_at')
-          .eq('profile_id', user.id)
-          .gte('starts_at', now.toISOString())
-          .lte('starts_at', dayEnd.toISOString())
-          .order('starts_at', { ascending: true })
-          .limit(8),
-        supabase
-          .from('todos')
-          .select('id, title, details, priority')
-          .eq('profile_id', user.id)
-          .eq('completed', false)
-          .order('created_at', { ascending: false })
-          .limit(10),
-        supabase
-          .from('planner_courses')
-          .select('id, name, date, start_time, end_time, type')
-          .eq('user_id', user.id)
-          .gte('date', toDateStr(now))
-          .lte('date', toDateStr(weekEnd))
-          .order('date', { ascending: true })
-          .order('start_time', { ascending: true })
-          .limit(30),
-      ])
+    const [classesResult, todosResult, plannerResult] = await Promise.all([
+      supabase
+        .from('classes')
+        .select('title, course_name, starts_at')
+        .eq('profile_id', user.id)
+        .gte('starts_at', now.toISOString())
+        .lte('starts_at', dayEnd.toISOString())
+        .order('starts_at', { ascending: true })
+        .limit(8),
+      supabase
+        .from('todos')
+        .select('id, title, details, priority')
+        .eq('profile_id', user.id)
+        .eq('completed', false)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('planner_courses')
+        .select('id, name, date, start_time, end_time, type')
+        .eq('user_id', user.id)
+        .gte('date', toDateStr(now))
+        .lte('date', toDateStr(weekEnd))
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true })
+        .limit(30),
+    ])
 
     return {
       now: now.toLocaleString('en-US', {
@@ -79,7 +71,6 @@ async function buildStudentContext() {
       major: profile?.major || '',
       year: profile?.year || '',
       gpa: typeof profile?.gpa === 'number' ? profile.gpa : undefined,
-      deadlines: deadlinesResult.data || [],
       todayClasses: classesResult.data || [],
       todos: todosResult.data || [],
       plannerEntries: plannerResult.data || [],
@@ -194,13 +185,32 @@ const ACTION_EXECUTORS = {
       return actionFailure(`Invalid due date: ${args.due_at}`)
     }
 
-    const { error } = await supabase.from('deadlines').insert({
-      profile_id: userId,
-      title,
-      tag: String(args.tag || 'Deadline'),
-      tag_style: 'secondary',
-      percent_complete: 0,
-      due_at: due.toISOString(),
+    // Deadlines surface on the dashboard through planner entries
+    // ("Coming Up"), so store them where the app actually looks.
+    const tag = String(args.tag || '').toLowerCase()
+    const entryType = tag.includes('exam')
+      ? 'Exam'
+      : ['event', 'activity'].some((word) => tag.includes(word))
+        ? 'Event'
+        : 'Task'
+
+    const hhmm = `${String(due.getHours()).padStart(2, '0')}:${String(
+      due.getMinutes()
+    ).padStart(2, '0')}`
+
+    const { error } = await supabase.from('planner_courses').insert({
+      user_id: userId,
+      name: title,
+      description: '',
+      type: entryType,
+      date: toDateStr(due),
+      start_time: hhmm,
+      end_time: hhmm,
+      color: '#E1F2FF',
+      reminder: false,
+      reminder_date: null,
+      reminder_time: null,
+      group_id: null,
     })
 
     return error
@@ -433,6 +443,8 @@ export default function ChatBotWidget() {
         content: m.text,
       }))
 
+    const userId = await getCurrentUserId()
+
     const callAssistant = async (toolResult) => {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -440,6 +452,7 @@ export default function ChatBotWidget() {
         body: JSON.stringify({
           messages: history,
           context: contextRef.current.data,
+          userId,
           ...(toolResult ? { toolResult } : {}),
         }),
       })
