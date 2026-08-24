@@ -1843,11 +1843,11 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           }
           .planner-mobile .planner-calendar-month,
           .planner-mobile .planner-calendar-week {
-            min-width: 760px !important;
-            grid-template-columns: repeat(7, minmax(92px, 1fr)) !important;
+            min-width: 860px !important;
+            grid-template-columns: repeat(7, minmax(108px, 1fr)) !important;
           }
           .planner-mobile .planner-day-cell {
-            min-width: 92px !important;
+            min-width: 108px !important;
             padding: 9px 8px !important;
             border-radius: 14px !important;
           }
@@ -1859,20 +1859,6 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
           .planner-mobile .planner-month-event-time { font-size: 10px !important; line-height: 1.1 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
           .planner-mobile .planner-month-event-name { font-size: 11px !important; line-height: 1.15 !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important; overflow: hidden !important; }
           .planner-mobile .planner-date-number { width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; max-width: 32px !important; max-height: 32px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; padding: 0 !important; flex: 0 0 32px !important; box-sizing: border-box !important; }
-          .planner-mobile .planner-quick-jump-date { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; max-width: 30px !important; max-height: 30px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; margin: 0 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
-          .planner-mobile .planner-cell-add-button { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; padding: 0 !important; flex: 0 0 28px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; }
-          .planner-entry-color { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; max-width: 44px !important; max-height: 44px !important; aspect-ratio: 1 / 1 !important; border-radius: 50% !important; flex: 0 0 44px !important; padding: 0 !important; box-sizing: border-box !important; -webkit-appearance: none !important; appearance: none !important; }
-          .planner-mobile .planner-month-event {
-            width: 100% !important;
-            min-width: 0 !important;
-            max-width: 100% !important;
-            min-height: 0 !important;
-            height: auto !important;
-            padding: 4px 3px !important;
-            border-radius: 6px !important;
-            box-sizing: border-box !important;
-            overflow: hidden !important;
-          }
           .planner-mobile .planner-month-event-header {
             display: block !important;
             min-width: 0 !important;
@@ -2241,7 +2227,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
               gap: '10px',
               alignItems: 'start',
               minWidth:
-                viewType === 'Day' ? '100%' : '760px'
+                viewType === 'Day' ? '100%' : '860px'
             }}
           >
             {viewType !== 'Day' &&
@@ -2815,7 +2801,6 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
                     <button
                       key={dayIndex}
                       type="button"
-                      className="planner-quick-jump-date"
                       onClick={() => {
                         setSelectedDate(dayObject);
                         setViewDate(dayObject);

@@ -4936,7 +4936,7 @@ return (
         .courses-mobile .courses-main-header-wrap h2,
         .courses-mobile .courses-main-header-wrap h3 {
           display: block !important;
-          width: 100% !important;
+          width: calc(100% - 44px) !important;
           margin: 0 !important;
           font-size: 34px !important;
           line-height: 1.08 !important;
@@ -4961,6 +4961,18 @@ return (
           margin: 0 !important;
         }
 
+        .courses-mobile .semester-folder-item {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: stretch !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+        }
+
         .courses-mobile .semester-folder-grid {
           display: grid !important;
           grid-template-columns: minmax(0, 1fr) !important;
@@ -4973,9 +4985,12 @@ return (
         }
 
         .courses-mobile .semester-folder-card {
+          display: flex !important;
           width: 100% !important;
           min-width: 0 !important;
           max-width: 100% !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
           text-align: center !important;
           align-items: center !important;
           justify-content: flex-start !important;
@@ -4986,8 +5001,9 @@ return (
 
         .courses-mobile .semester-heading-block {
           position: absolute !important;
-          left: 0 !important;
-          right: 0 !important;
+          left: 50% !important;
+          right: auto !important;
+          transform: translateX(-50%) !important;
           top: 118px !important;
           width: 100% !important;
           margin: 0 !important;
@@ -5415,8 +5431,12 @@ const resourceCount = allResources.filter(
 const creditCount = getSemesterCredits(semester);
 
 return (
- <button
+ <div
    key={semester}
+   className="semester-folder-item"
+   style={{ width: '100%', display: 'flex', justifyContent: 'center', minWidth: 0 }}
+ >
+ <button
    type="button"
    onClick={() => {
     setSelectedSemester(semester);
@@ -5475,6 +5495,7 @@ return (
          />
         </div>
        </button>
+ </div>
      );
    })}
  </div>
