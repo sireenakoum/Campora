@@ -3226,6 +3226,18 @@ if (data) {
          }
        );
 
+    // Tell the central Messages page that this exact Study Group changed.
+    // Supabase realtime still covers other devices; this makes same-browser
+    // navigation sync immediately and reliably.
+    window.dispatchEvent(
+      new CustomEvent('campora-study-group-message-sync', {
+        detail: {
+          groupId: selectedGroup.id,
+          messageId: data.id
+        }
+      })
+    );
+
     await notifyStudyGroupMembersAboutMessage({
       group: selectedGroup,
       senderId: currentUser.id,
@@ -3310,6 +3322,38 @@ setSelectedMember(null);
   );
 };
 
+
+const parseLegacyStudyGroupReply = (rawValue) => {
+ const raw = String(rawValue || '');
+ const match = raw.match(/\[\[CAMPORA_REPLY:([^\]]+)\]\]/);
+
+ if (!match) {
+  return {
+   text: raw,
+   reply: null
+  };
+ }
+
+ try {
+  return {
+   text: raw.replace(
+    /\[\[CAMPORA_REPLY:[^\]]+\]\]/,
+    ''
+   ),
+   reply: JSON.parse(
+    decodeURIComponent(match[1])
+   )
+  };
+ } catch {
+  return {
+   text: raw.replace(
+    /\[\[CAMPORA_REPLY:[^\]]+\]\]/,
+    ''
+   ),
+   reply: null
+  };
+ }
+};
 
 const createStudyDmMarker = (reply = null) => {
  if (!reply) return '';
@@ -4802,7 +4846,7 @@ justifyContent:
    'center',
 
 zIndex:
- 1000,
+ 2147483646,
 
   padding:
    '20px'
@@ -9524,6 +9568,15 @@ style={{
 
   .study-message-row.mine .study-message-content {
     align-items: flex-end;
+    order: 2;
+  }
+
+  .study-message-row:not(.mine) .study-message-content {
+    order: 2;
+  }
+
+  .study-message-row:not(.mine) .study-message-avatar {
+    order: 1;
   }
 
   .study-message-row > .study-message-content {
@@ -9643,6 +9696,26 @@ style={{
     }
   }
 
+
+
+  .study-message-more-button {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .study-message-row,
+  .study-message-content {
+    overflow: visible !important;
+  }
+
+  @media (max-width: 700px) {
+    .study-message-more-button {
+      width: 30px !important;
+      height: 30px !important;
+      flex-basis: 30px !important;
+    }
+  }
 
   /* =========================================================
      FINAL PHONE STUDY-GROUP CHAT — MATCH MESSAGES
@@ -10244,12 +10317,10 @@ background:
 {/* MEMBERS */}
 
 <button
-onClick={() =>
-
- setShowMembersDrawer(
-   true
- )
-}
+onClick={() => {
+  setShowMembersDrawer((previous) => !previous);
+  setShowSharedMedia(false);
+}}
 style={{
   ...iconBtnStyle,
 
@@ -10275,11 +10346,10 @@ color="#1A1B1F"
 <button
 type="button"
 title="Shared media & files"
-onClick={() =>
-  setShowSharedMedia(
-    (previous) => !previous
-  )
-}
+onClick={() => {
+  setShowSharedMedia((previous) => !previous);
+  setShowMembersDrawer(false);
+}}
 style={{
   ...iconBtnStyle,
   background: showSharedMedia
@@ -10517,6 +10587,157 @@ onClick={() =>
 </div>
 
 </div>
+
+{showMembersDrawer && (
+<div
+  className="study-group-shared-panel"
+  style={{
+    background: '#FFFFFF',
+    borderBottom: '1px solid #E5EAF2',
+    maxHeight: '330px',
+    overflow: 'hidden',
+    flexShrink: 0
+  }}
+>
+  <div className="study-group-shared-head">
+    <div>
+      <strong>Members</strong>
+      <span>
+        {`${groupMembers.length} member${groupMembers.length === 1 ? '' : 's'}`}
+      </span>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => setShowMembersDrawer(false)}
+      aria-label="Close members"
+    >
+      <X size={17} />
+    </button>
+  </div>
+
+  {groupMembers.length ? (
+    <div
+      className="study-group-shared-files"
+      style={{
+        maxHeight: '255px',
+        overflowY: 'auto'
+      }}
+    >
+      {groupMembers.map((member) => {
+        const memberName =
+          member.profiles?.name ||
+          member.profiles?.full_name ||
+          member.profiles?.email?.split('@')[0] ||
+          'Student';
+
+        const subtitle =
+          [
+            member.profiles?.major,
+            member.profiles?.academic_year
+          ]
+            .filter(
+              (value) =>
+                value &&
+                value !== 'Not specified'
+            )
+            .join(' · ') ||
+          member.profiles?.email ||
+          'Campora member';
+
+        const avatarUrl =
+          member.profiles?.avatar_url ||
+          member.profiles?.avatar ||
+          (
+            member.user_id === currentUser?.id
+              ? currentProfileAvatarUrl ||
+                currentUser?.user_metadata?.avatar_url ||
+                currentUser?.user_metadata?.avatarUrl ||
+                ''
+              : ''
+          );
+
+        return (
+          <button
+            key={member.user_id}
+            type="button"
+            className="study-group-shared-file"
+            onClick={() => {
+              openMemberProfile(member);
+              setShowMembersDrawer(false);
+            }}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              cursor: 'pointer',
+              border: 'none'
+            }}
+          >
+            <span
+              className="study-group-shared-file-icon"
+              style={{
+                width: '38px',
+                height: '38px',
+                minWidth: '38px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                background: '#E8EEF7'
+              }}
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={memberName}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block'
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#0B1A3F',
+                    fontSize: '11px',
+                    fontWeight: '900'
+                  }}
+                >
+                  {memberName
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part[0])
+                    .join('')
+                    .toUpperCase() || 'S'}
+                </span>
+              )}
+            </span>
+
+            <span className="study-group-shared-file-copy">
+              <strong>
+                {memberName}
+                {member.user_id === currentUser?.id ? ' · You' : ''}
+              </strong>
+              <small>{subtitle}</small>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  ) : (
+    <div className="study-group-shared-empty">
+      <Users size={24} />
+      <strong>No members found</strong>
+    </div>
+  )}
+</div>
+)}
 
 {showSharedMedia && (
 <div className="study-group-shared-panel">
@@ -11322,57 +11543,48 @@ isMe
 
 {/* REPLIED MESSAGE */}
 
-{message.reply_to_id && (
-
-<div
-style={{
- fontSize:
-  '11px',
-
-fontWeight:
- '700',
-
-color:
- isMe
-   ? getMutedContrastColor(selectedGroup?.color || '#002D62')
-   : '#717786',
-
-background:
-isMe
-  ? getSoftContrastColor(selectedGroup?.color || '#002D62')
-  : '#FFFFFF',
-
-borderLeft:
-  `3px solid ${
-   isMe
-     ? getContrastColor(selectedGroup?.color || '#002D62')
-     : (selectedGroup?.color || '#002D62')
-  }`,
-
-       padding:
-       '6px 10px',
-      borderRadius:
-      '8px',
-
-   marginBottom:
-     '8px'
-  }}
+{(message.reply_to_id || parseLegacyStudyGroupReply(message.content).reply) && (
+  <div
+    style={{
+      marginBottom: '7px',
+      padding: '7px 9px',
+      borderRadius: '9px',
+      borderLeft: isMe
+        ? '3px solid rgba(255,255,255,.7)'
+        : '3px solid #7C9EDB',
+      background: isMe
+        ? 'rgba(255,255,255,.12)'
+        : '#F3F6FB',
+      fontSize: '9px',
+      lineHeight: 1.35,
+      overflow: 'hidden'
+    }}
   >
+    <div
+      style={{
+        fontWeight: 900,
+        marginBottom: '2px'
+      }}
+    >
+      {message.reply_to_sender ||
+       parseLegacyStudyGroupReply(message.content).reply?.sender ||
+       'Message'}
+    </div>
 
-  <strong>
-   {
-       message.reply_to_sender
-    }
-  </strong>
-  :{' '}
-
-  {
-       message.reply_to_content
-
-  }
-
+    <div
+      style={{
+        opacity: 0.78,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      }}
+    >
+      {message.reply_to_content ||
+       parseLegacyStudyGroupReply(message.content).reply?.text ||
+       ''}
+    </div>
   </div>
- )}
+)}
 
 
 
@@ -11381,11 +11593,15 @@ borderLeft:
    const parsed = parseStudyGroupAttachment(
      message.content
    );
+   const legacyReply = parseLegacyStudyGroupReply(
+     parsed.text
+   );
+   const visibleText = legacyReply.text;
 
    return (
      <>
-       {parsed.text && (
-         <span>{parsed.text}</span>
+       {visibleText && (
+         <span>{visibleText}</span>
        )}
 
        {parsed.attachment?.url && (
@@ -11396,7 +11612,7 @@ borderLeft:
              rel="noreferrer"
              style={{
                display: 'block',
-               marginTop: parsed.text ? '10px' : 0,
+               marginTop: visibleText ? '10px' : 0,
                textDecoration: 'none'
              }}
            >
@@ -11421,7 +11637,7 @@ borderLeft:
                display: 'flex',
                alignItems: 'center',
                gap: '9px',
-               marginTop: parsed.text ? '10px' : 0,
+               marginTop: visibleText ? '10px' : 0,
                padding: '9px 10px',
                borderRadius: '10px',
                textDecoration: 'none',
@@ -11594,311 +11810,188 @@ flexWrap:
 
   {/*
 =================================================
-    MESSAGE MENU BUTTON
+    MESSAGE MENU BUTTON — MATCHES MESSAGES CHAT
   =================================================
 */}
 
     {!isTemp && (
 <button
+type="button"
+className={`study-message-more-button ${isMe ? 'mine' : ''}`}
 onClick={() =>
  setActiveMessageMenu(
-  activeMessageMenu ===
-   message.id
+  activeMessageMenu === message.id
    ? null
-    : message.id
+   : message.id
  )
 }
 style={{
-  position:
-   'absolute',
-
-top:
- 0,
-right:
-  isMe
-    ? '100%'
-    : 'auto',
-
-left:
-  isMe
-
-  ? 'auto'
-  : '100%',
-
-background:
-'none',
-
-border:
-'none',
-
-cursor:
- 'pointer',
-
- padding:
-   '4px'
+  position: 'relative',
+  zIndex: 60,
+  order: isMe ? 1 : 3,
+  alignSelf: 'center',
+  width: '26px',
+  height: '26px',
+  flex: '0 0 26px',
+  margin: isMe ? '0 4px 18px 0' : '0 0 18px 4px',
+  border: 'none',
+  borderRadius: '8px',
+  background: '#FFFFFF',
+  color: '#98A2B3',
+  cursor: 'pointer',
+  padding: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0
 }}
+aria-label="Message actions"
 >
-
-<MoreVertical
- size={14}
- color="#717786"
-/>
-
+<MoreVertical size={15} />
 </button>
-  )}
-
-
+    )}
 
 
   {/*
 =================================================
-    MESSAGE ACTION MENU
+    MESSAGE ACTION MENU — MATCHES MESSAGES CHAT
   =================================================
 */}
 
-  {activeMessageMenu ===
-   message.id && (
-
+  {activeMessageMenu === message.id && (
   <div
   style={{
-   position:
-   'absolute',
+    position: 'absolute',
+    // Keep the action card below the three-dot button so the button stays
+    // visible/clickable instead of being covered by the reaction box.
+    top: 'calc(50% + 20px)',
+    right: isMe ? '4px' : 'auto',
+    left: isMe ? 'auto' : '4px',
+    zIndex: 1000,
+    width: '260px',
+    maxWidth: 'calc(100vw - 48px)',
+    boxSizing: 'border-box',
+    padding: '12px',
+    borderRadius: '14px',
+    border: '1px solid #E3E8EF',
+    background: '#FFFFFF',
+    boxShadow: '0 10px 28px rgba(11,26,63,0.12)'
+  }}
+  >
 
-    top:
-     '24px',
-
-    [isMe
-      ? 'right'
-
-    : 'left']:
-    '100%',
-
-   background:
-   'white',
-
-   borderRadius:
-   '12px',
-
-   padding:
-   '8px',
-
-   border:
-   '1px solid #E3E2E7',
-
-   boxShadow:
-   '0 10px 20px rgba(0,0,0,0.1)',
-
-   zIndex:
-    10,
-
-   display:
-   'flex',
-
-   gap:
- '6px',
-
- alignItems:
-   'center'
-}}
->
-{/* EMOJIS */}
-
-{EMOJI_REACTIONS.map(
- (emoji) => (
-
- <button
- key={
-   emoji
- }
-   onClick={() =>
-     handleReactToMessage(
-       message.id,
-       emoji
-     )
-   }
-   style={{
-
-      border:
-       'none',
-
-     background:
-     'none',
-
-     cursor:
-      'pointer',
-
-      fontSize:
-        '16px'
-     }}
-     >
-     {emoji}
-     </button>
- )
-)}
-
-
-
-
-{/* REPLY */}
-
-<button
-type="button"
-onClick={() => {
-setReplyingTo(
-  message
-);
-
-setActiveMessageMenu(
-   null
- );
-}}
-style={{
- border:
-   'none',
-
-background:
-'#EEF2FF',
-padding:
-'4px 8px',
-
-borderRadius:
-'6px',
-
-cursor:
-
-'pointer',
-
-display:
-'flex',
-
-alignItems:
- 'center',
-
-gap:
-'4px',
-
-fontSize:
- '12px',
-
-fontWeight:
- '800',
-
- color:
-   '#1A1B1F'
-}}
->
-
-<Reply
- size={12}
-/>
-
-Reply
-
-</button>
-{/* PIN MESSAGE */}
-
-<button
-type="button"
-onClick={() =>
-  togglePinGroupMessage(
-    message.id
-  )
-}
-style={{
- border:
-  `1px solid ${PIN_COLORS.border}`,
-
-background:
-PIN_COLORS.bg,
-
-padding:
-'4px 8px',
-
-borderRadius:
-'6px',
-
-cursor:
- 'pointer',
-
-display:
-'flex',
-
-alignItems:
- 'center',
-
-gap:
-'4px',
-
-fontSize:
- '12px',
-
- fontWeight:
-  '800',
- color:
-   PIN_COLORS.icon
-}}
->
-
-<Pin
- size={12}
- fill={
-   PIN_COLORS.icon
- }
- color={
-   PIN_COLORS.icon
- }
-/>
-{(
-  pinnedGroupMessages[
-    selectedGroup.id
-  ] ||
-  []
-).includes(
-  message.id
-)
-  ? 'Unpin'
-  : 'Pin'}
-
-</button>
-
-{/* DELETE MESSAGE */}
-
-{(isMe ||
- selectedGroup.creator_id ===
-  currentUser?.id) && (
-
-<button
-onClick={() =>
-  handleDeleteMessage(
-    message.id
-  )
-}
-style={{
-  border:
-    'none',
-      background:
-      '#FEE2E2',
-
-    padding:
-    '4px 8px',
-      borderRadius:
-      '6px',
-
-     cursor:
-       'pointer'
+    <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+      gap: '6px',
+      marginBottom: '10px'
     }}
     >
+      {EMOJI_REACTIONS.map((emoji) => (
+        <button
+        key={emoji}
+        type="button"
+        onClick={() => handleReactToMessage(message.id, emoji)}
+        style={{
+          minWidth: '34px',
+          minHeight: '34px',
+          border: 'none',
+          background: '#FFFFFF',
+          borderRadius: '8px',
+          padding: '6px',
+          fontSize: '17px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
 
-        <Trash2
-        size={12}
-            color="#B91C1C"
-           />
+    <button
+    type="button"
+    onClick={() => {
+      setReplyingTo(message);
+      setActiveMessageMenu(null);
+    }}
+    style={{
+      width: '100%',
+      border: 'none',
+      background: '#FFFFFF',
+      color: '#0B1A3F',
+      borderRadius: '8px',
+      padding: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '7px',
+      fontSize: '10px',
+      fontWeight: '800',
+      cursor: 'pointer'
+    }}
+    >
+      <Reply size={13} />
+      Reply
+    </button>
 
-          </button>
-         )}
+    <button
+    type="button"
+    onClick={() => togglePinGroupMessage(message.id)}
+    style={{
+      width: '100%',
+      border: 'none',
+      background: '#FFFFFF',
+      color: '#0B1A3F',
+      borderRadius: '8px',
+      padding: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '7px',
+      fontSize: '10px',
+      fontWeight: '800',
+      cursor: 'pointer'
+    }}
+    >
+      <Pin
+        size={13}
+        fill={(pinnedGroupMessages[selectedGroup.id] || []).includes(message.id) ? '#0B1A3F' : 'none'}
+      />
+      {(pinnedGroupMessages[selectedGroup.id] || []).includes(message.id)
+        ? 'Unpin message'
+        : 'Pin message'}
+    </button>
 
-          </div>
-         )}
+    {(isMe || selectedGroup.creator_id === currentUser?.id) && (
+      <button
+      type="button"
+      onClick={() => {
+        handleDeleteMessage(message.id);
+        setActiveMessageMenu(null);
+      }}
+      style={{
+        width: '100%',
+        border: 'none',
+        background: '#FFFFFF',
+        color: '#B42318',
+        borderRadius: '8px',
+        padding: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '7px',
+        fontSize: '10px',
+        fontWeight: '800',
+        cursor: 'pointer'
+      }}
+      >
+        <Trash2 size={13} />
+        Delete message
+      </button>
+    )}
+
+  </div>
+  )}
 
            </div>
          );
@@ -12953,6 +13046,7 @@ className="btn btn-primary"
 
 {showPollModal && (
 
+<ShellPortal active={view === 'chat'}>
 <div
 style={
   overlay
@@ -13226,6 +13320,7 @@ Post Poll to Chat
 </div>
 
  </div>
+</ShellPortal>
 )}
 
 
@@ -13235,10 +13330,11 @@ Post Poll to Chat
   MEMBERS MODAL
 ================================================= */}
 
-{showMembersDrawer && selectedGroup &&
+{false && showMembersDrawer && selectedGroup &&
  (joinedGroupIds.includes(selectedGroup.id) ||
   selectedGroup.creator_id === currentUser?.id) && (
 
+<ShellPortal active={view === 'chat'}>
 <div
 
 style={
@@ -13664,6 +13760,7 @@ onClick={(event) => {
 </div>
 
  </div>
+</ShellPortal>
 )}
 {/* =================================================
    MEMBER PROFILE MODAL

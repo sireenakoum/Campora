@@ -1,5 +1,6 @@
 import './CamporaMobileCompat.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Inbox,
   Send,
@@ -122,6 +123,7 @@ function cleanMessageText(raw) {
     .replace(/^\[\[CAMPORA_ATTACHMENT:[^\]]*\]\]/, '')
     .replace(/^\[\[CAMPORA_SOURCE:[^\]]*\]\]/, '')
     .replace(/^\[\[CAMPORA_DM:[^\]]*\]\]/, '')
+    .replace(/^\[\[CAMPORA_REPLY:[^\]]*\]\]/, '')
     .trim();
 }
 
@@ -172,6 +174,27 @@ function parseDirectMessage(rawValue) {
     source: null,
     reply: null,
   };
+}
+
+function parseMessageReply(rawValue) {
+  const value = String(rawValue || '');
+  const match = value.match(/^\[\[CAMPORA_REPLY:([^\]]+)\]\]/);
+
+  if (!match) {
+    return { reply: null, text: value };
+  }
+
+  try {
+    return {
+      reply: JSON.parse(decodeURIComponent(match[1])),
+      text: value.replace(/^\[\[CAMPORA_REPLY:[^\]]+\]\]/, '')
+    };
+  } catch {
+    return {
+      reply: null,
+      text: value.replace(/^\[\[CAMPORA_REPLY:[^\]]+\]\]/, '')
+    };
+  }
 }
 
 function parseMessageAttachment(rawValue) {
@@ -464,6 +487,7 @@ export default function Messages() {
 
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+  const replyingToRef = useRef(null);
   const [profilePreview, setProfilePreview] = useState(null);
   const [chatActionsOpen, setChatActionsOpen] = useState(false);
   const [showSharedMedia, setShowSharedMedia] = useState(false);
@@ -556,6 +580,54 @@ export default function Messages() {
     setActiveMessageMenu(null);
   };
 
+  const toggleStudyGroupMessageReaction = async (message, emoji) => {
+    if (
+      !message?.id ||
+      !currentUser?.id ||
+      selected?.type !== 'group' ||
+      !selected?.groupId
+    ) return;
+
+    const currentReactions =
+      message.reactions && typeof message.reactions === 'object'
+        ? message.reactions
+        : {};
+
+    const currentUsers = Array.isArray(currentReactions[emoji])
+      ? currentReactions[emoji]
+      : [];
+
+    const nextUsers = currentUsers.includes(currentUser.id)
+      ? currentUsers.filter((id) => id !== currentUser.id)
+      : [...currentUsers, currentUser.id];
+
+    const nextReactions = {
+      ...currentReactions,
+      [emoji]: nextUsers
+    };
+
+    setGroupMessages((previous) => ({
+      ...previous,
+      [selected.groupId]: (previous[selected.groupId] || []).map((item) =>
+        item.id === message.id
+          ? { ...item, reactions: nextReactions }
+          : item
+      )
+    }));
+
+    setActiveMessageMenu(null);
+
+    const { error } = await supabase
+      .from('group_messages')
+      .update({ reactions: nextReactions })
+      .eq('id', message.id);
+
+    if (error) {
+      console.error('Could not save Study Group reaction:', error);
+      void refreshOneStudyGroup(selected.groupId);
+    }
+  };
+
   const togglePinnedMessage = (conversationKey, messageId) => {
     if (!conversationKey || !messageId) return;
 
@@ -582,7 +654,10 @@ export default function Messages() {
 
 
 
-  const [composer, setComposer] = useState('');
+  const composerRef = useRef(null);
+  const composerValueRef = useRef('');
+  const draftSaveTimerRef = useRef(null);
+  const [composerHasContent, setComposerHasContent] = useState(false);
   const [drafts, setDrafts] = useState({});
 
   const [peopleSearch, setPeopleSearch] = useState('');
@@ -652,13 +727,16 @@ export default function Messages() {
   }, [currentUser?.id]);
 
   useEffect(() => {
-    if (!currentUser?.id || !selected) {
-      setComposer('');
-      return;
-    }
+    const value = currentUser?.id && selected
+      ? (drafts[selectedDraftKey(selected)] || '')
+      : '';
 
-    const key = selectedDraftKey(selected);
-    setComposer(key ? drafts[key] || '' : '');
+    composerValueRef.current = value;
+    setComposerHasContent(Boolean(value.trim()));
+
+    if (composerRef.current) {
+      composerRef.current.value = value;
+    }
   }, [
     selected?.type,
     selected?.partnerId,
@@ -667,24 +745,46 @@ export default function Messages() {
   ]);
 
   useEffect(() => {
+    return () => {
+      if (draftSaveTimerRef.current) {
+        clearTimeout(draftSaveTimerRef.current);
+      }
+    };
+  }, []);
+
+  function handleComposerChange(event) {
+    const value = event.target.value;
+    composerValueRef.current = value;
+
+    const hasContent = Boolean(value.trim());
+    setComposerHasContent((current) =>
+      current === hasContent ? current : hasContent
+    );
+
     if (!currentUser?.id || !selected) return;
 
     const key = selectedDraftKey(selected);
     if (!key) return;
 
-    setDrafts((current) => {
-      const next = { ...current };
+    if (draftSaveTimerRef.current) {
+      clearTimeout(draftSaveTimerRef.current);
+    }
 
-      if (composer.trim()) {
-        next[key] = composer;
-      } else {
-        delete next[key];
-      }
+    draftSaveTimerRef.current = setTimeout(() => {
+      setDrafts((current) => {
+        const next = { ...current };
 
-      writeDrafts(currentUser.id, next);
-      return next;
-    });
-  }, [composer, currentUser?.id, selected?.type, selected?.partnerId, selected?.groupId]);
+        if (value.trim()) {
+          next[key] = value;
+        } else {
+          delete next[key];
+        }
+
+        writeDrafts(currentUser.id, next);
+        return next;
+      });
+    }, 500);
+  }
 
   useEffect(() => {
     if (
@@ -855,10 +955,53 @@ export default function Messages() {
           schema: 'public',
           table: 'group_messages',
         },
-        () => {
-          loadGroupsAndMessages(
-            currentUser.id
-          );
+        (payload) => {
+          const incoming = payload?.new;
+          const previousRow = payload?.old;
+          const groupId = incoming?.group_id || previousRow?.group_id;
+
+          // Keep the open/inbox Study Group chat in sync immediately instead
+          // of waiting for a complete reload to finish.
+          if (groupId) {
+            setGroupMessages((current) => {
+              const existing = current[groupId] || [];
+
+              if (payload.eventType === 'DELETE') {
+                return {
+                  ...current,
+                  [groupId]: existing.filter(
+                    (message) => message.id !== previousRow?.id
+                  ),
+                };
+              }
+
+              if (!incoming?.id) return current;
+
+              const alreadyExists = existing.some(
+                (message) => message.id === incoming.id
+              );
+
+              const nextMessages = alreadyExists
+                ? existing.map((message) =>
+                    message.id === incoming.id ? { ...message, ...incoming } : message
+                  )
+                : [...existing, incoming];
+
+              nextMessages.sort(
+                (a, b) =>
+                  new Date(a.created_at || 0).getTime() -
+                  new Date(b.created_at || 0).getTime()
+              );
+
+              return {
+                ...current,
+                [groupId]: nextMessages,
+              };
+            });
+          }
+
+          // Do not immediately do a second full fetch here.
+          // It can overwrite the fresh realtime message with an older snapshot.
         }
       )
       .on(
@@ -906,6 +1049,94 @@ export default function Messages() {
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(studyGroupChannel);
       supabase.removeChannel(customGroupMessageChannel);
+    };
+  }, [currentUser?.id]);
+
+  // Instant StudyGroups -> Messages sync in the same browser.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const handleStudyGroupSync = (event) => {
+      const groupId = event?.detail?.groupId;
+      if (!groupId) return;
+      void refreshOneStudyGroup(groupId);
+    };
+
+    window.addEventListener(
+      'campora-study-group-message-sync',
+      handleStudyGroupSync
+    );
+
+    return () => {
+      window.removeEventListener(
+        'campora-study-group-message-sync',
+        handleStudyGroupSync
+      );
+    };
+  }, [currentUser?.id]);
+
+  // Keep the currently open Study Group synchronized even if a realtime
+  // event is missed. Only this one group is queried, so it stays lightweight.
+  useEffect(() => {
+    if (
+      selected?.type !== 'group' ||
+      !selected?.groupId ||
+      !currentUser?.id
+    ) return;
+
+    let stopped = false;
+
+    const refreshOpenStudyGroup = async () => {
+      const { data, error } = await supabase
+        .from('group_messages')
+        .select('*')
+        .eq('group_id', selected.groupId)
+        .order('created_at', { ascending: true });
+
+      if (!stopped && !error) {
+        setGroupMessages((previous) => ({
+          ...previous,
+          [selected.groupId]: data || []
+        }));
+      }
+    };
+
+    void refreshOpenStudyGroup();
+
+    const intervalId = window.setInterval(
+      refreshOpenStudyGroup,
+      1500
+    );
+
+    return () => {
+      stopped = true;
+      window.clearInterval(intervalId);
+    };
+  }, [selected?.type, selected?.groupId, currentUser?.id]);
+
+  // A Study Group message may be sent while this page is not mounted/active.
+  // Refresh as soon as the user comes back to Messages so both screens stay aligned.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const refreshStudyGroups = () => {
+      if (
+        document.visibilityState === 'visible'
+      ) {
+        void loadGroupsAndMessages(currentUser.id);
+      }
+    };
+
+    const handleFocus = () => {
+      void loadGroupsAndMessages(currentUser.id);
+    };
+
+    document.addEventListener('visibilitychange', refreshStudyGroups);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', refreshStudyGroups);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [currentUser?.id]);
 
@@ -985,7 +1216,8 @@ export default function Messages() {
         (payload) => {
           const incoming = payload.new;
           if (!incoming?.sender_id || !isMessageNotificationOn(incoming.sender_id)) return;
-          loadDirectMessages(currentUser.id);
+          // The main direct_messages realtime channel already refreshes the inbox.
+          // Avoid a second full reload for the same incoming message.
         }
       )
       .subscribe();
@@ -2203,9 +2435,7 @@ export default function Messages() {
       setSelected(null);
 
       if (isStudyGroup) {
-        await loadGroupsAndMessages(currentUser.id);
       } else {
-        await loadCustomGroupsAndMessages(currentUser.id);
       }
     } catch (error) {
       console.error('Leave group error:', error);
@@ -2440,6 +2670,30 @@ export default function Messages() {
     await loadDirectMessages(currentUser.id);
   }
 
+  async function refreshOneStudyGroup(groupId) {
+    if (!groupId) return;
+
+    const { data, error } = await supabase
+      .from('group_messages')
+      .select('*')
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Could not refresh Study Group messages:', error);
+      return;
+    }
+
+    setGroupMessages((current) => ({
+      ...current,
+      [groupId]: data || [],
+    }));
+
+    if (currentUser?.id) {
+      await syncGroupReadReceipts(data || [], currentUser.id);
+    }
+  }
+
   function openStudyGroup(group) {
     setSelected({
       type: 'group',
@@ -2447,6 +2701,8 @@ export default function Messages() {
       name: group.name || group.title || 'Study Group',
       group,
     });
+
+    void refreshOneStudyGroup(group.id);
   }
 
   function openCustomGroup(group) {
@@ -2599,7 +2855,7 @@ export default function Messages() {
   }
 
   async function sendCurrentMessage() {
-    const rawText = composer.trim();
+    const rawText = composerValueRef.current.trim();
 
     if (
       (!rawText && !pendingAttachment) ||
@@ -2623,9 +2879,16 @@ export default function Messages() {
       }
     }
 
-    const replyText = replyingTo
-      ? `↪ ${replyingTo.sender}: ${replyingTo.text}\n${rawText}`
-      : rawText;
+    const activeReply = replyingToRef.current;
+    const replyMarker = activeReply
+      ? `[[CAMPORA_REPLY:${encodeURIComponent(
+          JSON.stringify({
+            id: activeReply.id,
+            sender: activeReply.sender,
+            text: activeReply.text
+          })
+        )}]]`
+      : '';
 
     const attachmentMarker = attachmentPayload
       ? `[[CAMPORA_ATTACHMENT:${encodeURIComponent(
@@ -2633,7 +2896,10 @@ export default function Messages() {
         )}]]`
       : '';
 
-    const messageBody = `${attachmentMarker}${replyText}`;
+    const messageBody =
+      selected?.type === 'group'
+        ? `${attachmentMarker}${rawText}`
+        : `${attachmentMarker}${replyMarker}${rawText}`;
 
     const activeDmSource =
       selected?.type === 'dm'
@@ -2656,11 +2922,84 @@ export default function Messages() {
           )}]]${messageBody}`
         : messageBody;
 
+    // Show the outgoing message immediately instead of waiting for Supabase/realtime.
+    const optimisticId = `local-${currentUser.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const optimisticCreatedAt = new Date().toISOString();
+
+    if (selected.type === 'dm') {
+      setDirectMessages((current) => [
+        ...current,
+        {
+          id: optimisticId,
+          sender_id: currentUser.id,
+          receiver_id: selected.partnerId,
+          content: text,
+          message: text,
+          read: false,
+          created_at: optimisticCreatedAt,
+          __optimistic: true,
+        },
+      ]);
+    } else if (selected.type === 'custom-group') {
+      setCustomGroupMessages((current) => ({
+        ...current,
+        [selected.groupId]: [
+          ...(current[selected.groupId] || []),
+          {
+            id: optimisticId,
+            group_id: selected.groupId,
+            sender_id: currentUser.id,
+            content: text,
+            created_at: optimisticCreatedAt,
+            __optimistic: true,
+          },
+        ],
+      }));
+    } else {
+      const optimisticSenderName =
+        currentProfile?.name ||
+        currentProfile?.full_name ||
+        currentUser.user_metadata?.name ||
+        currentUser.email?.split('@')[0] ||
+        'Student';
+
+      setGroupMessages((current) => ({
+        ...current,
+        [selected.groupId]: [
+          ...(current[selected.groupId] || []),
+          {
+            id: optimisticId,
+            group_id: selected.groupId,
+            user_id: currentUser.id,
+            sender_name: optimisticSenderName,
+            content: text,
+            type: 'text',
+            reactions: {},
+            reply_to_id: activeReply?.id ? String(activeReply.id) : null,
+            reply_to_sender: activeReply?.sender || null,
+            reply_to_content: activeReply?.text || null,
+            created_at: optimisticCreatedAt,
+            __optimistic: true,
+          },
+        ],
+      }));
+    }
+
+    // Clear the composer immediately so sending feels instant.
+    clearCurrentDraft();
+    replyingToRef.current = null;
+    setReplyingTo(null);
+    if (pendingAttachment) clearPendingAttachment();
+
+    setTimeout(() => {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 0);
+
     setSending(true);
 
     try {
       if (selected.type === 'dm') {
-        const { error } = await supabase
+        const { data: savedMessage, error } = await supabase
           .from('direct_messages')
           .insert([
             {
@@ -2670,11 +3009,21 @@ export default function Messages() {
               message: text,
               read: false,
             },
-          ]);
+          ])
+          .select()
+          .single();
 
         if (error) throw error;
 
-        await createMessagesNotification({
+        if (savedMessage) {
+          setDirectMessages((current) =>
+            current.map((message) =>
+              message.id === optimisticId ? savedMessage : message
+            )
+          );
+        }
+
+        void createMessagesNotification({
           userId: selected.partnerId,
           title: 'New direct message',
           message: `${
@@ -2685,11 +3034,9 @@ export default function Messages() {
             'A student'
           }: ${text.slice(0, 140)}`,
           category: 'Direct'
+        }).catch((notificationError) => {
+          console.error('Could not create direct-message notification:', notificationError);
         });
-
-        clearCurrentDraft();
-        setReplyingTo(null);
-        clearPendingAttachment();
 
         if (
           pendingDmSource?.partnerId === selected.partnerId
@@ -2697,9 +3044,8 @@ export default function Messages() {
           setPendingDmSource(null);
         }
 
-        await loadDirectMessages(currentUser.id);
       } else if (selected.type === 'custom-group') {
-        const { error } = await supabase
+        const { data: savedMessage, error } = await supabase
           .from('message_group_messages')
           .insert([
             {
@@ -2707,9 +3053,20 @@ export default function Messages() {
               sender_id: currentUser.id,
               content: text,
             },
-          ]);
+          ])
+          .select()
+          .single();
 
         if (error) throw error;
+
+        if (savedMessage) {
+          setCustomGroupMessages((current) => ({
+            ...current,
+            [selected.groupId]: (current[selected.groupId] || []).map((message) =>
+              message.id === optimisticId ? savedMessage : message
+            ),
+          }));
+        }
 
         try {
           const { data: memberRows } = await supabase
@@ -2732,7 +3089,7 @@ export default function Messages() {
 
           recipients.delete(currentUser.id);
 
-          await Promise.all(
+          void Promise.all(
             [...recipients].map((userId) =>
               createMessagesNotification({
                 userId,
@@ -2741,15 +3098,13 @@ export default function Messages() {
                 category: 'Study Groups'
               })
             )
-          );
+          ).catch((notificationError) => {
+            console.error('Could not notify group members:', notificationError);
+          });
         } catch (notificationError) {
           console.error('Could not notify group members:', notificationError);
         }
 
-        clearCurrentDraft();
-        setReplyingTo(null);
-        clearPendingAttachment();
-        await loadCustomGroupsAndMessages(currentUser.id);
       } else {
         const senderName =
           currentProfile?.name ||
@@ -2758,7 +3113,7 @@ export default function Messages() {
           currentUser.email?.split('@')[0] ||
           'Student';
 
-        const { error } = await supabase
+        const { data: savedMessage, error } = await supabase
           .from('group_messages')
           .insert([
             {
@@ -2768,10 +3123,24 @@ export default function Messages() {
               content: text,
               type: 'text',
               reactions: {},
+              reply_to_id: activeReply?.id ? String(activeReply.id) : null,
+              reply_to_sender: activeReply?.sender || null,
+              reply_to_content: activeReply?.text || null,
             },
-          ]);
+          ])
+          .select()
+          .single();
 
         if (error) throw error;
+
+        if (savedMessage) {
+          setGroupMessages((current) => ({
+            ...current,
+            [selected.groupId]: (current[selected.groupId] || []).map((message) =>
+              message.id === optimisticId ? savedMessage : message
+            ),
+          }));
+        }
 
         try {
           const { data: memberRows } = await supabase
@@ -2791,7 +3160,7 @@ export default function Messages() {
 
           recipients.delete(currentUser.id);
 
-          await Promise.all(
+          void Promise.all(
             [...recipients].map((userId) =>
               createMessagesNotification({
                 userId,
@@ -2800,15 +3169,13 @@ export default function Messages() {
                 category: 'Study Groups'
               })
             )
-          );
+          ).catch((notificationError) => {
+            console.error('Could not notify Study Group members:', notificationError);
+          });
         } catch (notificationError) {
           console.error('Could not notify Study Group members:', notificationError);
         }
 
-        clearCurrentDraft();
-        setReplyingTo(null);
-        clearPendingAttachment();
-        await loadGroupsAndMessages(currentUser.id);
       }
 
       setTimeout(() => {
@@ -2817,6 +3184,32 @@ export default function Messages() {
         });
       }, 100);
     } catch (error) {
+      if (selected.type === 'dm') {
+        setDirectMessages((current) =>
+          current.filter((message) => message.id !== optimisticId)
+        );
+      } else if (selected.type === 'custom-group') {
+        setCustomGroupMessages((current) => ({
+          ...current,
+          [selected.groupId]: (current[selected.groupId] || []).filter(
+            (message) => message.id !== optimisticId
+          ),
+        }));
+      } else {
+        setGroupMessages((current) => ({
+          ...current,
+          [selected.groupId]: (current[selected.groupId] || []).filter(
+            (message) => message.id !== optimisticId
+          ),
+        }));
+      }
+
+      composerValueRef.current = rawText;
+      setComposerHasContent(Boolean(rawText));
+      if (composerRef.current) composerRef.current.value = rawText;
+      replyingToRef.current = activeReply;
+      setReplyingTo(activeReply);
+
       console.error('Could not send message:', error);
       alert(`Could not send message: ${error.message}`);
     } finally {
@@ -2827,7 +3220,16 @@ export default function Messages() {
   function clearCurrentDraft() {
     const key = selectedDraftKey(selected);
 
-    setComposer('');
+    composerValueRef.current = '';
+    setComposerHasContent(false);
+    if (composerRef.current) {
+      composerRef.current.value = '';
+    }
+
+    if (draftSaveTimerRef.current) {
+      clearTimeout(draftSaveTimerRef.current);
+      draftSaveTimerRef.current = null;
+    }
 
     if (!key || !currentUser?.id) return;
 
@@ -2854,7 +3256,7 @@ export default function Messages() {
         preview={
           item.lastMessage
             ? `${item.lastMessage.sender_name || 'Student'}: ${
-                item.lastMessage.content || ''
+                cleanMessageText(item.lastMessage.content || '')
               }`
             : 'No messages yet'
         }
@@ -2888,7 +3290,7 @@ export default function Messages() {
         preview={
           item.lastMessage
             ? `${sender ? `${sender}: ` : ''}${
-                item.lastMessage.content || ''
+                cleanMessageText(item.lastMessage.content || '')
               }`
             : 'No messages yet'
         }
@@ -2970,7 +3372,7 @@ export default function Messages() {
               avatarBg={avatarColor(item.name)}
               name={item.name}
               meta="Archived"
-              preview={parsed.text}
+              preview={parseMessageReply(parsed.text).text}
               date={formatDate(item.sortDate)}
               unread={item.unread > 0}
               unreadCount={item.unread}
@@ -3207,7 +3609,7 @@ export default function Messages() {
             avatarBg={avatarColor(conversation.name)}
             name={conversation.name}
             meta={sourceLabel(latestReceived)}
-            preview={parsed.text}
+            preview={parseMessageReply(parsed.text).text}
             date={formatDate(latestReceived?.created_at)}
             unread={conversation.unread > 0}
             unreadCount={conversation.unread}
@@ -3258,7 +3660,7 @@ export default function Messages() {
             avatarBg={avatarColor(conversation.name)}
             name={conversation.name}
             meta="Direct Message"
-            preview={parsed.text}
+            preview={parseMessageReply(parsed.text).text}
             date={formatDate(latestSent?.created_at)}
             onClick={() => openDm(conversation.partnerId)}
             pinned={pinnedMessageChats.includes(`dm:${conversation.partnerId}`)}
@@ -3309,7 +3711,7 @@ export default function Messages() {
           avatarBg={avatarColor(item.name)}
           name={item.name}
           meta={item.source}
-          preview={parsed.text}
+          preview={parseMessageReply(parsed.text).text}
           date={formatDate(item.sortDate)}
           unread={item.unread > 0}
           unreadCount={item.unread}
@@ -3499,12 +3901,13 @@ export default function Messages() {
                 <button
                   key={emoji}
                   type="button"
-                  onClick={() =>
-                    toggleLocalMessageReaction(
-                      message.id,
-                      emoji
-                    )
-                  }
+                  onClick={() => {
+                    if (messageType === 'group') {
+                      void toggleStudyGroupMessageReaction(message, emoji);
+                    } else {
+                      toggleLocalMessageReaction(message.id, emoji);
+                    }
+                  }}
                   style={{
                     minWidth: '34px',
                     minHeight: '34px',
@@ -3527,12 +3930,22 @@ export default function Messages() {
             <button
               type="button"
               onClick={() => {
-                setReplyingTo({
+                const nextReply = {
                   id: message.id,
                   sender: mine ? 'You' : senderName,
                   text: parsedText
-                });
+                };
+                replyingToRef.current = nextReply;
+                setReplyingTo(nextReply);
                 setActiveMessageMenu(null);
+
+                requestAnimationFrame(() => {
+                  composerRef.current?.focus();
+                  composerRef.current?.scrollIntoView({
+                    block: 'nearest',
+                    behavior: 'smooth'
+                  });
+                });
               }}
               style={{
                 width: '100%',
@@ -3626,32 +4039,67 @@ export default function Messages() {
           </div>
         )}
 
-        {Object.entries(reactionMap)
-          .filter(([, count]) => count)
-          .length > 0 && (
-          <div
+              </>
+    );
+  };
+
+  const renderMessageReactionRow = (message, mine, messageType) => {
+    let entries = [];
+
+    if (messageType === 'group') {
+      const reactions =
+        message?.reactions && typeof message.reactions === 'object'
+          ? message.reactions
+          : {};
+
+      entries = Object.entries(reactions)
+        .filter(([, userIds]) => Array.isArray(userIds) && userIds.length > 0)
+        .map(([emoji, userIds]) => [emoji, userIds.length]);
+    } else {
+      const reactions = localMessageReactions[message.id] || {};
+      entries = Object.entries(reactions)
+        .filter(([, count]) => Boolean(count))
+        .map(([emoji]) => [emoji, 1]);
+    }
+
+    if (!entries.length) return null;
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          gap: '4px',
+          marginTop: '4px',
+          flexWrap: 'wrap',
+          justifyContent: mine ? 'flex-end' : 'flex-start'
+        }}
+      >
+        {entries.map(([emoji, count]) => (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => {
+              if (messageType === 'group') {
+                void toggleStudyGroupMessageReaction(message, emoji);
+              } else {
+                toggleLocalMessageReaction(message.id, emoji);
+              }
+            }}
             style={{
-              position: 'absolute',
-              bottom: '-12px',
-              right: mine ? '8px' : 'auto',
-              left: mine ? 'auto' : '8px',
-              display: 'flex',
-              gap: '3px',
-              padding: '2px 5px',
-              borderRadius: '999px',
               background: '#FFFFFF',
-              border: '1px solid #E3E8EF',
-              fontSize: '11px'
+              border: '1px solid #E3E2E7',
+              borderRadius: '12px',
+              padding: '2px 8px',
+              fontSize: '12px',
+              fontWeight: '800',
+              color: '#1A1B1F',
+              cursor: 'pointer'
             }}
           >
-            {Object.entries(reactionMap)
-              .filter(([, count]) => count)
-              .map(([emoji]) => (
-                <span key={emoji}>{emoji}</span>
-              ))}
-          </div>
-        )}
-      </>
+            {emoji}{' '}{count}
+          </button>
+        ))}
+      </div>
     );
   };
 
@@ -4616,6 +5064,8 @@ export default function Messages() {
         .wa-message-meta.seen {
           color: #526987;
         }
+
+
 
         .wa-message-meta .wa-seen-check {
           display: inline-flex;
@@ -7077,6 +7527,7 @@ export default function Messages() {
                   const parsed = parseDirectMessage(
                     parsedAttachment.text
                   );
+                  const parsedReply = parseMessageReply(parsed.text);
                   const sender = getMessageSenderDisplay(message, mine);
                   const conversationKey = `dm:${selected.partnerId}`;
 
@@ -7125,7 +7576,7 @@ export default function Messages() {
                           {renderMessageActions({
                             message,
                             mine,
-                            parsedText: parsed.text,
+                            parsedText: parsedReply.text,
                             conversationKey,
                             senderName: sender.name,
                             messageType: 'dm'
@@ -7139,8 +7590,28 @@ export default function Messages() {
                             message.content || message.message || ''
                           )}
 
+                          {parsedReply.reply && (
+                            <div style={{
+                              marginBottom: '7px',
+                              padding: '7px 9px',
+                              borderRadius: '9px',
+                              borderLeft: mine ? '3px solid rgba(255,255,255,.7)' : '3px solid #7C9EDB',
+                              background: mine ? 'rgba(255,255,255,.12)' : '#F3F6FB',
+                              fontSize: '9px',
+                              lineHeight: 1.35,
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{ fontWeight: 900, marginBottom: '2px' }}>
+                                {parsedReply.reply.sender || 'Message'}
+                              </div>
+                              <div style={{ opacity: .78, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {parsedReply.reply.text || ''}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="wa-message-text">
-                            {parsed.text}
+                            {parsedReply.text}
                           </div>
                         </div>
 
@@ -7160,6 +7631,7 @@ export default function Messages() {
                             </>
                           )}
                         </div>
+                        {renderMessageReactionRow(message, mine, 'dm')}
                       </div>
 
                       {mine && (
@@ -7207,7 +7679,8 @@ export default function Messages() {
                   const rawMessage = message.content || '';
                   const parsedAttachment =
                     parseMessageAttachment(rawMessage);
-                  const parsedText = parsedAttachment.text;
+                  const parsedReply = parseMessageReply(parsedAttachment.text);
+                  const parsedText = parsedReply.text;
                   const conversationKey = `custom-group:${selected.groupId}`;
 
                   return (
@@ -7267,6 +7740,30 @@ export default function Messages() {
 
                           {renderAttachment(message.content || '')}
 
+                          {parsedReply.reply && (
+                            <div style={{
+                              marginBottom: '7px',
+                              padding: '7px 9px',
+                              borderRadius: '9px',
+                              borderLeft: mine ? '3px solid rgba(255,255,255,.7)' : '3px solid #7C9EDB',
+                              background: mine ? 'rgba(255,255,255,.12)' : '#F3F6FB',
+                              fontSize: '9px',
+                              lineHeight: 1.35
+                            }}>
+                              <div style={{ fontWeight: 900, marginBottom: '2px' }}>
+                                {parsedReply.reply.sender || 'Message'}
+                              </div>
+                              <div style={{
+                                opacity: .78,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {parsedReply.reply.text || ''}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="wa-message-text">
                             {parsedText}
                           </div>
@@ -7281,6 +7778,7 @@ export default function Messages() {
                             </>
                           )}
                         </div>
+                        {renderMessageReactionRow(message, mine, 'custom-group')}
                       </div>
 
                       {mine && (
@@ -7327,7 +7825,15 @@ export default function Messages() {
                 const rawMessage = message.content || '';
                 const parsedAttachment =
                   parseMessageAttachment(rawMessage);
-                const parsedText = parsedAttachment.text;
+                const parsedReply = parseMessageReply(parsedAttachment.text);
+                const parsedText = parsedReply.text;
+                const studyGroupReply = message.reply_to_id
+                  ? {
+                      id: message.reply_to_id,
+                      sender: message.reply_to_sender || 'Message',
+                      text: message.reply_to_content || ''
+                    }
+                  : parsedReply.reply;
                 const conversationKey = `study-group:${selected.groupId}`;
 
                 return (
@@ -7459,6 +7965,30 @@ export default function Messages() {
                         <>
                           {renderAttachment(message.content || '')}
 
+                          {studyGroupReply && (
+                            <div style={{
+                              marginBottom: '7px',
+                              padding: '7px 9px',
+                              borderRadius: '9px',
+                              borderLeft: mine ? '3px solid rgba(255,255,255,.7)' : '3px solid #7C9EDB',
+                              background: mine ? 'rgba(255,255,255,.12)' : '#F3F6FB',
+                              fontSize: '9px',
+                              lineHeight: 1.35
+                            }}>
+                              <div style={{ fontWeight: 900, marginBottom: '2px' }}>
+                                {studyGroupReply.sender || 'Message'}
+                              </div>
+                              <div style={{
+                                opacity: .78,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {studyGroupReply.text || ''}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="wa-message-text">
                             {parsedText}
                           </div>
@@ -7494,6 +8024,7 @@ export default function Messages() {
                           </>
                         )}
                       </div>
+                      {renderMessageReactionRow(message, mine, 'group')}
                     </div>
 
                     {mine && (
@@ -7632,6 +8163,84 @@ export default function Messages() {
             </div>
           )}
 
+          {replyingTo && (
+            <div
+              className="wa-replying-preview"
+              style={{
+                flexShrink: 0,
+                padding: '8px 24px 8px',
+                background: '#FFFFFF',
+                borderTop: pendingAttachment ? 'none' : '1px solid #E5EAF2',
+                position: 'relative',
+                zIndex: 20
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '9px 11px',
+                  borderRadius: '11px',
+                  background: '#F3F6FB',
+                  borderLeft: '3px solid #7C9EDB',
+                  boxShadow: '0 2px 8px rgba(11,26,63,.06)'
+                }}
+              >
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      color: '#0B1A3F',
+                      fontSize: '10px',
+                      fontWeight: 900,
+                      marginBottom: '2px'
+                    }}
+                  >
+                    Replying to {replyingTo.sender || 'message'}
+                  </div>
+
+                  <div
+                    style={{
+                      color: '#667085',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {replyingTo.text || ''}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    replyingToRef.current = null;
+                    setReplyingTo(null);
+                  }}
+                  aria-label="Cancel reply"
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    minWidth: '28px',
+                    border: 'none',
+                    borderRadius: '50%',
+                    background: '#FFFFFF',
+                    color: '#667085',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 4px rgba(11,26,63,.08)'
+                  }}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="wa-composer">
             <input
               ref={attachmentInputRef}
@@ -7664,8 +8273,9 @@ export default function Messages() {
             </button>
 
             <textarea
-              value={composer}
-              onChange={(event) => setComposer(event.target.value)}
+              ref={composerRef}
+              defaultValue=""
+              onChange={handleComposerChange}
               placeholder={`Message ${selected.name}...`}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
@@ -7679,7 +8289,7 @@ export default function Messages() {
               type="button"
               className="wa-send-btn"
               onClick={sendCurrentMessage}
-              disabled={sending || uploadingAttachment || (!composer.trim() && !pendingAttachment)}
+              disabled={sending || uploadingAttachment || (!composerHasContent && !pendingAttachment)}
               aria-label="Send message"
             >
               <Send size={19} />
@@ -7688,12 +8298,12 @@ export default function Messages() {
         </section>
       )}
 
-      {showPollModal && selected?.type === 'group' && (
+      {showPollModal && selected?.type === 'group' && typeof document !== 'undefined' && createPortal(
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 2200,
+            zIndex: 2147483647,
             background: 'rgba(15,20,34,.38)',
             display: 'flex',
             alignItems: 'center',
@@ -7900,7 +8510,8 @@ export default function Messages() {
               {pollSubmitting ? 'Posting...' : 'Post poll'}
             </button>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
       {profilePreview && (
