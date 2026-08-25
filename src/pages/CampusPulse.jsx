@@ -345,6 +345,70 @@ const saveCampusPulseAlertLink = (userId, postId, alert) => {
   }
 };
 
+const isLegacyCampusPulsePostOwnedByUser = (userId, postId) => {
+  if (!userId || !postId) return false;
+
+  try {
+    const key = getCampusPulseAlertStorageKey(userId);
+    const links = JSON.parse(localStorage.getItem(key) || '{}');
+    return Boolean(links?.[postId]);
+  } catch (error) {
+    console.error('Could not read Campus Pulse ownership history:', error);
+    return false;
+  }
+};
+
+// Older Campus Pulse rows may have been created before the current `user_id`
+// ownership field was consistently populated. Check the common legacy owner
+// column names as well so those rows still belong to their real creator.
+const getCampusPulsePostOwnerId = post =>
+  post?.user_id ||
+  post?.created_by ||
+  post?.created_by_user_id ||
+  post?.author_id ||
+  post?.owner_id ||
+  post?.profile_id ||
+  post?.user_uuid ||
+  null;
+
+const isAnonymousCampusPulsePost = post =>
+  Boolean(
+    post?.is_anonymous ||
+    post?.author_name === 'Anonymous Student'
+  );
+
+const isLocalCampusPulseDevelopment = () => {
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+};
+
+const isOrphanedLegacyAnonymousPost = post =>
+  isAnonymousCampusPulsePost(post) && !getCampusPulsePostOwnerId(post);
+
+const isCampusPulsePostOwnedByUser = (post, userId) => {
+  if (!post || !userId) return false;
+
+  const ownerId = getCampusPulsePostOwnerId(post);
+  if (ownerId && ownerId === userId) return true;
+
+  if (
+    isAnonymousCampusPulsePost(post) &&
+    isLegacyCampusPulsePostOwnedByUser(userId, post.id)
+  ) {
+    return true;
+  }
+
+  // Development-only recovery for legacy anonymous rows. Older local builds
+  // sometimes saved a stale/mismatched owner id instead of leaving it empty,
+  // so `orphaned` detection alone is not enough. On localhost, allow the
+  // current developer to clean up any anonymous legacy row. This recovery is
+  // intentionally disabled in production.
+  return (
+    isLocalCampusPulseDevelopment() &&
+    isAnonymousCampusPulsePost(post)
+  );
+};
+
 
 const openCentralMessagesForUser = (profile) => {
   if (!profile?.id) {
@@ -1360,7 +1424,17 @@ alert('Your post was submitted for admin review.');
   const handleUpdatePost = async event => {
     event.preventDefault();
 
-    const { error } = await supabase
+    const editingPost = posts.find(post => post.id === editingPostId);
+    const ownerId = getCampusPulsePostOwnerId(editingPost);
+    const canUseLegacyOwnerRecovery =
+      editingPost &&
+      isAnonymousCampusPulsePost(editingPost) &&
+      (
+        isLegacyCampusPulsePostOwnedByUser(currentUserId, editingPostId) ||
+        (isLocalCampusPulseDevelopment() && isAnonymousCampusPulsePost(editingPost))
+      );
+
+    let updateQuery = supabase
       .from('campus_pulse_posts')
       .update({
         title: editPostData.title,
@@ -1368,6 +1442,15 @@ alert('Your post was submitted for admin review.');
         category: editPostData.category
       })
       .eq('id', editingPostId);
+
+    if (!canUseLegacyOwnerRecovery) {
+      // Current rows use user_id. Legacy rows may expose another ownership
+      // column in the fetched object, but the normal current-user filter is
+      // still the safest path whenever recovery is not required.
+      updateQuery = updateQuery.eq('user_id', currentUserId);
+    }
+
+    const { error } = await updateQuery;
 
     if (error) {
       alert(`Could not update post: ${error.message}`);
@@ -1384,10 +1467,25 @@ alert('Your post was submitted for admin review.');
       return;
     }
 
-    const { error } = await supabase
+    const postToDelete = posts.find(post => post.id === postId);
+    const canUseLegacyOwnerRecovery =
+      postToDelete &&
+      isAnonymousCampusPulsePost(postToDelete) &&
+      (
+        isLegacyCampusPulsePostOwnedByUser(currentUserId, postId) ||
+        (isLocalCampusPulseDevelopment() && isAnonymousCampusPulsePost(postToDelete))
+      );
+
+    let deleteQuery = supabase
       .from('campus_pulse_posts')
       .delete()
       .eq('id', postId);
+
+    if (!canUseLegacyOwnerRecovery) {
+      deleteQuery = deleteQuery.eq('user_id', currentUserId);
+    }
+
+    const { error } = await deleteQuery;
 
     if (error) {
       alert(`Could not delete post: ${error.message}`);
@@ -1729,6 +1827,42 @@ alert('Your post was submitted for admin review.');
     );
   };
 
+  const handleEditComment = async (postId, comment) => {
+    if (!comment || comment.user_id !== currentUserId) return;
+
+    const nextContent = window.prompt('Edit your comment:', comment.content || '');
+    if (nextContent === null) return;
+
+    const trimmedContent = nextContent.trim();
+    if (!trimmedContent || trimmedContent === (comment.content || '').trim()) return;
+
+    const { error } = await supabase
+      .from('campus_pulse_comments')
+      .update({ content: trimmedContent })
+      .eq('id', comment.id)
+      .eq('user_id', currentUserId);
+
+    if (error) {
+      alert(`Could not update comment: ${error.message}`);
+      return;
+    }
+
+    setCommentsState(previous => {
+      const current = previous[postId] || { comments: [] };
+      return {
+        ...previous,
+        [postId]: {
+          ...current,
+          comments: (current.comments || []).map(item =>
+            item.id === comment.id
+              ? { ...item, content: trimmedContent }
+              : item
+          )
+        }
+      };
+    });
+  };
+
   const handleDeleteComment = async (
     postId,
     commentId
@@ -2053,8 +2187,10 @@ alert('Your post was submitted for admin review.');
               </div>
             ) : (
               filteredPosts.map(post => {
-                const isOwner =
-                  post.user_id === currentUserId;
+                const isOwner = isCampusPulsePostOwnedByUser(
+                  post,
+                  currentUserId
+                );
 
                 const postCommentState =
                   commentsState[post.id] || {};
@@ -2602,6 +2738,9 @@ alert('Your post was submitted for admin review.');
                                 handleAddComment={
                                   handleAddComment
                                 }
+                                handleEditComment={
+                                  handleEditComment
+                                }
                                 handleDeleteComment={
                                   handleDeleteComment
                                 }
@@ -2955,6 +3094,7 @@ function CommentItem({
   isReplyAnonymous,
   setIsReplyAnonymous,
   handleAddComment,
+  handleEditComment,
   handleDeleteComment,
   openDmFromCampusPulse
 }) {
@@ -3075,20 +3215,30 @@ function CommentItem({
                 : 'Reply'}
             </button>
 
-            {comment.user_id ===
-              currentUserId && (
-              <button
-                type="button"
-                onClick={() =>
-                  handleDeleteComment(
+            {comment.user_id === currentUserId && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleEditComment(postId, comment)}
+                  style={deleteCommentButtonStyle}
+                  title="Edit comment"
+                >
+                  <Edit3 size={13} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleDeleteComment(
                     postId,
                     comment.id
                   )
                 }
                 style={deleteCommentButtonStyle}
               >
-                <Trash2 size={13} />
-              </button>
+                  <Trash2 size={13} />
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -3201,6 +3351,9 @@ function CommentItem({
                 }
                 handleAddComment={
                   handleAddComment
+                }
+                handleEditComment={
+                  handleEditComment
                 }
                 handleDeleteComment={
                   handleDeleteComment

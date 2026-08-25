@@ -453,6 +453,61 @@ useEffect(() => {
   fetchPublicResources();
 }, [userId]);
 
+// Keep Supabase-backed course data synchronized across phone, iPad, and laptop.
+// localStorage only synchronizes tabs on the SAME device, so it cannot be the
+// source of truth for data that must appear on all devices.
+useEffect(() => {
+  if (!userId) return;
+
+  const refreshCloudCourseData = () => {
+    fetchCourses();
+    fetchAllResources();
+    fetchPublicResources();
+    if (selectedCourse?.id) {
+      fetchNotes(selectedCourse.id);
+      fetchFiles(selectedCourse.id);
+    }
+  };
+
+  const channel = supabase
+    .channel(`course-management-sync-${userId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'courses', filter: `user_id=eq.${userId}` },
+      fetchCourses
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'course_resources' },
+      () => {
+        fetchAllResources();
+        fetchPublicResources();
+        if (selectedCourse?.id) fetchFiles(selectedCourse.id);
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'course_notes' },
+      () => {
+        if (selectedCourse?.id) fetchNotes(selectedCourse.id);
+      }
+    )
+    .subscribe();
+
+  const handleVisibility = () => {
+    if (document.visibilityState === 'visible') refreshCloudCourseData();
+  };
+
+  window.addEventListener('focus', refreshCloudCourseData);
+  document.addEventListener('visibilitychange', handleVisibility);
+
+  return () => {
+    window.removeEventListener('focus', refreshCloudCourseData);
+    document.removeEventListener('visibilitychange', handleVisibility);
+    supabase.removeChannel(channel);
+  };
+}, [userId, selectedCourse?.id]);
+
 useEffect(() => {
   if (!userId) return;
   localStorage.setItem(
@@ -629,10 +684,7 @@ const calculatedTotalCredits = semesterOptions.reduce(
  0
 );
 
-const totalCredits =
- manualCompletedCredits === ''
-  ? calculatedTotalCredits
-  : Math.max(0, Number(manualCompletedCredits) || 0);
+const totalCredits = calculatedTotalCredits;
 
 // ---------------------------------------------------------
 // SUPABASE FETCH
@@ -1128,6 +1180,43 @@ const closeEditSemester = () => {
   setEditedSemesterCredits('');
 };
 
+const handleDeleteCreditEntry = (semesterName, event = null) => {
+  if (event) event.stopPropagation();
+
+  const semesterCourses = courses.filter(
+    (course) => courseSemester(course) === semesterName
+  );
+
+  const hasCourses = semesterCourses.length > 0;
+  const confirmed = window.confirm(
+    hasCourses
+      ? `Remove the saved credit total for "${semesterName}"? The semester will stay because it still has courses, and credits will be recalculated from those courses.`
+      : `Delete the leftover credit entry for "${semesterName}"?`
+  );
+
+  if (!confirmed) return;
+
+  setSemesterCreditOverrides((prev) => {
+    const next = { ...prev };
+    delete next[semesterName];
+    return next;
+  });
+
+  if (!hasCourses) {
+    setCustomSemesters((prev) =>
+      prev.filter((semester) => semester !== semesterName)
+    );
+
+    if (selectedSemester === semesterName) {
+      setSelectedSemester(null);
+    }
+  }
+
+  if (editingSemesterName === semesterName) {
+    closeEditSemester();
+  }
+};
+
 const saveEditedSemester = () => {
  if (!editingSemesterName) return;
 
@@ -1268,6 +1357,14 @@ setCoursePlannerSchedules((prev) => {
 setSemesterCreditOverrides((prev) => {
  const next = { ...prev };
  delete next[semesterName];
+ return next;
+});
+
+setCourseCredits((prev) => {
+ const next = { ...prev };
+ courseIds.forEach((courseId) => {
+   delete next[courseId];
+ });
  return next;
 });
 
@@ -5194,6 +5291,11 @@ return (
      key={`${item.type}-${item.id}`}
      style={dashboardItemStyle}
      onClick={() => {
+      if (item.type === 'credit') {
+        openEditSemester(item.id);
+        return;
+      }
+
       if (item.course) {
         openCourse(item.course);
 
@@ -5233,6 +5335,37 @@ return (
         >
          <ExternalLink size={15} />
         </a>
+      ) : item.type === 'credit' ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+        >
+          <button
+            type="button"
+            title="Delete credits"
+            aria-label={`Delete credits for ${item.title}`}
+            onClick={(event) => handleDeleteCreditEntry(item.id, event)}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              border: '1px solid #F1D7D7',
+              background: '#FFF7F7',
+              color: '#B94A48',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            <Trash2 size={16} />
+          </button>
+          <ChevronRight size={18} color="#64748B" />
+        </div>
       ):(
         <ChevronRight
          size={18}
