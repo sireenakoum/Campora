@@ -701,7 +701,28 @@ const fetchCourses = async () => {
   });
 
     if (error) throw error;
-    setCourses(data || []);
+    const cloudCourses = data || [];
+    setCourses(cloudCourses);
+
+    // Hydrate semester + credit metadata from Supabase so every device sees
+    // the same organization. Older rows without these values still fall back
+    // to the device's existing local cache.
+    setCourseSemesters((prev) => {
+      const next = { ...prev };
+      cloudCourses.forEach((course) => {
+        if (course.semester) next[course.id] = course.semester;
+      });
+      return next;
+    });
+    setCourseCredits((prev) => {
+      const next = { ...prev };
+      cloudCourses.forEach((course) => {
+        if (course.credits !== null && course.credits !== undefined) {
+          next[course.id] = Math.max(0, Number(course.credits) || 0);
+        }
+      });
+      return next;
+    });
   } catch (err) {
     console.error('Error fetching courses:', err);
   } finally {
@@ -990,7 +1011,9 @@ try {
     name: newCourse.name.trim(),
     professor: newCourse.professor.trim(),
     days: newCourse.days,
-    color: newCourse.color
+    color: newCourse.color,
+    semester: finalSemester,
+    credits: Math.max(0, Number(newCourse.credits) || 0)
   };
 
  const { data, error } = await supabase
@@ -1080,16 +1103,16 @@ const handleAddCourse = async (e) => {
  }
 
  try {
-   // IMPORTANT:
-   // We intentionally do NOT send "semester" to Supabase, so this works
-   // even if the courses table does not have a semester column.
+   // Semester and credits live on the course row so Mac/iPhone/iPad
+   // all read the same values from Supabase instead of device-only localStorage.
    const courseData = {
      name: newCourse.name.trim(),
-
-    professor: newCourse.professor.trim(),
-    days: newCourse.days,
-    color: newCourse.color
-  };
+     professor: newCourse.professor.trim(),
+     days: newCourse.days,
+     color: newCourse.color,
+     semester: finalSemester,
+     credits: Math.max(0, Number(newCourse.credits) || 0)
+   };
 
   if (userId) courseData.user_id = userId;
 
@@ -2450,7 +2473,7 @@ const handleFileSelect = (e) => {
 
 const uploadFile = async (e) => {
  e.preventDefault();
- if (!selectedFile || !selectedCourse) return;
+ if (!selectedFile || !uploadTargetCourseId) return;
 
  try {
    setUploading(true);
@@ -2475,8 +2498,7 @@ const uploadFile = async (e) => {
      '_'
    );
 
-   const safePath = `${userId || 'public'}/${targetCourseId}/${Date.now()}
-_${sanitizedFileName}`;
+   const safePath = `${userId || 'public'}/${uploadTargetCourseId}/${Date.now()}_${sanitizedFileName}`;
 
    const { error: uploadError } = await supabase.storage
     .from('course-files')
@@ -2492,18 +2514,18 @@ _${sanitizedFileName}`;
     .getPublicUrl(safePath);
 
    const targetCourse = courses.find(
-     (course) => String(course.id) === String(targetCourseId)
+     (course) => String(course.id) === String(uploadTargetCourseId)
    );
 
    const resourceData = {
-     course_id: targetCourseId,
+     course_id: uploadTargetCourseId,
      file_name: finalFileName,
      file_url: urlData.publicUrl,
      folder_name: targetFolder,
      user_id: userId,
      visibility: uploadVisibility,
      resource_type: uploadResourceType,
-     course_name: targetCourse?.name || selectedCourse.name || 'Course'
+     course_name: targetCourse?.name || selectedCourse?.name || 'Course'
    };
 
    const { error: dbError } = await supabase

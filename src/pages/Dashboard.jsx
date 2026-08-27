@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
-import { cachedFetch, peekCache } from '../lib/cache';
+import { cachedFetch, peekCache, putCache } from '../lib/cache';
 import { getAnnouncements } from '../lib/campusHub';
 import aubCampusImage from './aub-campus.jpeg';
 
@@ -386,7 +386,15 @@ export default function Dashboard() {
         applySnapshot(cachedSnapshot);
       }
 
-      applySnapshot(await cachedFetch(dashboardKey, 20_000, fetchSnapshot));
+      if (silent) {
+        // A live database event/focus refresh must bypass the TTL cache,
+        // otherwise a newly added/deleted item can briefly reappear.
+        const freshSnapshot = await fetchSnapshot();
+        putCache(dashboardKey, freshSnapshot);
+        applySnapshot(freshSnapshot);
+      } else {
+        applySnapshot(await cachedFetch(dashboardKey, 20_000, fetchSnapshot));
+      }
     } catch (err) {
       console.error('Dashboard load error:', err);
 
@@ -432,6 +440,38 @@ export default function Dashboard() {
       )
       .subscribe();
 
+    const todoChannel = supabase
+      .channel(`dashboard_todos_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'todos',
+          filter: `profile_id=eq.${userId}`,
+        },
+        () => {
+          loadDashboard({ silent: true });
+        }
+      )
+      .subscribe();
+
+    const coursesChannel = supabase
+      .channel(`dashboard_courses_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'courses',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          loadDashboard({ silent: true });
+        }
+      )
+      .subscribe();
+
     const notificationChannel = supabase
       .channel(`dashboard_notifications_${userId}`)
       .on(
@@ -450,6 +490,8 @@ export default function Dashboard() {
 
     return () => {
       supabase.removeChannel(plannerChannel);
+      supabase.removeChannel(todoChannel);
+      supabase.removeChannel(coursesChannel);
       supabase.removeChannel(notificationChannel);
     };
   }, [userId]);

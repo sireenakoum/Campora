@@ -99,7 +99,45 @@ export default function Todo() {
   loadTasks();
  }, []);
 
- const loadTasks = async () => {
+ // Live-sync task changes made by the AI, dashboard, another tab,
+ // or another device.
+ useEffect(() => {
+  let channel = null;
+  let cancelled = false;
+
+  const subscribe = async () => {
+   const {
+    data: { user },
+   } = await supabase.auth.getUser();
+
+   if (!user || cancelled) return;
+
+   channel = supabase
+    .channel(`todo_live_${user.id}`)
+    .on(
+     'postgres_changes',
+     {
+      event: '*',
+      schema: 'public',
+      table: 'todos',
+      filter: `profile_id=eq.${user.id}`,
+     },
+     () => {
+      loadTasks({ forceFresh: true });
+     }
+    )
+    .subscribe();
+  };
+
+  subscribe();
+
+  return () => {
+   cancelled = true;
+   if (channel) supabase.removeChannel(channel);
+  };
+ }, []);
+
+ const loadTasks = async ({ forceFresh = false } = {}) => {
   try {
     const {
       data: { user },
@@ -120,14 +158,19 @@ export default function Todo() {
     const todosKey = `todos:${user?.id || 'anon'}`;
     todosKeyRef.current = todosKey;
 
-    // Instant paint from the last visit; cachedFetch revalidates quietly.
-    const cachedTasks = peekCache(todosKey);
-    if (cachedTasks) {
-      setTasks(withAlerts(cachedTasks));
+    // Keep the fast cached first paint, but bypass it for real data changes.
+    if (!forceFresh) {
+      const cachedTasks = peekCache(todosKey);
+      if (cachedTasks) {
+        setTasks(withAlerts(cachedTasks));
+      }
     }
 
-    const data = await cachedFetch(todosKey, 15_000, getTodosForCurrentUser);
+    const data = forceFresh
+      ? await getTodosForCurrentUser()
+      : await cachedFetch(todosKey, 15_000, getTodosForCurrentUser);
 
+    putCache(todosKey, data || []);
     setTasks(withAlerts(data));
   } catch (error) {
     console.error('Error loading tasks:', error);

@@ -509,36 +509,45 @@ export default function Planner() {
   // DATABASE
   // =========================================================
 
-  const fetchCourses = async (userId) => {
+  const fetchCourses = async (userId, { forceFresh = false } = {}) => {
     if (!userId) return;
 
     setLoading(true);
 
     const plannerKey = `planner:${userId}`;
 
-    // Instant paint from the last visit; cachedFetch revalidates quietly.
-    const cachedEntries = peekCache(plannerKey);
-    if (cachedEntries) {
-      setCourses(cachedEntries);
-      setLoading(false);
+    // Use cache for the initial fast paint, but never after an actual
+    // add/edit/delete/live-sync event because that can show stale entries.
+    if (!forceFresh) {
+      const cachedEntries = peekCache(plannerKey);
+      if (cachedEntries) {
+        setCourses(cachedEntries);
+        setLoading(false);
+      }
     }
 
+    const fetchFreshCourses = async () => {
+      const { data: rows, error } = await supabase
+        .from('planner_courses')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true });
+
+      if (error) {
+        console.error('Planner fetch error:', error);
+        throw error;
+      }
+
+      return rows || [];
+    };
+
     try {
-      const data = await cachedFetch(plannerKey, 20_000, async () => {
-        const { data: rows, error } = await supabase
-          .from('planner_courses')
-          .select('*')
-          .eq('user_id', userId)
-          .order('date', { ascending: true })
-          .order('start_time', { ascending: true });
+      const data = forceFresh
+        ? await fetchFreshCourses()
+        : await cachedFetch(plannerKey, 20_000, fetchFreshCourses);
 
-        if (error) {
-          console.error('Planner fetch error:', error);
-        }
-
-        return rows || [];
-      });
-
+      putCache(plannerKey, data);
       setCourses(data);
     } finally {
       setLoading(false);
@@ -673,7 +682,7 @@ export default function Planner() {
       setSelectedDate(start);
       setViewType('Week');
 
-      await fetchCourses(user.id);
+      await fetchCourses(user.id, { forceFresh: true });
     } catch (err) {
       console.error('Schedule import error:', err);
       setScheduleError(`Could not import schedule: ${err.message}`);
@@ -723,7 +732,7 @@ export default function Planner() {
       localStorage.removeItem(scheduleImportKey(user.id));
       setScheduleImportIds([]);
       setScheduleNotice('Uploaded schedule cleared from your planner.');
-      await fetchCourses(user.id);
+      await fetchCourses(user.id, { forceFresh: true });
     } catch (err) {
       console.error('Clear schedule error:', err);
       setScheduleError(`Could not clear schedule: ${err.message}`);
@@ -757,6 +766,32 @@ export default function Planner() {
 
     init();
   }, []);
+
+  // Keep this planner synced with changes made by the dashboard, AI,
+  // another tab, or another device without requiring a page refresh.
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const plannerChannel = supabase
+      .channel(`planner_live_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'planner_courses',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchCourses(user.id, { forceFresh: true });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(plannerChannel);
+    };
+  }, [user?.id]);
 
   const isRepeatableType = (type) => {
     return ['Class', 'Lab', 'Recitation'].includes(type);
@@ -1508,7 +1543,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
           setIsModalOpen(false);
           setEditingEntry(null);
-          await fetchCourses(user.id);
+          await fetchCourses(user.id, { forceFresh: true });
           return;
         }
 
@@ -1517,7 +1552,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
 
         setIsModalOpen(false);
         setEditingEntry(null);
-        await fetchCourses(user.id);
+        await fetchCourses(user.id, { forceFresh: true });
         return;
       }
 
@@ -1525,7 +1560,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       if (!success) return;
 
       setIsModalOpen(false);
-      await fetchCourses(user.id);
+      await fetchCourses(user.id, { forceFresh: true });
     } catch (error) {
       console.error('Planner save error:', error);
       alert(
@@ -1548,7 +1583,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       setEditSeriesConfirmation(null);
       setIsModalOpen(false);
       setEditingEntry(null);
-      await fetchCourses(user.id);
+      await fetchCourses(user.id, { forceFresh: true });
     } finally {
       setSaving(false);
     }
@@ -1566,7 +1601,7 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
       setEditSeriesConfirmation(null);
       setIsModalOpen(false);
       setEditingEntry(null);
-      await fetchCourses(user.id);
+      await fetchCourses(user.id, { forceFresh: true });
     } finally {
       setSaving(false);
     }
@@ -1603,6 +1638,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         }
 
         seriesItems.forEach(removeLinkedCourseLocalItem);
+        setCourses((current) =>
+          current.filter((entry) => entry.group_id !== groupId)
+        );
       } else {
         const plannerEntry = courses.find((entry) => entry.id === id);
 
@@ -1624,13 +1662,17 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
         if (plannerEntry) {
           removeLinkedCourseLocalItem(plannerEntry);
         }
+
+        setCourses((current) =>
+          current.filter((entry) => entry.id !== id)
+        );
       }
 
       setDeleteConfirmation(null);
       setIsModalOpen(false);
       setEditingEntry(null);
 
-      await fetchCourses(user.id);
+      await fetchCourses(user.id, { forceFresh: true });
     } catch (error) {
       console.error('Planner delete error:', error);
       alert('Something went wrong while deleting.');
@@ -1724,8 +1766,9 @@ ${COURSE_LINK_START}${JSON.stringify(linked)}${COURSE_LINK_END}`.trim()
     }
 
     linkedEntries.forEach(removeLinkedCourseLocalItem);
+    setCourses([]);
 
-    await fetchCourses(user.id);
+    await fetchCourses(user.id, { forceFresh: true });
   };
 
   const selectedDayEvents = courses.filter(
