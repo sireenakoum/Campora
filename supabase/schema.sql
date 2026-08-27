@@ -294,7 +294,7 @@ create policy "Users can create own notifications"
 on notifications
 for insert
 to authenticated
-with check (auth.uid() = user_id);
+with check (auth.uid() IS NOT NULL);
 
 drop policy if exists "Users can update own notifications" on notifications;
 create policy "Users can update own notifications"

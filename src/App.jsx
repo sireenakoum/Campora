@@ -472,6 +472,10 @@ function RealtimeNotificationsListener() {
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
         (payload) => {
           const row = payload.new || {};
+          // Skip direct-message notifications already toasted via DmNotificationsListener to avoid double toast
+          const cat = String(row.category || '').toLowerCase();
+          const titleLower = String(row.title || '').toLowerCase();
+          if (cat === 'direct' || titleLower.includes('direct message')) return;
           const title = String(row.title || '').trim();
           const message = String(row.message || row.content || '').trim();
           const combined = title && message ? `${title} — ${message}` : (message || title || 'You have a new notification.');
@@ -713,6 +717,7 @@ function DashboardLayout() {
 
   useEffect(() => {
     let active = true;
+    let channel = null;
 
     const refreshUnread = async () => {
       try {
@@ -726,22 +731,52 @@ function DashboardLayout() {
 
     refreshUnread();
 
-    const channel = supabase
-      .channel('topbar_unread')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-        },
-        refreshUnread
-      )
-      .subscribe();
+    // Subscribe to notifications for the current user only, once we know the id, to avoid noisy cross-user refreshes
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id;
+      if (!uid || !active) return;
+      channel = supabase
+        .channel(`topbar_unread_${uid}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${uid}`,
+          },
+          refreshUnread
+        )
+        .subscribe();
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+      if (session?.user?.id && active) {
+        channel = supabase
+          .channel(`topbar_unread_${session.user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${session.user.id}`,
+            },
+            refreshUnread
+          )
+          .subscribe();
+      }
+      refreshUnread();
+    });
 
     return () => {
       active = false;
-      supabase.removeChannel(channel);
+      subscription.unsubscribe();
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 

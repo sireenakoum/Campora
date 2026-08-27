@@ -231,7 +231,7 @@ select public.__run_if_table(
   'public.notifications',
   $stmt$
   drop policy if exists "Users can create own notifications" on public.notifications;
-  create policy "Users can create own notifications" on public.notifications for insert to authenticated with check (auth.uid() = user_id and not public.current_user_is_deactivated());
+  create policy "Users can create own notifications" on public.notifications for insert to authenticated with check (auth.uid() IS NOT NULL and not public.current_user_is_deactivated());
   drop policy if exists "Users can update own notifications" on public.notifications;
   create policy "Users can update own notifications" on public.notifications for update to authenticated using (auth.uid() = user_id and not public.current_user_is_deactivated()) with check (auth.uid() = user_id);
   drop policy if exists "Users can delete own notifications" on public.notifications;

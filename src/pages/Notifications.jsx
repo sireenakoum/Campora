@@ -517,6 +517,10 @@ export default function Notifications() {
         localStorage.getItem(hiddenAnnouncementKey) || '[]'
       );
 
+      const hiddenDirectMessageIds = JSON.parse(
+        localStorage.getItem(`campora-hidden-direct-messages-${currentUser.id}`) || '[]'
+      );
+
       let combined = [];
 
       // ===================================================
@@ -590,9 +594,18 @@ export default function Notifications() {
           .order('created_at', { ascending: false });
 
         if (!dmError && Array.isArray(dmRows)) {
+          const filteredDmRows = dmRows.filter((row) => !hiddenDirectMessageIds.includes(row.id));
+          // Deduplicate: if a DM already has a corresponding notification row, don't show it twice.
+          // Build a set of normalized DM notification signatures from combined (notifications that are Direct)
+          const directNotificationSignatures = new Set(
+            combined
+              .filter((item) => item.source === 'notifications' && item.category === 'Direct')
+              .map((item) => normalizeText(`${item.title} ${item.message}`.slice(0, 180)))
+          );
+
           const senderIds = [
             ...new Set(
-              dmRows
+              filteredDmRows
                 .map(row => row.sender_id)
                 .filter(Boolean)
             )
@@ -614,23 +627,30 @@ export default function Notifications() {
             });
           }
 
-          dmRows.forEach(message => {
+          filteredDmRows.forEach(message => {
             const id = `direct-message-${message.id}`;
             const rawContent = String(message.content || '');
             const cleanContent = rawContent
               .replace(/^\[\[CAMPORA_DM:[^\]]+\]\]/, '')
-              .replace(/^\[\[CAMPORA_SOURCE:[^\]]+\]\]/, '');
+              .replace(/^\[\[CAMPORA_SOURCE:[^\]]+\]\]/, '')
+              .replace(/^\[\[CAMPORA_REPLY:[^\]]+\]\]/, '')
+              .trim();
+            const title = `Message from ${senderNames[message.sender_id] || 'Student'}`;
+            const signature = normalizeText(`${title} ${cleanContent}`.slice(0, 180));
+            // If a notification with similar content already exists, skip this direct_messages duplicate
+            const isDuplicate = Array.from(directNotificationSignatures).some(sig => sig.includes(normalizeText(cleanContent.slice(0, 80))) || signature === sig);
+            if (isDuplicate) return;
 
             combined.push({
               id,
               rawId: message.id,
-              title: `Message from ${senderNames[message.sender_id] || 'Student'}`,
+              title,
               message: cleanContent || 'You received a new message.',
               category: 'Direct',
               section: 'Messages',
               source: 'direct_messages',
               created_at: getSafeDate(message.created_at),
-              read: savedReadIds.includes(id),
+              read: savedReadIds.includes(id) || hiddenDirectMessageIds.includes(message.id),
             });
           });
         }
@@ -1535,8 +1555,7 @@ export default function Notifications() {
           activeFilter
       );
     }, [
-      items,
-      activeSection,
+      currentItems,
       activeFilter,
     ]);
 
@@ -1936,6 +1955,38 @@ export default function Notifications() {
         }
       }
 
+      if (item.source === 'direct_messages') {
+        try {
+          const hiddenDmKey = `campora-hidden-direct-messages-${user?.id}`;
+          const existing = JSON.parse(localStorage.getItem(hiddenDmKey) || '[]');
+          if (!existing.includes(item.rawId)) {
+            existing.push(item.rawId);
+            localStorage.setItem(hiddenDmKey, JSON.stringify(existing));
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      // Also hide campus_news / campus_events like announcements
+      if (
+        item.source === 'campus_news' ||
+        item.source === 'campus_events'
+      ) {
+        hideCampusAnnouncement(item);
+      }
+
+      if (item.source === 'registration_local_alert') {
+        try {
+          const key = `campora-registration-alert-links-${user?.id}`;
+          const links = JSON.parse(localStorage.getItem(key) || '{}');
+          delete links[item.rawId];
+          localStorage.setItem(key, JSON.stringify(links));
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
       setItems(
         (previous) => {
           const updated =
@@ -1994,6 +2045,73 @@ export default function Notifications() {
             .forEach((item) => {
               hideCampusAnnouncement(item);
             });
+
+          // Clear any local alert links that produced Notification items so they don't reappear after reload
+          try {
+            if (user?.id) {
+              const notificationLocalSources = new Set(
+                currentItems
+                  .filter((item) => String(item.id).includes('-notification-') && String(item.source).includes('_local_alert'))
+                  .map((item) => item.source)
+              );
+              const localKeys = [
+                'campora-todo-alert-links',
+                'campora-course-alert-links',
+                'campora-campus-pulse-alert-links',
+                'campora-registration-alert-links',
+                'campora-planner-alert-links',
+              ];
+              for (const baseKey of localKeys) {
+                const key = `${baseKey}-${user.id}`;
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                const links = JSON.parse(raw);
+                let changed = false;
+                for (const item of currentItems) {
+                  if (item.source && links[item.rawId] && item.section === 'Notifications') {
+                    // Only delete if this local entry contributed to Notifications (notification or both)
+                    const alert = links[item.rawId];
+                    const mode = alert?.type || alert?.alertMode || (alert?.notification && alert?.reminder ? 'both' : alert?.reminder ? 'reminder' : alert?.notification ? 'notification' : null);
+                    if (mode === 'notification' || mode === 'both') {
+                      // For 'both' we keep the reminder half: downgrade to reminder-only instead of deleting entirely
+                      if (mode === 'both') {
+                        // Keep reminder part if it exists
+                        if (alert?.type === 'both') {
+                          links[item.rawId] = { ...alert, type: 'reminder' };
+                        } else if (alert?.alertMode === 'both') {
+                          links[item.rawId] = { ...alert, alertMode: 'reminder', notification: false, reminder: true };
+                        } else {
+                          // generic both (planner): keep reminder
+                          links[item.rawId] = { ...alert, type: 'reminder' };
+                        }
+                      } else {
+                        delete links[item.rawId];
+                      }
+                      changed = true;
+                    }
+                  }
+                }
+                if (changed) localStorage.setItem(key, JSON.stringify(links));
+              }
+            }
+          } catch (e) { console.log(e); }
+        }
+
+        if (activeSection === 'Messages') {
+          // Remember hidden direct messages so they don't reappear after reload (we don't delete the actual DM row)
+          try {
+            if (user?.id) {
+              const dmIds = currentItems
+                .filter((item) => item.source === 'direct_messages')
+                .map((item) => item.rawId);
+              if (dmIds.length) {
+                const hiddenDmKey = `campora-hidden-direct-messages-${user.id}`;
+                const existing = JSON.parse(localStorage.getItem(hiddenDmKey) || '[]');
+                const next = Array.from(new Set([...existing, ...dmIds]));
+                localStorage.setItem(hiddenDmKey, JSON.stringify(next));
+              }
+            }
+          } catch (e) { console.log(e); }
         }
 
         /*
@@ -2077,6 +2195,43 @@ export default function Notifications() {
           } catch (error) {
             console.log(error);
           }
+
+          // Clear local reminder links (reminder + both -> keep notification half if both)
+          try {
+            const localKeys = [
+              'campora-todo-alert-links',
+              'campora-course-alert-links',
+              'campora-campus-pulse-alert-links',
+              'campora-registration-alert-links',
+              'campora-planner-alert-links',
+            ];
+            for (const baseKey of localKeys) {
+              const key = `${baseKey}-${user.id}`;
+              const raw = localStorage.getItem(key);
+              if (!raw) continue;
+              const links = JSON.parse(raw);
+              let changed = false;
+              for (const itemId of Object.keys(links)) {
+                const alert = links[itemId];
+                const mode = alert?.type || alert?.alertMode || (alert?.notification && alert?.reminder ? 'both' : alert?.reminder ? 'reminder' : alert?.notification ? 'notification' : null);
+                if (mode === 'reminder' || mode === 'both') {
+                  if (mode === 'both') {
+                    if (alert?.type === 'both') {
+                      links[itemId] = { ...alert, type: 'notification' };
+                    } else if (alert?.alertMode === 'both') {
+                      links[itemId] = { ...alert, alertMode: 'notification', notification: true, reminder: false };
+                    } else {
+                      links[itemId] = { ...alert, type: 'notification' };
+                    }
+                  } else {
+                    delete links[itemId];
+                  }
+                  changed = true;
+                }
+              }
+              if (changed) localStorage.setItem(key, JSON.stringify(links));
+            }
+          } catch (e) { console.log(e); }
         }
 
         const remaining =
