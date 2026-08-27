@@ -3438,3 +3438,18 @@ body.campora-messages-fullscreen .main-content > * {
     margin-bottom: 8px !important;
   }
 }
+
+/* Dashboard hero campus pic must stay visible in dark mode */
+:root[data-theme='dark'] .dashboard-hero {
+  background: linear-gradient(135deg, #08152F 0%, #0B1A3F 52%, #142B5A 100%) !important;
+}
+:root[data-theme='dark'] .dashboard-hero-image {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  filter: none !important;
+}
+:root[data-theme='dark'] .dashboard-hero-overlay {
+  background: linear-gradient(90deg, rgba(8,21,47,.35) 0%, rgba(11,26,63,.22) 45%, rgba(11,26,63,.08) 100%) !important;
+  opacity: 1 !important;
+}

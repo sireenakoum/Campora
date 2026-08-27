@@ -657,23 +657,27 @@ export default function Dashboard() {
         `}
       </style>
 
-      <div className="dashboard-scroll campora-mobile-page dashboard-mobile" style={styles.page}>
+       <div className="dashboard-scroll campora-mobile-page dashboard-mobile" style={styles.page}>
         {/* HERO */}
-        <section style={styles.hero}>
+        <section className="dashboard-hero" style={styles.hero}>
           <img
             src={aubCampusImage}
             alt="AUB campus"
+            className="dashboard-hero-image"
             style={{
               ...styles.heroImage,
               opacity: 1,
-              filter: isDark ? 'brightness(0.85) contrast(1.05)' : 'none',
+              display: 'block',
+              visibility: 'visible',
+              filter: isDark ? 'brightness(1.0) contrast(1.0)' : 'none',
             }}
           />
-          <div style={{
+          <div className="dashboard-hero-overlay" style={{
             ...styles.heroImageOverlay,
             background: isDark
-              ? 'linear-gradient(90deg, rgba(8,21,47,.62) 0%, rgba(11,26,63,.48) 45%, rgba(11,26,63,.18) 100%)'
+              ? 'linear-gradient(90deg, rgba(8,21,47,.35) 0%, rgba(11,26,63,.22) 45%, rgba(11,26,63,.08) 100%)'
               : styles.heroImageOverlay.background,
+            opacity: 1,
           }} />
           <div style={styles.heroGlowOne} />
           <div style={styles.heroGlowTwo} />
