@@ -405,18 +405,7 @@ const ERROR_REPLY =
   'Sorry — I couldn\u2019t reach my brain just now. Check your connection and try again in a moment.'
 
 export default function ChatBotWidget() {
-  const [open, setOpen] = useState(() => {
-    try {
-      const saved = localStorage.getItem('campora_chat_open')
-      if (saved !== null) return saved === 'true'
-      // No saved preference: maximize only on a fresh login/session, not on every refresh
-      if (!sessionStorage.getItem('campora_chat_initialized')) {
-        sessionStorage.setItem('campora_chat_initialized', '1')
-        return true
-      }
-    } catch {}
-    return false
-  })
+  const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [thinking, setThinking] = useState(false)
   const [messages, setMessages] = useState([
@@ -426,44 +415,47 @@ export default function ChatBotWidget() {
   const scrollRef = useRef(null)
   const contextRef = useRef({ data: null, fetchedAt: 0 })
 
-  // Persist open/closed so refresh keeps user's choice
+  // Maximize only on fresh login, never on refresh
   useEffect(() => {
-    try {
-      localStorage.setItem('campora_chat_open', String(open))
-    } catch {}
-  }, [open])
-
-  // Fresh login in same tab should maximize again (sessionStorage already set after first load)
-  useEffect(() => {
+    let cancelled = false
+    // If user just logged in in this tab, supabase will fire SIGNED_IN; handle it
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
         try {
-          const last = sessionStorage.getItem('campora_chat_last_event')
-          if (last !== 'SIGNED_IN') {
-            sessionStorage.setItem('campora_chat_last_event', 'SIGNED_IN')
-            // only auto-maximize if user hasn't explicitly closed it this session
-            // respect explicit close: don't force open if they just closed it
-          }
-        } catch {}
-        // Maximize on fresh sign-in if no explicit preference yet or prefer to show once per login
-        try {
-          const justLoggedIn = !sessionStorage.getItem('campora_chat_login_maximized')
-          if (justLoggedIn) {
+          if (!sessionStorage.getItem('campora_chat_login_maximized')) {
             sessionStorage.setItem('campora_chat_login_maximized', '1')
-            setOpen(true)
+            if (!cancelled) setOpen(true)
           }
         } catch {
-          setOpen(true)
+          if (!cancelled) setOpen(true)
         }
       }
       if (event === 'SIGNED_OUT') {
         try {
           sessionStorage.removeItem('campora_chat_login_maximized')
-          sessionStorage.setItem('campora_chat_last_event', 'SIGNED_OUT')
         } catch {}
+        if (!cancelled) setOpen(false)
       }
     })
-    return () => subscription.unsubscribe()
+    // Also handle the case where widget mounts *after* SIGNED_IN already fired
+    // (e.g. redirect to /dashboard after login). If session exists and we have never
+    // maximized in this tab, treat it as fresh login.
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return
+      try {
+        const hasSession = !!data.session
+        const alreadyMaximized = sessionStorage.getItem('campora_chat_login_maximized')
+        const seen = sessionStorage.getItem('campora_chat_seen_session')
+        if (hasSession && !alreadyMaximized && !seen) {
+          sessionStorage.setItem('campora_chat_login_maximized', '1')
+          sessionStorage.setItem('campora_chat_seen_session', '1')
+          setOpen(true)
+          return
+        }
+        sessionStorage.setItem('campora_chat_seen_session', '1')
+      } catch {}
+    })
+    return () => { cancelled = true; subscription.unsubscribe() }
   }, [])
 
   useEffect(() => {
