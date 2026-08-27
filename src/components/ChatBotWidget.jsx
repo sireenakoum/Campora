@@ -405,7 +405,18 @@ const ERROR_REPLY =
   'Sorry — I couldn\u2019t reach my brain just now. Check your connection and try again in a moment.'
 
 export default function ChatBotWidget() {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem('campora_chat_open')
+      if (saved !== null) return saved === 'true'
+      // No saved preference: maximize only on a fresh login/session, not on every refresh
+      if (!sessionStorage.getItem('campora_chat_initialized')) {
+        sessionStorage.setItem('campora_chat_initialized', '1')
+        return true
+      }
+    } catch {}
+    return false
+  })
   const [draft, setDraft] = useState('')
   const [thinking, setThinking] = useState(false)
   const [messages, setMessages] = useState([
@@ -414,6 +425,46 @@ export default function ChatBotWidget() {
 
   const scrollRef = useRef(null)
   const contextRef = useRef({ data: null, fetchedAt: 0 })
+
+  // Persist open/closed so refresh keeps user's choice
+  useEffect(() => {
+    try {
+      localStorage.setItem('campora_chat_open', String(open))
+    } catch {}
+  }, [open])
+
+  // Fresh login in same tab should maximize again (sessionStorage already set after first load)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        try {
+          const last = sessionStorage.getItem('campora_chat_last_event')
+          if (last !== 'SIGNED_IN') {
+            sessionStorage.setItem('campora_chat_last_event', 'SIGNED_IN')
+            // only auto-maximize if user hasn't explicitly closed it this session
+            // respect explicit close: don't force open if they just closed it
+          }
+        } catch {}
+        // Maximize on fresh sign-in if no explicit preference yet or prefer to show once per login
+        try {
+          const justLoggedIn = !sessionStorage.getItem('campora_chat_login_maximized')
+          if (justLoggedIn) {
+            sessionStorage.setItem('campora_chat_login_maximized', '1')
+            setOpen(true)
+          }
+        } catch {
+          setOpen(true)
+        }
+      }
+      if (event === 'SIGNED_OUT') {
+        try {
+          sessionStorage.removeItem('campora_chat_login_maximized')
+          sessionStorage.setItem('campora_chat_last_event', 'SIGNED_OUT')
+        } catch {}
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     const node = scrollRef.current
