@@ -207,6 +207,15 @@ function plannerTypeIcon(type) {
 export default function Dashboard() {
   const navigate = useNavigate();
 
+  const [isDark, setIsDark] = useState(() => typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark');
+  useEffect(() => {
+    const update = () => setIsDark(document.documentElement.dataset.theme === 'dark');
+    const obs = new MutationObserver(update);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.addEventListener('storage', update);
+    return () => { obs.disconnect(); window.removeEventListener('storage', update); };
+  }, []);
+
   const [userId, setUserId] = useState(null);
   const [profile, setProfile] = useState(null);
 
@@ -654,9 +663,18 @@ export default function Dashboard() {
           <img
             src={aubCampusImage}
             alt="AUB campus"
-            style={styles.heroImage}
+            style={{
+              ...styles.heroImage,
+              opacity: 1,
+              filter: isDark ? 'brightness(0.85) contrast(1.05)' : 'none',
+            }}
           />
-          <div style={styles.heroImageOverlay} />
+          <div style={{
+            ...styles.heroImageOverlay,
+            background: isDark
+              ? 'linear-gradient(90deg, rgba(8,21,47,.62) 0%, rgba(11,26,63,.48) 45%, rgba(11,26,63,.18) 100%)'
+              : styles.heroImageOverlay.background,
+          }} />
           <div style={styles.heroGlowOne} />
           <div style={styles.heroGlowTwo} />
 
