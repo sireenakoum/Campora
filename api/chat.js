@@ -2,19 +2,15 @@
 // Keeps the Gemini API key server-side; the frontend never sees it.
 // Deployed automatically by Vercel as /api/chat.
 
-const GEMINI_MODEL = 'gemini-3.6-flash';
-// Free-tier daily quotas are per model, so when one runs dry the handler
-// automatically falls back to the next until one answers.
-const FALLBACK_MODELS = ['gemini-3.5-flash'];
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const FALLBACK_MODELS = ['gemini-2.0-flash'];
 const GEMINI_URL = (model) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 const MAX_HISTORY = 12;
 const MAX_MESSAGE_CHARS = 2000;
 
-// Per-client message limits. These protect the small free-tier Gemini
-// quota from being burned by one spammy client. Tool-result round-trips
-// (part of the same user message) are not counted.
+// Per-client message limits.
 const RATE_LIMITS = {
   hour: { max: 12, windowMs: 60 * 60 * 1000 },
   day: { max: 40, windowMs: 24 * 60 * 60 * 1000 },
@@ -38,7 +34,6 @@ function checkRateLimit(clientKey) {
   bucket.dayCount += 1;
   rateBuckets.set(clientKey, bucket);
 
-  // Occasionally drop stale buckets so the map cannot grow forever.
   if (rateBuckets.size > 5000) {
     for (const [key, entry] of rateBuckets) {
       if (
@@ -55,9 +50,8 @@ function checkRateLimit(clientKey) {
   return null;
 }
 
-// Tools the assistant can invoke. They are executed client-side by
-// ChatBotWidget against Supabase (scoped to the signed-in user via RLS),
-// and the result is sent back here so the model can confirm.
+// Relaxed tool definitions: Optional fields allow the AI to prompt the user
+// for missing details instead of failing silently.
 const TOOLS = [
   {
     functionDeclarations: [
@@ -109,7 +103,7 @@ const TOOLS = [
       {
         name: 'add_deadline',
         description:
-          "Add an assignment, exam, or project deadline. It appears on the student's dashboard and weekly planner.",
+          "Add an assignment, exam, or project deadline to the student's dashboard.",
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -131,7 +125,7 @@ const TOOLS = [
       {
         name: 'add_planner_entry',
         description:
-          "Add a single entry to the student's weekly planner schedule.",
+          "Add an entry to the student's weekly planner schedule.",
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -146,7 +140,8 @@ const TOOLS = [
             },
             description: { type: 'STRING', description: 'Optional notes' },
           },
-          required: ['name', 'date', 'start_time', 'end_time'],
+          // Kept only 'name' as strictly required so the tool can be invoked with partial inputs or prompted
+          required: ['name'],
         },
       },
       {
@@ -172,25 +167,19 @@ function buildSystemPrompt(context) {
     'You are the Campora Assistant, the built-in AI helper of Campora,',
     'an academic portal for American University of Beirut (AUB) students.',
     'Your job: help with study planning, courses, deadlines, campus life,',
-    'and general student questions. Be warm, concise (2-5 sentences unless',
-    'asked for detail), and practical. Use plain text, no markdown headers.',
-    'When the student context below is relevant, use it and be specific.',
-    'Never invent assignments, dates, or grades that are not in the context;',
-    'if you do not know, say so and suggest where in Campora to look.',
+    'and general student questions. Be warm, flexible, and practical.',
     '',
-    'You can manage the student\'s Campora data with your tools:',
-    '- add_todo / complete_todo / delete_todo for their to-do list',
-    '- add_deadline for assignment or exam deadlines on their dashboard',
-    '- add_planner_entry / delete_planner_entry for their weekly schedule',
-    'When the student asks you to add, complete, or remove something, use',
-    'the matching tool instead of only describing what to do. Resolve',
-    'relative dates ("tomorrow", "next Friday") using the current local',
-    'date and time in the context. For complete_todo, delete_todo, and',
-    'delete_planner_entry, pick ids from the context; if nothing matches,',
-    'say so instead of guessing. After a tool runs, confirm briefly in one',
-    'short sentence what changed.',
-    'You never claim to take actions outside these tools (enrolling,',
-    'submitting work); you only advise.',
+    'INTENT HANDLING & MISSING INFORMATION:',
+    '- Interpret user requests naturally. Phrases like "remind me to study", "put in my planner", or "schedule a class" indicate tool usage.',
+    '- DO NOT invent or guess missing critical details like dates, start times, or end times.',
+    '- IF THE USER IS MISSING DETAILS needed to execute a tool (e.g., asking to add a planner entry without specifying the date or start/end time), ASK them clearly and politely for the missing information BEFORE running the tool.',
+    '- NEVER pick arbitrary or random dates/times for planner entries.',
+    '- Always calculate relative dates ("tomorrow", "next Monday") relative to the current local date provided in context.',
+    '',
+    'TOOL EXECUTION RULES:',
+    '- For complete_todo, delete_todo, and delete_planner_entry, use the matching ID from the user context. If no matching item exists, inform the user instead of guessing an ID.',
+    '- After a tool runs successfully, confirm briefly in one friendly sentence what was updated.',
+    '- You cannot perform real-world actions like official course registration or assignment submission; only manage Campora planner, to-dos, and deadlines.',
   ];
 
   if (context && typeof context === 'object') {
@@ -227,23 +216,19 @@ function buildSystemPrompt(context) {
     }
 
     if (Array.isArray(context.todos) && context.todos.length) {
-      const rows = context.todos.map((t) => `- ${t.title}`).join('\n');
+      const rows = context.todos.map((t) => `- [ID: ${t.id}] ${t.title}`).join('\n');
       bits.push(`Open to-dos:\n${rows}`);
     }
 
     if (bits.length) {
-      lines.push(
-        '\nCurrent student context (fetched live from their Campora account):'
-      );
+      lines.push('\nCurrent student context (fetched live from Campora):');
       lines.push(bits.join('\n'));
     } else {
-      lines.push(
-        '\nNo personal context is available right now; answer generally.'
-      );
+      lines.push('\nNo personal context is available right now; answer generally.');
     }
   }
 
-  return lines.join(' ');
+  return lines.join('\n');
 }
 
 function sanitizeHistory(messages) {
@@ -275,8 +260,6 @@ function buildContents(history, toolResult) {
       },
     };
 
-    // Gemini 3 requires the original thought signature to be echoed back
-    // alongside any replayed function call.
     if (toolResult.call.thoughtSignature) {
       callPart.thoughtSignature = toolResult.call.thoughtSignature;
     }
@@ -325,8 +308,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No message provided' });
   }
 
-  // Tool-result follow-ups belong to the same user message, so only new
-  // messages count against the rate limit.
   if (!body?.toolResult) {
     const clientKey =
       String(body?.userId || '').trim() ||
@@ -357,7 +338,7 @@ export default async function handler(req, res) {
       contents: buildContents(history, body?.toolResult),
       tools: TOOLS,
       generationConfig: {
-        temperature: 0.6,
+        temperature: 0.5,
         maxOutputTokens: 512,
       },
     });
@@ -386,7 +367,6 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const detail = await response.text();
-
       console.error('Gemini API error:', response.status, detail);
 
       return res.status(502).json({
